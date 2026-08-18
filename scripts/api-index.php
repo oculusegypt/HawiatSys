@@ -3791,6 +3791,183 @@ try {
         exit;
     }
 
+    // ── AI SEO generation: POST /api/admin/ai/generate-seo ─────────────────────
+    // Keep this endpoint in the PHP production API as well as the Express API.
+    // Hostinger serves this script directly and has no Node.js process.
+    if ($path === '/admin/ai/generate-seo' && $method === 'POST') {
+        $authHeader = getAuthHeader();
+        if (!$authHeader || !preg_match('/^Bearer\s+(.+)$/i', $authHeader, $matches)) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Unauthorized'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        $tokenPayload = verifyToken($matches[1]);
+        if (!$tokenPayload || empty($tokenPayload['adminId'])) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Unauthorized'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        $adminStmt = $pdo->prepare("SELECT id, role, is_active FROM admins WHERE id = :id LIMIT 1");
+        $adminStmt->execute([':id' => (int)$tokenPayload['adminId']]);
+        $admin = $adminStmt->fetch();
+        if (!$admin || (isset($admin['is_active']) && (int)$admin['is_active'] === 0)) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Unauthorized'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        if (in_array((string)($admin['role'] ?? ''), ['driver'], true)) {
+            http_response_code(403);
+            echo json_encode(['error' => 'ليس لديك صلاحية لتوليد بيانات SEO'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        $title = trim((string)($input['title'] ?? ''));
+        $description = trim((string)($input['description'] ?? ''));
+        if ($title === '' && $description === '') {
+            http_response_code(400);
+            echo json_encode(['error' => 'يرجى إدخال عنوان أو وصف أولاً'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        $settingStmt = $pdo->prepare("SELECT key, value FROM site_settings WHERE key IN (:gemini, :qwen, :host, :model, :zhipu, :order)");
+        $settingStmt->execute([
+            ':gemini' => 'ai_gemini_key',
+            ':qwen' => 'ai_qwen_key',
+            ':host' => 'ai_qwen_host',
+            ':model' => 'ai_qwen_model',
+            ':zhipu' => 'ai_zhipu_key',
+            ':order' => 'ai_provider_order',
+        ]);
+        $aiSettings = $settingStmt->fetchAll(PDO::FETCH_KEY_PAIR);
+        $providerOrder = ['qwen', 'zhipu', 'gemini'];
+        if (!empty($aiSettings['ai_provider_order'])) {
+            $decodedOrder = json_decode((string)$aiSettings['ai_provider_order'], true);
+            if (is_array($decodedOrder)) {
+                $providerOrder = array_values(array_filter($decodedOrder, 'is_string'));
+            }
+        }
+
+        $prompt = <<<PROMPT
+أنت خبير سيو متخصص في السوق السعودي والمحتوى العربي. ولّد بيانات SEO دقيقة للخدمة التالية.
+العنوان: {$title}
+الوصف الحالي: {$description}
+
+أجب بـ JSON صالح فقط، بدون أي نص قبله أو بعده:
+{
+  "serviceDescription": "وصف عربي تسويقي تفصيلي لا يقل عن 40 كلمة",
+  "seoTitle": "عنوان SEO بين 50 و60 حرفاً",
+  "seoDescription": "وصف SEO بين 120 و160 حرفاً مع دعوة للتصرف",
+  "seoKeywords": "5-7 كلمات مفتاحية مفصولة بفاصلة عربية",
+  "seoSlug": "رابط عربي قصير بشرطات فقط"
+}
+قواعد: اكتب بالعربية، لا تستخدم أحرفاً إنجليزية في seoSlug، ولا تكرر النص بين الوصف وseoDescription.
+PROMPT;
+
+        $extractJsonObject = static function (string $text): ?array {
+            $clean = trim(preg_replace('/<think>[\s\S]*?<\/think>/i', '', $text) ?? $text);
+            $clean = preg_replace('/^```(?:json)?\s*/i', '', $clean) ?? $clean;
+            $clean = preg_replace('/\s*```$/', '', $clean) ?? $clean;
+            $start = strpos($clean, '{');
+            $end = strrpos($clean, '}');
+            if ($start === false || $end === false || $end <= $start) return null;
+            $decoded = json_decode(substr($clean, $start, $end - $start + 1), true);
+            return is_array($decoded) ? $decoded : null;
+        };
+        $normalizeSlug = static function ($value): string {
+            if (!is_string($value)) return '';
+            $slug = preg_replace('/[\s_]+/u', '-', trim($value)) ?? '';
+            $slug = preg_replace('/[^\x{0600}-\x{06FF}0-9-]/u', '', $slug) ?? '';
+            $slug = preg_replace('/-+/u', '-', $slug) ?? '';
+            return trim($slug, '-');
+        };
+        $postJson = static function (string $url, array $headers, array $body): ?array {
+            $context = stream_context_create([
+                'http' => [
+                    'method' => 'POST',
+                    'header' => implode("\r\n", $headers),
+                    'content' => json_encode($body, JSON_UNESCAPED_UNICODE),
+                    'timeout' => 45,
+                    'ignore_errors' => true,
+                ],
+            ]);
+            $response = @file_get_contents($url, false, $context);
+            if ($response === false) return null;
+            $decoded = json_decode($response, true);
+            return is_array($decoded) ? $decoded : null;
+        };
+
+        $attempts = [];
+        foreach ($providerOrder as $provider) {
+            try {
+                $raw = '';
+                if ($provider === 'gemini' && !empty($aiSettings['ai_gemini_key'])) {
+                    $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' . urlencode((string)$aiSettings['ai_gemini_key']);
+                    $response = $postJson($url, ['Content-Type: application/json'], [
+                        'contents' => [['parts' => [['text' => $prompt]]]],
+                        'generationConfig' => ['temperature' => 0.7, 'maxOutputTokens' => 600],
+                    ]);
+                    $raw = (string)($response['candidates'][0]['content']['parts'][0]['text'] ?? '');
+                } elseif ($provider === 'qwen' && !empty($aiSettings['ai_qwen_key'])) {
+                    $host = trim((string)($aiSettings['ai_qwen_host'] ?? ''));
+                    if ($host === '') $host = 'dashscope-intl.aliyuncs.com';
+                    if (str_starts_with($host, 'http')) {
+                        $base = rtrim($host, '/');
+                    } elseif (str_contains($host, '.maas.aliyuncs.com')) {
+                        $base = 'https://' . $host . '/compatible-mode/v1';
+                    } else {
+                        $base = 'https://' . $host . '/v1';
+                    }
+                    $response = $postJson($base . '/chat/completions', [
+                        'Content-Type: application/json',
+                        'Authorization: Bearer ' . $aiSettings['ai_qwen_key'],
+                    ], [
+                        'model' => trim((string)($aiSettings['ai_qwen_model'] ?? '')) ?: 'qwen3-max',
+                        'messages' => [['role' => 'user', 'content' => $prompt]],
+                        'temperature' => 0.7,
+                        'max_tokens' => 800,
+                    ]);
+                    $raw = (string)($response['choices'][0]['message']['content'] ?? '');
+                } elseif ($provider === 'zhipu' && !empty($aiSettings['ai_zhipu_key'])) {
+                    $response = $postJson('https://open.bigmodel.cn/api/paas/v4/chat/completions', [
+                        'Content-Type: application/json',
+                        'Authorization: Bearer ' . $aiSettings['ai_zhipu_key'],
+                    ], [
+                        'model' => 'glm-4-flash',
+                        'messages' => [['role' => 'user', 'content' => $prompt]],
+                        'temperature' => 0.7,
+                        'max_tokens' => 600,
+                    ]);
+                    $raw = (string)($response['choices'][0]['message']['content'] ?? '');
+                } else {
+                    $attempts[] = $provider . ': مفتاح غير مُعيَّن';
+                    continue;
+                }
+
+                $result = $extractJsonObject($raw);
+                if (!$result) {
+                    $attempts[] = $provider . ': استجابة JSON غير صالحة';
+                    continue;
+                }
+                if (array_key_exists('seoSlug', $result)) {
+                    $result['seoSlug'] = $normalizeSlug($result['seoSlug']);
+                }
+                echo json_encode(array_merge($result, ['provider' => $provider]), JSON_UNESCAPED_UNICODE);
+                exit;
+            } catch (\Throwable $providerError) {
+                $attempts[] = $provider . ': ' . $providerError->getMessage();
+            }
+        }
+
+        http_response_code(503);
+        echo json_encode([
+            'error' => 'فشل الاتصال بجميع مزودي الذكاء الاصطناعي. تحقق من مفاتيح API في إعدادات الذكاء الاصطناعي.',
+            'attempts' => $attempts,
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
     if ($path === '/driver/work-orders' && $method === 'GET') {
         try {
             $authHeader = getAuthHeader();
