@@ -39,6 +39,58 @@ function referenceFor(kind: string, payload: Record<string, unknown>, nextId: nu
   return String(payload.reference || payload.code || `${prefix[kind] ?? "REC"}-${String(nextId).padStart(5, "0")}`);
 }
 
+function normalizeContractPayload(payload: Record<string, unknown>) {
+  const next = { ...payload };
+  const amount = Number(next.amount ?? 0);
+  const taxRate = Number(next.taxRate ?? 15);
+  if (Number.isFinite(amount) && Number.isFinite(taxRate)) {
+    next.taxAmount = Math.round(amount * taxRate / 100 * 100) / 100;
+    next.total = Math.round((amount + Number(next.taxAmount)) * 100) / 100;
+  }
+  return next;
+}
+
+async function hasOverlappingContract(payload: Record<string, unknown>, ignoredId?: number) {
+  const containerCode = String(payload.containerCode ?? "").trim();
+  const start = Date.parse(String(payload.startDate ?? ""));
+  const end = Date.parse(String(payload.endDate ?? ""));
+  if (!containerCode || !Number.isFinite(start) || !Number.isFinite(end)) return false;
+  const existing = await db.select().from(containerSystemRecordsTable);
+  return existing.some(record => {
+    if (record.kind !== "contract" || record.status === "archived" || record.id === ignoredId) return false;
+    const current = parsePayload(record.payload);
+    if (String(current.containerCode ?? "") !== containerCode) return false;
+    const currentStart = Date.parse(String(current.startDate ?? ""));
+    const currentEnd = Date.parse(String(current.endDate ?? ""));
+    return ["active", "issued", "scheduled", "delivered"].includes(record.status) &&
+      Number.isFinite(currentStart) && Number.isFinite(currentEnd) &&
+      start <= currentEnd && end >= currentStart;
+  });
+}
+
+async function syncMovement(payload: Record<string, unknown>, actorId: number | null) {
+  const movementType = String(payload.movementType ?? "").toLowerCase();
+  const nextStatus = movementType.includes("استرجاع") || movementType.includes("return") ? "available"
+    : movementType.includes("صيانة") || movementType.includes("maintenance") ? "maintenance" : "rented";
+  const assets = await db.select().from(containerSystemRecordsTable);
+  const asset = assets.find(record => {
+    if (!["container", "container_asset"].includes(record.kind)) return false;
+    const assetPayload = parsePayload(record.payload);
+    return String(assetPayload.assetCode ?? assetPayload.code ?? "") === String(payload.containerCode ?? "");
+  });
+  if (!asset) return;
+  const before = asset.payload;
+  const beforePayload = parsePayload(before);
+  const nextPayload = { ...beforePayload, location: payload.location ?? beforePayload.location };
+  await db.update(containerSystemRecordsTable).set({
+    status: nextStatus, payload: JSON.stringify(nextPayload), updatedAt: new Date().toISOString(),
+  }).where(eq(containerSystemRecordsTable.id, asset.id));
+  await db.insert(containerSystemAuditTable).values({
+    recordId: asset.id, kind: asset.kind, action: "movement_sync",
+    beforePayload: before, afterPayload: JSON.stringify(nextPayload), actorId,
+  });
+}
+
 router.get("/admin/container-system", async (req, res) => {
   const rows = await db.select().from(containerSystemRecordsTable).orderBy(desc(containerSystemRecordsTable.updatedAt));
   const records = rows.map(formatRecord);
@@ -120,33 +172,16 @@ router.post("/admin/container-system/records", async (req, res) => {
   if (!canManage(adminReq, kind)) return res.status(403).json({ error: "ليس لديك صلاحية لهذه العملية" });
   if (!payload || typeof payload !== "object") return res.status(400).json({ error: "بيانات السجل غير صالحة" });
   if (kind === "contract") {
+    Object.assign(payload, normalizeContractPayload(payload));
     const amount = Number(payload.amount ?? 0);
     const minimumPrice = Number(payload.minimumPrice ?? 0);
     const approved = ["true", "1", "yes", "نعم"].includes(String(payload.minimumPriceApproved ?? "").toLowerCase());
     if (minimumPrice > 0 && amount < minimumPrice && !approved) {
       return res.status(422).json({ error: "قيمة العقد أقل من الحد الأدنى وتتطلب استثناءً معتمداً" });
     }
-    const taxRate = Number(payload.taxRate ?? 15);
-    if (Number.isFinite(amount) && Number.isFinite(taxRate)) {
-      payload.taxAmount = payload.taxAmount ?? Math.round(amount * taxRate / 100 * 100) / 100;
-      payload.total = payload.total ?? Math.round((amount + Number(payload.taxAmount)) * 100) / 100;
-    }
     const containerCode = String(payload.containerCode ?? "").trim();
     if (containerCode) {
-      const existing = await db.select().from(containerSystemRecordsTable);
-      const start = Date.parse(String(payload.startDate ?? ""));
-      const end = Date.parse(String(payload.endDate ?? ""));
-      const overlaps = existing.some(record => {
-        if (record.kind !== "contract" || record.status === "archived") return false;
-        const current = parsePayload(record.payload);
-        if (current.containerCode !== containerCode) return false;
-        const currentStart = Date.parse(String(current.startDate ?? ""));
-        const currentEnd = Date.parse(String(current.endDate ?? ""));
-        const active = ["active", "issued", "scheduled", "delivered"].includes(record.status);
-        return active && Number.isFinite(start) && Number.isFinite(end) && Number.isFinite(currentStart) &&
-          Number.isFinite(currentEnd) && start <= currentEnd && end >= currentStart;
-      });
-      if (overlaps) return res.status(409).json({ error: "الحاوية مرتبطة بعقد آخر خلال نفس الفترة" });
+      if (await hasOverlappingContract(payload)) return res.status(409).json({ error: "الحاوية مرتبطة بعقد آخر خلال نفس الفترة" });
     }
   }
   if (kind === "container_movement") {
