@@ -18,6 +18,9 @@ export const serviceRequestsTable = sqliteTable("service_requests", {
   scheduledAt: text("scheduled_at"), // ISO date string for scheduled appointments
   status: text("status").notNull().default("pending"),
   adminNotes: text("admin_notes"),
+  customerRecordId: integer("customer_record_id"),
+  containerRecordId: integer("container_record_id"),
+  contractRecordId: integer("contract_record_id"),
   assignedDriverId: integer("assigned_driver_id"),
   driverStatus: text("driver_status").notNull().default("unassigned"),
   driverResponseAt: text("driver_response_at"),

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { and, desc, eq, like } from "drizzle-orm";
-import { db, containerSystemAuditTable, containerSystemRecordsTable } from "@workspace/db";
+import { db, containerSystemAuditTable, containerSystemRecordsTable, serviceRequestsTable } from "@workspace/db";
 import type { AdminRequest } from "../middleware/adminAuth";
 
 const router = Router();
@@ -88,6 +88,26 @@ async function syncMovement(payload: Record<string, unknown>, actorId: number | 
   await db.insert(containerSystemAuditTable).values({
     recordId: asset.id, kind: asset.kind, action: "movement_sync",
     beforePayload: before, afterPayload: JSON.stringify(nextPayload), actorId,
+  });
+}
+
+async function linkContractToRequest(payload: Record<string, unknown>, contractId: number, actorId: number | null) {
+  const requestId = Number(payload.requestId ?? payload.serviceRequestId ?? 0);
+  if (!Number.isInteger(requestId) || requestId <= 0) return;
+  const request = await db.select().from(serviceRequestsTable).where(eq(serviceRequestsTable.id, requestId)).get();
+  if (!request) throw new Error("الطلب المرتبط بالعقد غير موجود");
+  await db.update(serviceRequestsTable).set({
+    customerRecordId: Number(payload.customerRecordId ?? 0) || null,
+    containerRecordId: Number(payload.containerRecordId ?? 0) || null,
+    contractRecordId: contractId,
+    status: ["draft", "cancelled"].includes(String(payload.status ?? "")) ? request.status : "in_progress",
+    adminNotes: `${request.adminNotes ?? ""}\nمرتبط بعقد الحاويات ${contractId}`.trim(),
+    updatedAt: new Date().toISOString(),
+  }).where(eq(serviceRequestsTable.id, requestId));
+  await db.insert(containerSystemAuditTable).values({
+    recordId: contractId, kind: "contract", action: "request_link",
+    afterPayload: JSON.stringify({ requestId, customerRecordId: payload.customerRecordId ?? null, containerRecordId: payload.containerRecordId ?? null }),
+    actorId,
   });
 }
 
@@ -183,6 +203,9 @@ router.post("/admin/container-system/records", async (req, res) => {
     if (containerCode) {
       if (await hasOverlappingContract(payload)) return res.status(409).json({ error: "الحاوية مرتبطة بعقد آخر خلال نفس الفترة" });
     }
+    if (payload.requestId !== undefined && Number(payload.requestId) <= 0) {
+      return res.status(422).json({ error: "رقم الطلب المرتبط غير صحيح" });
+    }
   }
   if (kind === "container_movement") {
     const movementType = String(payload.movementType ?? "").trim();
@@ -200,6 +223,14 @@ router.post("/admin/container-system/records", async (req, res) => {
     recordId: created.id, kind, action: "create", afterPayload: created.payload, actorId: adminReq.adminId,
   });
   if (kind === "container_movement") await syncMovement(payload, adminReq.adminId);
+  if (kind === "contract") {
+    try {
+      await linkContractToRequest(payload, created.id, adminReq.adminId);
+    } catch (error) {
+      await db.update(containerSystemRecordsTable).set({ status: "archived", updatedAt: new Date().toISOString() }).where(eq(containerSystemRecordsTable.id, created.id));
+      return res.status(422).json({ error: error instanceof Error ? error.message : "تعذر ربط العقد بالطلب" });
+    }
+  }
   if (["payment", "receipt", "expense", "deposit"].includes(kind)) {
     await db.insert(containerSystemRecordsTable).values({
       kind: "ledger_entry",
@@ -254,6 +285,13 @@ router.patch("/admin/container-system/records/:id", async (req, res) => {
     afterPayload: updated.payload, actorId: adminReq.adminId,
   });
   if (current.kind === "container_movement") await syncMovement(nextPayload, adminReq.adminId);
+  if (current.kind === "contract" && nextPayload.requestId) {
+    try {
+      await linkContractToRequest(nextPayload, id, adminReq.adminId);
+    } catch (error) {
+      return res.status(422).json({ error: error instanceof Error ? error.message : "تعذر تحديث ربط الطلب" });
+    }
+  }
   return res.json(formatRecord(updated));
 });
 

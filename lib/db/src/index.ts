@@ -46,6 +46,9 @@ const serviceRequestMigrations = [
   "ALTER TABLE service_requests ADD COLUMN attribution_utm_medium TEXT NOT NULL DEFAULT ''",
   "ALTER TABLE service_requests ADD COLUMN attribution_utm_campaign TEXT NOT NULL DEFAULT ''",
   "ALTER TABLE service_requests ADD COLUMN attribution_gclid TEXT NOT NULL DEFAULT ''",
+  "ALTER TABLE service_requests ADD COLUMN customer_record_id INTEGER",
+  "ALTER TABLE service_requests ADD COLUMN container_record_id INTEGER",
+  "ALTER TABLE service_requests ADD COLUMN contract_record_id INTEGER",
 ];
 for (const sql of serviceRequestMigrations) {
   try { sqlite.exec(sql); } catch { /* column already exists — safe to ignore */ }
