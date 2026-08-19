@@ -8,6 +8,9 @@ const supportedKinds = [
   "customer", "container_type", "container", "container_asset", "vehicle", "driver",
   "contract", "contract_line", "container_movement", "ledger_entry", "receipt", "payment",
   "expense", "deposit", "bank_deposit", "maintenance", "alert", "setting",
+  "branch", "employee", "permit", "appointment", "warehouse", "treasury", "transfer",
+  "invoice", "invoice_return", "category", "category_size", "tax", "commission",
+  "oil_change", "salary_advance", "salary_payment", "fuel_expense", "daily_expense",
 ] as const;
 type RecordKind = typeof supportedKinds[number];
 
@@ -35,6 +38,8 @@ function referenceFor(kind: string, payload: Record<string, unknown>, nextId: nu
     customer: "CUS", container_type: "CT", container_asset: "CONT", vehicle: "CAR",
     driver: "DRV", contract: "RNT", receipt: "RCV", payment: "PAY", expense: "EXP",
     bank_deposit: "DEP", maintenance: "MNT",
+    branch: "BRN", employee: "EMP", permit: "PRM", appointment: "APT", invoice: "INV",
+    treasury: "TRS", transfer: "TRF", tax: "TAX", commission: "COM",
   };
   return String(payload.reference || payload.code || `${prefix[kind] ?? "REC"}-${String(nextId).padStart(5, "0")}`);
 }

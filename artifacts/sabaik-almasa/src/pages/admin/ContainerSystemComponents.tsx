@@ -25,6 +25,24 @@ export type RecordKind =
   | "deposit"
   | "alert"
   | "setting"
+  | "branch"
+  | "employee"
+  | "permit"
+  | "appointment"
+  | "warehouse"
+  | "treasury"
+  | "transfer"
+  | "invoice"
+  | "invoice_return"
+  | "category"
+  | "category_size"
+  | "tax"
+  | "commission"
+  | "oil_change"
+  | "salary_advance"
+  | "salary_payment"
+  | "fuel_expense"
+  | "daily_expense"
 
 export const KIND_LABELS: Record<RecordKind, string> = {
   customer: "العملاء",
@@ -43,6 +61,24 @@ export const KIND_LABELS: Record<RecordKind, string> = {
   deposit: "الإيداعات البنكية",
   alert: "التنبيهات اليومية",
   setting: "الإعدادات",
+  branch: "الفروع",
+  employee: "الموظفون",
+  permit: "التصاريح",
+  appointment: "المواعيد",
+  warehouse: "المستودعات والمخازن",
+  treasury: "الخزائن",
+  transfer: "التحويل بين الخزائن",
+  invoice: "الفواتير",
+  invoice_return: "مرتجعات الفواتير",
+  category: "تصنيفات الأصناف",
+  category_size: "أحجام التصنيفات",
+  tax: "الضرائب",
+  commission: "أسعار العمولات",
+  oil_change: "قراءات وتغيير الزيت",
+  salary_advance: "السلف",
+  salary_payment: "الرواتب",
+  fuel_expense: "مصروفات السيارات",
+  daily_expense: "المصروفات اليومية",
 }
 
 export const KIND_ICONS: Record<RecordKind, string> = {
@@ -62,6 +98,24 @@ export const KIND_ICONS: Record<RecordKind, string> = {
   deposit: "إيداع",
   alert: "تنبيه",
   setting: "إعداد",
+  branch: "فرع",
+  employee: "موظف",
+  permit: "تصريح",
+  appointment: "موعد",
+  warehouse: "مخزن",
+  treasury: "خزينة",
+  transfer: "تحويل",
+  invoice: "فاتورة",
+  invoice_return: "مرتجع",
+  category: "تصنيف",
+  category_size: "حجم",
+  tax: "ضريبة",
+  commission: "عمولة",
+  oil_change: "زيت",
+  salary_advance: "سلفة",
+  salary_payment: "راتب",
+  fuel_expense: "وقود",
+  daily_expense: "مصروف يومي",
 }
 
 type FieldConfig = {
@@ -202,6 +256,141 @@ export const FIELD_CONFIG: Record<RecordKind, FieldConfig[]> = {
     { key: "value", label: "القيمة", placeholder: "24 ساعة" },
     { key: "section", label: "القسم", placeholder: "التشغيل / المالية / العقود" },
     { key: "notes", label: "شرح الإعداد", type: "textarea", wide: true },
+  ],
+  branch: [
+    { key: "name", label: "اسم الفرع", placeholder: "الفرع الرئيسي" },
+    { key: "address", label: "العنوان", placeholder: "المدينة والحي" },
+    { key: "managerName", label: "مدير الفرع", placeholder: "اسم المدير" },
+    { key: "phone", label: "هاتف الفرع", placeholder: "05xxxxxxxx" },
+    { key: "logoUrl", label: "رابط الشعار", placeholder: "رابط صورة الشعار" },
+  ],
+  employee: [
+    { key: "name", label: "اسم الموظف", placeholder: "الاسم الرباعي" },
+    { key: "jobTitle", label: "الوظيفة", placeholder: "سائق / محاسب / مشرف" },
+    { key: "branchName", label: "الفرع", placeholder: "الفرع الرئيسي" },
+    { key: "residencyNumber", label: "رقم الإقامة", placeholder: "رقم الإقامة" },
+    { key: "residencyExpiry", label: "انتهاء الإقامة", type: "date" },
+    { key: "licenseExpiry", label: "انتهاء الرخصة", type: "date" },
+    { key: "medicalInsuranceExpiry", label: "انتهاء التأمين الطبي", type: "date" },
+    { key: "passportExpiry", label: "انتهاء جواز السفر", type: "date" },
+    { key: "salary", label: "الراتب", type: "number", placeholder: "0" },
+  ],
+  permit: [
+    { key: "permitNumber", label: "رقم التصريح", placeholder: "رقم التصريح" },
+    { key: "permitType", label: "نوع التصريح", placeholder: "تصريح نقل / تشغيل" },
+    { key: "vehiclePlate", label: "المركبة", placeholder: "لوحة المركبة" },
+    { key: "issueDate", label: "تاريخ الإصدار", type: "date" },
+    { key: "expiryDate", label: "تاريخ الانتهاء", type: "date" },
+    { key: "notes", label: "ملاحظات", type: "textarea", wide: true },
+  ],
+  appointment: [
+    { key: "appointmentType", label: "نوع الموعد", placeholder: "تنزيل / تفريغ" },
+    { key: "customerName", label: "العميل", placeholder: "اسم العميل" },
+    { key: "contractNumber", label: "العقد", placeholder: "رقم العقد" },
+    { key: "containerCode", label: "الحاوية", placeholder: "رقم الحاوية" },
+    { key: "driverName", label: "السائق", placeholder: "اسم السائق" },
+    { key: "vehiclePlate", label: "المركبة", placeholder: "لوحة المركبة" },
+    { key: "appointmentDate", label: "تاريخ الموعد", type: "date" },
+    { key: "address", label: "العنوان", placeholder: "موقع التنفيذ" },
+    { key: "notes", label: "ملاحظات", type: "textarea", wide: true },
+  ],
+  warehouse: [
+    { key: "name", label: "اسم المستودع", placeholder: "المستودع الرئيسي" },
+    { key: "location", label: "الموقع", placeholder: "المدينة والحي" },
+    { key: "managerName", label: "المسؤول", placeholder: "اسم المسؤول" },
+    { key: "itemCount", label: "عدد الأصناف", type: "number", placeholder: "0" },
+    { key: "notes", label: "ملاحظات", type: "textarea", wide: true },
+  ],
+  treasury: [
+    { key: "name", label: "اسم الخزينة", placeholder: "الخزينة النقدية" },
+    { key: "treasuryType", label: "النوع", placeholder: "نقدية / تحويلات بنكية" },
+    { key: "accountNumber", label: "رقم الحساب", placeholder: "اختياري" },
+    { key: "openingBalance", label: "الرصيد الافتتاحي", type: "number", placeholder: "0" },
+    { key: "notes", label: "ملاحظات", type: "textarea", wide: true },
+  ],
+  transfer: [
+    { key: "fromTreasury", label: "من خزينة", placeholder: "الخزينة المصدر" },
+    { key: "toTreasury", label: "إلى خزينة", placeholder: "الخزينة المستلمة" },
+    { key: "amount", label: "المبلغ", type: "number", placeholder: "0" },
+    { key: "date", label: "التاريخ", type: "date" },
+    { key: "description", label: "البيان", type: "textarea", wide: true },
+  ],
+  invoice: [
+    { key: "invoiceNumber", label: "رقم الفاتورة", placeholder: "INV-001" },
+    { key: "customerName", label: "العميل", placeholder: "اسم العميل" },
+    { key: "contractNumber", label: "العقد", placeholder: "رقم العقد" },
+    { key: "amount", label: "المبلغ قبل الضريبة", type: "number", placeholder: "0" },
+    { key: "taxRate", label: "نسبة الضريبة %", type: "number", placeholder: "15" },
+    { key: "total", label: "الإجمالي", type: "number", placeholder: "0" },
+    { key: "date", label: "التاريخ", type: "date" },
+    { key: "notes", label: "ملاحظات", type: "textarea", wide: true },
+  ],
+  invoice_return: [
+    { key: "invoiceNumber", label: "رقم الفاتورة الأصلية", placeholder: "INV-001" },
+    { key: "customerName", label: "العميل", placeholder: "اسم العميل" },
+    { key: "amount", label: "قيمة المرتجع", type: "number", placeholder: "0" },
+    { key: "date", label: "التاريخ", type: "date" },
+    { key: "reason", label: "سبب المرتجع", type: "textarea", wide: true },
+  ],
+  category: [
+    { key: "name", label: "اسم التصنيف", placeholder: "أنقاض / نفايات" },
+    { key: "unit", label: "وحدة القياس", placeholder: "قطعة / طن" },
+    { key: "notes", label: "ملاحظات", type: "textarea", wide: true },
+  ],
+  category_size: [
+    { key: "categoryName", label: "التصنيف", placeholder: "أنقاض" },
+    { key: "size", label: "الحجم", placeholder: "20 ياردة" },
+    { key: "price", label: "السعر", type: "number", placeholder: "0" },
+    { key: "notes", label: "ملاحظات", type: "textarea", wide: true },
+  ],
+  tax: [
+    { key: "name", label: "اسم الضريبة", placeholder: "ضريبة القيمة المضافة" },
+    { key: "rate", label: "النسبة %", type: "number", placeholder: "15" },
+    { key: "effectiveDate", label: "تاريخ التطبيق", type: "date" },
+    { key: "notes", label: "ملاحظات", type: "textarea", wide: true },
+  ],
+  commission: [
+    { key: "name", label: "اسم العمولة", placeholder: "عمولة الوسيط" },
+    { key: "basis", label: "أساس الاحتساب", placeholder: "نسبة / مبلغ ثابت" },
+    { key: "rate", label: "القيمة", type: "number", placeholder: "0" },
+    { key: "notes", label: "ملاحظات", type: "textarea", wide: true },
+  ],
+  oil_change: [
+    { key: "vehiclePlate", label: "المركبة", placeholder: "لوحة المركبة" },
+    { key: "driverName", label: "السائق", placeholder: "اسم السائق" },
+    { key: "mileage", label: "قراءة العداد", type: "number", placeholder: "0" },
+    { key: "oilType", label: "نوع الزيت", placeholder: "نوع الزيت" },
+    { key: "nextDueMileage", label: "القراءة القادمة", type: "number", placeholder: "0" },
+    { key: "date", label: "التاريخ", type: "date" },
+  ],
+  salary_advance: [
+    { key: "employeeName", label: "الموظف", placeholder: "اسم الموظف" },
+    { key: "amount", label: "المبلغ", type: "number", placeholder: "0" },
+    { key: "date", label: "التاريخ", type: "date" },
+    { key: "deductionDate", label: "تاريخ الخصم", type: "date" },
+    { key: "notes", label: "البيان", type: "textarea", wide: true },
+  ],
+  salary_payment: [
+    { key: "employeeName", label: "الموظف", placeholder: "اسم الموظف" },
+    { key: "month", label: "الشهر", placeholder: "2026-08" },
+    { key: "amount", label: "المبلغ", type: "number", placeholder: "0" },
+    { key: "paymentDate", label: "تاريخ الدفع", type: "date" },
+    { key: "notes", label: "ملاحظات", type: "textarea", wide: true },
+  ],
+  fuel_expense: [
+    { key: "vehiclePlate", label: "المركبة", placeholder: "لوحة المركبة" },
+    { key: "driverName", label: "السائق", placeholder: "اسم السائق" },
+    { key: "fuelType", label: "نوع الوقود", placeholder: "ديزل / بنزين" },
+    { key: "quantity", label: "الكمية", type: "number", placeholder: "0" },
+    { key: "amount", label: "المبلغ", type: "number", placeholder: "0" },
+    { key: "date", label: "التاريخ", type: "date" },
+  ],
+  daily_expense: [
+    { key: "name", label: "اسم المصروف", placeholder: "وقود / صيانة / تشغيل" },
+    { key: "expenseType", label: "نوع المصروف", placeholder: "عام / سيارة" },
+    { key: "amount", label: "المبلغ", type: "number", placeholder: "0" },
+    { key: "date", label: "التاريخ", type: "date" },
+    { key: "notes", label: "ملاحظات", type: "textarea", wide: true },
   ],
 }
 

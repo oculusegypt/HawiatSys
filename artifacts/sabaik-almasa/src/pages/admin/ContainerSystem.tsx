@@ -46,6 +46,8 @@ const NAV_GROUPS = [
       { key: "vehicle" as ViewKey, label: "المركبات والصيانة", icon: CarFront },
       { key: "maintenance" as ViewKey, label: "سجل الصيانة", icon: Wrench },
       { key: "driver" as ViewKey, label: "السائقون", icon: UserRound },
+      { key: "permit" as ViewKey, label: "التصاريح", icon: FileCheck2 },
+      { key: "oil_change" as ViewKey, label: "الزيت والعدادات", icon: Gauge },
     ],
   },
   {
@@ -56,8 +58,34 @@ const NAV_GROUPS = [
       { key: "ledger_entry" as ViewKey, label: "دفتر المديونية", icon: FileText },
       { key: "expense" as ViewKey, label: "المصروفات", icon: ArrowDownLeft },
       { key: "deposit" as ViewKey, label: "الإيداعات البنكية", icon: Landmark },
+      { key: "invoice" as ViewKey, label: "الفواتير", icon: FileText },
+      { key: "invoice_return" as ViewKey, label: "مرتجعات الفواتير", icon: Archive },
       { key: "reports" as ViewKey, label: "التقارير", icon: ArrowUpRight },
       { key: "alert" as ViewKey, label: "التنبيهات اليومية", icon: BellRing },
+      { key: "daily_expense" as ViewKey, label: "المصروفات اليومية", icon: ArrowDownLeft },
+      { key: "fuel_expense" as ViewKey, label: "مصروفات السيارات", icon: CarFront },
+      { key: "salary_advance" as ViewKey, label: "الرواتب والسلف", icon: Coins },
+      { key: "salary_payment" as ViewKey, label: "دفعات الرواتب", icon: Coins },
+    ],
+  },
+  {
+    label: "المخازن والخزائن",
+    items: [
+      { key: "warehouse" as ViewKey, label: "المستودعات والمخازن", icon: Box },
+      { key: "category" as ViewKey, label: "تصنيفات الأصناف", icon: SlidersHorizontal },
+      { key: "category_size" as ViewKey, label: "أحجام التصنيفات", icon: SlidersHorizontal },
+      { key: "treasury" as ViewKey, label: "الخزائن", icon: Landmark },
+      { key: "transfer" as ViewKey, label: "التحويل بين الخزائن", icon: ArrowUpRight },
+    ],
+  },
+  {
+    label: "المواعيد والموارد",
+    items: [
+      { key: "appointment" as ViewKey, label: "المواعيد", icon: ClipboardList },
+      { key: "branch" as ViewKey, label: "الفروع", icon: Landmark },
+      { key: "employee" as ViewKey, label: "الموظفون", icon: Users },
+      { key: "commission" as ViewKey, label: "العمولات", icon: Coins },
+      { key: "tax" as ViewKey, label: "الضرائب", icon: FileCheck2 },
     ],
   },
   {
