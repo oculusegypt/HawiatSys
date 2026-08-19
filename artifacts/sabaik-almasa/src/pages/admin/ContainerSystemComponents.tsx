@@ -247,6 +247,18 @@ export function formatAuditAction(action?: string) {
   return AUDIT_ACTION_LABELS[action] ?? action
 }
 
+export const STATUS_OPTIONS = [
+  ["active", "نشط"], ["available", "متاح"], ["reserved", "محجوز"], ["rented", "مؤجر"],
+  ["in_transit", "في الطريق"], ["with_customer", "لدى العميل"], ["awaiting_return", "بانتظار الاسترجاع"],
+  ["inspection", "تحت الفحص"], ["maintenance", "في الصيانة"], ["damaged", "تالف"], ["lost", "مفقود"],
+  ["out_of_service", "خارج الخدمة"], ["busy", "في مهمة"], ["due", "مستحقة"], ["overdue", "متأخرة"],
+  ["completed", "مكتملة"], ["open", "مفتوحة"], ["posted", "مرحّلة"], ["issued", "صادر"],
+  ["scheduled", "مجدول"], ["delivered", "تم التسليم"], ["returned", "تم الاسترجاع"],
+  ["expiring", "تنتهي قريباً"], ["archived", "مؤرشف"], ["pending", "قيد الانتظار"],
+  ["draft", "مسودة"], ["cancelled", "ملغى"], ["closed", "مغلق"], ["settled", "مصفى"],
+  ["delinquent", "مديونية"], ["approved", "معتمد"], ["rejected", "مرفوض"],
+] as const
+
 export function statusTone(status?: string) {
   const normalized = (status ?? "").toLowerCase()
   if (["active", "available", "متاح", "نشط", "جاهزة", "مكتملة", "تمت المعالجة"].some(item => normalized.includes(item))) {
@@ -388,7 +400,9 @@ export function RecordDialog({
             ))}
             <div className={kind === "contract" ? "" : "sm:col-span-2"}>
               <Label htmlFor="record-status" className="mb-1.5 block text-xs font-bold text-slate-600">حالة السجل</Label>
-              <Input id="record-status" value={status} onChange={event => setStatus(event.target.value)} placeholder="active" data-testid="input-record-status" />
+              <select id="record-status" value={status} onChange={event => setStatus(event.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-700" data-testid="select-record-status">
+                {STATUS_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              </select>
             </div>
           </div>
           {kind === "contract" && <SignaturePad value={payload.signatureData ?? ""} onChange={value => setValue("signatureData", value)} />}

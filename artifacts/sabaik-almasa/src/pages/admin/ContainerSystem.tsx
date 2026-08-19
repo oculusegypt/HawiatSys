@@ -157,6 +157,32 @@ function RecordsPanel({ kind, records, loading, onAdd, onDetails, onEdit, onArch
   )
 }
 
+function ContainerPOS({ records, onDetails, onEdit, onAdd }: { records: ContainerSystemRecord[]; onDetails: (record: ContainerSystemRecord) => void; onEdit: (record: ContainerSystemRecord) => void; onAdd: () => void }) {
+  const imageFor = (record: ContainerSystemRecord, index: number) => String(record.payload.imageUrl ?? record.payload.image ?? `/uploads/container-${(index % 4) + 1}.jpeg`)
+  return (
+    <Card className="border-slate-200/80 shadow-[0_8px_28px_rgba(15,44,58,.05)]">
+      <CardHeader className="border-b border-slate-100 px-4 py-4 sm:px-5">
+        <div className="flex items-center justify-between gap-3"><div><CardTitle className="text-base">مخزون الحاويات الفعلية</CardTitle><p className="mt-1 text-xs text-slate-500">عرض تشغيلي سريع لكل أصل وموقعه وحالته الحالية</p></div><Button onClick={onAdd} className="gap-2 bg-cyan-800 hover:bg-cyan-900"><Plus size={16} /> حاوية جديدة</Button></div>
+      </CardHeader>
+      <CardContent className="p-4">
+        {records.length === 0 ? <EmptyState kind="container" onAdd={onAdd} /> : <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {records.map((record, index) => {
+            const payload = record.payload as Record<string, unknown>
+            const code = String(payload.assetCode ?? payload.code ?? record.reference ?? `حاوية ${record.id}`)
+            const customer = String(payload.customerName ?? payload.contractCustomer ?? "متاحة في المستودع")
+            const location = String(payload.location ?? "الموقع غير محدد")
+            const nextEmptying = String(payload.emptyingDate ?? payload.nextEmptyingDate ?? payload.endDate ?? "")
+            return <div key={record.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md" data-testid={`pos-container-${record.id}`}>
+              <div className="relative h-36 bg-slate-100"><img src={imageFor(record, index)} alt={`صورة ${code}`} className="h-full w-full object-cover" onError={event => { event.currentTarget.src = "/uploads/container-1.jpeg" }} /><div className="absolute right-3 top-3"><RecordStatus status={record.status} /></div><div className="absolute bottom-3 left-3 rounded-lg bg-slate-950/70 px-2 py-1 text-xs font-bold text-white" dir="ltr">{code}</div></div>
+              <div className="space-y-3 p-4"><div><p className="font-black text-slate-900">{String(payload.typeName ?? payload.containerType ?? "حاوية تشغيلية")}</p><p className="mt-1 text-xs text-slate-500">{String(payload.size ?? payload.capacity ?? "الحجم غير محدد")}</p></div><div className="grid grid-cols-2 gap-2 text-xs"><div className="rounded-xl bg-slate-50 p-2"><span className="block text-[10px] text-slate-400">الموقع</span><span className="mt-1 block truncate font-bold text-slate-700">{location}</span></div><div className="rounded-xl bg-slate-50 p-2"><span className="block text-[10px] text-slate-400">العميل / التفريغ</span><span className="mt-1 block truncate font-bold text-slate-700">{nextEmptying || customer}</span></div></div><div className="flex gap-2"><Button variant="outline" size="sm" onClick={() => onDetails(record)} className="flex-1 gap-1 text-xs text-cyan-800"><FileText size={14} /> التفاصيل</Button><Button variant="outline" size="sm" onClick={() => onEdit(record)} className="gap-1 text-xs"><FilePenLine size={14} /> تعديل</Button></div></div>
+            </div>
+          })}
+        </div>}
+      </CardContent>
+    </Card>
+  )
+}
+
 function Overview({ snapshot, records, onAdd }: { snapshot?: any; records: ContainerSystemRecord[]; onAdd: (kind: RecordKind) => void }) {
   const summary = snapshot?.summary as Record<string, unknown> | undefined
   const count = (kind: RecordKind) => records.filter(record => record.kind === kind && record.status !== "archived").length
@@ -203,17 +229,24 @@ function Overview({ snapshot, records, onAdd }: { snapshot?: any; records: Conta
 }
 
 function Reports({ records, snapshot }: { records: ContainerSystemRecord[]; snapshot?: any }) {
-  const totals = allKinds.map(kind => ({ kind, count: records.filter(record => record.kind === kind && record.status !== "archived").length, amount: records.filter(record => record.kind === kind).reduce((sum, record) => sum + amountOf(record), 0) })).filter(item => item.count > 0)
-  const totalFinance = records.filter(record => ["receipt", "payment", "expense", "deposit"].includes(record.kind)).reduce((sum, record) => sum + amountOf(record), 0)
+  const [from, setFrom] = useState("")
+  const [to, setTo] = useState("")
+  const filteredRecords = records.filter(record => {
+    const date = String(record.payload.date ?? record.payload.startDate ?? record.createdAt).slice(0, 10)
+    return (!from || date >= from) && (!to || date <= to)
+  })
+  const totals = allKinds.map(kind => ({ kind, count: filteredRecords.filter(record => record.kind === kind && record.status !== "archived").length, amount: filteredRecords.filter(record => record.kind === kind).reduce((sum, record) => sum + amountOf(record), 0) })).filter(item => item.count > 0)
+  const totalFinance = filteredRecords.filter(record => ["receipt", "payment", "expense", "deposit"].includes(record.kind)).reduce((sum, record) => sum + amountOf(record), 0)
   const summary = snapshot?.summary as Record<string, unknown> | undefined
   const money = (value: unknown) => `${Number(value ?? 0).toLocaleString("ar-SA")} ر.س`
-  const receipts = records.filter(record => record.kind === "receipt").reduce((sum, record) => sum + amountOf(record), 0)
-  const deposits = records.filter(record => ["deposit", "bank_deposit"].includes(record.kind)).reduce((sum, record) => sum + amountOf(record), 0)
+  const receipts = filteredRecords.filter(record => record.kind === "receipt").reduce((sum, record) => sum + amountOf(record), 0)
+  const deposits = filteredRecords.filter(record => ["deposit", "bank_deposit"].includes(record.kind)).reduce((sum, record) => sum + amountOf(record), 0)
   const reconciliationGap = deposits - receipts
   const exportReport = () => {
-    const rows = [
+      const rows = [
       ["القسم", "عدد السجلات", "القيمة"],
-      ...totals.map(item => [KIND_LABELS[item.kind], String(item.count), String(item.amount)]),
+        ["الفترة", `${from || "البداية"} إلى ${to || "اليوم"}`, ""],
+        ...totals.map(item => [KIND_LABELS[item.kind], String(item.count), String(item.amount)]),
       ["قيمة العقود", "", String(summary?.contractValue ?? 0)],
       ["المديونية القائمة", "", String(summary?.debt ?? 0)],
       ["المصروفات", "", String(summary?.expenses ?? 0)],
@@ -234,6 +267,7 @@ function Reports({ records, snapshot }: { records: ContainerSystemRecord[]; snap
         <div><h3 className="text-base font-black text-slate-900">التقارير المالية والتشغيلية</h3><p className="mt-1 text-xs text-slate-500">أرقام محسوبة من العقود والتحصيل والمصروفات والأصول.</p></div>
         <Button onClick={exportReport} variant="outline" className="gap-2 border-cyan-200 text-cyan-800 hover:bg-cyan-50" data-testid="button-export-container-report"><FileDown size={15} /> تصدير CSV</Button>
       </div>
+      <Card className="border-slate-200/80 shadow-sm"><CardContent className="flex flex-wrap items-end gap-3 p-4"><div><label className="mb-1 block text-xs font-bold text-slate-500">من تاريخ</label><Input type="date" value={from} onChange={event => setFrom(event.target.value)} className="h-9" data-testid="input-report-from" /></div><div><label className="mb-1 block text-xs font-bold text-slate-500">إلى تاريخ</label><Input type="date" value={to} onChange={event => setTo(event.target.value)} className="h-9" data-testid="input-report-to" /></div><Button variant="ghost" onClick={() => { setFrom(""); setTo("") }} className="h-9 text-xs text-slate-500">مسح الفترة</Button><span className="mr-auto text-xs font-bold text-cyan-800">يعرض {filteredRecords.length} سجل</span></CardContent></Card>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="قيمة العقود" value={money(summary?.contractValue)} icon={FileCheck2} tone="bg-cyan-600" hint="الإجمالي شامل الضريبة" />
         <MetricCard label="المديونية القائمة" value={money(summary?.debt)} icon={Coins} tone="bg-rose-500" hint="بعد خصم التحصيل المرتبط بالعقد" />
@@ -345,7 +379,9 @@ export default function ContainerSystem() {
             : view === "overview" ? <Overview snapshot={snapshot} records={records} onAdd={openCreate} />
              : view === "reports" ? <Reports records={snapshot?.records ?? records} snapshot={snapshot} />
             : view === "audit" ? <AuditLog audits={auditQuery.data ?? []} loading={auditQuery.isLoading} />
-             : <RecordsPanel kind={view as RecordKind} records={records} loading={loading} onAdd={() => openCreate(view as RecordKind)} onDetails={record => setDialog({ open: true, kind: (record.kind as RecordKind) || "customer", record })} onEdit={openEdit} onArchive={archiveRecord} />}
+             : view === "container"
+               ? <ContainerPOS records={records} onAdd={() => openCreate("container")} onDetails={record => setDialog({ open: true, kind: "container", record })} onEdit={openEdit} />
+               : <RecordsPanel kind={view as RecordKind} records={records} loading={loading} onAdd={() => openCreate(view as RecordKind)} onDetails={record => setDialog({ open: true, kind: (record.kind as RecordKind) || "customer", record })} onEdit={openEdit} onArchive={archiveRecord} />}
         </main>
       </div>
       <RecordDialog open={dialog.open} kind={dialog.kind} record={dialog.record} busy={busy} onOpenChange={open => setDialog(current => ({ ...current, open }))} onSubmit={submitRecord} />
