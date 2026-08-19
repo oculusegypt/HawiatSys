@@ -220,6 +220,7 @@ router.patch("/service-requests/:id", requireAdmin, async (req, res) => {
   const {
     clientName, phone, email, serviceType, containerSize, location,
     duration, notes, appointmentType, scheduledAt, status, adminNotes,
+    customerRecordId, containerRecordId, contractRecordId,
   } = req.body;
 
   type UpdateFields = Partial<typeof serviceRequestsTable.$inferInsert> & { updatedAt: string };
@@ -236,6 +237,9 @@ router.patch("/service-requests/:id", requireAdmin, async (req, res) => {
   if (scheduledAt !== undefined)     updateData.scheduledAt     = scheduledAt;
   if (status !== undefined)          updateData.status          = status;
   if (adminNotes !== undefined)      updateData.adminNotes      = adminNotes;
+  if (customerRecordId !== undefined)  updateData.customerRecordId = customerRecordId === null ? null : Number(customerRecordId);
+  if (containerRecordId !== undefined) updateData.containerRecordId = containerRecordId === null ? null : Number(containerRecordId);
+  if (contractRecordId !== undefined)  updateData.contractRecordId = contractRecordId === null ? null : Number(contractRecordId);
 
   const [request] = await db.update(serviceRequestsTable)
     .set(updateData)

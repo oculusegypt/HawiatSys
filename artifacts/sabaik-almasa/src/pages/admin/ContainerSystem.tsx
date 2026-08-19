@@ -290,9 +290,19 @@ function AuditLog({ audits, loading }: { audits: any[]; loading: boolean }) {
   return <Card className="border-slate-200/80 shadow-sm"><CardHeader className="border-b border-slate-100 px-5 py-4"><CardTitle className="flex items-center gap-2 text-base"><BookOpenCheck size={18} className="text-cyan-800" /> سجل التدقيق</CardTitle><p className="mt-1 text-xs text-slate-500">أثر قابل للمراجعة لكل إضافة وتعديل وأرشفة</p></CardHeader><CardContent className="p-0">{loading ? <div className="space-y-2 p-5">{[1, 2, 3].map(i => <SkeletonLine key={i} className="h-14" />)}</div> : audits.length === 0 ? <div className="p-12 text-center text-sm text-slate-500">لا توجد حركات تدقيق بعد.</div> : audits.map(audit => <div key={audit.id} className="flex items-start gap-3 border-b border-slate-100 px-5 py-4 last:border-0" data-testid={`audit-row-${audit.id}`}><div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500"><ShieldCheck size={15} /></div><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><Badge variant="outline" className="border-cyan-200 bg-cyan-50 text-cyan-800">{formatAuditAction(audit.action)}</Badge><span className="text-xs font-bold text-slate-700">{KIND_LABELS[audit.kind as RecordKind] ?? audit.kind}</span><span className="text-[11px] text-slate-400">#{audit.recordId ?? "—"}</span></div><p className="mt-1 text-[11px] text-slate-400">{formatRecordDate(audit.createdAt)}</p></div></div>)}</CardContent></Card>
 }
 
-function RecordDetails({ record, open, onOpenChange }: { record?: ContainerSystemRecord | null; open: boolean; onOpenChange: (open: boolean) => void }) {
+function RecordDetails({ record, allRecords, open, onOpenChange, onContractAction }: { record?: ContainerSystemRecord | null; allRecords: ContainerSystemRecord[]; open: boolean; onOpenChange: (open: boolean) => void; onContractAction: (record: ContainerSystemRecord, action: string) => void }) {
   if (!record) return null
   const entries = Object.entries(record.payload).filter(([, value]) => value !== "" && value !== null && value !== undefined)
+  const customerName = String(record.payload.name ?? record.payload.customerName ?? "")
+  const linked = allRecords.filter(item => {
+    const payload = item.payload as Record<string, unknown>
+    return item.id !== record.id && (
+      String(payload.customerName ?? "") === customerName ||
+      String(payload.customerRecordId ?? "") === String(record.id) ||
+      String(payload.customerId ?? "") === String(record.id) ||
+      String(payload.containerCode ?? "") === String(record.payload.assetCode ?? record.payload.code ?? "")
+    )
+  }).slice(0, 12)
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent dir="rtl" className="max-h-[85vh] max-w-3xl overflow-y-auto border-cyan-100">
@@ -304,6 +314,8 @@ function RecordDetails({ record, open, onOpenChange }: { record?: ContainerSyste
           <div className="rounded-xl bg-slate-50 p-3"><p className="text-[11px] text-slate-500">الحالة</p><div className="mt-1"><RecordStatus status={record.status} /></div></div>
           {entries.map(([key, value]) => <div key={key} className="rounded-xl border border-slate-100 bg-white p-3"><p className="text-[11px] text-slate-500">{FIELD_CONFIG[record.kind as RecordKind]?.find(field => field.key === key)?.label ?? key}</p><p className="mt-1 break-words text-sm font-bold text-slate-800">{String(value)}</p></div>)}
         </div>
+          {linked.length > 0 && <div className="mt-5 rounded-2xl border border-cyan-100 bg-cyan-50/50 p-4"><h4 className="mb-3 text-sm font-black text-cyan-950">السجل المرتبط</h4><div className="space-y-2">{linked.map(item => <div key={item.id} className="flex items-center justify-between rounded-xl bg-white px-3 py-2 text-xs"><span className="font-bold text-slate-700">{KIND_LABELS[item.kind as RecordKind] ?? "سجل"} · {String(item.payload.name ?? item.payload.contractNumber ?? item.payload.assetCode ?? item.reference)}</span><RecordStatus status={item.status} /></div>)}</div></div>}
+          {record.kind === "contract" && <div className="mt-5 rounded-2xl border border-amber-100 bg-amber-50/60 p-4"><h4 className="mb-3 text-sm font-black text-amber-950">دورة العقد</h4><div className="flex flex-wrap gap-2"><Button size="sm" onClick={() => onContractAction(record, "deliver")} className="bg-cyan-800 hover:bg-cyan-900">تسجيل التسليم</Button><Button size="sm" variant="outline" onClick={() => onContractAction(record, "return")} className="border-cyan-200 text-cyan-900">تسجيل الاسترجاع</Button><Button size="sm" variant="outline" onClick={() => onContractAction(record, "settle")} className="border-emerald-200 text-emerald-800">تصفية العقد</Button><Button size="sm" variant="outline" onClick={() => onContractAction(record, "debt")} className="border-rose-200 text-rose-700">تحويل لمديونية</Button><Button size="sm" variant="outline" onClick={() => onContractAction(record, "close")} className="border-slate-200 text-slate-700">إغلاق العقد</Button></div></div>}
       </DialogContent>
     </Dialog>
   )
@@ -315,6 +327,7 @@ export default function ContainerSystem() {
   const [view, setView] = useState<ViewKey>("overview")
   const [search, setSearch] = useState("")
   const [dialog, setDialog] = useState<{ open: boolean; kind: RecordKind; record?: ContainerSystemRecord | null }>({ open: false, kind: "customer" })
+  const [detailRecord, setDetailRecord] = useState<ContainerSystemRecord | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const isCollection = allKinds.includes(view as RecordKind)
   const filterParams = useMemo(() => ({ kind: isCollection ? view : undefined, search: search.trim() || undefined }), [isCollection, search, view])
@@ -355,6 +368,24 @@ export default function ContainerSystem() {
       createMutation.mutate({ data }, { onSuccess: () => { invalidate(); setDialog(current => ({ ...current, open: false })); showSuccess("تمت إضافة السجل") }, onError: () => toast({ title: "تعذر إضافة السجل", variant: "destructive" }) })
     }
   }
+  const contractAction = (record: ContainerSystemRecord, action: string) => {
+    const actionStatus: Record<string, string> = { deliver: "delivered", return: "returned", settle: "settled", debt: "delinquent", close: "closed" }
+    const status = actionStatus[action] ?? record.status
+    const now = new Date().toISOString()
+    const payload = { ...record.payload, [`${action}At`]: now, lifecycleAction: action }
+    updateMutation.mutate({ id: record.id, data: { status, payload } }, {
+      onSuccess: updated => {
+        invalidate()
+        setDetailRecord(null)
+        showSuccess(`تم ${action === "deliver" ? "تسجيل التسليم" : action === "return" ? "تسجيل الاسترجاع" : action === "settle" ? "تصفية العقد" : action === "debt" ? "تحويل العقد إلى مديونية" : "إغلاق العقد"}`)
+        const containerCode = String(updated.payload.containerCode ?? "")
+        if (containerCode && (action === "deliver" || action === "return")) {
+          createMutation.mutate({ data: { kind: "container_movement", status: "posted", payload: { contractNumber: updated.payload.contractNumber ?? updated.reference, containerCode, movementType: action === "deliver" ? "تسليم" : "استرجاع", movementDate: now, location: updated.payload.location ?? "" } } })
+        }
+      },
+      onError: () => toast({ title: "تعذر تحديث دورة العقد", variant: "destructive" }),
+    })
+  }
   const busy = createMutation.isPending || updateMutation.isPending
   const loading = snapshotQuery.isLoading || (isCollection && recordsQuery.isLoading)
   const error = snapshotQuery.isError || (isCollection && recordsQuery.isError)
@@ -380,10 +411,11 @@ export default function ContainerSystem() {
              : view === "reports" ? <Reports records={snapshot?.records ?? records} snapshot={snapshot} />
             : view === "audit" ? <AuditLog audits={auditQuery.data ?? []} loading={auditQuery.isLoading} />
              : view === "container"
-               ? <ContainerPOS records={records} onAdd={() => openCreate("container")} onDetails={record => setDialog({ open: true, kind: "container", record })} onEdit={openEdit} />
-               : <RecordsPanel kind={view as RecordKind} records={records} loading={loading} onAdd={() => openCreate(view as RecordKind)} onDetails={record => setDialog({ open: true, kind: (record.kind as RecordKind) || "customer", record })} onEdit={openEdit} onArchive={archiveRecord} />}
+               ? <ContainerPOS records={records} onAdd={() => openCreate("container")} onDetails={record => setDetailRecord(record)} onEdit={openEdit} />
+               : <RecordsPanel kind={view as RecordKind} records={records} loading={loading} onAdd={() => openCreate(view as RecordKind)} onDetails={record => setDetailRecord(record)} onEdit={openEdit} onArchive={archiveRecord} />}
         </main>
       </div>
+      <RecordDetails record={detailRecord} allRecords={snapshot?.records ?? records} open={Boolean(detailRecord)} onOpenChange={open => { if (!open) setDetailRecord(null) }} onContractAction={contractAction} />
       <RecordDialog open={dialog.open} kind={dialog.kind} record={dialog.record} busy={busy} onOpenChange={open => setDialog(current => ({ ...current, open }))} onSubmit={submitRecord} />
       {archiveMutation.isPending && <div className="fixed bottom-5 left-5 z-50 flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-xs font-bold text-white shadow-xl" data-testid="status-archive-loading"><Loader2 size={14} className="animate-spin" /> جارٍ أرشفة السجل...</div>}
     </div>

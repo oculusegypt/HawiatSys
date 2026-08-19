@@ -95,6 +95,9 @@ export const FIELD_CONFIG: Record<RecordKind, FieldConfig[]> = {
     { key: "lastInspection", label: "آخر فحص", type: "date" },
   ],
   contract: [
+    { key: "requestId", label: "رقم الطلب المرتبط", placeholder: "معرّف طلب الخدمة" },
+    { key: "customerRecordId", label: "معرّف سجل العميل", placeholder: "اختياري" },
+    { key: "containerRecordId", label: "معرّف أصل الحاوية", placeholder: "اختياري" },
     { key: "contractNumber", label: "رقم العقد", placeholder: "CNT-2025-014" },
     { key: "customerName", label: "اسم العميل", placeholder: "اسم العميل" },
     { key: "customerPhone", label: "جوال العميل", placeholder: "05xxxxxxxx" },

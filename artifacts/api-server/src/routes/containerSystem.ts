@@ -96,9 +96,26 @@ async function linkContractToRequest(payload: Record<string, unknown>, contractI
   if (!Number.isInteger(requestId) || requestId <= 0) return;
   const request = await db.select().from(serviceRequestsTable).where(eq(serviceRequestsTable.id, requestId)).get();
   if (!request) throw new Error("الطلب المرتبط بالعقد غير موجود");
+  const allRecords = await db.select().from(containerSystemRecordsTable);
+  const payloadOf = (record: typeof allRecords[number]) => parsePayload(record.payload);
+  const customerName = String(payload.customerName ?? request.clientName ?? "").trim();
+  const customerPhone = String(payload.customerPhone ?? request.phone ?? "").replace(/\D/g, "");
+  const customer = allRecords.find(record => {
+    if (record.kind !== "customer" || record.status === "archived") return false;
+    const current = payloadOf(record);
+    const currentPhone = String(current.phone ?? "").replace(/\D/g, "");
+    return (customerName && String(current.name ?? "").trim() === customerName) ||
+      (customerPhone && currentPhone && currentPhone === customerPhone);
+  });
+  const containerCode = String(payload.containerCode ?? "").trim();
+  const container = allRecords.find(record => {
+    if (!["container", "container_asset"].includes(record.kind) || record.status === "archived") return false;
+    const current = payloadOf(record);
+    return containerCode && String(current.assetCode ?? current.code ?? "").trim() === containerCode;
+  });
   await db.update(serviceRequestsTable).set({
-    customerRecordId: Number(payload.customerRecordId ?? 0) || null,
-    containerRecordId: Number(payload.containerRecordId ?? 0) || null,
+    customerRecordId: Number(payload.customerRecordId ?? customer?.id ?? 0) || null,
+    containerRecordId: Number(payload.containerRecordId ?? container?.id ?? 0) || null,
     contractRecordId: contractId,
     status: ["draft", "cancelled"].includes(String(payload.status ?? "")) ? request.status : "in_progress",
     adminNotes: `${request.adminNotes ?? ""}\nمرتبط بعقد الحاويات ${contractId}`.trim(),
