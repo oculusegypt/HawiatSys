@@ -1,11 +1,7 @@
 import { db } from "./index.js";
 import { containerSystemAuditTable, containerSystemRecordsTable } from "./schema/containerSystem.js";
 
-const existing = db.select({ id: containerSystemRecordsTable.id }).from(containerSystemRecordsTable).all();
-if (existing.length > 0) {
-  console.log(`ℹ️ Container system already has ${existing.length} records; no demo data was added.`);
-  process.exit(0);
-}
+const existing = db.select().from(containerSystemRecordsTable).all();
 
 const daysFromNow = (days: number) => {
   const date = new Date();
@@ -49,11 +45,31 @@ const demo = [
   ["setting", "active", { key: "late_return_grace_hours", value: "24", section: "التشغيل", notes: "ساعات السماح قبل احتساب تأخير" }],
 ] as const;
 
-for (const [kind, status, payload] of demo) {
+const linkedDemo = [
+  ["contract_line", "active", { reference: "LINE-DEMO-001", contractNumber: "RNT-2026-001", serviceType: "توصيل الحاوية", containerCode: "CNT-102", quantity: 1, unitPrice: 4500, taxRate: 15, lineTotal: 5175 }],
+  ["contract_line", "active", { reference: "LINE-DEMO-002", contractNumber: "RNT-2026-001", serviceType: "رفع واسترجاع", containerCode: "CNT-102", quantity: 2, unitPrice: 400, taxRate: 15, lineTotal: 920 }],
+  ["container_movement", "delivered", { reference: "MOV-DEMO-001", contractNumber: "RNT-2026-001", containerCode: "CNT-102", movementType: "تسليم", vehiclePlate: "د هـ و 5678", driverName: "يوسف ناصر القحطاني", movementDate: daysFromNow(-6), location: "مشروع البناء المتين" }],
+  ["container_movement", "returned", { reference: "MOV-DEMO-002", contractNumber: "RNT-2025-031", containerCode: "CNT-103", movementType: "استرجاع", vehiclePlate: "أ ب ج 1234", driverName: "خالد محمد الحربي", movementDate: daysFromNow(-2), location: "مستودع الخرج" }],
+  ["ledger_entry", "open", { reference: "LED-DEMO-001", contractNumber: "RNT-2026-001", customerName: "شركة البناء المتين", direction: "مدين", amount: 2980, date: daysFromNow(-1), description: "الرصيد المتبقي بعد الدفعة الأولى" }],
+  ["ledger_entry", "open", { reference: "LED-DEMO-002", contractNumber: "RNT-2026-003", customerName: "عبدالله سالم العتيبي", direction: "مدين", amount: 1725, date: daysFromNow(-1), description: "إجمالي عقد مستحق التحصيل" }],
+] as const;
+
+const identityKeys = ["reference", "name", "assetCode", "contractNumber", "plate", "receiptNumber", "depositNumber", "key"];
+const isAlreadySeeded = (kind: string, payload: Record<string, unknown>) => existing.some(record => {
+  if (record.kind !== kind) return false;
+  const current = JSON.parse(record.payload) as Record<string, unknown>;
+  if (payload.reference && current.reference === payload.reference) return true;
+  return identityKeys.some(key => payload[key] && current[key] === payload[key]);
+});
+
+for (const [kind, status, payload] of [...demo, ...linkedDemo]) {
+  const payloadRecord = payload as Record<string, unknown>;
+  const reference = String(payloadRecord.reference ?? `${kind.toUpperCase().slice(0, 4)}-DEMO`);
+  if (isAlreadySeeded(kind, payload as Record<string, unknown>)) continue;
   const created = db.insert(containerSystemRecordsTable).values({
     kind,
     status,
-    reference: `${kind.toUpperCase().slice(0, 4)}-DEMO-${String(Math.floor(Math.random() * 900) + 100)}`,
+    reference,
     payload: JSON.stringify(payload),
   }).returning().get();
   db.insert(containerSystemAuditTable).values({
@@ -64,4 +80,4 @@ for (const [kind, status, payload] of demo) {
   }).run();
 }
 
-console.log(`✅ Added ${demo.length} container system demo records across all sections.`);
+console.log(`✅ Added missing container system demo records. Existing records were preserved.`);

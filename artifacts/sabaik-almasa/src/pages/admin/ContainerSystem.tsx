@@ -2,7 +2,7 @@ import { useMemo, useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import {
   AlertCircle, Archive, ArrowDownLeft, ArrowUpRight, BellRing, BookOpenCheck, Box, CarFront, CheckCircle2,
-  ChevronLeft, ClipboardList, Coins, FileCheck2, FilePenLine, FileText, Gauge, Landmark, LayoutDashboard,
+  ChevronLeft, ClipboardList, Coins, FileCheck2, FilePenLine, FileText, Gauge, Landmark, LayoutDashboard, Truck,
   Loader2, Plus, RefreshCw, Search, Settings2, ShieldCheck, SlidersHorizontal, UserRound, Users, Wrench, X,
 } from "lucide-react"
 import {
@@ -160,7 +160,7 @@ function Overview({ snapshot, records, onAdd }: { snapshot?: any; records: Conta
   const count = (kind: RecordKind) => records.filter(record => record.kind === kind && record.status !== "archived").length
   const activeContracts = numericSummary(summary, ["activeContracts", "contracts"], count("contract"))
   const availableContainers = numericSummary(summary, ["availableContainers", "available"], count("container"))
-  const outstanding = numericSummary(summary, ["outstandingAmount", "outstanding"], records.filter(r => r.kind === "payment").reduce((sum, r) => sum + amountOf(r), 0))
+  const outstanding = numericSummary(summary, ["debt", "outstandingAmount", "outstanding"], records.filter(r => r.kind === "payment").reduce((sum, r) => sum + amountOf(r), 0))
   const openAlerts = numericSummary(summary, ["openAlerts", "alerts"], count("alert"))
   const recent = (snapshot?.recent as ContainerSystemRecord[] | undefined)?.slice(0, 5) ?? records.slice(0, 5)
   return (
@@ -200,11 +200,19 @@ function Overview({ snapshot, records, onAdd }: { snapshot?: any; records: Conta
   )
 }
 
-function Reports({ records }: { records: ContainerSystemRecord[] }) {
+function Reports({ records, snapshot }: { records: ContainerSystemRecord[]; snapshot?: any }) {
   const totals = allKinds.map(kind => ({ kind, count: records.filter(record => record.kind === kind && record.status !== "archived").length, amount: records.filter(record => record.kind === kind).reduce((sum, record) => sum + amountOf(record), 0) })).filter(item => item.count > 0)
   const totalFinance = records.filter(record => ["receipt", "payment", "expense", "deposit"].includes(record.kind)).reduce((sum, record) => sum + amountOf(record), 0)
+  const summary = snapshot?.summary as Record<string, unknown> | undefined
+  const money = (value: unknown) => `${Number(value ?? 0).toLocaleString("ar-SA")} ر.س`
   return (
     <div className="space-y-5">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard label="قيمة العقود" value={money(summary?.contractValue)} icon={FileCheck2} tone="bg-cyan-600" hint="الإجمالي شامل الضريبة" />
+        <MetricCard label="المديونية القائمة" value={money(summary?.debt)} icon={Coins} tone="bg-rose-500" hint="بعد خصم التحصيل المرتبط بالعقد" />
+        <MetricCard label="تكلفة الأسطول والصيانة" value={money(Number(summary?.expenses ?? 0) + Number(summary?.maintenanceCost ?? 0))} icon={Wrench} tone="bg-amber-500" hint="مصروفات وصيانة مسجلة" />
+        <MetricCard label="استفادة الحاويات" value={`${Number(summary?.containerUtilization ?? 0)}%`} icon={Gauge} tone="bg-emerald-600" hint={`${Number(summary?.rentedContainers ?? 0)} مؤجرة من إجمالي الأصول`} />
+      </div>
       <div className="grid gap-3 sm:grid-cols-3"><MetricCard label="إجمالي السجلات" value={records.length} icon={Gauge} tone="bg-cyan-600" hint="كل وحدات النظام" /><MetricCard label="حركة مالية" value={`${totalFinance.toLocaleString("ar-SA")} ر.س`} icon={Coins} tone="bg-amber-500" hint="إيصالات ومدفوعات ومصروفات" /><MetricCard label="آخر مزامنة" value={records.length ? "محدث" : "—"} icon={RefreshCw} tone="bg-emerald-600" hint={records.length ? formatRecordDate(records[0]?.updatedAt) : "لا توجد سجلات"} /></div>
       <Card className="border-slate-200/80 shadow-sm"><CardHeader className="border-b border-slate-100 px-5 py-4"><CardTitle className="text-base">توزيع وحدات التشغيل</CardTitle></CardHeader><CardContent className="space-y-4 p-5">{totals.length === 0 ? <div className="py-12 text-center text-sm text-slate-500">أضف سجلات لتكوين التقرير التشغيلي.</div> : totals.map(item => <div key={item.kind} data-testid={`report-row-${item.kind}`}><div className="mb-1.5 flex justify-between text-xs"><span className="font-bold text-slate-700">{KIND_LABELS[item.kind]}</span><span className="font-mono text-slate-400">{item.count}</span></div><div className="h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-cyan-700 transition-all duration-500" style={{ width: `${Math.min(100, Math.max(7, item.count / records.length * 100))}%` }} /></div></div>)}</CardContent></Card>
     </div>
@@ -283,7 +291,7 @@ export default function ContainerSystem() {
           {notice && <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800" role="status" data-testid="status-container-success"><CheckCircle2 size={17} /> {notice}</div>}
           {error ? <Card className="border-rose-200 bg-rose-50/50"><CardContent className="flex flex-col items-center gap-3 p-12 text-center"><AlertCircle size={27} className="text-rose-500" /><h3 className="font-bold text-rose-900">تعذر تحميل بيانات النظام</h3><p className="text-sm text-rose-700">تحقق من الاتصال ثم حاول مرة أخرى.</p><Button onClick={() => { snapshotQuery.refetch(); recordsQuery.refetch() }} variant="outline" className="gap-2 border-rose-200 bg-white text-rose-800" data-testid="button-retry-container-system"><RefreshCw size={15} /> إعادة المحاولة</Button></CardContent></Card>
             : view === "overview" ? <Overview snapshot={snapshot} records={records} onAdd={openCreate} />
-            : view === "reports" ? <Reports records={snapshot?.records ?? records} />
+             : view === "reports" ? <Reports records={snapshot?.records ?? records} snapshot={snapshot} />
             : view === "audit" ? <AuditLog audits={auditQuery.data ?? []} loading={auditQuery.isLoading} />
             : <RecordsPanel kind={view as RecordKind} records={records} loading={loading} onAdd={() => openCreate(view as RecordKind)} onEdit={openEdit} onArchive={archiveRecord} />}
         </main>

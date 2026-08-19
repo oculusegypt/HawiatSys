@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { and, asc, desc, eq, like } from "drizzle-orm";
+import { and, desc, eq, like } from "drizzle-orm";
 import { db, containerSystemAuditTable, containerSystemRecordsTable } from "@workspace/db";
 import type { AdminRequest } from "../middleware/adminAuth";
 
@@ -62,6 +62,11 @@ router.get("/admin/container-system", async (req, res) => {
     return Number.isFinite(endTime) && endTime <= Date.now() + 3 * 86400000;
   });
   const debt = contracts.reduce((sum, r) => sum + Number((r.payload as Record<string, unknown>).remaining ?? 0), 0);
+  const contractValue = contracts.reduce((sum, r) => sum + Number((r.payload as Record<string, unknown>).total ?? 0), 0);
+  const expenses = records.filter(r => r.kind === "expense").reduce((sum, r) => sum + Number((r.payload as Record<string, unknown>).amount ?? 0), 0);
+  const maintenanceCost = records.filter(r => r.kind === "maintenance").reduce((sum, r) => sum + Number((r.payload as Record<string, unknown>).cost ?? 0), 0);
+  const fleetCount = records.filter(r => r.kind === "vehicle").length;
+  const rentedCount = records.filter(r => ["container", "container_asset"].includes(r.kind) && r.status === "rented").length;
   return res.json({
     summary: {
       customers: count("customer"),
@@ -71,9 +76,15 @@ router.get("/admin/container-system", async (req, res) => {
       activeContracts: activeContracts.length,
       containerMovements: count("container_movement"),
       openLedgerEntries: records.filter(r => r.kind === "ledger_entry" && r.status === "open").length,
-      collected: paymentsByContract.values().reduce((sum, amount) => sum + amount, 0),
+      collected: Array.from(paymentsByContract.values()).reduce((sum, amount) => sum + amount, 0),
       expiringContracts: expiringContracts.length,
       debt,
+      contractValue,
+      expenses,
+      maintenanceCost,
+      fleetUtilization: fleetCount ? Math.round(records.filter(r => r.kind === "vehicle" && r.status === "busy").length / fleetCount * 100) : 0,
+      containerUtilization: records.filter(r => ["container", "container_asset"].includes(r.kind)).length
+        ? Math.round(rentedCount / records.filter(r => ["container", "container_asset"].includes(r.kind)).length * 100) : 0,
       vehicles: count("vehicle"),
       vehiclesReady: records.filter(r => r.kind === "vehicle" && r.status === "available").length,
       maintenanceDue: records.filter(r => r.kind === "maintenance" && ["due", "overdue"].includes(r.status)).length,
@@ -120,6 +131,28 @@ router.post("/admin/container-system/records", async (req, res) => {
       payload.taxAmount = payload.taxAmount ?? Math.round(amount * taxRate / 100 * 100) / 100;
       payload.total = payload.total ?? Math.round((amount + Number(payload.taxAmount)) * 100) / 100;
     }
+    const containerCode = String(payload.containerCode ?? "").trim();
+    if (containerCode) {
+      const existing = await db.select().from(containerSystemRecordsTable);
+      const start = Date.parse(String(payload.startDate ?? ""));
+      const end = Date.parse(String(payload.endDate ?? ""));
+      const overlaps = existing.some(record => {
+        if (record.kind !== "contract" || record.status === "archived") return false;
+        const current = parsePayload(record.payload);
+        if (current.containerCode !== containerCode) return false;
+        const currentStart = Date.parse(String(current.startDate ?? ""));
+        const currentEnd = Date.parse(String(current.endDate ?? ""));
+        const active = ["active", "issued", "scheduled", "delivered"].includes(record.status);
+        return active && Number.isFinite(start) && Number.isFinite(end) && Number.isFinite(currentStart) &&
+          Number.isFinite(currentEnd) && start <= currentEnd && end >= currentStart;
+      });
+      if (overlaps) return res.status(409).json({ error: "الحاوية مرتبطة بعقد آخر خلال نفس الفترة" });
+    }
+  }
+  if (kind === "container_movement") {
+    const movementType = String(payload.movementType ?? "").trim();
+    const containerCode = String(payload.containerCode ?? "").trim();
+    if (!containerCode || !movementType) return res.status(422).json({ error: "رقم الحاوية ونوع الحركة مطلوبان" });
   }
   const [created] = await db.insert(containerSystemRecordsTable).values({
     kind,
@@ -131,6 +164,30 @@ router.post("/admin/container-system/records", async (req, res) => {
   await db.insert(containerSystemAuditTable).values({
     recordId: created.id, kind, action: "create", afterPayload: created.payload, actorId: adminReq.adminId,
   });
+  if (kind === "container_movement") {
+    const movementType = String(payload.movementType ?? "").toLowerCase();
+    const nextStatus = movementType.includes("استرجاع") || movementType.includes("return") ? "available"
+      : movementType.includes("صيانة") || movementType.includes("maintenance") ? "maintenance" : "rented";
+    const assets = await db.select().from(containerSystemRecordsTable);
+    const asset = assets.find(record => {
+      if (!["container", "container_asset"].includes(record.kind)) return false;
+      const assetPayload = parsePayload(record.payload);
+      return String(assetPayload.assetCode ?? assetPayload.code ?? "") === String(payload.containerCode ?? "");
+    });
+    if (asset) {
+      const before = asset.payload;
+      const nextPayload = { ...parsePayload(before), location: payload.location ?? parsePayload(before).location };
+      await db.update(containerSystemRecordsTable).set({
+        status: nextStatus,
+        payload: JSON.stringify(nextPayload),
+        updatedAt: new Date().toISOString(),
+      }).where(eq(containerSystemRecordsTable.id, asset.id));
+      await db.insert(containerSystemAuditTable).values({
+        recordId: asset.id, kind: asset.kind, action: "movement_sync",
+        beforePayload: before, afterPayload: JSON.stringify(nextPayload), actorId: adminReq.adminId,
+      });
+    }
+  }
   if (["payment", "receipt", "expense", "deposit"].includes(kind)) {
     await db.insert(containerSystemRecordsTable).values({
       kind: "ledger_entry",
