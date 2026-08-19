@@ -13,6 +13,7 @@
     "seed": "tsx ./src/seed.ts",
     "seed:homepage-content": "tsx ./src/seed-homepage-content.ts",
     "seed-demo": "tsx ./src/seed-demo.ts",
+    "seed:container-system": "tsx ./src/seed-container-system.ts",
     "seed:posts": "tsx ./src/seed-posts.ts",
     "seed:posts2": "tsx ./src/seed-posts-2.ts"
   },
