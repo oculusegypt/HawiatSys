@@ -214,8 +214,26 @@ function ContainerPOS({ records, onDetails, onEdit, onAdd }: { records: Containe
 function Overview({ snapshot, records, onAdd }: { snapshot?: any; records: ContainerSystemRecord[]; onAdd: (kind: RecordKind) => void }) {
   const summary = snapshot?.summary as Record<string, unknown> | undefined
   const count = (kind: RecordKind) => records.filter(record => record.kind === kind && record.status !== "archived").length
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const isPast = (value: unknown) => {
+    const date = new Date(String(value ?? ""))
+    return Number.isFinite(date.getTime()) && date < today
+  }
+  const payload = (kind: RecordKind) => records.filter(record => record.kind === kind && record.status !== "archived").map(record => record.payload as Record<string, unknown>)
+  const containers = records.filter(record => ["container", "container_asset"].includes(record.kind) && record.status !== "archived")
+  const lateContainers = containers.filter(record => ["overdue", "delayed", "متأخرة"].includes(record.status) || isPast(record.payload.dueDate ?? record.payload.returnDate ?? record.payload.emptyingDate))
+  const rentedContainers = containers.filter(record => ["rented", "with_customer", "مؤجرة"].includes(record.status))
+  const availableContainers = containers.filter(record => ["available", "متاحة", "متاح"].includes(record.status))
+  const pulledContainers = containers.filter(record => ["withdrawn", "pulled", "مسحوبة"].includes(record.status) || Boolean(record.payload.withdrawnAt ?? record.payload.pulledAt))
+  const expiredPermits = payload("permit").filter(item => isPast(item.expiryDate ?? item.endDate)).length
+  const oilDelays = payload("oil_change").filter(item => Number(item.nextDueMileage ?? 0) > 0 && Number(item.mileage ?? 0) >= Number(item.nextDueMileage)).length
+  const paymentDelays = records.filter(record => ["payment", "ledger_entry", "receipt"].includes(record.kind) && ["overdue", "due", "متأخرة", "مستحقة"].includes(record.status)).length
+  const expiredContracts = payload("contract").filter(item => isPast(item.endDate)).length
+  const employeeAlerts = payload("employee").filter(item => [item.residencyExpiry, item.licenseExpiry, item.medicalInsuranceExpiry, item.passportExpiry].some(isPast)).length
+  const vehicleAlerts = payload("vehicle").filter(item => ["maintenance", "overdue", "مستحقة"].includes(String(item.status)) || isPast(item.registrationExpiry ?? item.insuranceExpiry)).length
   const activeContracts = numericSummary(summary, ["activeContracts", "contracts"], count("contract"))
-  const availableContainers = numericSummary(summary, ["availableContainers", "available"], count("container"))
+  const availableCount = numericSummary(summary, ["availableContainers", "available"], availableContainers.length || count("container"))
   const outstanding = numericSummary(summary, ["debt", "outstandingAmount", "outstanding"], records.filter(r => r.kind === "payment").reduce((sum, r) => sum + amountOf(r), 0))
   const openAlerts = numericSummary(summary, ["openAlerts", "alerts"], count("alert"))
   const recent = (snapshot?.recent as ContainerSystemRecord[] | undefined)?.slice(0, 5) ?? records.slice(0, 5)
@@ -223,9 +241,27 @@ function Overview({ snapshot, records, onAdd }: { snapshot?: any; records: Conta
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <MetricCard label="العقود النشطة" value={activeContracts} icon={FileCheck2} tone="bg-cyan-600" hint="تحتاج متابعة يومية" />
-        <MetricCard label="الحاويات المتاحة" value={availableContainers} icon={Box} tone="bg-emerald-600" hint="جاهزة للتسليم" />
+        <MetricCard label="الحاويات المتاحة" value={availableCount} icon={Box} tone="bg-emerald-600" hint="جاهزة للتسليم" />
         <MetricCard label="التحصيل المسجل" value={`${outstanding.toLocaleString("ar-SA")} ر.س`} icon={Coins} tone="bg-amber-500" hint="من سجلات المدفوعات" />
         <MetricCard label="تنبيهات مفتوحة" value={openAlerts} icon={BellRing} tone="bg-rose-500" hint="مراجعة قبل نهاية اليوم" />
+      </div>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+        {[
+          ["الحاويات المتأخرة", lateContainers.length, "rose", "عرض الحاويات المتأخرة"],
+          ["الحاويات المؤجرة", rentedContainers.length, "cyan", "مرتبطة بعقود نشطة"],
+          ["إجمالي الحاويات", containers.length, "slate", "كل الأصول المسجلة"],
+          ["الحاويات المسحوبة", pulledContainers.length, "amber", "تحتاج مراجعة تشغيلية"],
+          ["التصاريح المنتهية", expiredPermits, "rose", "تجديد قبل التشغيل"],
+          ["تأخيرات تغيير الزيت", oilDelays, "amber", "مراجعة عداد المركبة"],
+          ["تأخيرات الدفع", paymentDelays, "rose", "متابعة التحصيل"],
+          ["العقود المنتهية", expiredContracts, "amber", "مراجعة الرحلات والتصفية"],
+          ["تنبيهات الموظفين", employeeAlerts, "amber", "وثائق ورخص منتهية"],
+          ["تنبيهات الشاحنات", vehicleAlerts, "amber", "تسجيل وصيانة وتأمين"],
+        ].map(([label, value, tone, hint]) => (
+          <Card key={String(label)} className={`${tone === "rose" ? "border-rose-200" : tone === "amber" ? "border-amber-200" : tone === "cyan" ? "border-cyan-200" : "border-slate-200"} bg-white shadow-sm`}>
+            <CardContent className="p-4"><p className="text-[11px] font-bold text-slate-500">{label}</p><p className={`mt-2 text-2xl font-black ${tone === "rose" ? "text-rose-700" : tone === "amber" ? "text-amber-700" : tone === "cyan" ? "text-cyan-800" : "text-slate-800"}`}>{value}</p><p className="mt-1 text-[10px] text-slate-400">{hint}</p></CardContent>
+          </Card>
+        ))}
       </div>
       <div className="grid gap-5 xl:grid-cols-[1.35fr_.65fr]">
         <Card className="border-slate-200/80 shadow-[0_8px_28px_rgba(15,44,58,.05)]">
@@ -331,6 +367,13 @@ function RecordDetails({ record, allRecords, open, onOpenChange, onContractActio
       String(payload.containerCode ?? "") === String(record.payload.assetCode ?? record.payload.code ?? "")
     )
   }).slice(0, 12)
+  const customerRecords = allRecords.filter(item => {
+    const payload = item.payload as Record<string, unknown>
+    return String(payload.customerName ?? "") === customerName || String(payload.customerRecordId ?? "") === String(record.id)
+  })
+  const customerContracts = customerRecords.filter(item => item.kind === "contract")
+  const customerPayments = customerRecords.filter(item => ["payment", "receipt"].includes(item.kind)).reduce((sum, item) => sum + amountOf(item), 0)
+  const customerCharges = customerContracts.reduce((sum, item) => sum + Number(item.payload.total ?? item.payload.amount ?? 0), 0)
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent dir="rtl" className="max-h-[85vh] max-w-3xl overflow-y-auto border-cyan-100">
@@ -342,6 +385,7 @@ function RecordDetails({ record, allRecords, open, onOpenChange, onContractActio
           <div className="rounded-xl bg-slate-50 p-3"><p className="text-[11px] text-slate-500">الحالة</p><div className="mt-1"><RecordStatus status={record.status} /></div></div>
           {entries.map(([key, value]) => <div key={key} className="rounded-xl border border-slate-100 bg-white p-3"><p className="text-[11px] text-slate-500">{FIELD_CONFIG[record.kind as RecordKind]?.find(field => field.key === key)?.label ?? key}</p><p className="mt-1 break-words text-sm font-bold text-slate-800">{String(value)}</p></div>)}
         </div>
+          {record.kind === "customer" && <div className="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4"><h4 className="mb-3 text-sm font-black text-emerald-950">ملف العميل وكشف الحساب</h4><div className="grid grid-cols-3 gap-2"><div className="rounded-xl bg-white p-3"><p className="text-[10px] text-slate-500">العقود</p><p className="mt-1 text-lg font-black text-slate-900">{customerContracts.length}</p></div><div className="rounded-xl bg-white p-3"><p className="text-[10px] text-slate-500">إجمالي المطالبات</p><p className="mt-1 text-lg font-black text-slate-900">{customerCharges.toLocaleString("ar-SA")} ر.س</p></div><div className="rounded-xl bg-white p-3"><p className="text-[10px] text-slate-500">المدفوع</p><p className="mt-1 text-lg font-black text-emerald-700">{customerPayments.toLocaleString("ar-SA")} ر.س</p></div></div><div className="mt-3 rounded-xl bg-white px-3 py-2 text-sm font-black text-rose-700">الرصيد المستحق: {Math.max(customerCharges - customerPayments, 0).toLocaleString("ar-SA")} ر.س</div></div>}
           {linked.length > 0 && <div className="mt-5 rounded-2xl border border-cyan-100 bg-cyan-50/50 p-4"><h4 className="mb-3 text-sm font-black text-cyan-950">السجل المرتبط</h4><div className="space-y-2">{linked.map(item => <div key={item.id} className="flex items-center justify-between rounded-xl bg-white px-3 py-2 text-xs"><span className="font-bold text-slate-700">{KIND_LABELS[item.kind as RecordKind] ?? "سجل"} · {String(item.payload.name ?? item.payload.contractNumber ?? item.payload.assetCode ?? item.reference)}</span><RecordStatus status={item.status} /></div>)}</div></div>}
           {record.kind === "contract" && <div className="mt-5 rounded-2xl border border-amber-100 bg-amber-50/60 p-4"><h4 className="mb-3 text-sm font-black text-amber-950">دورة العقد</h4><div className="flex flex-wrap gap-2"><Button size="sm" onClick={() => onContractAction(record, "deliver")} className="bg-cyan-800 hover:bg-cyan-900">تسجيل التسليم</Button><Button size="sm" variant="outline" onClick={() => onContractAction(record, "return")} className="border-cyan-200 text-cyan-900">تسجيل الاسترجاع</Button><Button size="sm" variant="outline" onClick={() => onContractAction(record, "settle")} className="border-emerald-200 text-emerald-800">تصفية العقد</Button><Button size="sm" variant="outline" onClick={() => onContractAction(record, "debt")} className="border-rose-200 text-rose-700">تحويل لمديونية</Button><Button size="sm" variant="outline" onClick={() => onContractAction(record, "close")} className="border-slate-200 text-slate-700">إغلاق العقد</Button></div></div>}
       </DialogContent>
