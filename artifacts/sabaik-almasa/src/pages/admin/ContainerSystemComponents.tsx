@@ -219,6 +219,34 @@ export function amountOf(record: ContainerSystemRecord) {
   return Number.isFinite(value) ? value : 0
 }
 
+const STATUS_LABELS: Record<string, string> = {
+  active: "نشط", available: "متاحة", reserved: "محجوزة", rented: "مؤجرة", in_transit: "في الطريق",
+  with_customer: "لدى العميل", awaiting_return: "بانتظار الاسترجاع", inspection: "تحت الفحص",
+  maintenance: "في الصيانة", damaged: "تالفة", lost: "مفقودة", out_of_service: "خارج الخدمة",
+  busy: "في مهمة", due: "مستحقة", overdue: "متأخرة", completed: "مكتملة", open: "مفتوحة",
+  posted: "مرحّلة", issued: "صادر", scheduled: "مجدول", delivered: "تم التسليم", returned: "تم الاسترجاع",
+  expiring: "تنتهي قريبًا", archived: "مؤرشف", pending: "قيد الانتظار", draft: "مسودة", cancelled: "ملغى",
+  closed: "مغلق", settled: "مصفى", delinquent: "مديونية", approved: "معتمد", rejected: "مرفوض",
+  "في مهمة": "في مهمة", "مفتوحة": "مفتوحة", "مكتملة": "مكتملة", "متاح": "متاح", "متاحة": "متاحة",
+  "مؤجر": "مؤجرة", "مؤجرة": "مؤجرة", "صيانة": "في الصيانة",
+}
+
+const AUDIT_ACTION_LABELS: Record<string, string> = {
+  create: "إضافة", update: "تعديل", archive: "أرشفة", seed_demo: "بيانات تجريبية",
+  movement_sync: "مزامنة حركة", status_change: "تغيير حالة", settle: "تصفية", close: "إغلاق",
+}
+
+export function formatStatus(status?: string) {
+  if (!status) return "غير محددة"
+  const trimmed = status.trim()
+  return STATUS_LABELS[trimmed] ?? STATUS_LABELS[trimmed.toLowerCase()] ?? trimmed
+}
+
+export function formatAuditAction(action?: string) {
+  if (!action) return "عملية"
+  return AUDIT_ACTION_LABELS[action] ?? action
+}
+
 export function statusTone(status?: string) {
   const normalized = (status ?? "").toLowerCase()
   if (["active", "available", "متاح", "نشط", "جاهزة", "مكتملة", "تمت المعالجة"].some(item => normalized.includes(item))) {
@@ -375,5 +403,5 @@ export function RecordDialog({
 }
 
 export function RecordStatus({ status }: { status?: string }) {
-  return <Badge variant="outline" className={`font-bold ${statusTone(status)}`} data-testid={`status-record-${status ?? "unknown"}`}>{status || "غير محدد"}</Badge>
+  return <Badge variant="outline" className={`font-bold ${statusTone(status)}`} data-testid={`status-record-${status ?? "unknown"}`}>{formatStatus(status)}</Badge>
 }

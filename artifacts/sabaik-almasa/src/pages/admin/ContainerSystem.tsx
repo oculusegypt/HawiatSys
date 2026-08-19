@@ -20,10 +20,11 @@ import type { ContainerSystemRecord } from "@workspace/api-client-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import {
-  FIELD_CONFIG, KIND_ICONS, KIND_LABELS, RecordDialog, RecordKind, RecordStatus, amountOf, formatRecordDate,
+  FIELD_CONFIG, KIND_ICONS, KIND_LABELS, RecordDialog, RecordKind, RecordStatus, amountOf, formatAuditAction, formatRecordDate, formatStatus,
 } from "./ContainerSystemComponents"
 
 type ViewKey = "overview" | RecordKind | "reports" | "audit"
@@ -113,7 +114,7 @@ function EmptyState({ kind, onAdd }: { kind: RecordKind; onAdd: () => void }) {
   )
 }
 
-function RecordRow({ record, kind, onEdit, onArchive }: { record: ContainerSystemRecord; kind: RecordKind; onEdit: () => void; onArchive: () => void }) {
+function RecordRow({ record, kind, onDetails, onEdit, onArchive }: { record: ContainerSystemRecord; kind: RecordKind; onDetails: () => void; onEdit: () => void; onArchive: () => void }) {
   const fields = FIELD_CONFIG[kind].slice(0, 4)
   const primary = String(record.payload[fields[0]?.key] ?? record.reference ?? `#${record.id}`)
   return (
@@ -127,6 +128,7 @@ function RecordRow({ record, kind, onEdit, onArchive }: { record: ContainerSyste
       </div>
       <div className="hidden sm:block"><RecordStatus status={record.status} /><p className="mt-1 text-[10px] text-slate-400">{formatRecordDate(record.updatedAt)}</p></div>
       <div className="flex items-center justify-end gap-1">
+        <Button variant="ghost" size="sm" onClick={onDetails} className="h-8 gap-1 text-xs text-cyan-800 hover:bg-cyan-50" data-testid={`button-details-record-${record.id}`}><FileText size={14} /> <span className="hidden md:inline">التفاصيل</span></Button>
         <Button variant="ghost" size="sm" onClick={onEdit} className="h-8 gap-1 text-xs text-slate-500 hover:bg-cyan-50 hover:text-cyan-800" data-testid={`button-edit-record-${record.id}`}><FilePenLine size={14} /> <span className="hidden md:inline">تعديل</span></Button>
         <Button variant="ghost" size="icon" onClick={onArchive} className="h-8 w-8 text-slate-400 hover:bg-rose-50 hover:text-rose-600" title="أرشفة السجل" data-testid={`button-archive-record-${record.id}`}><Archive size={14} /></Button>
       </div>
@@ -134,7 +136,7 @@ function RecordRow({ record, kind, onEdit, onArchive }: { record: ContainerSyste
   )
 }
 
-function RecordsPanel({ kind, records, loading, onAdd, onEdit, onArchive }: { kind: RecordKind; records: ContainerSystemRecord[]; loading: boolean; onAdd: () => void; onEdit: (record: ContainerSystemRecord) => void; onArchive: (record: ContainerSystemRecord) => void }) {
+function RecordsPanel({ kind, records, loading, onAdd, onDetails, onEdit, onArchive }: { kind: RecordKind; records: ContainerSystemRecord[]; loading: boolean; onAdd: () => void; onDetails: (record: ContainerSystemRecord) => void; onEdit: (record: ContainerSystemRecord) => void; onArchive: (record: ContainerSystemRecord) => void }) {
   return (
     <Card className="border-slate-200/80 shadow-[0_8px_28px_rgba(15,44,58,.05)]">
       <CardHeader className="border-b border-slate-100 px-4 py-4 sm:px-5">
@@ -147,7 +149,7 @@ function RecordsPanel({ kind, records, loading, onAdd, onEdit, onArchive }: { ki
         {loading ? <div className="space-y-1 p-4">{[1, 2, 3, 4].map(i => <SkeletonLine key={i} className="h-14 w-full" />)}</div> : records.length === 0 ? <div className="p-4"><EmptyState kind={kind} onAdd={onAdd} /></div> : (
           <div>
             <div className="hidden grid-cols-[minmax(0,1.4fr)_minmax(0,2fr)_minmax(0,1fr)_auto] gap-4 bg-slate-50 px-4 py-2.5 text-[10px] font-bold text-slate-400 sm:grid"><span>السجل</span><span>التفاصيل</span><span>الحالة والتحديث</span><span /></div>
-            {records.map(record => <RecordRow key={record.id} record={record} kind={kind} onEdit={() => onEdit(record)} onArchive={() => onArchive(record)} />)}
+            {records.map(record => <RecordRow key={record.id} record={record} kind={kind} onDetails={() => onDetails(record)} onEdit={() => onEdit(record)} onArchive={() => onArchive(record)} />)}
           </div>
         )}
       </CardContent>
@@ -251,7 +253,26 @@ function Reports({ records, snapshot }: { records: ContainerSystemRecord[]; snap
 }
 
 function AuditLog({ audits, loading }: { audits: any[]; loading: boolean }) {
-  return <Card className="border-slate-200/80 shadow-sm"><CardHeader className="border-b border-slate-100 px-5 py-4"><CardTitle className="flex items-center gap-2 text-base"><BookOpenCheck size={18} className="text-cyan-800" /> سجل التدقيق</CardTitle><p className="mt-1 text-xs text-slate-500">أثر قابل للمراجعة لكل إضافة وتعديل وأرشفة</p></CardHeader><CardContent className="p-0">{loading ? <div className="space-y-2 p-5">{[1, 2, 3].map(i => <SkeletonLine key={i} className="h-14" />)}</div> : audits.length === 0 ? <div className="p-12 text-center text-sm text-slate-500">لا توجد حركات تدقيق بعد.</div> : audits.map(audit => <div key={audit.id} className="flex items-start gap-3 border-b border-slate-100 px-5 py-4 last:border-0" data-testid={`audit-row-${audit.id}`}><div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500"><ShieldCheck size={15} /></div><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><Badge variant="outline" className="border-cyan-200 bg-cyan-50 text-cyan-800">{audit.action}</Badge><span className="text-xs font-bold text-slate-700">{KIND_LABELS[audit.kind as RecordKind] ?? audit.kind}</span><span className="text-[11px] text-slate-400">#{audit.recordId ?? "—"}</span></div><p className="mt-1 text-[11px] text-slate-400">{formatRecordDate(audit.createdAt)}</p></div></div>)}</CardContent></Card>
+  return <Card className="border-slate-200/80 shadow-sm"><CardHeader className="border-b border-slate-100 px-5 py-4"><CardTitle className="flex items-center gap-2 text-base"><BookOpenCheck size={18} className="text-cyan-800" /> سجل التدقيق</CardTitle><p className="mt-1 text-xs text-slate-500">أثر قابل للمراجعة لكل إضافة وتعديل وأرشفة</p></CardHeader><CardContent className="p-0">{loading ? <div className="space-y-2 p-5">{[1, 2, 3].map(i => <SkeletonLine key={i} className="h-14" />)}</div> : audits.length === 0 ? <div className="p-12 text-center text-sm text-slate-500">لا توجد حركات تدقيق بعد.</div> : audits.map(audit => <div key={audit.id} className="flex items-start gap-3 border-b border-slate-100 px-5 py-4 last:border-0" data-testid={`audit-row-${audit.id}`}><div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500"><ShieldCheck size={15} /></div><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><Badge variant="outline" className="border-cyan-200 bg-cyan-50 text-cyan-800">{formatAuditAction(audit.action)}</Badge><span className="text-xs font-bold text-slate-700">{KIND_LABELS[audit.kind as RecordKind] ?? audit.kind}</span><span className="text-[11px] text-slate-400">#{audit.recordId ?? "—"}</span></div><p className="mt-1 text-[11px] text-slate-400">{formatRecordDate(audit.createdAt)}</p></div></div>)}</CardContent></Card>
+}
+
+function RecordDetails({ record, open, onOpenChange }: { record?: ContainerSystemRecord | null; open: boolean; onOpenChange: (open: boolean) => void }) {
+  if (!record) return null
+  const entries = Object.entries(record.payload).filter(([, value]) => value !== "" && value !== null && value !== undefined)
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent dir="rtl" className="max-h-[85vh] max-w-3xl overflow-y-auto border-cyan-100">
+        <DialogHeader className="text-right">
+          <DialogTitle className="text-xl text-slate-900">{KIND_LABELS[record.kind as RecordKind] ?? "تفاصيل السجل"}</DialogTitle>
+          <DialogDescription>{record.reference || `سجل رقم ${record.id}`} · آخر تحديث {formatRecordDate(record.updatedAt)}</DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="rounded-xl bg-slate-50 p-3"><p className="text-[11px] text-slate-500">الحالة</p><div className="mt-1"><RecordStatus status={record.status} /></div></div>
+          {entries.map(([key, value]) => <div key={key} className="rounded-xl border border-slate-100 bg-white p-3"><p className="text-[11px] text-slate-500">{FIELD_CONFIG[record.kind as RecordKind]?.find(field => field.key === key)?.label ?? key}</p><p className="mt-1 break-words text-sm font-bold text-slate-800">{String(value)}</p></div>)}
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
 }
 
 export default function ContainerSystem() {
@@ -324,7 +345,7 @@ export default function ContainerSystem() {
             : view === "overview" ? <Overview snapshot={snapshot} records={records} onAdd={openCreate} />
              : view === "reports" ? <Reports records={snapshot?.records ?? records} snapshot={snapshot} />
             : view === "audit" ? <AuditLog audits={auditQuery.data ?? []} loading={auditQuery.isLoading} />
-            : <RecordsPanel kind={view as RecordKind} records={records} loading={loading} onAdd={() => openCreate(view as RecordKind)} onEdit={openEdit} onArchive={archiveRecord} />}
+             : <RecordsPanel kind={view as RecordKind} records={records} loading={loading} onAdd={() => openCreate(view as RecordKind)} onDetails={record => setDialog({ open: true, kind: (record.kind as RecordKind) || "customer", record })} onEdit={openEdit} onArchive={archiveRecord} />}
         </main>
       </div>
       <RecordDialog open={dialog.open} kind={dialog.kind} record={dialog.record} busy={busy} onOpenChange={open => setDialog(current => ({ ...current, open }))} onSubmit={submitRecord} />
