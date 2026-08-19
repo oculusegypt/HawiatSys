@@ -2,7 +2,7 @@ import { useMemo, useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import {
   AlertCircle, Archive, ArrowDownLeft, ArrowUpRight, BellRing, BookOpenCheck, Box, CarFront, CheckCircle2,
-  ChevronLeft, ClipboardList, Coins, FileCheck2, FilePenLine, FileText, Gauge, Landmark, LayoutDashboard, Truck,
+  ChevronLeft, ClipboardList, Coins, FileCheck2, FileDown, FilePenLine, FileText, Gauge, Landmark, LayoutDashboard, Truck,
   Loader2, Plus, RefreshCw, Search, Settings2, ShieldCheck, SlidersHorizontal, UserRound, Users, Wrench, X,
 } from "lucide-react"
 import {
@@ -205,8 +205,33 @@ function Reports({ records, snapshot }: { records: ContainerSystemRecord[]; snap
   const totalFinance = records.filter(record => ["receipt", "payment", "expense", "deposit"].includes(record.kind)).reduce((sum, record) => sum + amountOf(record), 0)
   const summary = snapshot?.summary as Record<string, unknown> | undefined
   const money = (value: unknown) => `${Number(value ?? 0).toLocaleString("ar-SA")} ر.س`
+  const receipts = records.filter(record => record.kind === "receipt").reduce((sum, record) => sum + amountOf(record), 0)
+  const deposits = records.filter(record => ["deposit", "bank_deposit"].includes(record.kind)).reduce((sum, record) => sum + amountOf(record), 0)
+  const reconciliationGap = deposits - receipts
+  const exportReport = () => {
+    const rows = [
+      ["القسم", "عدد السجلات", "القيمة"],
+      ...totals.map(item => [KIND_LABELS[item.kind], String(item.count), String(item.amount)]),
+      ["قيمة العقود", "", String(summary?.contractValue ?? 0)],
+      ["المديونية القائمة", "", String(summary?.debt ?? 0)],
+      ["المصروفات", "", String(summary?.expenses ?? 0)],
+      ["تكلفة الصيانة", "", String(summary?.maintenanceCost ?? 0)],
+      ["الفرق البنكي", "", String(reconciliationGap)],
+    ]
+    const csv = "\uFEFF" + rows.map(row => row.map(value => `"${String(value).replaceAll('"', '""')}"`).join(",")).join("\n")
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }))
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `container-system-report-${new Date().toISOString().slice(0, 10)}.csv`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
   return (
     <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div><h3 className="text-base font-black text-slate-900">التقارير المالية والتشغيلية</h3><p className="mt-1 text-xs text-slate-500">أرقام محسوبة من العقود والتحصيل والمصروفات والأصول.</p></div>
+        <Button onClick={exportReport} variant="outline" className="gap-2 border-cyan-200 text-cyan-800 hover:bg-cyan-50" data-testid="button-export-container-report"><FileDown size={15} /> تصدير CSV</Button>
+      </div>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="قيمة العقود" value={money(summary?.contractValue)} icon={FileCheck2} tone="bg-cyan-600" hint="الإجمالي شامل الضريبة" />
         <MetricCard label="المديونية القائمة" value={money(summary?.debt)} icon={Coins} tone="bg-rose-500" hint="بعد خصم التحصيل المرتبط بالعقد" />
@@ -214,6 +239,12 @@ function Reports({ records, snapshot }: { records: ContainerSystemRecord[]; snap
         <MetricCard label="استفادة الحاويات" value={`${Number(summary?.containerUtilization ?? 0)}%`} icon={Gauge} tone="bg-emerald-600" hint={`${Number(summary?.rentedContainers ?? 0)} مؤجرة من إجمالي الأصول`} />
       </div>
       <div className="grid gap-3 sm:grid-cols-3"><MetricCard label="إجمالي السجلات" value={records.length} icon={Gauge} tone="bg-cyan-600" hint="كل وحدات النظام" /><MetricCard label="حركة مالية" value={`${totalFinance.toLocaleString("ar-SA")} ر.س`} icon={Coins} tone="bg-amber-500" hint="إيصالات ومدفوعات ومصروفات" /><MetricCard label="آخر مزامنة" value={records.length ? "محدث" : "—"} icon={RefreshCw} tone="bg-emerald-600" hint={records.length ? formatRecordDate(records[0]?.updatedAt) : "لا توجد سجلات"} /></div>
+      <Card className={`border ${Math.abs(reconciliationGap) < 0.01 ? "border-emerald-200 bg-emerald-50/50" : "border-amber-200 bg-amber-50/50"}`}>
+        <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">
+          <div><p className="text-sm font-black text-slate-900">مطابقة الإيداعات البنكية مع الإيصالات</p><p className="mt-1 text-xs text-slate-600">الإيصالات: {money(receipts)} · الإيداعات: {money(deposits)}</p></div>
+          <div className="text-left"><p className="text-[11px] font-bold text-slate-500">الفرق غير المطابق</p><p className={`mt-1 text-xl font-black ${Math.abs(reconciliationGap) < 0.01 ? "text-emerald-700" : "text-amber-700"}`}>{money(reconciliationGap)}</p></div>
+        </CardContent>
+      </Card>
       <Card className="border-slate-200/80 shadow-sm"><CardHeader className="border-b border-slate-100 px-5 py-4"><CardTitle className="text-base">توزيع وحدات التشغيل</CardTitle></CardHeader><CardContent className="space-y-4 p-5">{totals.length === 0 ? <div className="py-12 text-center text-sm text-slate-500">أضف سجلات لتكوين التقرير التشغيلي.</div> : totals.map(item => <div key={item.kind} data-testid={`report-row-${item.kind}`}><div className="mb-1.5 flex justify-between text-xs"><span className="font-bold text-slate-700">{KIND_LABELS[item.kind]}</span><span className="font-mono text-slate-400">{item.count}</span></div><div className="h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-cyan-700 transition-all duration-500" style={{ width: `${Math.min(100, Math.max(7, item.count / records.length * 100))}%` }} /></div></div>)}</CardContent></Card>
     </div>
   )

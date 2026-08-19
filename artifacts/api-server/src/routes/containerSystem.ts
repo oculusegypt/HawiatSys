@@ -199,30 +199,7 @@ router.post("/admin/container-system/records", async (req, res) => {
   await db.insert(containerSystemAuditTable).values({
     recordId: created.id, kind, action: "create", afterPayload: created.payload, actorId: adminReq.adminId,
   });
-  if (kind === "container_movement") {
-    const movementType = String(payload.movementType ?? "").toLowerCase();
-    const nextStatus = movementType.includes("استرجاع") || movementType.includes("return") ? "available"
-      : movementType.includes("صيانة") || movementType.includes("maintenance") ? "maintenance" : "rented";
-    const assets = await db.select().from(containerSystemRecordsTable);
-    const asset = assets.find(record => {
-      if (!["container", "container_asset"].includes(record.kind)) return false;
-      const assetPayload = parsePayload(record.payload);
-      return String(assetPayload.assetCode ?? assetPayload.code ?? "") === String(payload.containerCode ?? "");
-    });
-    if (asset) {
-      const before = asset.payload;
-      const nextPayload = { ...parsePayload(before), location: payload.location ?? parsePayload(before).location };
-      await db.update(containerSystemRecordsTable).set({
-        status: nextStatus,
-        payload: JSON.stringify(nextPayload),
-        updatedAt: new Date().toISOString(),
-      }).where(eq(containerSystemRecordsTable.id, asset.id));
-      await db.insert(containerSystemAuditTable).values({
-        recordId: asset.id, kind: asset.kind, action: "movement_sync",
-        beforePayload: before, afterPayload: JSON.stringify(nextPayload), actorId: adminReq.adminId,
-      });
-    }
-  }
+  if (kind === "container_movement") await syncMovement(payload, adminReq.adminId);
   if (["payment", "receipt", "expense", "deposit"].includes(kind)) {
     await db.insert(containerSystemRecordsTable).values({
       kind: "ledger_entry",
@@ -251,6 +228,22 @@ router.patch("/admin/container-system/records/:id", async (req, res) => {
   if (!canManage(adminReq, current.kind)) return res.status(403).json({ error: "ليس لديك صلاحية لهذه العملية" });
   const body = req.body as { status?: string; payload?: Record<string, unknown> };
   const nextPayload = body.payload ? { ...parsePayload(current.payload), ...body.payload } : parsePayload(current.payload);
+  if (current.kind === "contract") {
+    Object.assign(nextPayload, normalizeContractPayload(nextPayload));
+    const amount = Number(nextPayload.amount ?? 0);
+    const minimumPrice = Number(nextPayload.minimumPrice ?? 0);
+    const approved = ["true", "1", "yes", "نعم"].includes(String(nextPayload.minimumPriceApproved ?? "").toLowerCase());
+    if (minimumPrice > 0 && amount < minimumPrice && !approved) {
+      return res.status(422).json({ error: "قيمة العقد أقل من الحد الأدنى وتتطلب استثناءً معتمداً" });
+    }
+    if (await hasOverlappingContract(nextPayload, id)) {
+      return res.status(409).json({ error: "الحاوية مرتبطة بعقد آخر خلال نفس الفترة" });
+    }
+  }
+  if (current.kind === "container_movement" &&
+    (!String(nextPayload.containerCode ?? "").trim() || !String(nextPayload.movementType ?? "").trim())) {
+    return res.status(422).json({ error: "رقم الحاوية ونوع الحركة مطلوبان" });
+  }
   const [updated] = await db.update(containerSystemRecordsTable).set({
     status: body.status ?? current.status,
     payload: JSON.stringify(nextPayload),
@@ -260,6 +253,7 @@ router.patch("/admin/container-system/records/:id", async (req, res) => {
     recordId: id, kind: current.kind, action: "update", beforePayload: current.payload,
     afterPayload: updated.payload, actorId: adminReq.adminId,
   });
+  if (current.kind === "container_movement") await syncMovement(nextPayload, adminReq.adminId);
   return res.json(formatRecord(updated));
 });
 
