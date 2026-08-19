@@ -40,6 +40,8 @@ const NAV_GROUPS = [
       { key: "container" as ViewKey, label: "أصول الحاويات", icon: Box },
       { key: "container_type" as ViewKey, label: "أنواع الحاويات", icon: SlidersHorizontal },
       { key: "contract" as ViewKey, label: "عقود التأجير", icon: FileCheck2 },
+      { key: "contract_line" as ViewKey, label: "بنود العقود", icon: ClipboardList },
+      { key: "container_movement" as ViewKey, label: "حركة الحاويات", icon: Truck },
       { key: "vehicle" as ViewKey, label: "المركبات والصيانة", icon: CarFront },
       { key: "maintenance" as ViewKey, label: "سجل الصيانة", icon: Wrench },
       { key: "driver" as ViewKey, label: "السائقون", icon: UserRound },
@@ -50,6 +52,7 @@ const NAV_GROUPS = [
     items: [
       { key: "receipt" as ViewKey, label: "الإيصالات", icon: FileText },
       { key: "payment" as ViewKey, label: "المدفوعات", icon: Coins },
+      { key: "ledger_entry" as ViewKey, label: "دفتر المديونية", icon: FileText },
       { key: "expense" as ViewKey, label: "المصروفات", icon: ArrowDownLeft },
       { key: "deposit" as ViewKey, label: "الإيداعات البنكية", icon: Landmark },
       { key: "reports" as ViewKey, label: "التقارير", icon: ArrowUpRight },

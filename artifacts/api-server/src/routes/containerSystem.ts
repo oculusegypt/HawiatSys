@@ -6,8 +6,8 @@ import type { AdminRequest } from "../middleware/adminAuth";
 const router = Router();
 const supportedKinds = [
   "customer", "container_type", "container", "container_asset", "vehicle", "driver",
-  "contract", "receipt", "payment", "expense", "deposit", "bank_deposit", "maintenance",
-  "alert", "setting",
+  "contract", "contract_line", "container_movement", "ledger_entry", "receipt", "payment",
+  "expense", "deposit", "bank_deposit", "maintenance", "alert", "setting",
 ] as const;
 type RecordKind = typeof supportedKinds[number];
 
@@ -43,7 +43,17 @@ router.get("/admin/container-system", async (req, res) => {
   const rows = await db.select().from(containerSystemRecordsTable).orderBy(desc(containerSystemRecordsTable.updatedAt));
   const records = rows.map(formatRecord);
   const count = (kind: string, status?: string) => records.filter(r => r.kind === kind && (!status || r.status === status)).length;
-  const contracts = records.filter(r => r.kind === "contract");
+  const paymentsByContract = new Map<string, number>();
+  records.filter(r => r.kind === "payment" || r.kind === "receipt").forEach(r => {
+    const contractNumber = String((r.payload as Record<string, unknown>).contractNumber ?? "");
+    if (contractNumber) paymentsByContract.set(contractNumber, (paymentsByContract.get(contractNumber) ?? 0) + Number((r.payload as Record<string, unknown>).amount ?? 0));
+  });
+  const contracts = records.filter(r => r.kind === "contract").map(r => {
+    const payload = r.payload as Record<string, unknown>;
+    const total = Number(payload.total ?? payload.amount ?? 0);
+    const paid = paymentsByContract.get(String(payload.contractNumber ?? "")) ?? 0;
+    return { ...r, payload: { ...payload, paid, remaining: Math.max(total - paid, 0) } };
+  });
   const activeContracts = contracts.filter(r => ["active", "issued", "scheduled", "delivered"].includes(r.status));
   const expiringContracts = activeContracts.filter(r => {
     const end = String((r.payload as Record<string, unknown>).endDate ?? "");
@@ -59,13 +69,16 @@ router.get("/admin/container-system", async (req, res) => {
       availableContainers: records.filter(r => ["container", "container_asset"].includes(r.kind) && r.status === "available").length,
       rentedContainers: records.filter(r => ["container", "container_asset"].includes(r.kind) && r.status === "rented").length,
       activeContracts: activeContracts.length,
+      containerMovements: count("container_movement"),
+      openLedgerEntries: records.filter(r => r.kind === "ledger_entry" && r.status === "open").length,
+      collected: paymentsByContract.values().reduce((sum, amount) => sum + amount, 0),
       expiringContracts: expiringContracts.length,
       debt,
       vehicles: count("vehicle"),
       vehiclesReady: records.filter(r => r.kind === "vehicle" && r.status === "available").length,
       maintenanceDue: records.filter(r => r.kind === "maintenance" && ["due", "overdue"].includes(r.status)).length,
     },
-    records,
+    records: records.map(r => contracts.find(c => c.id === r.id) ?? r),
     expiringContracts,
     recent: records.slice(0, 12),
   });
@@ -118,6 +131,23 @@ router.post("/admin/container-system/records", async (req, res) => {
   await db.insert(containerSystemAuditTable).values({
     recordId: created.id, kind, action: "create", afterPayload: created.payload, actorId: adminReq.adminId,
   });
+  if (["payment", "receipt", "expense", "deposit"].includes(kind)) {
+    await db.insert(containerSystemRecordsTable).values({
+      kind: "ledger_entry",
+      status: "posted",
+      reference: `LED-${created.id}`,
+      payload: JSON.stringify({
+        sourceKind: kind,
+        sourceId: created.id,
+        contractNumber: payload.contractNumber ?? "",
+        customerName: payload.customerName ?? "",
+        amount: Number(payload.amount ?? 0),
+        direction: kind === "expense" ? "debit" : "credit",
+        date: payload.date ?? new Date().toISOString().slice(0, 10),
+      }),
+      createdBy: adminReq.adminId,
+    });
+  }
   return res.status(201).json(formatRecord(created));
 });
 

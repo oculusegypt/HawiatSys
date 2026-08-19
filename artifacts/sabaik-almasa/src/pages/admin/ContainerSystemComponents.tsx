@@ -13,6 +13,9 @@ export type RecordKind =
   | "container_type"
   | "container"
   | "contract"
+  | "contract_line"
+  | "container_movement"
+  | "ledger_entry"
   | "vehicle"
   | "maintenance"
   | "driver"
@@ -28,6 +31,9 @@ export const KIND_LABELS: Record<RecordKind, string> = {
   container_type: "أنواع الحاويات",
   container: "أصول الحاويات",
   contract: "عقود التأجير",
+  contract_line: "بنود العقود",
+  container_movement: "حركة الحاويات",
+  ledger_entry: "دفتر المديونية",
   vehicle: "المركبات",
   maintenance: "الصيانة",
   driver: "السائقون",
@@ -44,6 +50,9 @@ export const KIND_ICONS: Record<RecordKind, string> = {
   container_type: "نوع",
   container: "أصل",
   contract: "عقد",
+  contract_line: "بند",
+  container_movement: "حركة",
+  ledger_entry: "قيد",
   vehicle: "مركبة",
   maintenance: "صيانة",
   driver: "سائق",
@@ -100,6 +109,34 @@ export const FIELD_CONFIG: Record<RecordKind, FieldConfig[]> = {
     { key: "minimumPriceApproved", label: "استثناء سعري معتمد", placeholder: "نعم / لا" },
     { key: "status", label: "حالة العقد", placeholder: "مسودة / نشط / منتهٍ" },
     { key: "notes", label: "بنود وملاحظات", type: "textarea", wide: true },
+  ],
+  contract_line: [
+    { key: "contractNumber", label: "رقم العقد", placeholder: "RNT-2026-001" },
+    { key: "serviceType", label: "نوع الخدمة", placeholder: "توصيل / رفع / تبديل / نقل" },
+    { key: "containerCode", label: "رقم الحاوية", placeholder: "CNT-101" },
+    { key: "quantity", label: "الكمية", type: "number", placeholder: "1" },
+    { key: "unitPrice", label: "سعر الوحدة", type: "number", placeholder: "0" },
+    { key: "taxRate", label: "الضريبة %", type: "number", placeholder: "15" },
+    { key: "lineTotal", label: "إجمالي البند", type: "number", placeholder: "0" },
+    { key: "notes", label: "ملاحظات", type: "textarea", wide: true },
+  ],
+  container_movement: [
+    { key: "contractNumber", label: "رقم العقد", placeholder: "RNT-2026-001" },
+    { key: "containerCode", label: "رقم الحاوية", placeholder: "CNT-101" },
+    { key: "movementType", label: "نوع الحركة", placeholder: "تسليم / استرجاع / تبديل / نقل" },
+    { key: "vehiclePlate", label: "المركبة", placeholder: "أ ب ج 1234" },
+    { key: "driverName", label: "السائق", placeholder: "اسم السائق" },
+    { key: "movementDate", label: "تاريخ الحركة", type: "date" },
+    { key: "location", label: "الموقع", placeholder: "العنوان أو الموقع" },
+    { key: "notes", label: "ملاحظات", type: "textarea", wide: true },
+  ],
+  ledger_entry: [
+    { key: "contractNumber", label: "رقم العقد", placeholder: "RNT-2026-001" },
+    { key: "customerName", label: "العميل", placeholder: "اسم العميل" },
+    { key: "direction", label: "نوع القيد", placeholder: "مدين / دائن" },
+    { key: "amount", label: "المبلغ", type: "number", placeholder: "0" },
+    { key: "date", label: "التاريخ", type: "date" },
+    { key: "description", label: "البيان", type: "textarea", wide: true },
   ],
   vehicle: [
     { key: "plate", label: "لوحة المركبة", placeholder: "أ ب ج 1234" },
