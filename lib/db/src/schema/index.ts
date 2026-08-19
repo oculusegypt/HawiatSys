@@ -16,3 +16,4 @@ export * from "./whatsapp";
 export * from "./posts";
 export * from "./seoPages";
 export * from "./reviews";
+export * from "./containerSystem";
