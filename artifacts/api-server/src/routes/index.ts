@@ -25,6 +25,7 @@ import whatsappRouter from "./whatsapp";
 import pushRouter from "./push";
 import seoPagesRouter from "./seoPages";
 import reviewsRouter from "./reviews";
+import containerSystemRouter from "./containerSystem";
 
 const router: IRouter = Router();
 
@@ -54,5 +55,6 @@ router.use(whatsappRouter);
 router.use(pushRouter);
 router.use(seoPagesRouter);
 router.use(reviewsRouter);
+router.use(containerSystemRouter);
 
 export default router;

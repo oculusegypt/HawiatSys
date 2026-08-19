@@ -130,6 +130,37 @@ sqlite.exec(`
   )
 `);
 
+// Full container system records are intentionally kept in portable SQLite
+// tables so the local app and Hostinger PHP export share the same data shape.
+sqlite.exec(`
+  CREATE TABLE IF NOT EXISTS container_system_records (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    kind TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'active',
+    reference TEXT NOT NULL DEFAULT '',
+    payload TEXT NOT NULL DEFAULT '{}',
+    created_by INTEGER,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_container_system_records_kind
+    ON container_system_records(kind);
+  CREATE INDEX IF NOT EXISTS idx_container_system_records_status
+    ON container_system_records(status);
+  CREATE TABLE IF NOT EXISTS container_system_audit (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    record_id INTEGER,
+    kind TEXT NOT NULL,
+    action TEXT NOT NULL,
+    before_payload TEXT,
+    after_payload TEXT,
+    actor_id INTEGER,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_container_system_audit_created_at
+    ON container_system_audit(created_at);
+`);
+
 export const db = drizzle(sqlite, { schema });
 export { sqlite };
 export * from "./schema";

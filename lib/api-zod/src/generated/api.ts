@@ -1517,3 +1517,116 @@ export const DeletePushSubscriptionResponse = zod.object({
 })
 
 
+export const GetContainerSystemResponse = zod.object({
+  "summary": zod.record(zod.string(), zod.unknown()),
+  "records": zod.array(zod.object({
+  "id": zod.number(),
+  "kind": zod.string(),
+  "status": zod.string(),
+  "reference": zod.string(),
+  "payload": zod.record(zod.string(), zod.unknown()),
+  "createdBy": zod.number().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})),
+  "expiringContracts": zod.array(zod.object({
+  "id": zod.number(),
+  "kind": zod.string(),
+  "status": zod.string(),
+  "reference": zod.string(),
+  "payload": zod.record(zod.string(), zod.unknown()),
+  "createdBy": zod.number().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})),
+  "recent": zod.array(zod.object({
+  "id": zod.number(),
+  "kind": zod.string(),
+  "status": zod.string(),
+  "reference": zod.string(),
+  "payload": zod.record(zod.string(), zod.unknown()),
+  "createdBy": zod.number().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}))
+})
+
+
+export const GetContainerSystemRecordsQueryParams = zod.object({
+  "kind": zod.coerce.string().optional(),
+  "status": zod.coerce.string().optional(),
+  "search": zod.coerce.string().optional()
+})
+
+export const GetContainerSystemRecordsResponseItem = zod.object({
+  "id": zod.number(),
+  "kind": zod.string(),
+  "status": zod.string(),
+  "reference": zod.string(),
+  "payload": zod.record(zod.string(), zod.unknown()),
+  "createdBy": zod.number().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+export const GetContainerSystemRecordsResponse = zod.array(GetContainerSystemRecordsResponseItem)
+
+
+export const CreateContainerSystemRecordBody = zod.object({
+  "kind": zod.string(),
+  "status": zod.string().optional(),
+  "payload": zod.record(zod.string(), zod.unknown())
+})
+
+export const CreateContainerSystemRecordResponse = zod.object({
+  "id": zod.number(),
+  "kind": zod.string(),
+  "status": zod.string(),
+  "reference": zod.string(),
+  "payload": zod.record(zod.string(), zod.unknown()),
+  "createdBy": zod.number().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+export const UpdateContainerSystemRecordParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateContainerSystemRecordBody = zod.object({
+  "status": zod.string().optional(),
+  "payload": zod.record(zod.string(), zod.unknown()).optional()
+})
+
+export const UpdateContainerSystemRecordResponse = zod.object({
+  "id": zod.number(),
+  "kind": zod.string(),
+  "status": zod.string(),
+  "reference": zod.string(),
+  "payload": zod.record(zod.string(), zod.unknown()),
+  "createdBy": zod.number().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+export const ArchiveContainerSystemRecordParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ArchiveContainerSystemRecordResponse = zod.void()
+
+
+export const GetContainerSystemAuditResponseItem = zod.object({
+  "id": zod.number(),
+  "recordId": zod.number().nullish(),
+  "kind": zod.string(),
+  "action": zod.string(),
+  "beforePayload": zod.string().nullish(),
+  "afterPayload": zod.string().nullish(),
+  "actorId": zod.number().nullish(),
+  "createdAt": zod.string()
+})
+export const GetContainerSystemAuditResponse = zod.array(GetContainerSystemAuditResponseItem)
+
+

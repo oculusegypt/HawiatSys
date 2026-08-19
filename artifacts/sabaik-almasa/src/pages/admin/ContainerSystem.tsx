@@ -1,0 +1,292 @@
+import { useMemo, useState } from "react"
+import { useQueryClient } from "@tanstack/react-query"
+import {
+  AlertCircle, Archive, ArrowDownLeft, ArrowUpRight, BellRing, BookOpenCheck, Box, CarFront, CheckCircle2,
+  ChevronLeft, ClipboardList, Coins, FileCheck2, FilePenLine, FileText, Gauge, Landmark, LayoutDashboard,
+  Loader2, Plus, RefreshCw, Search, Settings2, ShieldCheck, SlidersHorizontal, UserRound, Users, Wrench, X,
+} from "lucide-react"
+import {
+  getGetContainerSystemAuditQueryKey,
+  getGetContainerSystemQueryKey,
+  getGetContainerSystemRecordsQueryKey,
+  useArchiveContainerSystemRecord,
+  useCreateContainerSystemRecord,
+  useGetContainerSystem,
+  useGetContainerSystemAudit,
+  useGetContainerSystemRecords,
+  useUpdateContainerSystemRecord,
+} from "@workspace/api-client-react"
+import type { ContainerSystemRecord } from "@workspace/api-client-react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { useToast } from "@/hooks/use-toast"
+import {
+  FIELD_CONFIG, KIND_ICONS, KIND_LABELS, RecordDialog, RecordKind, RecordStatus, amountOf, formatRecordDate,
+} from "./ContainerSystemComponents"
+
+type ViewKey = "overview" | RecordKind | "reports" | "audit"
+
+const NAV_GROUPS = [
+  {
+    label: "نظرة التشغيل",
+    items: [{ key: "overview" as ViewKey, label: "نظرة عامة", icon: LayoutDashboard }],
+  },
+  {
+    label: "الأسطول والعقود",
+    items: [
+      { key: "customer" as ViewKey, label: "العملاء", icon: Users },
+      { key: "container" as ViewKey, label: "أصول الحاويات", icon: Box },
+      { key: "container_type" as ViewKey, label: "أنواع الحاويات", icon: SlidersHorizontal },
+      { key: "contract" as ViewKey, label: "عقود التأجير", icon: FileCheck2 },
+      { key: "vehicle" as ViewKey, label: "المركبات والصيانة", icon: CarFront },
+      { key: "maintenance" as ViewKey, label: "سجل الصيانة", icon: Wrench },
+      { key: "driver" as ViewKey, label: "السائقون", icon: UserRound },
+    ],
+  },
+  {
+    label: "المالية والمتابعة",
+    items: [
+      { key: "receipt" as ViewKey, label: "الإيصالات", icon: FileText },
+      { key: "payment" as ViewKey, label: "المدفوعات", icon: Coins },
+      { key: "expense" as ViewKey, label: "المصروفات", icon: ArrowDownLeft },
+      { key: "deposit" as ViewKey, label: "الإيداعات البنكية", icon: Landmark },
+      { key: "reports" as ViewKey, label: "التقارير", icon: ArrowUpRight },
+      { key: "alert" as ViewKey, label: "التنبيهات اليومية", icon: BellRing },
+    ],
+  },
+  {
+    label: "الضبط والحوكمة",
+    items: [
+      { key: "setting" as ViewKey, label: "الإعدادات", icon: Settings2 },
+      { key: "audit" as ViewKey, label: "سجل التدقيق", icon: BookOpenCheck },
+    ],
+  },
+]
+
+const allKinds = Object.keys(KIND_LABELS) as RecordKind[]
+const viewLabel = (view: ViewKey) => view === "overview" ? "نظرة عامة" : view === "reports" ? "التقارير" : view === "audit" ? "سجل التدقيق" : KIND_LABELS[view]
+
+function numericSummary(summary: Record<string, unknown> | undefined, keys: string[], fallback: number) {
+  for (const key of keys) {
+    const number = Number(summary?.[key])
+    if (Number.isFinite(number)) return number
+  }
+  return fallback
+}
+
+function SkeletonLine({ className = "" }: { className?: string }) {
+  return <div className={`animate-pulse rounded-lg bg-slate-100 ${className}`} aria-hidden="true" />
+}
+
+function MetricCard({ label, value, icon: Icon, tone, hint }: { label: string; value: string | number; icon: typeof Box; tone: string; hint: string }) {
+  const iconSurface = tone === "bg-amber-500" ? "bg-amber-50 text-amber-700" : tone === "bg-emerald-600" ? "bg-emerald-50 text-emerald-700" : tone === "bg-rose-500" ? "bg-rose-50 text-rose-700" : "bg-cyan-50 text-cyan-800"
+  return (
+    <Card className="overflow-hidden border-slate-200/80 bg-white shadow-[0_8px_28px_rgba(15,44,58,.06)] transition-transform duration-200 hover:-translate-y-0.5" data-testid={`card-metric-${label}`}>
+      <CardContent className="relative p-5">
+        <div className={`absolute inset-y-0 right-0 w-1 ${tone}`} />
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-bold text-slate-500">{label}</p>
+            <p className="mt-2 text-3xl font-black tracking-tight text-slate-900" data-testid={`text-metric-${label}`}>{value}</p>
+            <p className="mt-1 text-[11px] text-slate-400">{hint}</p>
+          </div>
+          <div className={`flex h-11 w-11 items-center justify-center rounded-2xl ${iconSurface}`}><Icon size={20} /></div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function EmptyState({ kind, onAdd }: { kind: RecordKind; onAdd: () => void }) {
+  return (
+    <div className="flex min-h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 px-6 text-center" data-testid={`empty-state-${kind}`}>
+      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-800"><ClipboardList size={24} /></div>
+      <h3 className="font-bold text-slate-800">لا توجد سجلات في {KIND_LABELS[kind]}</h3>
+      <p className="mt-1 max-w-sm text-sm text-slate-500">ابدأ بإضافة أول سجل. ستظهر التغييرات مباشرة في لوحة التشغيل والتقارير.</p>
+      <Button onClick={onAdd} className="mt-5 gap-2 bg-cyan-800 hover:bg-cyan-900" data-testid={`button-empty-add-${kind}`}><Plus size={16} /> إضافة سجل</Button>
+    </div>
+  )
+}
+
+function RecordRow({ record, kind, onEdit, onArchive }: { record: ContainerSystemRecord; kind: RecordKind; onEdit: () => void; onArchive: () => void }) {
+  const fields = FIELD_CONFIG[kind].slice(0, 4)
+  const primary = String(record.payload[fields[0]?.key] ?? record.reference ?? `#${record.id}`)
+  return (
+    <div className="group grid grid-cols-[minmax(0,1.4fr)_minmax(0,2fr)_auto] items-center gap-4 border-b border-slate-100 px-4 py-4 last:border-0 hover:bg-cyan-50/30 sm:grid-cols-[minmax(0,1.2fr)_minmax(0,2fr)_minmax(0,1fr)_auto]" data-testid={`row-record-${record.id}`}>
+      <div className="min-w-0">
+        <p className="truncate font-bold text-slate-800" data-testid={`text-record-primary-${record.id}`}>{primary}</p>
+        <p className="mt-0.5 text-[11px] font-mono text-slate-400" dir="ltr">{record.reference || `#${record.id}`}</p>
+      </div>
+      <div className="hidden min-w-0 gap-2 sm:grid sm:grid-cols-2">
+        {fields.slice(1, 3).map(field => <div key={field.key} className="min-w-0"><p className="text-[10px] text-slate-400">{field.label}</p><p className="truncate text-xs text-slate-700">{String(record.payload[field.key] ?? "—")}</p></div>)}
+      </div>
+      <div className="hidden sm:block"><RecordStatus status={record.status} /><p className="mt-1 text-[10px] text-slate-400">{formatRecordDate(record.updatedAt)}</p></div>
+      <div className="flex items-center justify-end gap-1">
+        <Button variant="ghost" size="sm" onClick={onEdit} className="h-8 gap-1 text-xs text-slate-500 hover:bg-cyan-50 hover:text-cyan-800" data-testid={`button-edit-record-${record.id}`}><FilePenLine size={14} /> <span className="hidden md:inline">تعديل</span></Button>
+        <Button variant="ghost" size="icon" onClick={onArchive} className="h-8 w-8 text-slate-400 hover:bg-rose-50 hover:text-rose-600" title="أرشفة السجل" data-testid={`button-archive-record-${record.id}`}><Archive size={14} /></Button>
+      </div>
+    </div>
+  )
+}
+
+function RecordsPanel({ kind, records, loading, onAdd, onEdit, onArchive }: { kind: RecordKind; records: ContainerSystemRecord[]; loading: boolean; onAdd: () => void; onEdit: (record: ContainerSystemRecord) => void; onArchive: (record: ContainerSystemRecord) => void }) {
+  return (
+    <Card className="border-slate-200/80 shadow-[0_8px_28px_rgba(15,44,58,.05)]">
+      <CardHeader className="border-b border-slate-100 px-4 py-4 sm:px-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div><CardTitle className="text-base text-slate-900">سجلات {KIND_LABELS[kind]}</CardTitle><p className="mt-1 text-xs text-slate-500">آخر تحديث محفوظ من نظام العمليات</p></div>
+          <Button onClick={onAdd} className="gap-2 bg-cyan-800 hover:bg-cyan-900" data-testid={`button-add-${kind}`}><Plus size={16} /> إضافة سجل</Button>
+        </div>
+      </CardHeader>
+      <CardContent className="p-0">
+        {loading ? <div className="space-y-1 p-4">{[1, 2, 3, 4].map(i => <SkeletonLine key={i} className="h-14 w-full" />)}</div> : records.length === 0 ? <div className="p-4"><EmptyState kind={kind} onAdd={onAdd} /></div> : (
+          <div>
+            <div className="hidden grid-cols-[minmax(0,1.4fr)_minmax(0,2fr)_minmax(0,1fr)_auto] gap-4 bg-slate-50 px-4 py-2.5 text-[10px] font-bold text-slate-400 sm:grid"><span>السجل</span><span>التفاصيل</span><span>الحالة والتحديث</span><span /></div>
+            {records.map(record => <RecordRow key={record.id} record={record} kind={kind} onEdit={() => onEdit(record)} onArchive={() => onArchive(record)} />)}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+function Overview({ snapshot, records, onAdd }: { snapshot?: any; records: ContainerSystemRecord[]; onAdd: (kind: RecordKind) => void }) {
+  const summary = snapshot?.summary as Record<string, unknown> | undefined
+  const count = (kind: RecordKind) => records.filter(record => record.kind === kind && record.status !== "archived").length
+  const activeContracts = numericSummary(summary, ["activeContracts", "contracts"], count("contract"))
+  const availableContainers = numericSummary(summary, ["availableContainers", "available"], count("container"))
+  const outstanding = numericSummary(summary, ["outstandingAmount", "outstanding"], records.filter(r => r.kind === "payment").reduce((sum, r) => sum + amountOf(r), 0))
+  const openAlerts = numericSummary(summary, ["openAlerts", "alerts"], count("alert"))
+  const recent = (snapshot?.recent as ContainerSystemRecord[] | undefined)?.slice(0, 5) ?? records.slice(0, 5)
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <MetricCard label="العقود النشطة" value={activeContracts} icon={FileCheck2} tone="bg-cyan-600" hint="تحتاج متابعة يومية" />
+        <MetricCard label="الحاويات المتاحة" value={availableContainers} icon={Box} tone="bg-emerald-600" hint="جاهزة للتسليم" />
+        <MetricCard label="التحصيل المسجل" value={`${outstanding.toLocaleString("ar-SA")} ر.س`} icon={Coins} tone="bg-amber-500" hint="من سجلات المدفوعات" />
+        <MetricCard label="تنبيهات مفتوحة" value={openAlerts} icon={BellRing} tone="bg-rose-500" hint="مراجعة قبل نهاية اليوم" />
+      </div>
+      <div className="grid gap-5 xl:grid-cols-[1.35fr_.65fr]">
+        <Card className="border-slate-200/80 shadow-[0_8px_28px_rgba(15,44,58,.05)]">
+          <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 px-5 py-4"><div><CardTitle className="text-base text-slate-900">آخر حركة تشغيلية</CardTitle><p className="mt-1 text-xs text-slate-500">سجل زمني مختصر لأحدث التغييرات</p></div><ShieldCheck size={19} className="text-emerald-600" /></CardHeader>
+          <CardContent className="p-0">
+            {recent.length === 0 ? <div className="p-8 text-center text-sm text-slate-500">ستظهر آخر العمليات هنا عند إضافة السجلات.</div> : recent.map((record, index) => (
+              <div key={record.id} className="flex items-center gap-3 border-b border-slate-100 px-5 py-3.5 last:border-0" data-testid={`row-recent-${record.id}`}>
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-cyan-50 text-[10px] font-black text-cyan-800">{KIND_ICONS[record.kind as RecordKind] ?? "سجل"}</div>
+                <div className="min-w-0 flex-1"><p className="truncate text-sm font-bold text-slate-800">{String(record.payload.name ?? record.payload.customerName ?? record.reference ?? `سجل ${record.id}`)}</p><p className="text-[11px] text-slate-400">{KIND_LABELS[record.kind as RecordKind] ?? record.kind} · {formatRecordDate(record.createdAt)}</p></div>
+                <RecordStatus status={record.status} />
+                {index === 0 && <span className="h-2 w-2 rounded-full bg-emerald-500" />}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+        <Card className="overflow-hidden border-0 bg-[#123d4e] text-white shadow-[0_14px_40px_rgba(18,61,78,.18)]">
+          <CardContent className="relative flex h-full flex-col justify-between p-6">
+            <div className="absolute -left-12 -top-16 h-40 w-40 rounded-full border border-cyan-300/20" /><div className="absolute -left-5 -top-9 h-24 w-24 rounded-full border border-cyan-300/20" />
+            <div className="relative"><Badge className="border-cyan-200/30 bg-cyan-200/10 text-cyan-100 hover:bg-cyan-200/10">مركز العمليات</Badge><h3 className="mt-5 max-w-xs text-2xl font-black leading-tight">كل قرار يبدأ من سجل واضح.</h3><p className="mt-3 max-w-xs text-sm leading-7 text-cyan-100/70">أضف أو حدّث السجلات، وستتولى لوحة الحاويات ترتيب الصورة التشغيلية أمام الفريق.</p></div>
+            <div className="relative mt-8 grid grid-cols-2 gap-2"><Button onClick={() => onAdd("contract")} className="bg-amber-400 text-slate-900 hover:bg-amber-300" data-testid="button-quick-add-contract"><Plus size={15} /> عقد جديد</Button><Button onClick={() => onAdd("container")} variant="outline" className="border-cyan-200/30 bg-white/5 text-white hover:bg-white/10" data-testid="button-quick-add-container"><Box size={15} /> أصل جديد</Button></div>
+          </CardContent>
+        </Card>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {(["customer", "vehicle", "driver", "expense"] as RecordKind[]).map(kind => <button key={kind} onClick={() => onAdd(kind)} className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-right shadow-sm transition-all hover:-translate-y-0.5 hover:border-cyan-200 hover:shadow-md" data-testid={`button-quick-add-${kind}`}><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 text-cyan-800">{kind === "customer" ? <Users size={18} /> : kind === "vehicle" ? <CarFront size={18} /> : kind === "driver" ? <UserRound size={18} /> : <Coins size={18} />}</span><span><span className="block text-xs text-slate-400">إضافة سريعة</span><span className="block font-bold text-slate-800">{KIND_LABELS[kind]}</span></span><ChevronLeft size={16} className="mr-auto text-slate-300" /></button>)}
+      </div>
+    </div>
+  )
+}
+
+function Reports({ records }: { records: ContainerSystemRecord[] }) {
+  const totals = allKinds.map(kind => ({ kind, count: records.filter(record => record.kind === kind && record.status !== "archived").length, amount: records.filter(record => record.kind === kind).reduce((sum, record) => sum + amountOf(record), 0) })).filter(item => item.count > 0)
+  const totalFinance = records.filter(record => ["receipt", "payment", "expense", "deposit"].includes(record.kind)).reduce((sum, record) => sum + amountOf(record), 0)
+  return (
+    <div className="space-y-5">
+      <div className="grid gap-3 sm:grid-cols-3"><MetricCard label="إجمالي السجلات" value={records.length} icon={Gauge} tone="bg-cyan-600" hint="كل وحدات النظام" /><MetricCard label="حركة مالية" value={`${totalFinance.toLocaleString("ar-SA")} ر.س`} icon={Coins} tone="bg-amber-500" hint="إيصالات ومدفوعات ومصروفات" /><MetricCard label="آخر مزامنة" value={records.length ? "محدث" : "—"} icon={RefreshCw} tone="bg-emerald-600" hint={records.length ? formatRecordDate(records[0]?.updatedAt) : "لا توجد سجلات"} /></div>
+      <Card className="border-slate-200/80 shadow-sm"><CardHeader className="border-b border-slate-100 px-5 py-4"><CardTitle className="text-base">توزيع وحدات التشغيل</CardTitle></CardHeader><CardContent className="space-y-4 p-5">{totals.length === 0 ? <div className="py-12 text-center text-sm text-slate-500">أضف سجلات لتكوين التقرير التشغيلي.</div> : totals.map(item => <div key={item.kind} data-testid={`report-row-${item.kind}`}><div className="mb-1.5 flex justify-between text-xs"><span className="font-bold text-slate-700">{KIND_LABELS[item.kind]}</span><span className="font-mono text-slate-400">{item.count}</span></div><div className="h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-cyan-700 transition-all duration-500" style={{ width: `${Math.min(100, Math.max(7, item.count / records.length * 100))}%` }} /></div></div>)}</CardContent></Card>
+    </div>
+  )
+}
+
+function AuditLog({ audits, loading }: { audits: any[]; loading: boolean }) {
+  return <Card className="border-slate-200/80 shadow-sm"><CardHeader className="border-b border-slate-100 px-5 py-4"><CardTitle className="flex items-center gap-2 text-base"><BookOpenCheck size={18} className="text-cyan-800" /> سجل التدقيق</CardTitle><p className="mt-1 text-xs text-slate-500">أثر قابل للمراجعة لكل إضافة وتعديل وأرشفة</p></CardHeader><CardContent className="p-0">{loading ? <div className="space-y-2 p-5">{[1, 2, 3].map(i => <SkeletonLine key={i} className="h-14" />)}</div> : audits.length === 0 ? <div className="p-12 text-center text-sm text-slate-500">لا توجد حركات تدقيق بعد.</div> : audits.map(audit => <div key={audit.id} className="flex items-start gap-3 border-b border-slate-100 px-5 py-4 last:border-0" data-testid={`audit-row-${audit.id}`}><div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500"><ShieldCheck size={15} /></div><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><Badge variant="outline" className="border-cyan-200 bg-cyan-50 text-cyan-800">{audit.action}</Badge><span className="text-xs font-bold text-slate-700">{KIND_LABELS[audit.kind as RecordKind] ?? audit.kind}</span><span className="text-[11px] text-slate-400">#{audit.recordId ?? "—"}</span></div><p className="mt-1 text-[11px] text-slate-400">{formatRecordDate(audit.createdAt)}</p></div></div>)}</CardContent></Card>
+}
+
+export default function ContainerSystem() {
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+  const [view, setView] = useState<ViewKey>("overview")
+  const [search, setSearch] = useState("")
+  const [dialog, setDialog] = useState<{ open: boolean; kind: RecordKind; record?: ContainerSystemRecord | null }>({ open: false, kind: "customer" })
+  const [notice, setNotice] = useState<string | null>(null)
+  const isCollection = allKinds.includes(view as RecordKind)
+  const filterParams = useMemo(() => ({ kind: isCollection ? view : undefined, search: search.trim() || undefined }), [isCollection, search, view])
+  const snapshotQuery = useGetContainerSystem()
+  const recordsQuery = useGetContainerSystemRecords(filterParams)
+  const auditQuery = useGetContainerSystemAudit({ query: { enabled: view === "audit", queryKey: getGetContainerSystemAuditQueryKey() } })
+  const createMutation = useCreateContainerSystemRecord()
+  const updateMutation = useUpdateContainerSystemRecord()
+  const archiveMutation = useArchiveContainerSystemRecord()
+  const snapshot = snapshotQuery.data
+  const records = useMemo(() => {
+    const response = recordsQuery.data ?? []
+    if (isCollection || search.trim()) return response
+    return snapshot?.records ?? response
+  }, [isCollection, recordsQuery.data, search, snapshot?.records])
+
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: getGetContainerSystemQueryKey() })
+    queryClient.invalidateQueries({ queryKey: getGetContainerSystemRecordsQueryKey() })
+    queryClient.invalidateQueries({ queryKey: getGetContainerSystemAuditQueryKey() })
+  }
+  const showSuccess = (message: string) => {
+    setNotice(message)
+    toast({ title: message })
+    window.setTimeout(() => setNotice(null), 3500)
+  }
+  const openCreate = (kind: RecordKind = isCollection ? view as RecordKind : "customer") => setDialog({ open: true, kind, record: null })
+  const openEdit = (record: ContainerSystemRecord) => setDialog({ open: true, kind: (record.kind as RecordKind) || "customer", record })
+  const archiveRecord = (record: ContainerSystemRecord) => {
+    if (!window.confirm(`هل تريد أرشفة السجل ${record.reference || `#${record.id}`}؟`)) return
+    archiveMutation.mutate({ id: record.id }, { onSuccess: () => { invalidate(); showSuccess("تمت أرشفة السجل") }, onError: () => toast({ title: "تعذر أرشفة السجل", variant: "destructive" }) })
+  }
+  const submitRecord = (payload: Record<string, unknown>, status: string) => {
+    const data = { kind: dialog.kind, status, payload }
+    if (dialog.record) {
+      updateMutation.mutate({ id: dialog.record.id, data: { status, payload } }, { onSuccess: () => { invalidate(); setDialog(current => ({ ...current, open: false })); showSuccess("تم تحديث السجل") }, onError: () => toast({ title: "تعذر تحديث السجل", variant: "destructive" }) })
+    } else {
+      createMutation.mutate({ data }, { onSuccess: () => { invalidate(); setDialog(current => ({ ...current, open: false })); showSuccess("تمت إضافة السجل") }, onError: () => toast({ title: "تعذر إضافة السجل", variant: "destructive" }) })
+    }
+  }
+  const busy = createMutation.isPending || updateMutation.isPending
+  const loading = snapshotQuery.isLoading || (isCollection && recordsQuery.isLoading)
+  const error = snapshotQuery.isError || (isCollection && recordsQuery.isError)
+
+  return (
+    <div className="container-system min-h-[calc(100dvh-4rem)] space-y-5" dir="rtl">
+      <div className="relative overflow-hidden rounded-[1.65rem] bg-[#123d4e] px-5 py-6 text-white shadow-[0_16px_42px_rgba(18,61,78,.18)] sm:px-8 sm:py-8">
+        <div className="absolute -left-14 -top-20 h-56 w-56 rounded-full border border-cyan-200/15" /><div className="absolute -left-2 -top-9 h-32 w-32 rounded-full border border-cyan-200/15" />
+        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div><div className="mb-3 flex items-center gap-2 text-xs font-bold text-cyan-200"><span className="h-2 w-2 rounded-full bg-amber-300 shadow-[0_0_0_5px_rgba(252,211,77,.13)]" /> مركز العمليات · نظام الحاويات الكامل</div><h1 className="text-2xl font-black tracking-tight sm:text-3xl">مرحباً بك في غرفة التحكم</h1><p className="mt-2 max-w-2xl text-sm leading-7 text-cyan-100/70">إدارة العقود، الأصول، الأسطول، التحصيل والتنبيهات من لوحة واحدة واضحة.</p></div>
+          <div className="flex flex-wrap gap-2"><Button onClick={() => openCreate()} className="gap-2 bg-amber-400 text-slate-900 hover:bg-amber-300" data-testid="button-header-add"><Plus size={16} /> إضافة سجل</Button><Button onClick={() => { snapshotQuery.refetch(); recordsQuery.refetch() }} variant="outline" className="gap-2 border-white/20 bg-white/5 text-white hover:bg-white/10" data-testid="button-refresh-container-system"><RefreshCw size={15} className={snapshotQuery.isFetching ? "animate-spin" : ""} /> تحديث</Button></div>
+        </div>
+      </div>
+      <div className="grid gap-5 lg:grid-cols-[15rem_minmax(0,1fr)]">
+        <aside className="order-2 lg:order-1">
+          <Card className="sticky top-20 border-slate-200/80 bg-white/80 shadow-sm"><CardContent className="p-2.5">{NAV_GROUPS.map(group => <div key={group.label} className="mb-3 last:mb-0"><p className="px-3 py-2 text-[10px] font-black tracking-widest text-slate-400">{group.label}</p><div className="space-y-0.5">{group.items.map(item => { const Icon = item.icon; const active = view === item.key; return <button key={item.key} onClick={() => { setView(item.key); setSearch("") }} className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-right text-xs font-bold transition-all ${active ? "bg-cyan-50 text-cyan-900 shadow-sm" : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"}`} data-testid={`nav-container-${item.key}`}><Icon size={16} className={active ? "text-cyan-700" : "text-slate-400"} /><span>{item.label}</span>{active && <span className="mr-auto h-1.5 w-1.5 rounded-full bg-amber-400" />}</button> })}</div></div>)}</CardContent></Card>
+        </aside>
+        <main className="order-1 min-w-0 space-y-5 lg:order-2">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-bold text-cyan-700">نظام الحاويات الكامل / {viewLabel(view)}</p><h2 className="mt-1 text-xl font-black text-slate-900">{viewLabel(view)}</h2></div>{isCollection && <div className="relative w-full sm:w-72"><Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" /><Input value={search} onChange={event => setSearch(event.target.value)} placeholder="ابحث في السجلات..." className="h-10 border-slate-200 bg-white pr-9" data-testid="input-search-container-records" />{search && <button onClick={() => setSearch("")} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700" data-testid="button-clear-container-search"><X size={15} /></button>}</div>}</div>
+          {notice && <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800" role="status" data-testid="status-container-success"><CheckCircle2 size={17} /> {notice}</div>}
+          {error ? <Card className="border-rose-200 bg-rose-50/50"><CardContent className="flex flex-col items-center gap-3 p-12 text-center"><AlertCircle size={27} className="text-rose-500" /><h3 className="font-bold text-rose-900">تعذر تحميل بيانات النظام</h3><p className="text-sm text-rose-700">تحقق من الاتصال ثم حاول مرة أخرى.</p><Button onClick={() => { snapshotQuery.refetch(); recordsQuery.refetch() }} variant="outline" className="gap-2 border-rose-200 bg-white text-rose-800" data-testid="button-retry-container-system"><RefreshCw size={15} /> إعادة المحاولة</Button></CardContent></Card>
+            : view === "overview" ? <Overview snapshot={snapshot} records={records} onAdd={openCreate} />
+            : view === "reports" ? <Reports records={snapshot?.records ?? records} />
+            : view === "audit" ? <AuditLog audits={auditQuery.data ?? []} loading={auditQuery.isLoading} />
+            : <RecordsPanel kind={view as RecordKind} records={records} loading={loading} onAdd={() => openCreate(view as RecordKind)} onEdit={openEdit} onArchive={archiveRecord} />}
+        </main>
+      </div>
+      <RecordDialog open={dialog.open} kind={dialog.kind} record={dialog.record} busy={busy} onOpenChange={open => setDialog(current => ({ ...current, open }))} onSubmit={submitRecord} />
+      {archiveMutation.isPending && <div className="fixed bottom-5 left-5 z-50 flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-xs font-bold text-white shadow-xl" data-testid="status-archive-loading"><Loader2 size={14} className="animate-spin" /> جارٍ أرشفة السجل...</div>}
+    </div>
+  )
+}

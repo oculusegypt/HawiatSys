@@ -1024,6 +1024,119 @@ paths:
               schema:
                 $ref: "#/components/schemas/SuccessResult"
 
+  # ── Full container rental system ──────────────────────────────────────────
+  /admin/container-system:
+    get:
+      operationId: getContainerSystem
+      tags: [admin]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Container system snapshot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContainerSystemSnapshot"
+
+  /admin/container-system/records:
+    get:
+      operationId: getContainerSystemRecords
+      tags: [admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: kind
+          in: query
+          schema: { type: string }
+        - name: status
+          in: query
+          schema: { type: string }
+        - name: search
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Container system records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ContainerSystemRecord"
+    post:
+      operationId: createContainerSystemRecord
+      tags: [admin]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContainerSystemRecordInput"
+      responses:
+        "201":
+          description: Record created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContainerSystemRecord"
+
+  /admin/container-system/records/{id}:
+    patch:
+      operationId: updateContainerSystemRecord
+      tags: [admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContainerSystemRecordUpdate"
+      responses:
+        "200":
+          description: Record updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContainerSystemRecord"
+    delete:
+      operationId: archiveContainerSystemRecord
+      tags: [admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Record archived
+
+  /admin/container-system/audit:
+    get:
+      operationId: getContainerSystemAudit
+      tags: [admin]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Audit log
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ContainerSystemAudit"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1032,6 +1145,75 @@ components:
       bearerFormat: admin-token
 
   schemas:
+    ContainerSystemRecord:
+      type: object
+      required: [id, kind, status, reference, payload, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        kind: { type: string }
+        status: { type: string }
+        reference: { type: string }
+        payload:
+          type: object
+          additionalProperties: true
+        createdBy: { type: ["integer", "null"] }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+
+    ContainerSystemRecordInput:
+      type: object
+      required: [kind, payload]
+      properties:
+        kind: { type: string }
+        status: { type: string }
+        payload:
+          type: object
+          additionalProperties: true
+
+    ContainerSystemRecordUpdate:
+      type: object
+      properties:
+        status: { type: string }
+        payload:
+          type: object
+          additionalProperties: true
+
+    ContainerSystemAudit:
+      type: object
+      required: [id, kind, action, createdAt]
+      properties:
+        id: { type: integer }
+        recordId: { type: ["integer", "null"] }
+        kind: { type: string }
+        action: { type: string }
+        beforePayload: { type: ["string", "null"] }
+        afterPayload: { type: ["string", "null"] }
+        actorId: { type: ["integer", "null"] }
+        createdAt: { type: string }
+
+    ContainerSystemSummary:
+      type: object
+      additionalProperties: true
+
+    ContainerSystemSnapshot:
+      type: object
+      required: [summary, records, expiringContracts, recent]
+      properties:
+        summary:
+          $ref: "#/components/schemas/ContainerSystemSummary"
+        records:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContainerSystemRecord"
+        expiringContracts:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContainerSystemRecord"
+        recent:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContainerSystemRecord"
+
     HealthStatus:
       type: object
       properties:

@@ -28,12 +28,18 @@ import type {
   CompanyValueInput,
   Container,
   ContainerInput,
+  ContainerSystemAudit,
+  ContainerSystemRecord,
+  ContainerSystemRecordInput,
+  ContainerSystemRecordUpdate,
+  ContainerSystemSnapshot,
   Conversation,
   ConversationInput,
   ConversationTypingInput,
   ConversationUpdate,
   DashboardStats,
   DriverWorkOrderUpdate,
+  GetContainerSystemRecordsParams,
   GetDriverWorkOrdersParams,
   GetServiceRequestsParams,
   HealthStatus,
@@ -4108,4 +4114,420 @@ export const useDeletePushSubscription = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getDeletePushSubscriptionMutationOptions(options));
     }
+
+export const getGetContainerSystemUrl = () => {
+
+
+
+
+  return `/api/admin/container-system`
+}
+
+export const getContainerSystem = async ( options?: RequestInit): Promise<ContainerSystemSnapshot> => {
+
+  return customFetch<ContainerSystemSnapshot>(getGetContainerSystemUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetContainerSystemQueryKey = () => {
+    return [
+    `/api/admin/container-system`
+    ] as const;
+    }
+
+
+export const getGetContainerSystemQueryOptions = <TData = Awaited<ReturnType<typeof getContainerSystem>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getContainerSystem>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetContainerSystemQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getContainerSystem>>> = ({ signal }) => getContainerSystem({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getContainerSystem>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetContainerSystemQueryResult = NonNullable<Awaited<ReturnType<typeof getContainerSystem>>>
+export type GetContainerSystemQueryError = ErrorType<unknown>
+
+
+
+export function useGetContainerSystem<TData = Awaited<ReturnType<typeof getContainerSystem>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getContainerSystem>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetContainerSystemQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetContainerSystemRecordsUrl = (params?: GetContainerSystemRecordsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/container-system/records?${stringifiedParams}` : `/api/admin/container-system/records`
+}
+
+export const getContainerSystemRecords = async (params?: GetContainerSystemRecordsParams, options?: RequestInit): Promise<ContainerSystemRecord[]> => {
+
+  return customFetch<ContainerSystemRecord[]>(getGetContainerSystemRecordsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetContainerSystemRecordsQueryKey = (params?: GetContainerSystemRecordsParams,) => {
+    return [
+    `/api/admin/container-system/records`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetContainerSystemRecordsQueryOptions = <TData = Awaited<ReturnType<typeof getContainerSystemRecords>>, TError = ErrorType<unknown>>(params?: GetContainerSystemRecordsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getContainerSystemRecords>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetContainerSystemRecordsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getContainerSystemRecords>>> = ({ signal }) => getContainerSystemRecords(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getContainerSystemRecords>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetContainerSystemRecordsQueryResult = NonNullable<Awaited<ReturnType<typeof getContainerSystemRecords>>>
+export type GetContainerSystemRecordsQueryError = ErrorType<unknown>
+
+
+
+export function useGetContainerSystemRecords<TData = Awaited<ReturnType<typeof getContainerSystemRecords>>, TError = ErrorType<unknown>>(
+ params?: GetContainerSystemRecordsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getContainerSystemRecords>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetContainerSystemRecordsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateContainerSystemRecordUrl = () => {
+
+
+
+
+  return `/api/admin/container-system/records`
+}
+
+export const createContainerSystemRecord = async (containerSystemRecordInput: ContainerSystemRecordInput, options?: RequestInit): Promise<ContainerSystemRecord> => {
+
+  return customFetch<ContainerSystemRecord>(getCreateContainerSystemRecordUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(containerSystemRecordInput)
+  }
+);}
+
+
+
+
+
+export const getCreateContainerSystemRecordMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createContainerSystemRecord>>, TError,{data: BodyType<ContainerSystemRecordInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createContainerSystemRecord>>, TError,{data: BodyType<ContainerSystemRecordInput>}, TContext> => {
+
+const mutationKey = ['createContainerSystemRecord'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createContainerSystemRecord>>, {data: BodyType<ContainerSystemRecordInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createContainerSystemRecord(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateContainerSystemRecordMutationResult = NonNullable<Awaited<ReturnType<typeof createContainerSystemRecord>>>
+    export type CreateContainerSystemRecordMutationBody = BodyType<ContainerSystemRecordInput>
+    export type CreateContainerSystemRecordMutationError = ErrorType<unknown>
+
+    export const useCreateContainerSystemRecord = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createContainerSystemRecord>>, TError,{data: BodyType<ContainerSystemRecordInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createContainerSystemRecord>>,
+        TError,
+        {data: BodyType<ContainerSystemRecordInput>},
+        TContext
+      > => {
+      return useMutation(getCreateContainerSystemRecordMutationOptions(options));
+    }
+
+export const getUpdateContainerSystemRecordUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/container-system/records/${id}`
+}
+
+export const updateContainerSystemRecord = async (id: number,
+    containerSystemRecordUpdate: ContainerSystemRecordUpdate, options?: RequestInit): Promise<ContainerSystemRecord> => {
+
+  return customFetch<ContainerSystemRecord>(getUpdateContainerSystemRecordUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(containerSystemRecordUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateContainerSystemRecordMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateContainerSystemRecord>>, TError,{id: number;data: BodyType<ContainerSystemRecordUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateContainerSystemRecord>>, TError,{id: number;data: BodyType<ContainerSystemRecordUpdate>}, TContext> => {
+
+const mutationKey = ['updateContainerSystemRecord'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateContainerSystemRecord>>, {id: number;data: BodyType<ContainerSystemRecordUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateContainerSystemRecord(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateContainerSystemRecordMutationResult = NonNullable<Awaited<ReturnType<typeof updateContainerSystemRecord>>>
+    export type UpdateContainerSystemRecordMutationBody = BodyType<ContainerSystemRecordUpdate>
+    export type UpdateContainerSystemRecordMutationError = ErrorType<unknown>
+
+    export const useUpdateContainerSystemRecord = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateContainerSystemRecord>>, TError,{id: number;data: BodyType<ContainerSystemRecordUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateContainerSystemRecord>>,
+        TError,
+        {id: number;data: BodyType<ContainerSystemRecordUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateContainerSystemRecordMutationOptions(options));
+    }
+
+export const getArchiveContainerSystemRecordUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/container-system/records/${id}`
+}
+
+export const archiveContainerSystemRecord = async (id: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getArchiveContainerSystemRecordUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getArchiveContainerSystemRecordMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof archiveContainerSystemRecord>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof archiveContainerSystemRecord>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['archiveContainerSystemRecord'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof archiveContainerSystemRecord>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  archiveContainerSystemRecord(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ArchiveContainerSystemRecordMutationResult = NonNullable<Awaited<ReturnType<typeof archiveContainerSystemRecord>>>
+
+    export type ArchiveContainerSystemRecordMutationError = ErrorType<unknown>
+
+    export const useArchiveContainerSystemRecord = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof archiveContainerSystemRecord>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof archiveContainerSystemRecord>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getArchiveContainerSystemRecordMutationOptions(options));
+    }
+
+export const getGetContainerSystemAuditUrl = () => {
+
+
+
+
+  return `/api/admin/container-system/audit`
+}
+
+export const getContainerSystemAudit = async ( options?: RequestInit): Promise<ContainerSystemAudit[]> => {
+
+  return customFetch<ContainerSystemAudit[]>(getGetContainerSystemAuditUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetContainerSystemAuditQueryKey = () => {
+    return [
+    `/api/admin/container-system/audit`
+    ] as const;
+    }
+
+
+export const getGetContainerSystemAuditQueryOptions = <TData = Awaited<ReturnType<typeof getContainerSystemAudit>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getContainerSystemAudit>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetContainerSystemAuditQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getContainerSystemAudit>>> = ({ signal }) => getContainerSystemAudit({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getContainerSystemAudit>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetContainerSystemAuditQueryResult = NonNullable<Awaited<ReturnType<typeof getContainerSystemAudit>>>
+export type GetContainerSystemAuditQueryError = ErrorType<unknown>
+
+
+
+export function useGetContainerSystemAudit<TData = Awaited<ReturnType<typeof getContainerSystemAudit>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getContainerSystemAudit>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetContainerSystemAuditQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 

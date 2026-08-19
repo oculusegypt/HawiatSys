@@ -27,6 +27,7 @@ const ALL_NAV = [
   { href: "/admin/services",       icon: Settings,          label: "الخدمات",          group: "content", section: "services" },
   { href: "/admin/reviews",        icon: Star,              label: "تقييمات الخدمات",  group: "content", section: "reviews" },
   { href: "/admin/packages",          icon: Box,               label: "حاويات الأنقاض والنفايات", group: "content", section: "packages" },
+  { href: "/admin/container-system",  icon: Truck,             label: "نظام الحاويات الكامل", group: "content", section: "container_system" },
   { href: "/admin/settings",       icon: SlidersHorizontal, label: "إعدادات الموقع",   group: "config",  section: "settings" },
   { href: "/admin/seo",            icon: Search,            label: "SEO",              group: "config",  section: "seo" },
   { href: "/admin/employees",      icon: Users,             label: "الموظفون",         group: "config",  section: "employees" },
@@ -86,7 +87,7 @@ function SidebarContent({ permissions = [], onNavClick, onLogout, userName, user
   unreadNotifications?: number
 }) {
   const { companyName, logoUrl, isLoaded } = useSiteSettings()
-  const hasPerm = (sec: string) => permissions.includes(sec) || (sec === "packages" && (permissions.includes("packages") || permissions.includes("containers")));
+  const hasPerm = (sec: string) => permissions.includes(sec) || (sec === "packages" && (permissions.includes("packages") || permissions.includes("containers"))) || (sec === "container_system" && (permissions.includes("container_system") || permissions.includes("containers")));
   const visibleNav = userRole === "driver"
     ? ALL_NAV.filter(item => item.section === "work_orders")
     : ["admin", "manager"].includes(userRole)

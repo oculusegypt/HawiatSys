@@ -9,7 +9,7 @@ export const ALL_SECTIONS = [
   "dashboard", "analytics", "requests", "conversations", "whatsapp",
   "notifications", "blog", "slides", "ads", "testimonials",
   "services", "packages", "containers", "partners", "settings", "seo", "seo_pages", "employees", "database",
-  "work_orders",
+  "work_orders", "container_system",
 ] as const;
 export type AdminSection = typeof ALL_SECTIONS[number];
 

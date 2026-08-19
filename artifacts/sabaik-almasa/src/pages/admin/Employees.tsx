@@ -35,6 +35,7 @@ const ALL_SECTIONS: { key: string; label: string; group: string }[] = [
   { key: "whatsapp",     label: "واتساب",          group: "إعدادات" },
   { key: "employees",    label: "إدارة الموظفين",  group: "إعدادات" },
   { key: "work_orders",  label: "أوامر العمل",     group: "التشغيل" },
+  { key: "container_system", label: "نظام الحاويات الكامل", group: "التشغيل" },
 ]
 
 const ROLE_DEFAULT_PERMS: Record<string, string[]> = {

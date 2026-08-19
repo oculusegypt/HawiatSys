@@ -5,6 +5,59 @@
  * Sabaik Almasa API
  * OpenAPI spec version: 0.1.0
  */
+export type ContainerSystemRecordPayload = { [key: string]: unknown };
+
+export interface ContainerSystemRecord {
+  id: number;
+  kind: string;
+  status: string;
+  reference: string;
+  payload: ContainerSystemRecordPayload;
+  /** @nullable */
+  createdBy?: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ContainerSystemRecordInputPayload = { [key: string]: unknown };
+
+export interface ContainerSystemRecordInput {
+  kind: string;
+  status?: string;
+  payload: ContainerSystemRecordInputPayload;
+}
+
+export type ContainerSystemRecordUpdatePayload = { [key: string]: unknown };
+
+export interface ContainerSystemRecordUpdate {
+  status?: string;
+  payload?: ContainerSystemRecordUpdatePayload;
+}
+
+export interface ContainerSystemAudit {
+  id: number;
+  /** @nullable */
+  recordId?: number | null;
+  kind: string;
+  action: string;
+  /** @nullable */
+  beforePayload?: string | null;
+  /** @nullable */
+  afterPayload?: string | null;
+  /** @nullable */
+  actorId?: number | null;
+  createdAt: string;
+}
+
+export interface ContainerSystemSummary { [key: string]: unknown }
+
+export interface ContainerSystemSnapshot {
+  summary: ContainerSystemSummary;
+  records: ContainerSystemRecord[];
+  expiringContracts: ContainerSystemRecord[];
+  recent: ContainerSystemRecord[];
+}
+
 export interface HealthStatus {
   status: string;
 }
@@ -785,5 +838,11 @@ status?: DriverWorkOrderStatus;
 export type SetConversationTyping200 = {
   ok: boolean;
   isTyping: boolean;
+};
+
+export type GetContainerSystemRecordsParams = {
+kind?: string;
+status?: string;
+search?: string;
 };
 

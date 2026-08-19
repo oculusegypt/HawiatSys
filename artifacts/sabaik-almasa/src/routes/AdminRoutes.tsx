@@ -10,6 +10,7 @@ const AdminNotifications = lazy(() => import("@/pages/admin/Notifications"))
 const AdminSlides = lazy(() => import("@/pages/admin/Slides"))
 const AdminServices = lazy(() => import("@/pages/admin/Services"))
 const AdminPackages = lazy(() => import("@/pages/admin/Packages"))
+const AdminContainerSystem = lazy(() => import("@/pages/admin/ContainerSystem"))
 const AdminTestimonials = lazy(() => import("@/pages/admin/Testimonials"))
 const AdminPartners = lazy(() => import("@/pages/admin/Partners"))
 const AdminSiteSettings = lazy(() => import("@/pages/admin/SiteSettings"))
@@ -42,6 +43,7 @@ export function AdminRoutes() {
           <Route path="/admin/cleaning-packages" component={AdminPackages} />
           <Route path="/admin/packages" component={AdminPackages} />
           <Route path="/admin/containers" component={AdminPackages} />
+          <Route path="/admin/container-system" component={AdminContainerSystem} />
           <Route path="/admin/ads" component={AdminAds} />
           <Route path="/admin/analytics" component={AdminAnalytics} />
           <Route path="/admin/blog" component={AdminBlog} />
