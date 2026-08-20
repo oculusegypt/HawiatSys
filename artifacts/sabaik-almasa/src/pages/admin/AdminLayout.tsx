@@ -26,8 +26,8 @@ const ALL_NAV = [
   { href: "/admin/seo-pages",      icon: FilePenLine,       label: "صفحات SEO",        group: "content", section: "seo_pages" },
   { href: "/admin/services",       icon: Settings,          label: "الخدمات",          group: "content", section: "services" },
   { href: "/admin/reviews",        icon: Star,              label: "تقييمات الخدمات",  group: "content", section: "reviews" },
-  { href: "/admin/packages",          icon: Box,               label: "حاويات الأنقاض والنفايات", group: "content", section: "packages" },
-  { href: "/admin/container-system",  icon: Truck,             label: "نظام الحاويات الكامل", group: "content", section: "container_system" },
+  { href: "/admin/packages",          icon: Box,               label: "الباقات والخدمات", group: "content", section: "packages" },
+  { href: "/admin/container-system",  icon: Truck,             label: "سيستم الحاويات", group: "container_system", section: "container_system" },
   { href: "/admin/settings",       icon: SlidersHorizontal, label: "إعدادات الموقع",   group: "config",  section: "settings" },
   { href: "/admin/seo",            icon: Search,            label: "SEO",              group: "config",  section: "seo" },
   { href: "/admin/employees",      icon: Users,             label: "الموظفون",         group: "config",  section: "employees" },
@@ -37,6 +37,7 @@ const ALL_NAV = [
 const GROUPS: { key: string; label: string }[] = [
   { key: "main",    label: "الرئيسية" },
   { key: "content", label: "المحتوى" },
+  { key: "container_system", label: "سيستم الحاويات" },
   { key: "config",  label: "الإعدادات" },
 ]
 
@@ -87,7 +88,13 @@ function SidebarContent({ permissions = [], onNavClick, onLogout, userName, user
   unreadNotifications?: number
 }) {
   const { companyName, logoUrl, isLoaded } = useSiteSettings()
-  const hasPerm = (sec: string) => permissions.includes(sec) || (sec === "packages" && (permissions.includes("packages") || permissions.includes("containers"))) || (sec === "container_system" && (permissions.includes("container_system") || permissions.includes("containers")));
+  const hasPerm = (sec: string) => permissions.includes(sec)
+    || (sec === "packages" && (permissions.includes("packages") || permissions.includes("containers")))
+    || (sec === "container_system" && (
+      permissions.includes("container_system")
+      || permissions.includes("containers")
+      || permissions.some(permission => permission.startsWith("container_system_"))
+    ));
   const visibleNav = userRole === "driver"
     ? ALL_NAV.filter(item => item.section === "work_orders")
     : ["admin", "manager"].includes(userRole)

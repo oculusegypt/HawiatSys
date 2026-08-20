@@ -10,6 +10,19 @@ export const ALL_SECTIONS = [
   "notifications", "blog", "slides", "ads", "testimonials",
   "services", "packages", "containers", "partners", "settings", "seo", "seo_pages", "employees", "database",
   "work_orders", "container_system",
+  "container_system_customer", "container_system_container", "container_system_container_type",
+  "container_system_container_asset", "container_system_driver", "container_system_ledger_entry",
+  "container_system_contract", "container_system_contract_line", "container_system_container_movement",
+  "container_system_receipt", "container_system_payment", "container_system_expense", "container_system_deposit",
+  "container_system_bank_deposit", "container_system_treasury", "container_system_transfer",
+  "container_system_maintenance", "container_system_alert", "container_system_permit",
+  "container_system_appointment", "container_system_reports", "container_system_vehicle",
+  "container_system_warehouse", "container_system_category", "container_system_category_size",
+  "container_system_salary_advance", "container_system_salary_payment", "container_system_fuel_expense",
+  "container_system_daily_expense", "container_system_invoice", "container_system_invoice_return",
+  "container_system_tax", "container_system_commission", "container_system_oil_change",
+  "container_system_salary", "container_system_branch",
+  "container_system_employee", "container_system_settings", "container_system_audit",
 ] as const;
 export type AdminSection = typeof ALL_SECTIONS[number];
 
