@@ -28,7 +28,10 @@ import {
   FIELD_CONFIG, KIND_ICONS, KIND_LABELS, RecordDialog, RecordKind, RecordStatus, amountOf, formatAuditAction, formatRecordDate, formatStatus,
 } from "./ContainerSystemComponents"
 
-type ViewKey = "overview" | RecordKind | "reports" | "audit" | "container_search"
+type ViewKey =
+  | "overview" | RecordKind | "reports" | "audit" | "container_search"
+  | "rental" | "vouchers" | "operations" | "customer_payments" | "bookings"
+  | "expenses" | "payroll" | "fleet" | "warehouses" | "system_settings"
 type NavItem = { key?: ViewKey; href?: string; label: string; icon: typeof LayoutDashboard }
 
 const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
@@ -40,7 +43,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     label: "العقود والإيجارات",
     items: [
       { key: "contract" as ViewKey, label: "تسجيل تعاقد", icon: FileCheck2 },
-      { key: "contract_line" as ViewKey, label: "تسجيل إيجار حاوية", icon: ReceiptText },
+      { key: "rental" as ViewKey, label: "تسجيل إيجار حاوية", icon: ReceiptText },
       { key: "container_search" as ViewKey, label: "البحث عن حاوية", icon: FolderSearch },
       { key: "container" as ViewKey, label: "الحاويات", icon: Box },
       { key: "container_type" as ViewKey, label: "أنواع الحاويات", icon: SlidersHorizontal },
@@ -51,13 +54,14 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: "التبديل والتفريغ",
     items: [
-      { key: "container_movement" as ViewKey, label: "التبديل والتفريغ", icon: ArrowLeftRight },
-      { key: "appointment" as ViewKey, label: "المواعيد والحجوزات", icon: CalendarDays },
+      { key: "operations" as ViewKey, label: "التبديل والتفريغ", icon: ArrowLeftRight },
+      { key: "bookings" as ViewKey, label: "المواعيد والحجوزات", icon: CalendarDays },
     ],
   },
   {
     label: "سندات القبض والصرف",
     items: [
+      { key: "vouchers" as ViewKey, label: "سندات القبض والصرف", icon: HandCoins },
       { key: "receipt" as ViewKey, label: "سندات القبض", icon: HandCoins },
       { key: "expense" as ViewKey, label: "سندات الصرف", icon: ArrowDownLeft },
       { key: "deposit" as ViewKey, label: "الإيداعات البنكية", icon: Landmark },
@@ -67,13 +71,14 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: "سداد العملاء",
     items: [
-      { key: "payment" as ViewKey, label: "سداد العملاء", icon: Coins },
+      { key: "customer_payments" as ViewKey, label: "سداد العملاء", icon: Coins },
       { key: "ledger_entry" as ViewKey, label: "كشف مديونية العملاء", icon: FileText },
     ],
   },
   {
     label: "الإيرادات والمصروفات",
     items: [
+      { key: "expenses" as ViewKey, label: "الإيرادات والمصروفات", icon: ArrowDownLeft },
       { key: "daily_expense" as ViewKey, label: "المصروفات العامة", icon: ArrowDownLeft },
       { key: "fuel_expense" as ViewKey, label: "مصروفات الشاحنات", icon: CarFront },
       { key: "expense" as ViewKey, label: "الإيرادات والمصروفات", icon: Coins },
@@ -88,6 +93,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: "الرواتب والسلف",
     items: [
+      { key: "payroll" as ViewKey, label: "الرواتب والسلف", icon: Coins },
       { key: "salary_advance" as ViewKey, label: "السلف", icon: Coins },
       { key: "salary_payment" as ViewKey, label: "الرواتب", icon: Coins },
     ],
@@ -95,6 +101,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: "الشاحنات",
     items: [
+      { key: "fleet" as ViewKey, label: "أسطول الشاحنات", icon: Truck },
       { key: "vehicle" as ViewKey, label: "الشاحنات", icon: Truck },
       { key: "maintenance" as ViewKey, label: "الصيانة", icon: Wrench },
       { key: "permit" as ViewKey, label: "التصاريح", icon: FileCheck2 },
@@ -105,7 +112,8 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: "المستودعات والمخازن",
     items: [
-      { key: "warehouse" as ViewKey, label: "المستودعات والمخازن", icon: Box },
+      { key: "warehouses" as ViewKey, label: "المستودعات والمخازن", icon: Box },
+      { key: "warehouse" as ViewKey, label: "إدارة المخازن", icon: Box },
       { key: "category" as ViewKey, label: "الأصناف", icon: SlidersHorizontal },
       { key: "category_size" as ViewKey, label: "أحجام الأصناف", icon: SlidersHorizontal },
     ],
@@ -133,6 +141,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: "الإعدادات",
     items: [
+      { key: "system_settings" as ViewKey, label: "إعدادات النظام والتشغيل", icon: Settings2 },
       { key: "setting" as ViewKey, label: "الإعدادات", icon: Settings2 },
       { key: "tax" as ViewKey, label: "الضرائب", icon: FileCheck2 },
     ],
@@ -166,7 +175,34 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
 ]
 
 const allKinds = Object.keys(KIND_LABELS) as RecordKind[]
-const viewLabel = (view: ViewKey) => view === "overview" ? "الرئيسية" : view === "container_search" ? "البحث عن حاوية" : view === "reports" ? "التقارير" : view === "audit" ? "سجل التدقيق" : KIND_LABELS[view]
+const viewKind: Partial<Record<ViewKey, RecordKind>> = {
+  rental: "contract_line",
+  vouchers: "receipt",
+  operations: "container_movement",
+  customer_payments: "payment",
+  bookings: "appointment",
+  expenses: "expense",
+  payroll: "salary_payment",
+  fleet: "vehicle",
+  warehouses: "warehouse",
+  system_settings: "setting",
+}
+const viewLabel = (view: ViewKey) =>
+  view === "overview" ? "الرئيسية"
+  : view === "container_search" ? "البحث عن حاوية"
+  : view === "reports" ? "التقارير الشاملة"
+  : view === "audit" ? "سجل التدقيق"
+  : view === "rental" ? "تسجيل إيجار حاوية"
+  : view === "vouchers" ? "سندات القبض والصرف"
+  : view === "operations" ? "التبديل والتفريغ"
+  : view === "customer_payments" ? "سداد العملاء"
+  : view === "bookings" ? "المواعيد والحجوزات"
+  : view === "expenses" ? "الإيرادات والمصروفات"
+  : view === "payroll" ? "الرواتب والسلف"
+  : view === "fleet" ? "أسطول الشاحنات"
+  : view === "warehouses" ? "المستودعات والمخازن"
+  : view === "system_settings" ? "إعدادات النظام والتشغيل"
+  : KIND_LABELS[view as RecordKind]
 
 function numericSummary(summary: Record<string, unknown> | undefined, keys: string[], fallback: number) {
   for (const key of keys) {
@@ -363,6 +399,7 @@ function Overview({ snapshot, records, onAdd }: { snapshot?: any; records: Conta
 function Reports({ records, snapshot }: { records: ContainerSystemRecord[]; snapshot?: any }) {
   const [from, setFrom] = useState("")
   const [to, setTo] = useState("")
+  const [reportGroup, setReportGroup] = useState("all")
   const filteredRecords = records.filter(record => {
     const date = String(record.payload.date ?? record.payload.startDate ?? record.createdAt).slice(0, 10)
     return (!from || date >= from) && (!to || date <= to)
@@ -374,6 +411,16 @@ function Reports({ records, snapshot }: { records: ContainerSystemRecord[]; snap
   const receipts = filteredRecords.filter(record => record.kind === "receipt").reduce((sum, record) => sum + amountOf(record), 0)
   const deposits = filteredRecords.filter(record => ["deposit", "bank_deposit"].includes(record.kind)).reduce((sum, record) => sum + amountOf(record), 0)
   const reconciliationGap = deposits - receipts
+  const reportGroups = [
+    { id: "all", label: "كل التقارير", items: ["التقرير العام", "الإجماليات اليومية"] },
+    { id: "finance", label: "التقارير العامة والمالية", items: ["التقرير العام", "الإجماليات اليومية", "الإيرادات الأخرى", "سند القبض", "سند الصرف"] },
+    { id: "customers", label: "تقارير العملاء", items: ["حساب نقلات العميل", "مديونية عميل", "الإيجارات الآجلة", "نشاط عملاء النقدي"] },
+    { id: "contracts", label: "تقارير الإيجارات والعقود", items: ["الإيجارات", "العقود", "متابعة عدد الرحلات", "تسديدات العقود"] },
+    { id: "operations", label: "تقارير التشغيل والحاويات", items: ["التفريغ", "السحب", "العمولات والبدلات"] },
+    { id: "sales", label: "تقارير المبيعات والإشعارات", items: ["مبيعات النقدي", "الإشعارات", "مرتجع الإيجار النقدي", "مرتجع التسديدات"] },
+    { id: "expenses", label: "تقارير المصروفات", items: ["المصروفات العامة", "مصروفات الشاحنة"] },
+    { id: "inventory", label: "تقارير المخزون والمشتريات", items: ["المخزون", "الصرف", "مرتجع الصرف", "مشتريات الأصناف", "المشتريات العامة", "مرتجع المشتريات"] },
+  ]
   const exportReport = () => {
       const rows = [
       ["القسم", "عدد السجلات", "القيمة"],
@@ -395,11 +442,26 @@ function Reports({ records, snapshot }: { records: ContainerSystemRecord[]; snap
   }
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+       <div className="flex flex-wrap items-center justify-between gap-3">
         <div><h3 className="text-base font-black text-slate-900">التقارير المالية والتشغيلية</h3><p className="mt-1 text-xs text-slate-500">أرقام محسوبة من العقود والتحصيل والمصروفات والأصول.</p></div>
         <Button onClick={exportReport} variant="outline" className="gap-2 border-cyan-200 text-cyan-800 hover:bg-cyan-50" data-testid="button-export-container-report"><FileDown size={15} /> تصدير CSV</Button>
       </div>
-      <Card className="border-slate-200/80 shadow-sm"><CardContent className="flex flex-wrap items-end gap-3 p-4"><div><label className="mb-1 block text-xs font-bold text-slate-500">من تاريخ</label><Input type="date" value={from} onChange={event => setFrom(event.target.value)} className="h-9" data-testid="input-report-from" /></div><div><label className="mb-1 block text-xs font-bold text-slate-500">إلى تاريخ</label><Input type="date" value={to} onChange={event => setTo(event.target.value)} className="h-9" data-testid="input-report-to" /></div><Button variant="ghost" onClick={() => { setFrom(""); setTo("") }} className="h-9 text-xs text-slate-500">مسح الفترة</Button><span className="mr-auto text-xs font-bold text-cyan-800">يعرض {filteredRecords.length} سجل</span></CardContent></Card>
+       <Card className="border-slate-200/80 shadow-sm">
+         <CardContent className="flex flex-wrap items-end gap-3 p-4">
+           <div><label className="mb-1 block text-xs font-bold text-slate-500">من تاريخ</label><Input type="date" value={from} onChange={event => setFrom(event.target.value)} className="h-9" data-testid="input-report-from" /></div>
+           <div><label className="mb-1 block text-xs font-bold text-slate-500">إلى تاريخ</label><Input type="date" value={to} onChange={event => setTo(event.target.value)} className="h-9" data-testid="input-report-to" /></div>
+           <div><label className="mb-1 block text-xs font-bold text-slate-500">مجموعة التقرير</label><select value={reportGroup} onChange={event => setReportGroup(event.target.value)} className="h-9 rounded-md border border-input bg-background px-3 text-sm" data-testid="select-report-group">{reportGroups.map(group => <option key={group.id} value={group.id}>{group.label}</option>)}</select></div>
+           <Button variant="ghost" onClick={() => { setFrom(""); setTo(""); setReportGroup("all") }} className="h-9 text-xs text-slate-500">مسح الفلاتر</Button>
+           <span className="mr-auto text-xs font-bold text-cyan-800">يعرض {filteredRecords.length} سجل</span>
+         </CardContent>
+       </Card>
+       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+         {(reportGroups.find(group => group.id === reportGroup) ?? reportGroups[0]).items.map(item => (
+           <Card key={item} className="border-slate-200 bg-white shadow-sm transition hover:border-cyan-300 hover:shadow-md">
+             <CardContent className="flex items-center gap-3 p-4"><div className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-50 text-cyan-800"><FileText size={16} /></div><div><p className="text-sm font-bold text-slate-800">{item}</p><p className="mt-1 text-[10px] text-slate-400">محسوب من السجلات المحفوظة</p></div></CardContent>
+           </Card>
+         ))}
+       </div>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="قيمة العقود" value={money(summary?.contractValue)} icon={FileCheck2} tone="bg-cyan-600" hint="الإجمالي شامل الضريبة" />
         <MetricCard label="المديونية القائمة" value={money(summary?.debt)} icon={Coins} tone="bg-rose-500" hint="بعد خصم التحصيل المرتبط بالعقد" />
@@ -514,8 +576,9 @@ export default function ContainerSystem() {
   const [dialog, setDialog] = useState<{ open: boolean; kind: RecordKind; record?: ContainerSystemRecord | null }>({ open: false, kind: "customer" })
   const [detailRecord, setDetailRecord] = useState<ContainerSystemRecord | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
-  const isCollection = allKinds.includes(view as RecordKind)
-  const filterParams = useMemo(() => ({ kind: isCollection ? view : undefined, search: search.trim() || undefined }), [isCollection, search, view])
+  const collectionKind = viewKind[view] ?? (allKinds.includes(view as RecordKind) ? view as RecordKind : undefined)
+  const isCollection = Boolean(collectionKind)
+  const filterParams = useMemo(() => ({ kind: collectionKind, search: search.trim() || undefined }), [collectionKind, search])
   const snapshotQuery = useGetContainerSystem()
   const recordsQuery = useGetContainerSystemRecords(filterParams)
   const auditQuery = useGetContainerSystemAudit({ query: { enabled: view === "audit", queryKey: getGetContainerSystemAuditQueryKey() } })
@@ -539,7 +602,7 @@ export default function ContainerSystem() {
     toast({ title: message })
     window.setTimeout(() => setNotice(null), 3500)
   }
-  const openCreate = (kind: RecordKind = isCollection ? view as RecordKind : "customer") => setDialog({ open: true, kind, record: null })
+  const openCreate = (kind: RecordKind = collectionKind ?? "customer") => setDialog({ open: true, kind, record: null })
   const openEdit = (record: ContainerSystemRecord) => setDialog({ open: true, kind: (record.kind as RecordKind) || "customer", record })
   const archiveRecord = (record: ContainerSystemRecord) => {
     if (!window.confirm(`هل تريد أرشفة السجل ${record.reference || `#${record.id}`}؟`)) return
@@ -595,10 +658,10 @@ export default function ContainerSystem() {
             : view === "overview" ? <Overview snapshot={snapshot} records={records} onAdd={openCreate} />
              : view === "reports" ? <Reports records={snapshot?.records ?? records} snapshot={snapshot} />
              : view === "audit" ? <AuditLog audits={auditQuery.data ?? []} loading={auditQuery.isLoading} />
-             : view === "container_search" ? <ContainerSearchPanel records={records} loading={loading} onDetails={record => setDetailRecord(record)} onEdit={openEdit} />
+              : view === "container_search" ? <ContainerSearchPanel records={records} loading={loading} onDetails={record => setDetailRecord(record)} onEdit={openEdit} />
              : view === "container"
                ? <ContainerPOS records={records} onAdd={() => openCreate("container")} onDetails={record => setDetailRecord(record)} onEdit={openEdit} />
-               : <RecordsPanel kind={view as RecordKind} records={records} loading={loading} onAdd={() => openCreate(view as RecordKind)} onDetails={record => setDetailRecord(record)} onEdit={openEdit} onArchive={archiveRecord} />}
+                : <RecordsPanel kind={collectionKind ?? "customer"} records={records} loading={loading} onAdd={() => openCreate(collectionKind ?? "customer")} onDetails={record => setDetailRecord(record)} onEdit={openEdit} onArchive={archiveRecord} />}
         </main>
       </div>
       <RecordDetails record={detailRecord} allRecords={snapshot?.records ?? records} open={Boolean(detailRecord)} onOpenChange={open => { if (!open) setDetailRecord(null) }} onContractAction={contractAction} />

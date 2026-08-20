@@ -6,3 +6,4 @@
 - [Hostinger PHP JSON encoding](hostinger-php-json-encoding.md) — use UTF-8 substitution when serializing legacy SQLite text to avoid empty 200 responses.
 - [SQLite startup migrations](sqlite-startup-migrations.md) — portable app tables are safest to create during DB startup when drizzle push cannot run interactively.
 - [Container permission granularity](container-permission-granularity.md) — container-system permissions must use the exact record kind suffix expected by the API guard.
+- [Hawiat container UI integration](hawiat-container-ui-integration.md) — use the archive's specialized tab vocabulary while keeping the current API-backed record model.
