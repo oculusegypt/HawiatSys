@@ -30,16 +30,16 @@ const demo = [
   ["contract", "active", { contractNumber: "RNT-2026-001", customerName: "شركة البناء المتين", customerPhone: "0501234567", containerCode: "CNT-102", startDate: daysFromNow(-6), endDate: daysFromNow(24), amount: 5200, taxRate: 15, taxAmount: 780, total: 5980, minimumPrice: 4500, minimumPriceApproved: "لا", signatureData, signedAt: new Date().toISOString() }],
   ["contract", "issued", { contractNumber: "RNT-2026-002", customerName: "مؤسسة مدار للمقاولات", customerPhone: "0557891234", containerCode: "CNT-101", startDate: daysFromNow(2), endDate: daysFromNow(16), amount: 2520, taxRate: 15, taxAmount: 378, total: 2898, minimumPrice: 2500, minimumPriceApproved: "لا", signatureData: "", notes: "بانتظار التسليم" }],
   ["contract", "expiring", { contractNumber: "RNT-2026-003", customerName: "عبدالله سالم العتيبي", customerPhone: "0534567890", containerCode: "CNT-103", startDate: daysFromNow(-25), endDate: daysFromNow(2), amount: 1500, taxRate: 15, taxAmount: 225, total: 1725, minimumPrice: 1500, minimumPriceApproved: "لا", signatureData, signedAt: new Date().toISOString() }],
-  ["maintenance", "due", { vehicleId: "ز ح ط 9012", serviceDate: daysFromNow(1), description: "تغيير زيت وفحص الإطارات والفرامل", cost: 1450, status: "مفتوحة" }],
-  ["maintenance", "completed", { vehicleId: "CNT-104", serviceDate: daysFromNow(-10), description: "إصلاح الباب الخلفي ودهان الحاوية", cost: 680, status: "مكتملة" }],
+  ["maintenance", "due", { reference: "MNT-DEMO-001", vehicleId: "ز ح ط 9012", serviceDate: daysFromNow(1), description: "تغيير زيت وفحص الإطارات والفرامل", cost: 1450, status: "مفتوحة" }],
+  ["maintenance", "completed", { reference: "MNT-DEMO-002", vehicleId: "CNT-104", serviceDate: daysFromNow(-10), description: "إصلاح الباب الخلفي ودهان الحاوية", cost: 680, status: "مكتملة" }],
   ["receipt", "posted", { receiptNumber: "REC-2026-0091", customerName: "شركة البناء المتين", amount: 3000, paymentMethod: "تحويل بنكي", date: daysFromNow(-2) }],
   ["receipt", "posted", { receiptNumber: "REC-2026-0092", customerName: "عبدالله سالم العتيبي", amount: 875, paymentMethod: "شبكة", date: daysFromNow(-1) }],
   ["payment", "posted", { customerName: "شركة البناء المتين", contractNumber: "RNT-2026-001", amount: 3000, paymentMethod: "تحويل بنكي", date: daysFromNow(-2) }],
-  ["expense", "posted", { category: "وقود", description: "وقود رحلات التوصيل الأسبوعية", amount: 1280, date: daysFromNow(-1) }],
-  ["expense", "posted", { category: "صيانة", description: "قطع غيار شاحنة ز ح ط 9012", amount: 1450, date: daysFromNow(-3) }],
+  ["expense", "posted", { reference: "EXP-DEMO-001", category: "وقود", description: "وقود رحلات التوصيل الأسبوعية", amount: 1280, date: daysFromNow(-1) }],
+  ["expense", "posted", { reference: "EXP-DEMO-002", category: "صيانة", description: "قطع غيار شاحنة ز ح ط 9012", amount: 1450, date: daysFromNow(-3) }],
   ["deposit", "posted", { bankName: "مصرف الراجحي", depositNumber: "DEP-2026-044", amount: 3875, date: daysFromNow(-1), notes: "إيداع تحصيلات اليوم" }],
-  ["alert", "open", { title: "عقد يقترب من الانتهاء", severity: "عالية", dueDate: daysFromNow(2), status: "مفتوح", details: "العقد RNT-2026-003 يحتاج قرار تجديد أو استرجاع الحاوية." }],
-  ["alert", "open", { title: "صيانة مستحقة", severity: "متوسطة", dueDate: daysFromNow(1), status: "مفتوح", details: "المركبة ز ح ط 9012 متوقفة حتى إتمام الفحص." }],
+  ["alert", "open", { reference: "ALT-DEMO-001", title: "عقد يقترب من الانتهاء", severity: "عالية", dueDate: daysFromNow(2), status: "مفتوح", details: "العقد RNT-2026-003 يحتاج قرار تجديد أو استرجاع الحاوية." }],
+  ["alert", "open", { reference: "ALT-DEMO-002", title: "صيانة مستحقة", severity: "متوسطة", dueDate: daysFromNow(1), status: "مفتوح", details: "المركبة ز ح ط 9012 متوقفة حتى إتمام الفحص." }],
   ["setting", "active", { key: "vat_rate", value: "15", section: "المالية", notes: "نسبة ضريبة القيمة المضافة الافتراضية" }],
   ["setting", "active", { key: "minimum_contract_price", value: "1500", section: "العقود", notes: "الحد الأدنى الافتراضي للعقد قبل اعتماد الاستثناء" }],
   ["setting", "active", { key: "late_return_grace_hours", value: "24", section: "التشغيل", notes: "ساعات السماح قبل احتساب تأخير" }],
@@ -92,11 +92,17 @@ const extendedDemo = [
 ] as const;
 
 const identityKeys = ["reference", "name", "assetCode", "contractNumber", "plate", "receiptNumber", "depositNumber", "key"];
+const stablePayload = (value: Record<string, unknown>) => JSON.stringify(Object.fromEntries(
+  Object.entries(value)
+    .filter(([key]) => key !== "reference" && !/(date|at|signed|created|updated)/i.test(key))
+    .sort(([a], [b]) => a.localeCompare(b)),
+));
 const isAlreadySeeded = (kind: string, payload: Record<string, unknown>) => existing.some(record => {
   if (record.kind !== kind) return false;
   const current = JSON.parse(record.payload) as Record<string, unknown>;
   if (payload.reference && current.reference === payload.reference) return true;
-  return identityKeys.some(key => payload[key] && current[key] === payload[key]);
+  return identityKeys.some(key => payload[key] && current[key] === payload[key]) ||
+    stablePayload(current) === stablePayload(payload);
 });
 
 for (const [kind, status, payload] of [...demo, ...linkedDemo, ...extendedDemo]) {
