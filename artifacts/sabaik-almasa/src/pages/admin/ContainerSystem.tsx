@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
+import { Link } from "wouter"
 import {
-  AlertCircle, Archive, ArrowDownLeft, ArrowUpRight, BellRing, BookOpenCheck, Box, CarFront, CheckCircle2,
-  ChevronLeft, ClipboardList, Coins, FileCheck2, FileDown, FilePenLine, FileText, Gauge, Landmark, LayoutDashboard, Truck,
-  Loader2, Plus, RefreshCw, Search, Settings2, ShieldCheck, SlidersHorizontal, UserRound, Users, Wrench, X,
+  AlertCircle, Archive, ArrowDownLeft, ArrowLeftRight, ArrowUpRight, BellRing, BookOpenCheck, Box, CalendarDays, CarFront, CheckCircle2,
+  ChevronLeft, ClipboardList, Coins, FileCheck2, FileDown, FilePenLine, FileText, FolderSearch, Gauge, HandCoins, Landmark, LayoutDashboard, ReceiptText, Truck,
+  Loader2, Plus, RefreshCw, Search, Settings2, ShieldCheck, SlidersHorizontal, UserCog, UserRound, Users, Wrench, X,
 } from "lucide-react"
 import {
   getGetContainerSystemAuditQueryKey,
@@ -27,78 +28,145 @@ import {
   FIELD_CONFIG, KIND_ICONS, KIND_LABELS, RecordDialog, RecordKind, RecordStatus, amountOf, formatAuditAction, formatRecordDate, formatStatus,
 } from "./ContainerSystemComponents"
 
-type ViewKey = "overview" | RecordKind | "reports" | "audit"
+type ViewKey = "overview" | RecordKind | "reports" | "audit" | "container_search"
+type NavItem = { key?: ViewKey; href?: string; label: string; icon: typeof LayoutDashboard }
 
-const NAV_GROUPS = [
+const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
-    label: "نظرة التشغيل",
-    items: [{ key: "overview" as ViewKey, label: "نظرة عامة", icon: LayoutDashboard }],
+    label: "الرئيسية",
+    items: [{ key: "overview" as ViewKey, label: "الرئيسية", icon: LayoutDashboard }],
   },
   {
-    label: "الأسطول والعقود",
+    label: "العقود والإيجارات",
     items: [
-      { key: "customer" as ViewKey, label: "العملاء", icon: Users },
-      { key: "container" as ViewKey, label: "أصول الحاويات", icon: Box },
+      { key: "contract" as ViewKey, label: "تسجيل تعاقد", icon: FileCheck2 },
+      { key: "contract_line" as ViewKey, label: "تسجيل إيجار حاوية", icon: ReceiptText },
+      { key: "container_search" as ViewKey, label: "البحث عن حاوية", icon: FolderSearch },
+      { key: "container" as ViewKey, label: "الحاويات", icon: Box },
       { key: "container_type" as ViewKey, label: "أنواع الحاويات", icon: SlidersHorizontal },
-      { key: "contract" as ViewKey, label: "عقود التأجير", icon: FileCheck2 },
       { key: "contract_line" as ViewKey, label: "بنود العقود", icon: ClipboardList },
-      { key: "container_movement" as ViewKey, label: "حركة الحاويات", icon: Truck },
-      { key: "vehicle" as ViewKey, label: "المركبات والصيانة", icon: CarFront },
-      { key: "maintenance" as ViewKey, label: "سجل الصيانة", icon: Wrench },
-      { key: "driver" as ViewKey, label: "السائقون", icon: UserRound },
-      { key: "permit" as ViewKey, label: "التصاريح", icon: FileCheck2 },
-      { key: "oil_change" as ViewKey, label: "الزيت والعدادات", icon: Gauge },
+      { key: "contract" as ViewKey, label: "العقود", icon: FileText },
     ],
   },
   {
-    label: "المالية والمتابعة",
+    label: "التبديل والتفريغ",
     items: [
-      { key: "receipt" as ViewKey, label: "الإيصالات", icon: FileText },
-      { key: "payment" as ViewKey, label: "المدفوعات", icon: Coins },
-      { key: "ledger_entry" as ViewKey, label: "دفتر المديونية", icon: FileText },
-      { key: "expense" as ViewKey, label: "المصروفات", icon: ArrowDownLeft },
-      { key: "deposit" as ViewKey, label: "الإيداعات البنكية", icon: Landmark },
-      { key: "invoice" as ViewKey, label: "الفواتير", icon: FileText },
-      { key: "invoice_return" as ViewKey, label: "مرتجعات الفواتير", icon: Archive },
-      { key: "reports" as ViewKey, label: "التقارير", icon: ArrowUpRight },
-      { key: "alert" as ViewKey, label: "التنبيهات اليومية", icon: BellRing },
-      { key: "daily_expense" as ViewKey, label: "المصروفات اليومية", icon: ArrowDownLeft },
-      { key: "fuel_expense" as ViewKey, label: "مصروفات السيارات", icon: CarFront },
-      { key: "salary_advance" as ViewKey, label: "الرواتب والسلف", icon: Coins },
-      { key: "salary_payment" as ViewKey, label: "دفعات الرواتب", icon: Coins },
+      { key: "container_movement" as ViewKey, label: "التبديل والتفريغ", icon: ArrowLeftRight },
+      { key: "appointment" as ViewKey, label: "المواعيد والحجوزات", icon: CalendarDays },
     ],
   },
   {
-    label: "المخازن والخزائن",
+    label: "سندات القبض والصرف",
+    items: [
+      { key: "receipt" as ViewKey, label: "سندات القبض", icon: HandCoins },
+      { key: "expense" as ViewKey, label: "سندات الصرف", icon: ArrowDownLeft },
+      { key: "deposit" as ViewKey, label: "الإيداعات البنكية", icon: Landmark },
+      { key: "treasury" as ViewKey, label: "الخزائن", icon: Landmark },
+    ],
+  },
+  {
+    label: "سداد العملاء",
+    items: [
+      { key: "payment" as ViewKey, label: "سداد العملاء", icon: Coins },
+      { key: "ledger_entry" as ViewKey, label: "كشف مديونية العملاء", icon: FileText },
+    ],
+  },
+  {
+    label: "الإيرادات والمصروفات",
+    items: [
+      { key: "daily_expense" as ViewKey, label: "المصروفات العامة", icon: ArrowDownLeft },
+      { key: "fuel_expense" as ViewKey, label: "مصروفات الشاحنات", icon: CarFront },
+      { key: "expense" as ViewKey, label: "الإيرادات والمصروفات", icon: Coins },
+    ],
+  },
+  {
+    label: "التقارير",
+    items: [
+      { key: "reports" as ViewKey, label: "التقارير", icon: ArrowUpRight },
+    ],
+  },
+  {
+    label: "الرواتب والسلف",
+    items: [
+      { key: "salary_advance" as ViewKey, label: "السلف", icon: Coins },
+      { key: "salary_payment" as ViewKey, label: "الرواتب", icon: Coins },
+    ],
+  },
+  {
+    label: "الشاحنات",
+    items: [
+      { key: "vehicle" as ViewKey, label: "الشاحنات", icon: Truck },
+      { key: "maintenance" as ViewKey, label: "الصيانة", icon: Wrench },
+      { key: "permit" as ViewKey, label: "التصاريح", icon: FileCheck2 },
+      { key: "oil_change" as ViewKey, label: "غيار الزيت والعدادات", icon: Gauge },
+      { key: "driver" as ViewKey, label: "السائقون", icon: UserRound },
+    ],
+  },
+  {
+    label: "المستودعات والمخازن",
     items: [
       { key: "warehouse" as ViewKey, label: "المستودعات والمخازن", icon: Box },
-      { key: "category" as ViewKey, label: "تصنيفات الأصناف", icon: SlidersHorizontal },
-      { key: "category_size" as ViewKey, label: "أحجام التصنيفات", icon: SlidersHorizontal },
-      { key: "treasury" as ViewKey, label: "الخزائن", icon: Landmark },
-      { key: "transfer" as ViewKey, label: "التحويل بين الخزائن", icon: ArrowUpRight },
+      { key: "category" as ViewKey, label: "الأصناف", icon: SlidersHorizontal },
+      { key: "category_size" as ViewKey, label: "أحجام الأصناف", icon: SlidersHorizontal },
     ],
   },
   {
-    label: "المواعيد والموارد",
+    label: "العملاء",
     items: [
-      { key: "appointment" as ViewKey, label: "المواعيد", icon: ClipboardList },
-      { key: "branch" as ViewKey, label: "الفروع", icon: Landmark },
+      { key: "customer" as ViewKey, label: "العملاء", icon: Users },
+    ],
+  },
+  {
+    label: "الموظفون",
+    items: [
       { key: "employee" as ViewKey, label: "الموظفون", icon: Users },
       { key: "commission" as ViewKey, label: "العمولات", icon: Coins },
+      { key: "branch" as ViewKey, label: "الفروع", icon: Landmark },
+    ],
+  },
+  {
+    label: "المستخدمون والصلاحيات",
+    items: [
+      { href: "/admin/employees", label: "المستخدمون والصلاحيات", icon: UserCog },
+    ],
+  },
+  {
+    label: "الإعدادات",
+    items: [
+      { key: "setting" as ViewKey, label: "الإعدادات", icon: Settings2 },
       { key: "tax" as ViewKey, label: "الضرائب", icon: FileCheck2 },
     ],
   },
   {
-    label: "الضبط والحوكمة",
+    label: "سجل التدقيق",
     items: [
-      { key: "setting" as ViewKey, label: "الإعدادات", icon: Settings2 },
       { key: "audit" as ViewKey, label: "سجل التدقيق", icon: BookOpenCheck },
+    ],
+  },
+  {
+    label: "مراجع التشغيل",
+    items: [
+      { key: "alert" as ViewKey, label: "التنبيهات اليومية", icon: BellRing },
+      { key: "invoice" as ViewKey, label: "الفواتير", icon: FileText },
+      { key: "invoice_return" as ViewKey, label: "مرتجعات الفواتير", icon: Archive },
+      { key: "transfer" as ViewKey, label: "التحويل بين الخزائن", icon: ArrowUpRight },
+    ],
+  },
+  /* Keep the existing record kinds reachable; these are API-backed operational views. */
+  {
+    label: "موارد النظام",
+    items: [
+      { key: "branch" as ViewKey, label: "الفروع", icon: Landmark },
+      { key: "commission" as ViewKey, label: "العمولات", icon: Coins },
+      { key: "tax" as ViewKey, label: "الضرائب", icon: FileCheck2 },
+      { key: "maintenance" as ViewKey, label: "سجل الصيانة", icon: Wrench },
+      { key: "driver" as ViewKey, label: "السائقون", icon: UserRound },
     ],
   },
 ]
 
 const allKinds = Object.keys(KIND_LABELS) as RecordKind[]
-const viewLabel = (view: ViewKey) => view === "overview" ? "نظرة عامة" : view === "reports" ? "التقارير" : view === "audit" ? "سجل التدقيق" : KIND_LABELS[view]
+const viewLabel = (view: ViewKey) => view === "overview" ? "الرئيسية" : view === "container_search" ? "البحث عن حاوية" : view === "reports" ? "التقارير" : view === "audit" ? "سجل التدقيق" : KIND_LABELS[view]
 
 function numericSummary(summary: Record<string, unknown> | undefined, keys: string[], fallback: number) {
   for (const key of keys) {
@@ -393,6 +461,51 @@ function RecordDetails({ record, allRecords, open, onOpenChange, onContractActio
   )
 }
 
+function ContainerSearchPanel({ records, loading, onDetails, onEdit }: { records: ContainerSystemRecord[]; loading: boolean; onDetails: (record: ContainerSystemRecord) => void; onEdit: (record: ContainerSystemRecord) => void }) {
+  return (
+    <Card className="overflow-hidden border-slate-200/80 shadow-[0_8px_28px_rgba(15,44,58,.05)]">
+      <CardHeader className="border-b border-slate-100 bg-slate-50/60 px-4 py-4 sm:px-5">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-100 text-cyan-800"><FolderSearch size={19} /></div>
+          <div>
+            <CardTitle className="text-base text-slate-900">البحث عن حاوية</CardTitle>
+            <p className="mt-1 text-xs leading-6 text-slate-500">ابحث برقم الحاوية أو اسم العميل أو رقم الهاتف، ثم افتح سجل الإيجار أو العقد المرتبط.</p>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="p-0">
+        {loading ? <div className="space-y-2 p-4">{[1, 2, 3].map(index => <SkeletonLine key={index} className="h-16" />)}</div> : records.length === 0 ? (
+          <div className="flex min-h-56 flex-col items-center justify-center px-6 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-400"><Search size={21} /></div>
+            <h3 className="mt-4 font-bold text-slate-800">لا توجد نتائج</h3>
+            <p className="mt-1 max-w-sm text-xs leading-6 text-slate-500">جرّب رقم حاوية أو اسم عميل مختلفًا. ستظهر النتائج من السجلات المحفوظة فقط.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <div className="min-w-[720px]">
+              <div className="grid grid-cols-[1.1fr_1.2fr_1.2fr_1fr_1fr_auto] gap-3 bg-slate-50 px-4 py-3 text-[10px] font-black text-slate-400">
+                <span>رقم الحاوية</span><span>العميل</span><span>الهاتف</span><span>بداية الإيجار</span><span>نهاية الإيجار</span><span>الحالة</span>
+              </div>
+              {records.map(record => {
+                const payload = record.payload as Record<string, unknown>
+                const code = String(payload.containerCode ?? payload.assetCode ?? payload.code ?? record.reference ?? `#${record.id}`)
+                return <div key={record.id} className="grid grid-cols-[1.1fr_1.2fr_1.2fr_1fr_1fr_auto] items-center gap-3 border-t border-slate-100 px-4 py-3.5 text-xs hover:bg-cyan-50/30" data-testid={`row-container-search-${record.id}`}>
+                  <button type="button" onClick={() => onDetails(record)} className="truncate text-right font-black text-cyan-900 hover:underline" dir="ltr">{code}</button>
+                  <span className="truncate font-bold text-slate-700">{String(payload.customerName ?? payload.name ?? "—")}</span>
+                  <span className="truncate text-slate-500" dir="ltr">{String(payload.customerPhone ?? payload.phone ?? "—")}</span>
+                  <span className="text-slate-500">{String(payload.startDate ?? payload.rentalStartDate ?? "—")}</span>
+                  <span className="text-slate-500">{String(payload.endDate ?? payload.rentalEndDate ?? "—")}</span>
+                  <div className="flex items-center gap-1.5"><RecordStatus status={record.status} /><Button type="button" variant="ghost" size="icon" onClick={() => onEdit(record)} className="h-8 w-8 text-slate-400 hover:bg-cyan-50 hover:text-cyan-800" title="تعديل السجل"><FilePenLine size={14} /></Button></div>
+                </div>
+              })}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
 export default function ContainerSystem() {
   const queryClient = useQueryClient()
   const { toast } = useToast()
@@ -473,15 +586,16 @@ export default function ContainerSystem() {
       </div>
       <div className="grid gap-5 lg:grid-cols-[15rem_minmax(0,1fr)]">
         <aside className="order-2 lg:order-1">
-          <Card className="sticky top-20 border-slate-200/80 bg-white/80 shadow-sm"><CardContent className="p-2.5">{NAV_GROUPS.map(group => <div key={group.label} className="mb-3 last:mb-0"><p className="px-3 py-2 text-[10px] font-black tracking-widest text-slate-400">{group.label}</p><div className="space-y-0.5">{group.items.map(item => { const Icon = item.icon; const active = view === item.key; return <button key={item.key} onClick={() => { setView(item.key); setSearch("") }} className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-right text-xs font-bold transition-all ${active ? "bg-cyan-50 text-cyan-900 shadow-sm" : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"}`} data-testid={`nav-container-${item.key}`}><Icon size={16} className={active ? "text-cyan-700" : "text-slate-400"} /><span>{item.label}</span>{active && <span className="mr-auto h-1.5 w-1.5 rounded-full bg-amber-400" />}</button> })}</div></div>)}</CardContent></Card>
+          <Card className="sticky top-20 border-slate-200/80 bg-white/80 shadow-sm"><CardContent className="p-2.5">{NAV_GROUPS.map(group => <div key={group.label} className="mb-3 last:mb-0"><p className="px-3 py-2 text-[10px] font-black tracking-widest text-slate-400">{group.label}</p><div className="space-y-0.5">{group.items.map(item => { const Icon = item.icon; const active = Boolean(item.key && view === item.key); const className = `flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-right text-xs font-bold transition-all ${active ? "bg-cyan-50 text-cyan-900 shadow-sm" : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"}`; const testId = item.key ?? item.href?.replace("/admin/", "admin-") ?? item.label; return item.href ? <Link key={testId} href={item.href} className={className} data-testid={`nav-container-${testId}`}><Icon size={16} className="text-slate-400" /><span>{item.label}</span></Link> : <button key={testId} type="button" onClick={() => { if (item.key) setView(item.key); setSearch("") }} className={className} data-testid={`nav-container-${testId}`}><Icon size={16} className={active ? "text-cyan-700" : "text-slate-400"} /><span>{item.label}</span>{active && <span className="mr-auto h-1.5 w-1.5 rounded-full bg-amber-400" />}</button> })}</div></div>)}</CardContent></Card>
         </aside>
         <main className="order-1 min-w-0 space-y-5 lg:order-2">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-bold text-cyan-700">نظام الحاويات الكامل / {viewLabel(view)}</p><h2 className="mt-1 text-xl font-black text-slate-900">{viewLabel(view)}</h2></div>{isCollection && <div className="relative w-full sm:w-72"><Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" /><Input value={search} onChange={event => setSearch(event.target.value)} placeholder="ابحث في السجلات..." className="h-10 border-slate-200 bg-white pr-9" data-testid="input-search-container-records" />{search && <button onClick={() => setSearch("")} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700" data-testid="button-clear-container-search"><X size={15} /></button>}</div>}</div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-bold text-cyan-700">نظام الحاويات الكامل / {viewLabel(view)}</p><h2 className="mt-1 text-xl font-black text-slate-900">{viewLabel(view)}</h2></div>{(isCollection || view === "container_search") && <div className="relative w-full sm:w-80"><Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" /><Input value={search} onChange={event => setSearch(event.target.value)} placeholder="رقم الحاوية أو اسم العميل أو الجوال" className="h-10 border-slate-200 bg-white pr-9" data-testid="input-search-container-records" />{search && <button type="button" onClick={() => setSearch("")} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700" data-testid="button-clear-container-search"><X size={15} /></button>}</div>}</div>
           {notice && <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800" role="status" data-testid="status-container-success"><CheckCircle2 size={17} /> {notice}</div>}
           {error ? <Card className="border-rose-200 bg-rose-50/50"><CardContent className="flex flex-col items-center gap-3 p-12 text-center"><AlertCircle size={27} className="text-rose-500" /><h3 className="font-bold text-rose-900">تعذر تحميل بيانات النظام</h3><p className="text-sm text-rose-700">تحقق من الاتصال ثم حاول مرة أخرى.</p><Button onClick={() => { snapshotQuery.refetch(); recordsQuery.refetch() }} variant="outline" className="gap-2 border-rose-200 bg-white text-rose-800" data-testid="button-retry-container-system"><RefreshCw size={15} /> إعادة المحاولة</Button></CardContent></Card>
             : view === "overview" ? <Overview snapshot={snapshot} records={records} onAdd={openCreate} />
              : view === "reports" ? <Reports records={snapshot?.records ?? records} snapshot={snapshot} />
-            : view === "audit" ? <AuditLog audits={auditQuery.data ?? []} loading={auditQuery.isLoading} />
+             : view === "audit" ? <AuditLog audits={auditQuery.data ?? []} loading={auditQuery.isLoading} />
+             : view === "container_search" ? <ContainerSearchPanel records={records} loading={loading} onDetails={record => setDetailRecord(record)} onEdit={openEdit} />
              : view === "container"
                ? <ContainerPOS records={records} onAdd={() => openCreate("container")} onDetails={record => setDetailRecord(record)} onEdit={openEdit} />
                : <RecordsPanel kind={view as RecordKind} records={records} loading={loading} onAdd={() => openCreate(view as RecordKind)} onDetails={record => setDetailRecord(record)} onEdit={openEdit} onArchive={archiveRecord} />}

@@ -47,24 +47,24 @@ export type RecordKind =
 export const KIND_LABELS: Record<RecordKind, string> = {
   customer: "العملاء",
   container_type: "أنواع الحاويات",
-  container: "أصول الحاويات",
-  contract: "عقود التأجير",
-  contract_line: "بنود العقود",
-  container_movement: "حركة الحاويات",
-  ledger_entry: "دفتر المديونية",
-  vehicle: "المركبات",
+  container: "الحاويات",
+  contract: "العقود",
+  contract_line: "تسجيل إيجار حاوية",
+  container_movement: "التبديل والتفريغ",
+  ledger_entry: "سجل المديونية",
+  vehicle: "الشاحنات",
   maintenance: "الصيانة",
   driver: "السائقون",
-  receipt: "الإيصالات",
-  payment: "المدفوعات",
-  expense: "المصروفات",
+  receipt: "سندات القبض",
+  payment: "سداد العملاء",
+  expense: "الإيرادات والمصروفات",
   deposit: "الإيداعات البنكية",
   alert: "التنبيهات اليومية",
   setting: "الإعدادات",
   branch: "الفروع",
   employee: "الموظفون",
   permit: "التصاريح",
-  appointment: "المواعيد",
+  appointment: "المواعيد والحجوزات",
   warehouse: "المستودعات والمخازن",
   treasury: "الخزائن",
   transfer: "التحويل بين الخزائن",
@@ -75,8 +75,8 @@ export const KIND_LABELS: Record<RecordKind, string> = {
   tax: "الضرائب",
   commission: "أسعار العمولات",
   oil_change: "قراءات وتغيير الزيت",
-  salary_advance: "السلف",
-  salary_payment: "الرواتب",
+  salary_advance: "الرواتب والسلف",
+  salary_payment: "الرواتب والسلف",
   fuel_expense: "مصروفات السيارات",
   daily_expense: "المصروفات اليومية",
 }
@@ -573,7 +573,7 @@ export function RecordDialog({
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-100 text-cyan-800"><PenLine size={20} /></div>
             <div>
-              <DialogTitle className="text-xl text-slate-900">{record ? "تعديل السجل" : `إضافة ${KIND_LABELS[kind]}`}</DialogTitle>
+              <DialogTitle className="text-xl text-slate-900">{record ? "تعديل السجل" : kind === "contract" ? "تسجيل تعاقد" : kind === "contract_line" ? "تسجيل إيجار حاوية" : `إضافة ${KIND_LABELS[kind]}`}</DialogTitle>
               <DialogDescription className="mt-1">سجل تشغيلي محفوظ مباشرة في نظام الحاويات.</DialogDescription>
             </div>
           </div>
