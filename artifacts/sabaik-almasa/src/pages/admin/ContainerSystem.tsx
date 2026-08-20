@@ -27,6 +27,7 @@ import { useToast } from "@/hooks/use-toast"
 import {
   FIELD_CONFIG, KIND_ICONS, KIND_LABELS, RecordDialog, RecordKind, RecordStatus, amountOf, formatAuditAction, formatRecordDate, formatStatus,
 } from "./ContainerSystemComponents"
+import { ReportsHub, ReportPage, SettingsPage, REPORTS, ReportId } from "./ContainerSystemSpecialPages"
 
 type ViewKey =
   | "overview" | RecordKind | "reports" | "audit" | "container_search"
@@ -576,6 +577,7 @@ export default function ContainerSystem() {
   const [dialog, setDialog] = useState<{ open: boolean; kind: RecordKind; record?: ContainerSystemRecord | null }>({ open: false, kind: "customer" })
   const [detailRecord, setDetailRecord] = useState<ContainerSystemRecord | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const [reportId, setReportId] = useState<ReportId | null>(null)
   const collectionKind = viewKind[view] ?? (allKinds.includes(view as RecordKind) ? view as RecordKind : undefined)
   const isCollection = Boolean(collectionKind)
   const filterParams = useMemo(() => ({ kind: collectionKind, search: search.trim() || undefined }), [collectionKind, search])
@@ -614,6 +616,14 @@ export default function ContainerSystem() {
       updateMutation.mutate({ id: dialog.record.id, data: { status, payload } }, { onSuccess: () => { invalidate(); setDialog(current => ({ ...current, open: false })); showSuccess("تم تحديث السجل") }, onError: () => toast({ title: "تعذر تحديث السجل", variant: "destructive" }) })
     } else {
       createMutation.mutate({ data }, { onSuccess: () => { invalidate(); setDialog(current => ({ ...current, open: false })); showSuccess("تمت إضافة السجل") }, onError: () => toast({ title: "تعذر إضافة السجل", variant: "destructive" }) })
+    }
+  }
+  const saveSettings = (payload: Record<string, unknown>) => {
+    const existing = (snapshot?.records ?? []).find(record => record.kind === "setting" && record.payload.section === payload.section)
+    if (existing) {
+      updateMutation.mutate({ id: existing.id, data: { status: "active", payload } }, { onSuccess: () => { invalidate(); showSuccess("تم حفظ الإعدادات") }, onError: () => toast({ title: "تعذر حفظ الإعدادات", variant: "destructive" }) })
+    } else {
+      createMutation.mutate({ data: { kind: "setting", status: "active", payload } }, { onSuccess: () => { invalidate(); showSuccess("تم حفظ الإعدادات") }, onError: () => toast({ title: "تعذر حفظ الإعدادات", variant: "destructive" }) })
     }
   }
   const contractAction = (record: ContainerSystemRecord, action: string) => {
@@ -656,7 +666,8 @@ export default function ContainerSystem() {
           {notice && <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800" role="status" data-testid="status-container-success"><CheckCircle2 size={17} /> {notice}</div>}
           {error ? <Card className="border-rose-200 bg-rose-50/50"><CardContent className="flex flex-col items-center gap-3 p-12 text-center"><AlertCircle size={27} className="text-rose-500" /><h3 className="font-bold text-rose-900">تعذر تحميل بيانات النظام</h3><p className="text-sm text-rose-700">تحقق من الاتصال ثم حاول مرة أخرى.</p><Button onClick={() => { snapshotQuery.refetch(); recordsQuery.refetch() }} variant="outline" className="gap-2 border-rose-200 bg-white text-rose-800" data-testid="button-retry-container-system"><RefreshCw size={15} /> إعادة المحاولة</Button></CardContent></Card>
             : view === "overview" ? <Overview snapshot={snapshot} records={records} onAdd={openCreate} />
-             : view === "reports" ? <Reports records={snapshot?.records ?? records} snapshot={snapshot} />
+              : view === "reports" ? reportId ? <ReportPage reportId={reportId} records={snapshot?.records ?? records} onBack={() => setReportId(null)} /> : <ReportsHub onOpen={setReportId} />
+              : view === "system_settings" ? <SettingsPage records={snapshot?.records ?? records} onSave={saveSettings} />
              : view === "audit" ? <AuditLog audits={auditQuery.data ?? []} loading={auditQuery.isLoading} />
               : view === "container_search" ? <ContainerSearchPanel records={records} loading={loading} onDetails={record => setDetailRecord(record)} onEdit={openEdit} />
              : view === "container"
