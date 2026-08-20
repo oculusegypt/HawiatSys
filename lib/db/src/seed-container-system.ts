@@ -54,6 +54,43 @@ const linkedDemo = [
   ["ledger_entry", "open", { reference: "LED-DEMO-002", contractNumber: "RNT-2026-003", customerName: "عبدالله سالم العتيبي", direction: "مدين", amount: 1725, date: daysFromNow(-1), description: "إجمالي عقد مستحق التحصيل" }],
 ] as const;
 
+const extendedDemo = [
+  ["branch", "active", { reference: "BRN-DEMO-001", name: "فرع الرياض", address: "الرياض - الصناعية القديمة", managerName: "سالم العتيبي", phone: "0550001001" }],
+  ["branch", "active", { reference: "BRN-DEMO-002", name: "فرع الدمام", address: "الدمام - حي الخالدية", managerName: "ناصر القحطاني", phone: "0550001002" }],
+  ["employee", "active", { reference: "EMP-DEMO-001", name: "أحمد عبد العزيز", jobTitle: "مشرف تشغيل", branchName: "فرع الرياض", residencyNumber: "2456789012", residencyExpiry: daysFromNow(180), licenseExpiry: daysFromNow(90), medicalInsuranceExpiry: daysFromNow(120), passportExpiry: daysFromNow(300), salary: 6500 }],
+  ["employee", "active", { reference: "EMP-DEMO-002", name: "خالد محمد الحربي", jobTitle: "سائق", branchName: "فرع الرياض", residencyNumber: "2456789013", residencyExpiry: daysFromNow(20), licenseExpiry: daysFromNow(-3), medicalInsuranceExpiry: daysFromNow(60), passportExpiry: daysFromNow(200), salary: 4800 }],
+  ["permit", "active", { reference: "PRM-DEMO-001", permitNumber: "PRM-2026-1001", permitType: "تصريح تشغيل ونقل", vehiclePlate: "أ ب ج 1234", issueDate: daysFromNow(-300), expiryDate: daysFromNow(5) }],
+  ["permit", "expired", { reference: "PRM-DEMO-002", permitNumber: "PRM-2025-0881", permitType: "تصريح نقل", vehiclePlate: "ز ح ط 9012", issueDate: daysFromNow(-400), expiryDate: daysFromNow(-12) }],
+  ["appointment", "scheduled", { reference: "APT-DEMO-001", appointmentType: "تنزيل حاوية", customerName: "شركة البناء المتين", contractNumber: "RNT-2026-001", containerCode: "CNT-102", driverName: "يوسف ناصر القحطاني", vehiclePlate: "د هـ و 5678", appointmentDate: daysFromNow(1), address: "الرياض - مشروع البناء المتين" }],
+  ["appointment", "completed", { reference: "APT-DEMO-002", appointmentType: "تفريغ حاوية", customerName: "عبدالله سالم العتيبي", contractNumber: "RNT-2026-003", containerCode: "CNT-103", driverName: "خالد محمد الحربي", vehiclePlate: "أ ب ج 1234", appointmentDate: daysFromNow(-2), address: "الخرج - حي الصناعية" }],
+  ["warehouse", "active", { reference: "WH-DEMO-001", name: "المستودع الرئيسي", location: "الرياض - الصناعية", managerName: "سالم العتيبي", itemCount: 42 }],
+  ["warehouse", "active", { reference: "WH-DEMO-002", name: "مخزن الدمام", location: "الدمام - الخالدية", managerName: "ناصر القحطاني", itemCount: 18 }],
+  ["category", "active", { reference: "CAT-DEMO-001", name: "أنقاض", unit: "حاوية", notes: "تصنيف مخلفات البناء والهدم" }],
+  ["category", "active", { reference: "CAT-DEMO-002", name: "نفايات تجارية", unit: "حاوية", notes: "للمطاعم والمنشآت التجارية" }],
+  ["category_size", "active", { reference: "SIZE-DEMO-001", categoryName: "أنقاض", size: "20 ياردة", price: 400 }],
+  ["category_size", "active", { reference: "SIZE-DEMO-002", categoryName: "أنقاض", size: "12 ياردة", price: 300 }],
+  ["treasury", "active", { reference: "TRS-DEMO-001", name: "الخزينة النقدية", treasuryType: "نقدية", openingBalance: 5000 }],
+  ["treasury", "active", { reference: "TRS-DEMO-002", name: "حساب التحويلات البنكية", treasuryType: "تحويلات بنكية", accountNumber: "SA000000000001", openingBalance: 25000 }],
+  ["transfer", "posted", { reference: "TRF-DEMO-001", fromTreasury: "حساب التحويلات البنكية", toTreasury: "الخزينة النقدية", amount: 5000, date: daysFromNow(-4), description: "تغذية الخزينة النقدية" }],
+  ["invoice", "issued", { reference: "INV-DEMO-001", invoiceNumber: "INV-2026-0003", customerName: "محمود محمد", contractNumber: "RNT-DEMO-001", amount: 400, taxRate: 15, taxAmount: 60, total: 460, date: daysFromNow(-8), invoiceType: "فاتورة ضريبية مبسطة" }],
+  ["invoice_return", "posted", { reference: "RET-DEMO-001", invoiceNumber: "INV-2026-0002", customerName: "مؤسسة مدار للمقاولات", amount: 120, date: daysFromNow(-5), reason: "إلغاء رحلة زائدة" }],
+  ["tax", "active", { reference: "TAX-DEMO-001", name: "ضريبة القيمة المضافة", rate: 15, effectiveDate: daysFromNow(-365) }],
+  ["commission", "active", { reference: "COM-DEMO-001", name: "عمولة المشرف", basis: "نسبة من قيمة العقد", rate: 2.5 }],
+  ["oil_change", "due", { reference: "OIL-DEMO-001", vehiclePlate: "ز ح ط 9012", driverName: "—", mileage: 198700, oilType: "ديزل 15W40", nextDueMileage: 198500, date: daysFromNow(-40) }],
+  ["oil_change", "completed", { reference: "OIL-DEMO-002", vehiclePlate: "أ ب ج 1234", driverName: "خالد محمد الحربي", mileage: 84200, oilType: "ديزل 15W40", nextDueMileage: 85000, date: daysFromNow(-10) }],
+  ["salary_advance", "open", { reference: "ADV-DEMO-001", employeeName: "أحمد عبد العزيز", amount: 1000, date: daysFromNow(-12), deductionDate: daysFromNow(18), notes: "سلفة شهرية" }],
+  ["salary_payment", "posted", { reference: "SAL-DEMO-001", employeeName: "خالد محمد الحربي", month: "2026-08", amount: 4800, paymentDate: daysFromNow(-2) }],
+  ["fuel_expense", "posted", { reference: "FUEL-DEMO-001", vehiclePlate: "د هـ و 5678", driverName: "يوسف ناصر القحطاني", fuelType: "ديزل", quantity: 185, amount: 740, date: daysFromNow(-1) }],
+  ["daily_expense", "posted", { reference: "DEX-DEMO-001", name: "مستلزمات تشغيل", expenseType: "مصروف عام", amount: 350, date: daysFromNow(-1), notes: "شراء مستلزمات تحميل وتثبيت" }],
+  ["contract", "returned", { reference: "RNT-DEMO-001", contractNumber: "25111195", rentType: "عقد أنقاض", customerName: "محمود محمد", customerPhone: "0531941416", containerCode: "1002", category: "أنقاض", size: "20 ياردة", trips: 4, location: "الدمام", startDate: daysFromNow(-280), endDate: daysFromNow(-275), amount: 1600, taxRate: 15, taxAmount: 208.7, total: 1808.7, paid: 1000, remaining: 808.7, notes: "عقد متعدد الرحلات - بيانات مأخوذة من نموذج التشغيل" }],
+  ["invoice", "issued", { reference: "INV-DEMO-002", invoiceNumber: "#3", customerName: "محمود محمد", contractNumber: "25111195", amount: 400, taxRate: 15, taxAmount: 60, total: 460, date: daysFromNow(-280), invoiceType: "فاتورة ضريبية مبسطة", itemName: "أنقاض 20 ياردة", quantity: 1, issuedBy: "مؤسسة البدر لتأجير الحاويات" }],
+  ["container_movement", "completed", { reference: "MOV-DEMO-003", contractNumber: "25111195", containerCode: "1002", movementType: "تفريغ حاوية", vehiclePlate: "أ ب ج 1234", driverName: "أحمد عبد العزيز", supervisorName: "عبدالله البشار", movementDate: daysFromNow(-280), location: "الدمام" }],
+  ["container_movement", "completed", { reference: "MOV-DEMO-004", contractNumber: "25111195", containerCode: "1002", movementType: "سحب حاوية", vehiclePlate: "أ ب ج 1234", driverName: "أحمد عبد العزيز", supervisorName: "عبدالله البشار", movementDate: daysFromNow(-275), location: "الدمام" }],
+  ["payment", "posted", { reference: "PAY-DEMO-001", customerName: "محمود محمد", contractNumber: "25111195", amount: 1000, paymentMethod: "نقدي", date: daysFromNow(-275), paidUntil: daysFromNow(-275), treasury: "الخزينة النقدية", notes: "سداد جزئي" }],
+  ["ledger_entry", "open", { reference: "LED-DEMO-003", contractNumber: "25111195", customerName: "محمود محمد", direction: "مدين", amount: 808.7, date: daysFromNow(-274), description: "الرصيد المتبقي بعد السداد الجزئي", dueDate: daysFromNow(-240) }],
+  ["alert", "open", { reference: "ALT-DEMO-001", title: "مديونية متأخرة", severity: "عالية", dueDate: daysFromNow(-240), status: "مفتوح", details: "العميل محمود محمد لديه رصيد متبقٍ على العقد 25111195." }],
+] as const;
+
 const identityKeys = ["reference", "name", "assetCode", "contractNumber", "plate", "receiptNumber", "depositNumber", "key"];
 const isAlreadySeeded = (kind: string, payload: Record<string, unknown>) => existing.some(record => {
   if (record.kind !== kind) return false;
@@ -62,7 +99,7 @@ const isAlreadySeeded = (kind: string, payload: Record<string, unknown>) => exis
   return identityKeys.some(key => payload[key] && current[key] === payload[key]);
 });
 
-for (const [kind, status, payload] of [...demo, ...linkedDemo]) {
+for (const [kind, status, payload] of [...demo, ...linkedDemo, ...extendedDemo]) {
   const payloadRecord = payload as Record<string, unknown>;
   const reference = String(payloadRecord.reference ?? `${kind.toUpperCase().slice(0, 4)}-DEMO`);
   if (isAlreadySeeded(kind, payload as Record<string, unknown>)) continue;
