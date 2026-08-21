@@ -14,6 +14,7 @@ import {
 } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { THEME_PRESETS, applyThemePreset, type ThemePreset } from "@/lib/themePresets"
+import { getSafeMapEmbedUrl } from "@/context/SiteSettingsContext"
 import { motion } from "framer-motion"
 import {
   DndContext,
@@ -209,6 +210,12 @@ function GeneralTab() {
   )
   const isAdmin = currentRole === "admin"
   const mapValidation = normalizeGoogleMapEmbed(settings.company_map_embed)
+  const mapPreviewUrl = getSafeMapEmbedUrl(settings.company_map_embed, {
+    latitude: settings.company_latitude,
+    longitude: settings.company_longitude,
+    address: [settings.company_address, settings.company_city, settings.company_region].filter(Boolean).join("، "),
+    companyName: settings.company_name,
+  })
 
   useEffect(() => {
     // Do not trust a stale localStorage role on Hostinger. Resolve the
@@ -704,10 +711,10 @@ function GeneralTab() {
             />
              <p className="text-xs text-gray-400">اذهب إلى Google Maps ← مشاركة ← تضمين خريطة ← انسخ الرابط أو كود iframe بالكامل. لا تستخدم رابط المشاركة العادي.</p>
              {mapValidation.error && <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold leading-5 text-amber-800">{mapValidation.error}</p>}
-             {mapValidation.url && (
+             {mapPreviewUrl && (
               <div className="rounded-xl overflow-hidden border border-gray-200">
                 <iframe
-                   src={mapValidation.url}
+                   src={mapPreviewUrl}
                   width="100%" height="200" style={{ border: 0, display: "block" }}
                   allowFullScreen loading="lazy" referrerPolicy="strict-origin-when-cross-origin"
                   title="معاينة الخريطة"
