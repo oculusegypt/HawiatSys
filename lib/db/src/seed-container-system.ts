@@ -119,6 +119,8 @@ const extendedDemo = [
     company_footer_description: "مؤسسة تقي جروب، خيارك الأمثل في عالم تأجير الحاويات ونقل الأنقاض. نقدم خدماتنا بجودة عالية وأسعار تنافسية لنكون شركاء نجاحك في مشاريعك الإنشائية.",
     site_desc: "مؤسسة تقي جروب لخدمات تأجير الحاويات ونقل الأنقاض ومخلفات البناء في الرياض.",
     site_public_url: "",
+    seo_meta_description: "مؤسسة تقي جروب — تأجير الحاويات ونقل الأنقاض في الرياض. اتصل الآن: 0558606020",
+    vapid_subject: "",
   };
   for (const [key, value] of Object.entries(organizationSettings)) {
     const existingSetting = db.select().from(siteSettingsTable).where(
