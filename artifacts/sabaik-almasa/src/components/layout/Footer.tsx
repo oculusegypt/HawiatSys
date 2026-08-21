@@ -1,19 +1,17 @@
 import * as React from "react"
 import { Link } from "wouter"
 import { Phone, Mail, MapPin, Map, Facebook, Instagram, Youtube, Twitter, Music2, Ghost } from "lucide-react"
-import { useSiteSettings } from "@/context/SiteSettingsContext"
-
-function extractMapSrc(raw: string): string {
-  const match = raw.match(/src="([^"]+)"/)
-  return match ? match[1] : raw
-}
+import { getSafeMapEmbedUrl, useSiteSettings } from "@/context/SiteSettingsContext"
 
 export function Footer() {
   const siteSettings = useSiteSettings()
   const phones = siteSettings.phones
-  const mapEmbed = siteSettings.mapEmbed
-    ? extractMapSrc(siteSettings.mapEmbed)
-    : ""
+  const mapEmbed = getSafeMapEmbedUrl(siteSettings.mapEmbed, {
+    latitude: siteSettings.latitude,
+    longitude: siteSettings.longitude,
+    address: [siteSettings.address, siteSettings.city, siteSettings.region].filter(Boolean).join("، "),
+    companyName: siteSettings.companyName,
+  })
   const description = siteSettings.footerDescription
   const address = [siteSettings.address, siteSettings.city, siteSettings.region]
     .filter(Boolean)

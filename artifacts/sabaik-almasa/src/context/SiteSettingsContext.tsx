@@ -1,6 +1,49 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react"
 import { applyThemePreset } from "@/lib/themePresets"
 
+export function getSafeMapEmbedUrl(
+  raw: string,
+  options: { latitude?: string; longitude?: string; address?: string; companyName?: string } = {},
+): string {
+  const source = raw.trim()
+  const srcMatch = source.match(/<iframe[^>]+src\s*=\s*["']([^"']+)["']/i)
+  const candidate = (srcMatch?.[1] ?? source).replaceAll("&amp;", "&").trim()
+  let parsed: URL | null = null
+  try {
+    parsed = candidate ? new URL(candidate) : null
+  } catch {
+    parsed = null
+  }
+
+  const latitude = Number(options.latitude)
+  const longitude = Number(options.longitude)
+  const hasCoordinates =
+    Number.isFinite(latitude) && Number.isFinite(longitude) &&
+    latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180
+  const destination = hasCoordinates
+    ? `${latitude},${longitude}`
+    : [options.address, options.companyName, "الرياض"].filter(Boolean).join("، ")
+
+  // Google occasionally rejects stale/corrupted pb payloads. Never expose
+  // those payloads to visitors; the q/embed endpoint is stable and works with
+  // either coordinates or a textual destination.
+  if (parsed?.searchParams.has("pb") || !parsed) {
+    return destination
+      ? `https://maps.google.com/maps?q=${encodeURIComponent(destination)}&hl=ar&z=14&output=embed`
+      : ""
+  }
+
+  const host = parsed.hostname.toLowerCase()
+  const isGoogleMapsHost = host === "google.com" || host.endsWith(".google.com") || host === "maps.google.com"
+  const isEmbedPath = parsed.pathname.toLowerCase().startsWith("/maps/embed")
+  const isEmbedQuery = parsed.pathname.toLowerCase() === "/maps" && parsed.searchParams.get("output") === "embed"
+  return isGoogleMapsHost && (isEmbedPath || isEmbedQuery) ? parsed.toString() : (
+    destination
+      ? `https://maps.google.com/maps?q=${encodeURIComponent(destination)}&hl=ar&z=14&output=embed`
+      : ""
+  )
+}
+
 const API_BASE = (import.meta.env.BASE_URL ?? "/").replace(/\/$/, "")
 
 export interface HomepageContent {
