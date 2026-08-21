@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react"
-import { ArrowRight, FileDown, FileText, Printer, Save, Search, Settings2 } from "lucide-react"
-import type { ContainerSystemRecord } from "@workspace/api-client-react"
+import { ArrowLeft, ArrowRight, CalendarClock, ChevronLeft, ChevronRight, ClipboardList, FileDown, FileText, MapPin, Printer, Save, Search, Settings2, Truck, UserRound } from "lucide-react"
+import { getGetAdminWorkOrdersQueryKey, useGetAdminWorkOrders, type ContainerSystemRecord, type ServiceRequest } from "@workspace/api-client-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Link } from "wouter"
 import { amountOf, KIND_LABELS, RecordKind } from "./ContainerSystemComponents"
 
 export type ReportId =
@@ -83,6 +84,155 @@ export function ReportPage({ reportId, records, onBack }: { reportId: ReportId; 
     <div className="grid gap-3 sm:grid-cols-3"><Card><CardContent className="p-4"><p className="text-xs text-slate-500">عدد السجلات</p><b className="mt-1 block text-2xl">{filtered.length}</b></CardContent></Card><Card><CardContent className="p-4"><p className="text-xs text-slate-500">الإجمالي</p><b className="mt-1 block text-2xl text-cyan-800">{total.toLocaleString("ar-SA")} ر.س</b></CardContent></Card><Card><CardContent className="p-4"><p className="text-xs text-slate-500">أنواع السجلات المرتبطة</p><b className="mt-1 block text-sm">{report.kinds.map(kind => KIND_LABELS[kind as RecordKind] ?? kind).join("، ")}</b></CardContent></Card></div>
     <Card className="overflow-hidden"><CardHeader className="border-b bg-slate-50/60"><CardTitle className="text-base">بيانات {report.title}</CardTitle></CardHeader><CardContent className="overflow-x-auto p-0"><table className="min-w-[900px] w-full text-right text-xs"><thead><tr className="border-b bg-slate-50 text-slate-500">{report.columns.map(column => <th key={column} className="whitespace-nowrap px-4 py-3 font-black">{column}</th>)}</tr></thead><tbody>{filtered.length === 0 ? <tr><td colSpan={report.columns.length} className="p-12 text-center text-slate-500">لا توجد بيانات مطابقة للفلاتر الحالية.</td></tr> : filtered.map(record => <tr key={record.id} className="border-b last:border-0 hover:bg-cyan-50/30">{report.columns.map(column => <td key={column} className="whitespace-nowrap px-4 py-3 text-slate-700">{valueFor(record, column)}</td>)}</tr>)}</tbody></table></CardContent></Card>
   </div>
+}
+
+type DispatchCalendarProps = {
+  records: ContainerSystemRecord[]
+  onOpenAppointment: (record: ContainerSystemRecord) => void
+}
+
+const dispatchStatus: Record<string, { label: string; className: string }> = {
+  scheduled: { label: "مجدول", className: "border-sky-200 bg-sky-50 text-sky-800" },
+  assigned: { label: "بانتظار قبول السائق", className: "border-amber-200 bg-amber-50 text-amber-800" },
+  accepted: { label: "مقبول", className: "border-indigo-200 bg-indigo-50 text-indigo-800" },
+  started: { label: "قيد التنفيذ", className: "border-violet-200 bg-violet-50 text-violet-800" },
+  completed: { label: "مكتمل", className: "border-emerald-200 bg-emerald-50 text-emerald-800" },
+  rejected: { label: "مرفوض", className: "border-rose-200 bg-rose-50 text-rose-800" },
+}
+
+function dateKey(value: unknown) {
+  const date = new Date(String(value ?? ""))
+  return Number.isFinite(date.getTime()) ? date.toISOString().slice(0, 10) : ""
+}
+
+function displayDate(value: string) {
+  return new Date(`${value}T12:00:00`).toLocaleDateString("ar-SA", { weekday: "long", day: "numeric", month: "long" })
+}
+
+function appointmentPayload(record: ContainerSystemRecord) {
+  return record.payload as Record<string, unknown>
+}
+
+function workOrderFor(appointment: ContainerSystemRecord, workOrders: ServiceRequest[]) {
+  const payload = appointmentPayload(appointment)
+  const contractId = String(payload.contractRecordId ?? "")
+  const requestId = String(payload.requestId ?? "")
+  const containerId = String(payload.containerRecordId ?? "")
+  return workOrders.find(order => {
+    const item = order as ServiceRequest & { contractRecordId?: number | null; containerRecordId?: number | null; customerRecordId?: number | null }
+    return (requestId && String(order.id) === requestId)
+      || (contractId && String(item.contractRecordId ?? "") === contractId)
+      || (containerId && String(item.containerRecordId ?? "") === containerId)
+      || (String(order.scheduledAt ?? "") === String(payload.scheduledAt ?? ""))
+  })
+}
+
+export function DispatchCalendar({ records, onOpenAppointment }: DispatchCalendarProps) {
+  const workOrdersQuery = useGetAdminWorkOrders({ query: { queryKey: getGetAdminWorkOrdersQueryKey(), staleTime: 30_000 } })
+  const [selectedDate, setSelectedDate] = useState(() => dateKey(new Date().toISOString()))
+  const [mode, setMode] = useState<"day" | "week">("day")
+  const appointments = useMemo(() => records.filter(record => record.kind === "appointment" && record.status !== "archived"), [records])
+  const workOrders = workOrdersQuery.data ?? []
+  const selected = new Date(`${selectedDate}T12:00:00`)
+  const dates = useMemo(() => Array.from({ length: mode === "day" ? 1 : 7 }, (_, index) => {
+    const date = new Date(selected)
+    if (mode === "week") date.setDate(selected.getDate() - ((selected.getDay() + 6) % 7) + index)
+    return dateKey(date.toISOString())
+  }), [mode, selectedDate])
+  const events = useMemo(() => dates.map(date => ({
+    date,
+    items: appointments
+      .filter(record => dateKey(appointmentPayload(record).scheduledAt ?? appointmentPayload(record).appointmentDate) === date)
+      .sort((a, b) => String(appointmentPayload(a).appointmentTime ?? "").localeCompare(String(appointmentPayload(b).appointmentTime ?? ""))),
+  })), [appointments, dates])
+  const allDayCount = events.reduce((sum, group) => sum + group.items.length, 0)
+
+  const moveDate = (days: number) => {
+    const next = new Date(`${selectedDate}T12:00:00`)
+    next.setDate(next.getDate() + days)
+    setSelectedDate(dateKey(next.toISOString()))
+  }
+
+  return (
+    <div className="space-y-5" data-testid="dispatch-calendar">
+      <Card className="overflow-hidden border-slate-200/80 shadow-sm">
+        <CardHeader className="border-b border-slate-100 bg-slate-50/70 px-4 py-4 sm:px-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-cyan-100 text-cyan-800"><CalendarClock size={21} /></div>
+              <div>
+                <CardTitle className="text-base text-slate-900">تقويم التشغيل اليومي</CardTitle>
+                <p className="mt-1 text-xs leading-6 text-slate-500">المواعيد المرتبطة بالعقود وأوامر العمل الفعلية، مع حالة السائق والأصل في نفس الشاشة.</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setSelectedDate(dateKey(new Date().toISOString()))}>اليوم</Button>
+              <div className="flex items-center rounded-lg border border-slate-200 bg-white p-0.5">
+                <button type="button" onClick={() => setMode("day")} className={`rounded-md px-3 py-1.5 text-xs font-bold ${mode === "day" ? "bg-cyan-800 text-white" : "text-slate-500"}`}>يومي</button>
+                <button type="button" onClick={() => setMode("week")} className={`rounded-md px-3 py-1.5 text-xs font-bold ${mode === "week" ? "bg-cyan-800 text-white" : "text-slate-500"}`}>أسبوعي</button>
+              </div>
+            </div>
+          </div>
+          <div className="mt-4 flex items-center justify-between gap-3">
+            <Button variant="ghost" size="icon" onClick={() => moveDate(mode === "day" ? -1 : -7)} aria-label="الفترة السابقة"><ChevronRight size={18} /></Button>
+            <div className="text-center">
+              <p className="text-sm font-black text-slate-900">{mode === "day" ? displayDate(selectedDate) : `أسبوع يبدأ ${displayDate(dates[0])}`}</p>
+              <p className="mt-1 text-[11px] text-slate-400">{allDayCount} موعداً في الفترة المحددة</p>
+            </div>
+            <Button variant="ghost" size="icon" onClick={() => moveDate(mode === "day" ? 1 : 7)} aria-label="الفترة التالية"><ChevronLeft size={18} /></Button>
+          </div>
+        </CardHeader>
+        <CardContent className="p-4">
+          {workOrdersQuery.isError && <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800">تعذر تحميل حالات أوامر العمل؛ ستظهر المواعيد دون حالة السائق.</div>}
+          {allDayCount === 0 ? (
+            <div className="flex min-h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 px-6 text-center">
+              <CalendarClock size={28} className="text-slate-300" />
+              <p className="mt-3 font-bold text-slate-700">لا توجد مواعيد في هذه الفترة</p>
+              <p className="mt-1 text-xs text-slate-500">أنشئ عقداً بموعد مجدول أو راجع الفترة التالية.</p>
+            </div>
+          ) : (
+            <div className="space-y-5">
+              {events.map(group => (
+                <section key={group.date} data-testid={`dispatch-day-${group.date}`}>
+                  {mode === "week" && <div className="mb-2 flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-cyan-600" /><h3 className="text-sm font-black text-slate-800">{displayDate(group.date)}</h3><span className="text-[11px] text-slate-400">{group.items.length} موعد</span></div>}
+                  <div className="space-y-3">
+                    {group.items.map(appointment => {
+                      const payload = appointmentPayload(appointment)
+                      const order = workOrderFor(appointment, workOrders)
+                      const status = dispatchStatus[order?.driverStatus ?? appointment.status] ?? { label: appointment.status, className: "border-slate-200 bg-slate-50 text-slate-700" }
+                      return (
+                        <article key={appointment.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-cyan-200 hover:shadow-md" data-testid={`dispatch-event-${appointment.id}`}>
+                          <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
+                            <div className="flex shrink-0 items-center gap-3 xl:w-36 xl:border-l xl:border-slate-100 xl:pl-4">
+                              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-cyan-50 text-cyan-800"><CalendarClock size={19} /></div>
+                              <div><p className="text-lg font-black text-slate-900" dir="ltr">{String(payload.appointmentTime ?? "—")}</p><p className="text-[10px] text-slate-400">{String(payload.appointmentType ?? "موعد تشغيل")}</p></div>
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2"><h3 className="font-black text-slate-900">{String(payload.customerName ?? "عميل غير محدد")}</h3><Badge variant="outline" className={status.className}>{status.label}</Badge></div>
+                              <div className="mt-2 grid gap-2 text-xs text-slate-500 sm:grid-cols-2 xl:grid-cols-4">
+                                <span className="flex min-w-0 items-center gap-1.5"><MapPin size={14} className="shrink-0 text-slate-400" /><span className="truncate">{String(payload.location ?? "الموقع غير محدد")}</span></span>
+                                <span className="flex items-center gap-1.5"><ClipboardList size={14} className="shrink-0 text-slate-400" /> العقد {String(payload.contractNumber ?? "—")}</span>
+                                <span className="flex items-center gap-1.5"><Truck size={14} className="shrink-0 text-slate-400" /> الحاوية {String(payload.containerCode ?? "—")}</span>
+                                <span className="flex items-center gap-1.5"><UserRound size={14} className="shrink-0 text-slate-400" /> {order?.assignedDriverName ?? "لم يُسند سائق"}</span>
+                              </div>
+                            </div>
+                            <div className="flex shrink-0 gap-2">
+                              <Button variant="outline" size="sm" onClick={() => onOpenAppointment(appointment)} className="gap-1.5 text-cyan-800">تفاصيل الموعد <ArrowLeft size={14} /></Button>
+                              <Link href="/admin/work-orders" className="inline-flex h-9 items-center gap-1.5 rounded-md border border-slate-200 px-3 text-xs font-bold text-slate-700 hover:bg-slate-50"><ClipboardList size={14} /> أوامر العمل</Link>
+                            </div>
+                          </div>
+                        </article>
+                      )
+                    })}
+                  </div>
+                </section>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
 }
 
 const settingSections = [

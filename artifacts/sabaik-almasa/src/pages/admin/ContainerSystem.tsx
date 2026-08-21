@@ -27,7 +27,7 @@ import { useToast } from "@/hooks/use-toast"
 import {
   FIELD_CONFIG, KIND_ICONS, KIND_LABELS, RecordDialog, RecordKind, RecordStatus, amountOf, formatAuditAction, formatRecordDate, formatStatus,
 } from "./ContainerSystemComponents"
-import { ReportsHub, ReportPage, SettingsPage, REPORTS, ReportId } from "./ContainerSystemSpecialPages"
+import { DispatchCalendar, ReportsHub, ReportPage, SettingsPage, REPORTS, ReportId } from "./ContainerSystemSpecialPages"
 import { ContractWizard } from "./ContractWizard"
 
 const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
@@ -806,6 +806,7 @@ export default function ContainerSystem() {
               : view === "system_settings" ? <SettingsPage records={snapshot?.records ?? records} organization={organization} onSave={saveSettings} />
              : view === "audit" ? <AuditLog audits={auditQuery.data ?? []} loading={auditQuery.isLoading} />
               : view === "container_search" ? <ContainerSearchPanel records={records} loading={loading} onDetails={record => setDetailRecord(record)} onEdit={openEdit} />
+              : view === "bookings" ? <DispatchCalendar records={snapshot?.records ?? records} onOpenAppointment={record => setDetailRecord(record)} />
              : view === "container"
                ? <ContainerPOS records={records} onAdd={() => openCreate("container")} onDetails={record => setDetailRecord(record)} onEdit={openEdit} />
                 : <RecordsPanel kind={collectionKind ?? "customer"} records={records} loading={loading} onAdd={() => openCreate(collectionKind ?? "customer")} onDetails={record => setDetailRecord(record)} onEdit={openEdit} onArchive={archiveRecord} />}
