@@ -6,12 +6,12 @@ export function getSiteUrl(): string {
   if (typeof window !== "undefined" && window.location.origin) {
     return window.location.origin.replace(/\/+$/, "")
   }
-  return "https://alsahmm.com"
+  return ""
 }
 
 export function siteUrl(path = "/"): string {
   const normalized = path.startsWith("/") ? path : `/${path}`
-  const origin = getSiteUrl() || "https://alsahmm.com"
+  const origin = getSiteUrl()
   return `${origin}${normalized}`
 }
 
