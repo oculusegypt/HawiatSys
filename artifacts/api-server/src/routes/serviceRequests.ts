@@ -196,6 +196,89 @@ router.get("/service-requests", requireAdmin, async (req, res) => {
   return res.json(await addPresenceToRequests(requests));
 });
 
+router.post("/admin/service-requests/from-contract", requireAdmin, async (req, res) => {
+  const {
+    clientName,
+    phone,
+    email,
+    serviceType,
+    containerSize,
+    location,
+    duration,
+    notes,
+    appointmentType,
+    scheduledAt,
+    customerRecordId,
+    containerRecordId,
+    contractRecordId,
+  } = req.body as Record<string, unknown>;
+
+  const contractId = Number(contractRecordId);
+  const customerId = Number(customerRecordId);
+  const containerId = Number(containerRecordId);
+  if (!Number.isInteger(contractId) || contractId <= 0 || !Number.isInteger(customerId) || customerId <= 0 || !Number.isInteger(containerId) || containerId <= 0) {
+    return res.status(422).json({ error: "ربط أمر العمل بالعميل والعقد وأصل الحاوية مطلوب" });
+  }
+  if (!String(clientName ?? "").trim() || !String(phone ?? "").trim() || !String(scheduledAt ?? "").trim()) {
+    return res.status(422).json({ error: "اسم العميل والجوال وموعد التنفيذ مطلوبة" });
+  }
+  const scheduledDate = new Date(String(scheduledAt));
+  if (!Number.isFinite(scheduledDate.getTime())) {
+    return res.status(422).json({ error: "موعد التنفيذ غير صحيح" });
+  }
+
+  const [contract] = await db.select().from(containerSystemRecordsTable)
+    .where(eq(containerSystemRecordsTable.id, contractId));
+  if (!contract || contract.kind !== "contract" || contract.status === "archived") {
+    return res.status(422).json({ error: "العقد المرتبط بأمر العمل غير موجود" });
+  }
+  const contractPayload = parseContainerPayload(contract.payload);
+  if (Number(contractPayload.customerRecordId) !== customerId || Number(contractPayload.containerRecordId) !== containerId) {
+    return res.status(409).json({ error: "علاقات أمر العمل لا تطابق العميل أو أصل الحاوية في العقد" });
+  }
+  const [existingRequest] = await db.select().from(serviceRequestsTable)
+    .where(and(
+      eq(serviceRequestsTable.contractRecordId, contractId),
+      eq(serviceRequestsTable.acquisitionSource, "contract_workflow"),
+      eq(serviceRequestsTable.scheduledAt, String(scheduledAt)),
+    ));
+  if (existingRequest) return res.status(200).json(existingRequest);
+
+  const [request] = await db.insert(serviceRequestsTable).values({
+    clientName: String(clientName).trim(),
+    phone: String(phone).trim(),
+    email: email ? String(email).trim() : null,
+    serviceType: String(serviceType ?? "تسليم حاوية"),
+    containerSize: String(containerSize ?? ""),
+    location: String(location ?? "يحدد لاحقًا"),
+    duration: duration ? String(duration) : null,
+    notes: notes ? String(notes) : null,
+    appointmentType: String(appointmentType ?? "scheduled"),
+    scheduledAt: String(scheduledAt),
+    status: "pending",
+    customerRecordId: customerId,
+    containerRecordId: containerId,
+    contractRecordId: contractId,
+    sessionId: "",
+    acquisitionSource: "contract_workflow",
+    attributionReferrer: "",
+    attributionLandingPage: "",
+    attributionUtmSource: "",
+    attributionUtmMedium: "",
+    attributionUtmCampaign: "",
+    attributionGclid: "",
+  }).returning();
+
+  await createNotification({
+    title: "أمر عمل جديد من عقد",
+    message: `تم إنشاء أمر عمل مرتبط بالعقد ${String(contractPayload.contractNumber ?? contract.reference)}`,
+    type: "service_request",
+    refId: request.id,
+    refType: "service_request",
+  });
+  return res.status(201).json(request);
+});
+
 router.post("/service-requests", async (req, res) => {
   const {
     isQuoteRequest,

@@ -24,6 +24,9 @@ type FormState = {
   amount: string
   taxRate: string
   notes: string
+  appointmentDate: string
+  appointmentTime: string
+  appointmentType: string
 }
 
 const initialForm: FormState = {
@@ -35,6 +38,9 @@ const initialForm: FormState = {
   amount: "",
   taxRate: "15",
   notes: "",
+  appointmentDate: "",
+  appointmentTime: "09:00",
+  appointmentType: "delivery",
 }
 
 function payloadOf(record: ContainerSystemRecord) {
@@ -83,6 +89,7 @@ export function ContractWizard({ open, records, busy = false, onClose, onSubmit 
     if (targetStep === 1 && !form.endDate) return "تاريخ نهاية العقد مطلوب"
     if (targetStep === 1 && form.endDate < form.startDate) return "نهاية العقد يجب أن تكون بعد بدايته"
     if (targetStep === 2 && (!form.amount || amount <= 0)) return "أدخل قيمة العقد قبل المتابعة"
+    if (targetStep === 3 && !form.appointmentDate) return "حدد موعد العملية الأولى قبل المتابعة"
     return ""
   }
 
@@ -93,11 +100,11 @@ export function ContractWizard({ open, records, busy = false, onClose, onSubmit 
       return
     }
     setError("")
-    setStep(current => Math.min(current + 1, 3))
+    setStep(current => Math.min(current + 1, 4))
   }
 
   const submit = () => {
-    const message = [0, 1, 2].map(currentStep => validateStep(currentStep)).find(Boolean)
+    const message = [0, 1, 2, 3].map(currentStep => validateStep(currentStep)).find(Boolean)
     if (message) {
       setError(message)
       return
@@ -119,10 +126,13 @@ export function ContractWizard({ open, records, busy = false, onClose, onSubmit 
       status: "active",
       notes: form.notes.trim(),
       createdFrom: "contract_workflow",
+      appointmentDate: form.appointmentDate,
+      appointmentTime: form.appointmentTime,
+      appointmentType: form.appointmentType,
     })
   }
 
-  const steps = ["العميل", "العقد والأصل", "التسعير", "المراجعة"]
+  const steps = ["العميل", "العقد والأصل", "التسعير", "الجدولة", "المراجعة"]
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-3 sm:p-6" dir="rtl">
@@ -136,7 +146,7 @@ export function ContractWizard({ open, records, busy = false, onClose, onSubmit 
               </div>
               <button type="button" onClick={onClose} className="text-2xl leading-none text-cyan-100/70 hover:text-white" aria-label="إغلاق">×</button>
             </div>
-            <div className="mt-6 grid grid-cols-4 gap-2">
+            <div className="mt-6 grid grid-cols-5 gap-2">
               {steps.map((title, index) => <div key={title} className="flex items-center gap-2 text-[11px] font-bold"><span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${index <= step ? "bg-amber-400 text-slate-900" : "bg-white/15 text-cyan-100"}`}>{index < step ? <CheckCircle2 size={15} /> : index + 1}</span><span className={index === step ? "text-white" : "text-cyan-100/60"}>{title}</span></div>)}
             </div>
           </div>
@@ -166,10 +176,20 @@ export function ContractWizard({ open, records, busy = false, onClose, onSubmit 
               <div><Label htmlFor="contract-notes">الشروط والملاحظات</Label><textarea id="contract-notes" value={form.notes} onChange={event => update("notes", event.target.value)} rows={4} className="mt-2 w-full rounded-lg border border-slate-200 p-3 text-sm outline-none focus:border-cyan-600" placeholder="شروط التسليم أو الاستثناءات..." /></div>
             </section>}
 
-            {step === 3 && <section className="space-y-4"><div><h3 className="font-black text-slate-900">مراجعة قبل الإصدار</h3><p className="mt-1 text-sm text-slate-500">تحقق من العلاقات والقيمة قبل إنشاء العقد النشط.</p></div><div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm sm:grid-cols-2"><span>العميل: <b>{customer ? labelOf(customer) : "—"}</b></span><span>الأصل: <b>{container ? labelOf(container) : "—"}</b></span><span>رقم العقد: <b dir="ltr">{form.contractNumber || "—"}</b></span><span>الفترة: <b dir="ltr">{form.startDate || "—"} → {form.endDate || "—"}</b></span><span>الإجمالي: <b>{total.toLocaleString("ar-SA")} ر.س</b></span><span>الحالة بعد الإصدار: <b className="text-emerald-700">نشط</b></span></div><div className="flex items-start gap-2 rounded-xl border border-amber-100 bg-amber-50 p-3 text-xs leading-6 text-amber-950"><ShieldCheck size={16} className="mt-1 shrink-0" />سيُحفظ العقد مع معرّف العميل ومعرّف الأصل، وسيمنع النظام تعارض الفترة أو إعادة استخدام رقم العقد.</div></section>}
+            {step === 3 && <section className="space-y-4">
+              <div><h3 className="font-black text-slate-900">العملية الأولى والموعد</h3><p className="mt-1 text-sm text-slate-500">اربط العقد بموعد حقيقي حتى يظهر مباشرة في مركز التشغيل.</p></div>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div><Label htmlFor="appointment-type">نوع العملية</Label><select id="appointment-type" value={form.appointmentType} onChange={event => update("appointmentType", event.target.value)} className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm"><option value="delivery">تسليم الحاوية</option><option value="pickup">استرجاع الحاوية</option><option value="inspection">فحص وتجهيز</option></select></div>
+                <div><Label htmlFor="appointment-date">تاريخ الموعد</Label><Input id="appointment-date" type="date" value={form.appointmentDate} onChange={event => update("appointmentDate", event.target.value)} className="mt-2" dir="ltr" /></div>
+                <div><Label htmlFor="appointment-time">الوقت المتوقع</Label><Input id="appointment-time" type="time" value={form.appointmentTime} onChange={event => update("appointmentTime", event.target.value)} className="mt-2" dir="ltr" /></div>
+              </div>
+              <div className="rounded-2xl border border-cyan-100 bg-cyan-50 p-4 text-sm leading-6 text-cyan-950">سيُنشأ موعد مرتبط بالعقد والعميل والأصل بعد نجاح الإصدار. إذا رفض النظام الموعد بسبب تعارض، سيبقى العقد محفوظًا وتظهر نتيجة واضحة للمشرف.</div>
+            </section>}
+
+            {step === 4 && <section className="space-y-4"><div><h3 className="font-black text-slate-900">مراجعة قبل الإصدار</h3><p className="mt-1 text-sm text-slate-500">تحقق من العلاقات والقيمة والموعد قبل إنشاء العقد النشط.</p></div><div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm sm:grid-cols-2"><span>العميل: <b>{customer ? labelOf(customer) : "—"}</b></span><span>الأصل: <b>{container ? labelOf(container) : "—"}</b></span><span>رقم العقد: <b dir="ltr">{form.contractNumber || "—"}</b></span><span>الفترة: <b dir="ltr">{form.startDate || "—"} → {form.endDate || "—"}</b></span><span>الموعد الأول: <b dir="ltr">{form.appointmentDate || "—"} · {form.appointmentTime}</b></span><span>الإجمالي: <b>{total.toLocaleString("ar-SA")} ر.س</b></span><span>الحالة بعد الإصدار: <b className="text-emerald-700">نشط</b></span></div><div className="flex items-start gap-2 rounded-xl border border-amber-100 bg-amber-50 p-3 text-xs leading-6 text-amber-950"><ShieldCheck size={16} className="mt-1 shrink-0" />سيُحفظ العقد مع معرّف العميل ومعرّف الأصل، وسيُنشأ موعد مرتبط بهما، مع منع تعارض الفترة أو إعادة استخدام رقم العقد.</div></section>}
 
             {error && <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700" role="alert">{error}</p>}
-            <div className="flex items-center justify-between border-t border-slate-100 pt-5"><Button type="button" variant="outline" onClick={step === 0 ? onClose : () => { setError(""); setStep(current => current - 1) }} className="gap-2">{step === 0 ? "إلغاء" : <><ArrowRight size={16} /> السابق</>}</Button>{step < 3 ? <Button type="button" onClick={next} className="gap-2 bg-cyan-800 hover:bg-cyan-900">التالي <ArrowLeft size={16} /></Button> : <Button type="button" disabled={busy} onClick={submit} className="gap-2 bg-emerald-700 hover:bg-emerald-800">{busy ? "جارٍ الإصدار..." : "إصدار العقد"} <CheckCircle2 size={16} /></Button>}</div>
+            <div className="flex items-center justify-between border-t border-slate-100 pt-5"><Button type="button" variant="outline" onClick={step === 0 ? onClose : () => { setError(""); setStep(current => current - 1) }} className="gap-2">{step === 0 ? "إلغاء" : <><ArrowRight size={16} /> السابق</>}</Button>{step < 4 ? <Button type="button" onClick={next} className="gap-2 bg-cyan-800 hover:bg-cyan-900">التالي <ArrowLeft size={16} /></Button> : <Button type="button" disabled={busy} onClick={submit} className="gap-2 bg-emerald-700 hover:bg-emerald-800">{busy ? "جارٍ الإصدار..." : "إصدار العقد"} <CheckCircle2 size={16} /></Button>}</div>
           </div>
         </CardContent>
       </Card>

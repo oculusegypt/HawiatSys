@@ -581,6 +581,7 @@ export default function ContainerSystem() {
   const [search, setSearch] = useState("")
   const [dialog, setDialog] = useState<{ open: boolean; kind: RecordKind; record?: ContainerSystemRecord | null }>({ open: false, kind: "customer" })
   const [contractWizardOpen, setContractWizardOpen] = useState(false)
+  const [contractFlowBusy, setContractFlowBusy] = useState(false)
   const [detailRecord, setDetailRecord] = useState<ContainerSystemRecord | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [reportId, setReportId] = useState<ReportId | null>(null)
@@ -632,9 +633,68 @@ export default function ContainerSystem() {
     }
   }
   const submitContract = (payload: Record<string, unknown>) => {
-    createMutation.mutate({ data: { kind: "contract", status: "active", payload } }, {
-      onSuccess: () => { invalidate(); setContractWizardOpen(false); showSuccess("تم إصدار العقد وربطه بالعميل والأصل") },
-      onError: error => toast({ title: error instanceof Error ? error.message : "تعذر إصدار العقد", variant: "destructive" }),
+    if (contractFlowBusy) return
+    setContractFlowBusy(true)
+    const { appointmentDate, appointmentTime, appointmentType, ...contractPayload } = payload
+    createMutation.mutate({ data: { kind: "contract", status: "active", payload: contractPayload } }, {
+      onSuccess: createdContract => {
+        const scheduledAt = `${String(appointmentDate)}T${String(appointmentTime)}:00`
+        createMutation.mutate({
+          data: {
+            kind: "appointment",
+            status: "scheduled",
+            payload: {
+              contractNumber: String(contractPayload.contractNumber ?? createdContract.reference),
+              contractRecordId: createdContract.id,
+              customerRecordId: contractPayload.customerRecordId,
+              customerName: contractPayload.customerName,
+              containerRecordId: contractPayload.containerRecordId,
+              containerCode: contractPayload.containerCode,
+              appointmentType,
+              appointmentDate,
+              appointmentTime,
+              scheduledAt,
+              source: "contract_workflow",
+            },
+          },
+        }, {
+          onSuccess: () => {
+            void fetch(`${API_BASE}/api/admin/service-requests/from-contract`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("admin_token") ?? ""}` },
+              body: JSON.stringify({
+                clientName: contractPayload.customerName,
+                phone: contractPayload.customerPhone,
+                serviceType: appointmentType === "pickup" ? "استرجاع حاوية" : appointmentType === "inspection" ? "فحص وتجهيز حاوية" : "تسليم حاوية",
+                containerSize: contractPayload.containerCode,
+                location: contractPayload.location ?? "يحدد لاحقًا",
+                duration: contractPayload.duration ?? "",
+                notes: contractPayload.notes ?? "",
+                appointmentType: "scheduled",
+                scheduledAt,
+                customerRecordId: contractPayload.customerRecordId,
+                containerRecordId: contractPayload.containerRecordId,
+                contractRecordId: createdContract.id,
+              }),
+            }).then(response => {
+              if (!response.ok) return response.json().then(body => { throw new Error(String(body.error ?? "تعذر إنشاء أمر العمل")) })
+              return response.json()
+            }).then(() => {
+              invalidate()
+              setContractWizardOpen(false)
+              setContractFlowBusy(false)
+              showSuccess("تم إصدار العقد وإنشاء الموعد وأمر العمل وربطهما بالأصل")
+            }).catch(error => {
+              invalidate()
+              setContractWizardOpen(false)
+              setContractFlowBusy(false)
+              toast({ title: error instanceof Error ? `تم إصدار العقد والموعد، لكن تعذر إنشاء أمر العمل: ${error.message}` : "تم إصدار العقد والموعد، لكن تعذر إنشاء أمر العمل", variant: "destructive" })
+            })
+          },
+          onError: error => { invalidate(); setContractWizardOpen(false); setContractFlowBusy(false); toast({ title: error instanceof Error ? `تم إصدار العقد، لكن تعذر إنشاء الموعد: ${error.message}` : "تم إصدار العقد، لكن تعذر إنشاء الموعد", variant: "destructive" }) },
+        })
+      },
+      onError: error => { setContractFlowBusy(false); toast({ title: error instanceof Error ? error.message : "تعذر إصدار العقد", variant: "destructive" }) },
     })
   }
   const saveSettings = (payload: Record<string, unknown>) => {
@@ -698,7 +758,7 @@ export default function ContainerSystem() {
       onError: () => toast({ title: "تعذر تحديث دورة العقد", variant: "destructive" }),
     })
   }
-  const busy = createMutation.isPending || updateMutation.isPending
+  const busy = createMutation.isPending || updateMutation.isPending || contractFlowBusy
   const loading = snapshotQuery.isLoading || (isCollection && recordsQuery.isLoading)
   const error = snapshotQuery.isError || (isCollection && recordsQuery.isError)
 
@@ -730,7 +790,7 @@ export default function ContainerSystem() {
         </main>
       </div>
       <RecordDetails record={detailRecord} allRecords={snapshot?.records ?? records} open={Boolean(detailRecord)} onOpenChange={open => { if (!open) setDetailRecord(null) }} onContractAction={contractAction} />
-      <ContractWizard open={contractWizardOpen} records={snapshot?.records ?? records} busy={createMutation.isPending} onClose={() => setContractWizardOpen(false)} onSubmit={submitContract} />
+      <ContractWizard open={contractWizardOpen} records={snapshot?.records ?? records} busy={busy} onClose={() => { if (!contractFlowBusy) setContractWizardOpen(false) }} onSubmit={submitContract} />
       <RecordDialog open={dialog.open} kind={dialog.kind} record={dialog.record} records={snapshot?.records ?? records} busy={busy} onOpenChange={open => setDialog(current => ({ ...current, open }))} onSubmit={submitRecord} />
       {archiveMutation.isPending && <div className="fixed bottom-5 left-5 z-50 flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-xs font-bold text-white shadow-xl" data-testid="status-archive-loading"><Loader2 size={14} className="animate-spin" /> جارٍ أرشفة السجل...</div>}
     </div>
