@@ -1594,7 +1594,7 @@ components:
         assignedVehiclePlate: { type: ["string", "null"] }
         driverStatus:
           type: string
-          enum: [unassigned, assigned, accepted, rejected, started, completed]
+          enum: [unassigned, assigned, accepted, rejected, started, en_route, arrived, completed]
         driverResponseAt: { type: ["string", "null"] }
         driverStartedAt: { type: ["string", "null"] }
         driverCompletedAt: { type: ["string", "null"] }

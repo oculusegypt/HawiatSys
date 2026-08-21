@@ -36,6 +36,8 @@ const STATUS: Record<string, { label: string; tone: string; dot: string }> = {
   assigned: { label: "بانتظار قبول السائق", tone: "bg-amber-50 text-amber-800 border-amber-200", dot: "bg-amber-500" },
   accepted: { label: "مقبول — جاهز للبدء", tone: "bg-sky-50 text-sky-800 border-sky-200", dot: "bg-sky-500" },
   started: { label: "قيد التنفيذ", tone: "bg-indigo-50 text-indigo-800 border-indigo-200", dot: "bg-indigo-500" },
+  en_route: { label: "في الطريق", tone: "bg-violet-50 text-violet-800 border-violet-200", dot: "bg-violet-500" },
+  arrived: { label: "وصل إلى الموقع", tone: "bg-cyan-50 text-cyan-800 border-cyan-200", dot: "bg-cyan-500" },
   rejected: { label: "مرفوض", tone: "bg-rose-50 text-rose-800 border-rose-200", dot: "bg-rose-500" },
   completed: { label: "مكتمل", tone: "bg-emerald-50 text-emerald-800 border-emerald-200", dot: "bg-emerald-500" },
 }
@@ -283,7 +285,10 @@ function WorkOrderCard({
               </>
             )}
             {order.driverStatus === DriverWorkOrderStatus.accepted && <Button disabled={pending} onClick={() => onAction(order, DriverWorkOrderStatus.started)} className="h-11 flex-1 gap-2 bg-indigo-600 text-white hover:bg-indigo-700" data-testid={`button-start-${order.id}`}><Play size={16} /> بدء التنفيذ</Button>}
-            {order.driverStatus === DriverWorkOrderStatus.started && <Button disabled={pending} onClick={() => onAction(order, DriverWorkOrderStatus.completed)} className="h-11 flex-1 gap-2 bg-emerald-600 text-white hover:bg-emerald-700" data-testid={`button-complete-${order.id}`}><CheckCircle2 size={16} /> تأكيد الإكمال</Button>}
+            {order.driverStatus === DriverWorkOrderStatus.started && <Button disabled={pending} onClick={() => onAction(order, DriverWorkOrderStatus.en_route)} className="h-11 flex-1 gap-2 bg-violet-600 text-white hover:bg-violet-700" data-testid={`button-en-route-${order.id}`}><Navigation size={16} /> في الطريق</Button>}
+            {order.driverStatus === DriverWorkOrderStatus.started && <Button disabled={pending} onClick={() => onAction(order, DriverWorkOrderStatus.completed)} variant="outline" className="h-11 flex-1 gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50" data-testid={`button-complete-direct-${order.id}`}><CheckCircle2 size={16} /> إكمال مباشر</Button>}
+            {order.driverStatus === DriverWorkOrderStatus.en_route && <Button disabled={pending} onClick={() => onAction(order, DriverWorkOrderStatus.arrived)} className="h-11 flex-1 gap-2 bg-cyan-700 text-white hover:bg-cyan-800" data-testid={`button-arrived-${order.id}`}><MapPin size={16} /> وصلت للموقع</Button>}
+            {order.driverStatus === DriverWorkOrderStatus.arrived && <Button disabled={pending} onClick={() => onAction(order, DriverWorkOrderStatus.completed)} className="h-11 flex-1 gap-2 bg-emerald-600 text-white hover:bg-emerald-700" data-testid={`button-complete-${order.id}`}><CheckCircle2 size={16} /> تأكيد الإكمال</Button>}
           </>
         )}
       </div>
@@ -322,7 +327,7 @@ export default function WorkOrders() {
   const counts = useMemo(() => ({
     assigned: orders?.filter(o => o.driverStatus === DriverWorkOrderStatus.assigned).length ?? 0,
     accepted: orders?.filter(o => o.driverStatus === DriverWorkOrderStatus.accepted).length ?? 0,
-    started: orders?.filter(o => o.driverStatus === DriverWorkOrderStatus.started).length ?? 0,
+    started: orders?.filter(o => [DriverWorkOrderStatus.started, DriverWorkOrderStatus.en_route, DriverWorkOrderStatus.arrived].includes(String(o.driverStatus) as DriverWorkOrderStatus)).length ?? 0,
     history: orders?.filter(o => o.driverStatus === DriverWorkOrderStatus.rejected || o.driverStatus === DriverWorkOrderStatus.completed).length ?? 0,
   }), [orders])
 

@@ -179,6 +179,8 @@ const dispatchStatus: Record<string, { label: string; className: string }> = {
   assigned: { label: "بانتظار قبول السائق", className: "border-amber-200 bg-amber-50 text-amber-800" },
   accepted: { label: "مقبول", className: "border-indigo-200 bg-indigo-50 text-indigo-800" },
   started: { label: "قيد التنفيذ", className: "border-violet-200 bg-violet-50 text-violet-800" },
+  en_route: { label: "في الطريق", className: "border-violet-200 bg-violet-50 text-violet-800" },
+  arrived: { label: "وصل إلى الموقع", className: "border-cyan-200 bg-cyan-50 text-cyan-800" },
   completed: { label: "مكتمل", className: "border-emerald-200 bg-emerald-50 text-emerald-800" },
   rejected: { label: "مرفوض", className: "border-rose-200 bg-rose-50 text-rose-800" },
 }
