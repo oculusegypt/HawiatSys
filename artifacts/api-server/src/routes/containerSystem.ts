@@ -108,6 +108,69 @@ function canonicalAssetStatus(value: unknown, fallback: string) {
   return aliases[status] ?? (status || fallback);
 }
 
+async function findAssetByCode(containerCode: string) {
+  const normalizedCode = containerCode.trim();
+  if (!normalizedCode) return null;
+  const records = await db.select().from(containerSystemRecordsTable);
+  return records.find(record =>
+    ["container", "container_asset"].includes(record.kind) &&
+    record.status !== "archived" &&
+    assetCodeOf(parsePayload(record.payload)) === normalizedCode
+  ) ?? null;
+}
+
+async function hasDuplicateAssetCode(containerCode: string, ignoredId?: number) {
+  const normalizedCode = containerCode.trim();
+  if (!normalizedCode) return false;
+  const records = await db.select().from(containerSystemRecordsTable);
+  return records.some(record =>
+    ["container", "container_asset"].includes(record.kind) &&
+    record.status !== "archived" &&
+    record.id !== ignoredId &&
+    assetCodeOf(parsePayload(record.payload)) === normalizedCode
+  );
+}
+
+async function validateContractPayload(payload: Record<string, unknown>, ignoredId?: number) {
+  const startDate = String(payload.startDate ?? "").trim();
+  const endDate = String(payload.endDate ?? "").trim();
+  const amount = Number(payload.amount ?? 0);
+  const lifecycleStatus = String(payload.status ?? "active").trim().toLowerCase();
+  if (startDate && !Number.isFinite(Date.parse(startDate))) throw new Error("تاريخ بداية العقد غير صحيح");
+  if (endDate && !Number.isFinite(Date.parse(endDate))) throw new Error("تاريخ نهاية العقد غير صحيح");
+  if (startDate && endDate && Date.parse(endDate) < Date.parse(startDate)) {
+    throw new Error("نهاية العقد يجب أن تكون بعد بدايته");
+  }
+  if (!Number.isFinite(amount) || amount < 0) throw new Error("قيمة العقد يجب أن تكون رقمًا موجبًا");
+  const containerCode = String(payload.containerCode ?? "").trim();
+  if (["active", "issued", "scheduled", "delivered"].includes(lifecycleStatus) && !containerCode) {
+    throw new Error("العقد التشغيلي يجب أن يرتبط بحاوية");
+  }
+  if (containerCode && !(await findAssetByCode(containerCode))) {
+    throw new Error("الحاوية المرتبطة بالعقد غير موجودة");
+  }
+  if (await hasOverlappingContract(payload, ignoredId)) {
+    throw new Error("الحاوية مرتبطة بعقد آخر خلال نفس الفترة");
+  }
+}
+
+async function validateFinancialPayload(kind: string, payload: Record<string, unknown>) {
+  if (["payment", "receipt", "expense", "deposit", "bank_deposit", "invoice", "invoice_return"].includes(kind)) {
+    const amount = Number(payload.amount ?? payload.total ?? 0);
+    if (!Number.isFinite(amount) || amount <= 0) throw new Error("القيمة المالية يجب أن تكون أكبر من صفر");
+  }
+  const contractNumber = String(payload.contractNumber ?? "").trim();
+  if (contractNumber && ["payment", "receipt", "invoice", "invoice_return"].includes(kind)) {
+    const records = await db.select().from(containerSystemRecordsTable);
+    const contract = records.find(record =>
+      record.kind === "contract" &&
+      record.status !== "archived" &&
+      String(parsePayload(record.payload).contractNumber ?? record.reference).trim() === contractNumber
+    );
+    if (!contract) throw new Error("العقد المرتبط بالمستند المالي غير موجود");
+  }
+}
+
 async function hasOverlappingContract(payload: Record<string, unknown>, ignoredId?: number) {
   const containerCode = String(payload.containerCode ?? "").trim();
   const start = Date.parse(String(payload.startDate ?? ""));
@@ -130,12 +193,7 @@ async function syncMovement(payload: Record<string, unknown>, actorId: number | 
   const movementType = String(payload.movementType ?? "").toLowerCase();
   const nextStatus = movementStatus(movementType);
   if (!nextStatus) throw new Error("نوع حركة الحاوية غير مدعوم");
-  const assets = await db.select().from(containerSystemRecordsTable);
-  const asset = assets.find(record => {
-    if (!["container", "container_asset"].includes(record.kind)) return false;
-    const assetPayload = parsePayload(record.payload);
-    return assetCodeOf(assetPayload) === String(payload.containerCode ?? "").trim();
-  });
+  const asset = await findAssetByCode(String(payload.containerCode ?? ""));
   if (!asset) throw new Error("الحاوية المرتبطة بالحركة غير موجودة");
   const before = asset.payload;
   const beforePayload = parsePayload(before);
@@ -165,6 +223,31 @@ async function linkContractToRequest(payload: Record<string, unknown>, contractI
     return (customerName && String(current.name ?? "").trim() === customerName) ||
       (customerPhone && currentPhone && currentPhone === customerPhone);
   });
+  let customerId = Number(payload.customerRecordId ?? customer?.id ?? 0) || null;
+  if (!customer && customerName) {
+    const [createdCustomer] = await db.insert(containerSystemRecordsTable).values({
+      kind: "customer",
+      status: "active",
+      reference: referenceFor("customer", { name: customerName }, Date.now()),
+      payload: JSON.stringify({
+        name: customerName,
+        phone: customerPhone || request.phone,
+        email: payload.customerEmail ?? request.email ?? "",
+        city: payload.city ?? "الرياض",
+        source: "service_request",
+        sourceRequestId: request.id,
+      }),
+      createdBy: actorId,
+    }).returning();
+    customerId = createdCustomer.id;
+    await db.insert(containerSystemAuditTable).values({
+      recordId: createdCustomer.id,
+      kind: "customer",
+      action: "auto_create_from_request",
+      afterPayload: createdCustomer.payload,
+      actorId,
+    });
+  }
   const containerCode = String(payload.containerCode ?? "").trim();
   const container = allRecords.find(record => {
     if (!["container", "container_asset"].includes(record.kind) || record.status === "archived") return false;
@@ -172,7 +255,7 @@ async function linkContractToRequest(payload: Record<string, unknown>, contractI
     return containerCode && String(current.assetCode ?? current.code ?? "").trim() === containerCode;
   });
   await db.update(serviceRequestsTable).set({
-    customerRecordId: Number(payload.customerRecordId ?? customer?.id ?? 0) || null,
+    customerRecordId: customerId,
     containerRecordId: Number(payload.containerRecordId ?? container?.id ?? 0) || null,
     contractRecordId: contractId,
     status: ["draft", "cancelled"].includes(String(payload.status ?? "")) ? request.status : "in_progress",
@@ -281,19 +364,29 @@ router.post("/admin/container-system/records", async (req, res) => {
     if (payload.requestId !== undefined && Number(payload.requestId) <= 0) {
       return res.status(422).json({ error: "رقم الطلب المرتبط غير صحيح" });
     }
+    try {
+      await validateContractPayload(payload);
+    } catch (error) {
+      return res.status(422).json({ error: error instanceof Error ? error.message : "بيانات العقد غير صحيحة" });
+    }
   }
   if (kind === "container_movement") {
     const movementType = String(payload.movementType ?? "").trim();
     const containerCode = String(payload.containerCode ?? "").trim();
     if (!containerCode || !movementType) return res.status(422).json({ error: "رقم الحاوية ونوع الحركة مطلوبان" });
     if (!movementStatus(movementType)) return res.status(422).json({ error: "نوع حركة الحاوية غير مدعوم" });
-    const assets = await db.select().from(containerSystemRecordsTable);
-    const asset = assets.find(record =>
-      ["container", "container_asset"].includes(record.kind) &&
-      record.status !== "archived" &&
-      assetCodeOf(parsePayload(record.payload)) === containerCode
-    );
+    const asset = await findAssetByCode(containerCode);
     if (!asset) return res.status(422).json({ error: "الحاوية المرتبطة بالحركة غير موجودة" });
+  }
+  if (kind === "container" || kind === "container_asset") {
+    const assetCode = assetCodeOf(payload);
+    if (!assetCode) return res.status(422).json({ error: "رقم أصل الحاوية مطلوب" });
+    if (await hasDuplicateAssetCode(assetCode)) return res.status(409).json({ error: "رقم أصل الحاوية مستخدم مسبقًا" });
+  }
+  try {
+    await validateFinancialPayload(kind, payload);
+  } catch (error) {
+    return res.status(422).json({ error: error instanceof Error ? error.message : "بيانات مالية غير صحيحة" });
   }
   const normalizedStatus = kind === "container" || kind === "container_asset"
     ? canonicalAssetStatus(payload.status, String(status))
@@ -324,7 +417,7 @@ router.post("/admin/container-system/records", async (req, res) => {
       return res.status(422).json({ error: error instanceof Error ? error.message : "تعذر ربط العقد بالطلب" });
     }
   }
-  if (["payment", "receipt", "expense", "deposit"].includes(kind)) {
+   if (["payment", "receipt", "expense", "deposit", "bank_deposit"].includes(kind)) {
     await db.insert(containerSystemRecordsTable).values({
       kind: "ledger_entry",
       status: "posted",
@@ -360,8 +453,11 @@ router.patch("/admin/container-system/records/:id", async (req, res) => {
     if (minimumPrice > 0 && amount < minimumPrice && !approved) {
       return res.status(422).json({ error: "قيمة العقد أقل من الحد الأدنى وتتطلب استثناءً معتمداً" });
     }
-    if (await hasOverlappingContract(nextPayload, id)) {
-      return res.status(409).json({ error: "الحاوية مرتبطة بعقد آخر خلال نفس الفترة" });
+    try {
+      await validateContractPayload(nextPayload, id);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "بيانات العقد غير صحيحة";
+      return res.status(message.includes("مرتبطة بعقد") ? 409 : 422).json({ error: message });
     }
   }
   if (current.kind === "container_movement" &&
@@ -372,13 +468,18 @@ router.patch("/admin/container-system/records/:id", async (req, res) => {
     return res.status(422).json({ error: "نوع حركة الحاوية غير مدعوم" });
   }
   if (current.kind === "container_movement") {
-    const assets = await db.select().from(containerSystemRecordsTable);
-    const asset = assets.find(record =>
-      ["container", "container_asset"].includes(record.kind) &&
-      record.status !== "archived" &&
-      assetCodeOf(parsePayload(record.payload)) === String(nextPayload.containerCode ?? "").trim()
-    );
+    const asset = await findAssetByCode(String(nextPayload.containerCode ?? ""));
     if (!asset) return res.status(422).json({ error: "الحاوية المرتبطة بالحركة غير موجودة" });
+  }
+  if (current.kind === "container" || current.kind === "container_asset") {
+    const assetCode = assetCodeOf(nextPayload);
+    if (!assetCode) return res.status(422).json({ error: "رقم أصل الحاوية مطلوب" });
+    if (await hasDuplicateAssetCode(assetCode, id)) return res.status(409).json({ error: "رقم أصل الحاوية مستخدم مسبقًا" });
+  }
+  try {
+    await validateFinancialPayload(current.kind, nextPayload);
+  } catch (error) {
+    return res.status(422).json({ error: error instanceof Error ? error.message : "بيانات مالية غير صحيحة" });
   }
   const nextStatus = current.kind === "container" || current.kind === "container_asset"
     ? canonicalAssetStatus(nextPayload.status, String(body.status ?? current.status))
