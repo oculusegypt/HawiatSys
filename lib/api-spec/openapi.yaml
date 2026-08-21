@@ -596,7 +596,7 @@ paths:
     patch:
       operationId: updateDriverWorkOrder
       tags: [services]
-      summary: Accept, reject, start, or complete a driver's work order
+      summary: Accept, reject, start, travel, arrive, or complete a driver's work order
       parameters:
         - name: id
           in: path
@@ -1681,7 +1681,7 @@ components:
 
     DriverWorkOrderStatus:
       type: string
-      enum: [assigned, accepted, rejected, started, completed]
+      enum: [assigned, accepted, rejected, started, en_route, arrived, completed]
 
     DriverWorkOrderUpdate:
       type: object

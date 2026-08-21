@@ -2484,7 +2484,7 @@ export const getUpdateDriverWorkOrderUrl = (id: number,) => {
 }
 
 /**
- * @summary Accept, reject, start, or complete a driver's work order
+ * @summary Accept, reject, start, travel, arrive, or complete a driver's work order
  */
 export const updateDriverWorkOrder = async (id: number,
     driverWorkOrderUpdate: DriverWorkOrderUpdate, options?: RequestInit): Promise<ServiceRequest> => {
@@ -2534,7 +2534,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UpdateDriverWorkOrderMutationError = ErrorType<unknown>
 
     /**
- * @summary Accept, reject, start, or complete a driver's work order
+ * @summary Accept, reject, start, travel, arrive, or complete a driver's work order
  */
 export const useUpdateDriverWorkOrder = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDriverWorkOrder>>, TError,{id: number;data: BodyType<DriverWorkOrderUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}

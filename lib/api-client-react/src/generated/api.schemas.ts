@@ -504,6 +504,8 @@ export const DriverWorkOrderStatus = {
   accepted: 'accepted',
   rejected: 'rejected',
   started: 'started',
+  en_route: 'en_route',
+  arrived: 'arrived',
   completed: 'completed',
 } as const;
 

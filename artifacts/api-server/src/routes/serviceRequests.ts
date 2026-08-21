@@ -536,7 +536,7 @@ router.patch("/service-requests/:id/assignment", requireAdmin, requireRequestAss
 router.get("/driver/work-orders", requireAdmin, requireDriver, async (req, res) => {
   const adminRequest = req as AdminRequest;
   const requestedStatus = typeof req.query.status === "string" ? req.query.status : undefined;
-  const allowedStatuses = new Set(["assigned", "accepted", "rejected", "started", "completed"]);
+  const allowedStatuses = new Set(["assigned", "accepted", "rejected", "started", "en_route", "arrived", "completed"]);
   if (requestedStatus && !allowedStatuses.has(requestedStatus)) {
     return res.status(400).json({ error: "حالة أمر العمل غير صحيحة" });
   }
@@ -584,7 +584,9 @@ router.patch("/driver/work-orders/:id", requireAdmin, requireDriver, async (req,
   const transitions: Record<string, string[]> = {
     assigned: ["accepted", "rejected"],
     accepted: ["started"],
-    started: ["completed"],
+    started: ["en_route", "completed"],
+    en_route: ["arrived"],
+    arrived: ["completed"],
   };
   if (!transitions[nextStatus] && nextStatus !== "completed") {
     return res.status(400).json({ error: "حالة أمر العمل غير صحيحة" });

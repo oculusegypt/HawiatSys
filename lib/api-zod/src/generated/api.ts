@@ -870,7 +870,7 @@ export const AssignServiceRequestResponse = zod.object({
  * @summary List work orders assigned to the current driver
  */
 export const GetDriverWorkOrdersQueryParams = zod.object({
-  "status": zod.enum(['assigned', 'accepted', 'rejected', 'started', 'completed']).optional()
+  "status": zod.enum(['assigned', 'accepted', 'rejected', 'started', 'en_route', 'arrived', 'completed']).optional()
 })
 
 export const GetDriverWorkOrdersResponseItem = zod.object({
@@ -920,14 +920,14 @@ export const GetDriverWorkOrdersResponse = zod.array(GetDriverWorkOrdersResponse
 
 
 /**
- * @summary Accept, reject, start, or complete a driver's work order
+ * @summary Accept, reject, start, travel, arrive, or complete a driver's work order
  */
 export const UpdateDriverWorkOrderParams = zod.object({
   "id": zod.coerce.number()
 })
 
 export const UpdateDriverWorkOrderBody = zod.object({
-  "status": zod.enum(['assigned', 'accepted', 'rejected', 'started', 'completed']),
+  "status": zod.enum(['assigned', 'accepted', 'rejected', 'started', 'en_route', 'arrived', 'completed']),
   "notes": zod.string().nullish(),
   "locationLat": zod.string().nullish(),
   "locationLng": zod.string().nullish(),
