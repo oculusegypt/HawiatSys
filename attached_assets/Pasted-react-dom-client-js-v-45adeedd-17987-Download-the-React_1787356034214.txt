@@ -1,0 +1,116 @@
+react-dom_client.js?v=45adeedd:17987 Download the React DevTools for a better development experience: https://react.dev/link/react-devtools
+/api/admin/container-system/records:1  Failed to load resource: the server responded with a status of 409 (Conflict)
+/api/admin/container-system/records:1  Failed to load resource: the server responded with a status of 409 (Conflict)
+/api/admin/container-system/records:1  Failed to load resource: the server responded with a status of 409 (Conflict)
+custom-fetch.ts:363  POST https://f939638e-461d-4aad-bbd6-ad577d8138d4-00-1qwys5chqu65k.spock.replit.dev/api/admin/container-system/records 409 (Conflict)
+(anonymous) @ custom-fetch.ts:363
+await in (anonymous)
+(anonymous) @ api.ts:4281
+(anonymous) @ api.ts:4311
+fn @ @tanstack_react-query.js?v=45adeedd:2056
+run @ @tanstack_react-query.js?v=45adeedd:848
+start @ @tanstack_react-query.js?v=45adeedd:890
+execute @ @tanstack_react-query.js?v=45adeedd:2097
+await in execute
+mutate @ @tanstack_react-query.js?v=45adeedd:2433
+(anonymous) @ @tanstack_react-query.js?v=45adeedd:3658
+(anonymous) @ ContainerSystem.tsx:658
+(anonymous) @ ContractWizard.tsx:119
+executeDispatch @ react-dom_client.js?v=45adeedd:11736
+runWithFiberInDEV @ react-dom_client.js?v=45adeedd:1485
+processDispatchQueue @ react-dom_client.js?v=45adeedd:11772
+(anonymous) @ react-dom_client.js?v=45adeedd:12182
+batchedUpdates$1 @ react-dom_client.js?v=45adeedd:2628
+dispatchEventForPluginEventSystem @ react-dom_client.js?v=45adeedd:11877
+dispatchEvent @ react-dom_client.js?v=45adeedd:14792
+dispatchDiscreteEvent @ react-dom_client.js?v=45adeedd:14773
+<button>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=45adeedd:250
+_c @ button.tsx:47
+react-stack-bottom-frame @ react-dom_client.js?v=45adeedd:17424
+renderWithHooksAgain @ react-dom_client.js?v=45adeedd:4281
+renderWithHooks @ react-dom_client.js?v=45adeedd:4217
+updateForwardRef @ react-dom_client.js?v=45adeedd:6461
+beginWork @ react-dom_client.js?v=45adeedd:7864
+runWithFiberInDEV @ react-dom_client.js?v=45adeedd:1485
+performUnitOfWork @ react-dom_client.js?v=45adeedd:10868
+workLoopSync @ react-dom_client.js?v=45adeedd:10728
+renderRootSync @ react-dom_client.js?v=45adeedd:10711
+performWorkOnRoot @ react-dom_client.js?v=45adeedd:10330
+performSyncWorkOnRoot @ react-dom_client.js?v=45adeedd:11635
+flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=45adeedd:11536
+processRootScheduleInMicrotask @ react-dom_client.js?v=45adeedd:11558
+(anonymous) @ react-dom_client.js?v=45adeedd:11649
+<Button>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=45adeedd:250
+(anonymous) @ ContractWizard.tsx:202
+react-stack-bottom-frame @ react-dom_client.js?v=45adeedd:17424
+renderWithHooksAgain @ react-dom_client.js?v=45adeedd:4281
+renderWithHooks @ react-dom_client.js?v=45adeedd:4217
+updateFunctionComponent @ react-dom_client.js?v=45adeedd:6619
+beginWork @ react-dom_client.js?v=45adeedd:7654
+runWithFiberInDEV @ react-dom_client.js?v=45adeedd:1485
+performUnitOfWork @ react-dom_client.js?v=45adeedd:10868
+workLoopSync @ react-dom_client.js?v=45adeedd:10728
+renderRootSync @ react-dom_client.js?v=45adeedd:10711
+performWorkOnRoot @ react-dom_client.js?v=45adeedd:10330
+performSyncWorkOnRoot @ react-dom_client.js?v=45adeedd:11635
+flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=45adeedd:11536
+processRootScheduleInMicrotask @ react-dom_client.js?v=45adeedd:11558
+(anonymous) @ react-dom_client.js?v=45adeedd:11649
+custom-fetch.ts:363  POST https://f939638e-461d-4aad-bbd6-ad577d8138d4-00-1qwys5chqu65k.spock.replit.dev/api/admin/container-system/records 422 (Unprocessable Entity)
+(anonymous) @ custom-fetch.ts:363
+await in (anonymous)
+(anonymous) @ api.ts:4281
+(anonymous) @ api.ts:4311
+fn @ @tanstack_react-query.js?v=45adeedd:2056
+run @ @tanstack_react-query.js?v=45adeedd:848
+start @ @tanstack_react-query.js?v=45adeedd:890
+execute @ @tanstack_react-query.js?v=45adeedd:2097
+await in execute
+mutate @ @tanstack_react-query.js?v=45adeedd:2433
+(anonymous) @ @tanstack_react-query.js?v=45adeedd:3658
+(anonymous) @ ContainerSystem.tsx:658
+(anonymous) @ ContractWizard.tsx:119
+executeDispatch @ react-dom_client.js?v=45adeedd:11736
+runWithFiberInDEV @ react-dom_client.js?v=45adeedd:1485
+processDispatchQueue @ react-dom_client.js?v=45adeedd:11772
+(anonymous) @ react-dom_client.js?v=45adeedd:12182
+batchedUpdates$1 @ react-dom_client.js?v=45adeedd:2628
+dispatchEventForPluginEventSystem @ react-dom_client.js?v=45adeedd:11877
+dispatchEvent @ react-dom_client.js?v=45adeedd:14792
+dispatchDiscreteEvent @ react-dom_client.js?v=45adeedd:14773
+<button>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=45adeedd:250
+_c @ button.tsx:47
+react-stack-bottom-frame @ react-dom_client.js?v=45adeedd:17424
+renderWithHooksAgain @ react-dom_client.js?v=45adeedd:4281
+renderWithHooks @ react-dom_client.js?v=45adeedd:4217
+updateForwardRef @ react-dom_client.js?v=45adeedd:6461
+beginWork @ react-dom_client.js?v=45adeedd:7864
+runWithFiberInDEV @ react-dom_client.js?v=45adeedd:1485
+performUnitOfWork @ react-dom_client.js?v=45adeedd:10868
+workLoopSync @ react-dom_client.js?v=45adeedd:10728
+renderRootSync @ react-dom_client.js?v=45adeedd:10711
+performWorkOnRoot @ react-dom_client.js?v=45adeedd:10330
+performSyncWorkOnRoot @ react-dom_client.js?v=45adeedd:11635
+flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=45adeedd:11536
+processRootScheduleInMicrotask @ react-dom_client.js?v=45adeedd:11558
+(anonymous) @ react-dom_client.js?v=45adeedd:11649
+<Button>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=45adeedd:250
+(anonymous) @ ContractWizard.tsx:202
+react-stack-bottom-frame @ react-dom_client.js?v=45adeedd:17424
+renderWithHooksAgain @ react-dom_client.js?v=45adeedd:4281
+renderWithHooks @ react-dom_client.js?v=45adeedd:4217
+updateFunctionComponent @ react-dom_client.js?v=45adeedd:6619
+beginWork @ react-dom_client.js?v=45adeedd:7654
+runWithFiberInDEV @ react-dom_client.js?v=45adeedd:1485
+performUnitOfWork @ react-dom_client.js?v=45adeedd:10868
+workLoopSync @ react-dom_client.js?v=45adeedd:10728
+renderRootSync @ react-dom_client.js?v=45adeedd:10711
+performWorkOnRoot @ react-dom_client.js?v=45adeedd:10330
+performSyncWorkOnRoot @ react-dom_client.js?v=45adeedd:11635
+flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=45adeedd:11536
+processRootScheduleInMicrotask @ react-dom_client.js?v=45adeedd:11558
+(anonymous) @ react-dom_client.js?v=45adeedd:11649
