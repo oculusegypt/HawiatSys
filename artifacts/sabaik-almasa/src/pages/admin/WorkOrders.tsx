@@ -62,6 +62,32 @@ function SummaryTile({ label, value, accent }: { label: string; value: number; a
   )
 }
 
+function isSameDay(left?: string | null, right = new Date()) {
+  if (!left) return false
+  const date = new Date(left)
+  return Number.isFinite(date.getTime()) &&
+    date.getFullYear() === right.getFullYear() &&
+    date.getMonth() === right.getMonth() &&
+    date.getDate() === right.getDate()
+}
+
+function isOverdue(order: ServiceRequest) {
+  if (!order.scheduledAt || ["completed", "rejected"].includes(order.driverStatus ?? "")) return false
+  const scheduled = new Date(order.scheduledAt).getTime()
+  return Number.isFinite(scheduled) && scheduled < Date.now()
+}
+
+function hasDriverConflict(order: ServiceRequest, orders: ServiceRequest[]) {
+  if (!order.assignedDriverId || !order.scheduledAt) return false
+  return orders.some(candidate =>
+    candidate.id !== order.id &&
+    candidate.assignedDriverId === order.assignedDriverId &&
+    candidate.scheduledAt &&
+    isSameDay(candidate.scheduledAt, new Date(order.scheduledAt as string)) &&
+    !["completed", "rejected"].includes(candidate.driverStatus ?? ""),
+  )
+}
+
 function OrderDetailsDialog({ order, open, onClose, isDriver }: {
   order: ServiceRequest | null
   open: boolean
@@ -258,12 +284,14 @@ function CompletionEvidenceDialog({ open, onClose, onSubmit, pending }: {
 
 function WorkOrderCard({
   order,
+  allOrders,
   onAction,
   onOpenDetails,
   pending,
   isDriver,
 }: {
   order: ServiceRequest
+  allOrders: ServiceRequest[]
   onAction: (order: ServiceRequest, status: DriverWorkOrderStatus) => void
   onOpenDetails: (order: ServiceRequest) => void
   pending: boolean
@@ -271,6 +299,8 @@ function WorkOrderCard({
 }) {
   const info = statusInfo(order.driverStatus)
   const isHistory = order.driverStatus === DriverWorkOrderStatus.rejected || order.driverStatus === DriverWorkOrderStatus.completed
+  const conflict = hasDriverConflict(order, allOrders)
+  const overdue = isOverdue(order)
   return (
     <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md sm:p-5" data-testid={`card-work-order-${order.id}`}>
       <div className="flex items-start justify-between gap-3">
@@ -284,6 +314,9 @@ function WorkOrderCard({
           <h3 className="mt-3 truncate text-lg font-extrabold text-slate-900">{order.serviceType}</h3>
           <p className="mt-1 text-sm text-slate-500">{order.clientName}</p>
           {!isDriver && order.assignedDriverName && <p className="mt-1 text-xs font-semibold text-slate-400">السائق: {order.assignedDriverName}</p>}
+          {!isDriver && !order.assignedDriverId && <p className="mt-1 text-xs font-bold text-rose-600">يحتاج إلى إسناد</p>}
+          {!isDriver && conflict && <p className="mt-1 text-xs font-bold text-amber-700">تنبيه: يوجد أمر آخر للسائق في نفس اليوم</p>}
+          {!isDriver && overdue && <p className="mt-1 text-xs font-bold text-rose-700">متأخر عن الموعد المجدول</p>}
         </div>
         <div className="rounded-xl bg-[#0b2a3f] p-2.5 text-[#e0b84f]"><ClipboardList size={20} /></div>
       </div>
@@ -349,6 +382,10 @@ export default function WorkOrders() {
     accepted: orders?.filter(o => o.driverStatus === DriverWorkOrderStatus.accepted).length ?? 0,
     started: orders?.filter(o => [DriverWorkOrderStatus.started, DriverWorkOrderStatus.en_route, DriverWorkOrderStatus.arrived].includes(o.driverStatus as "started" | "en_route" | "arrived")).length ?? 0,
     history: orders?.filter(o => o.driverStatus === DriverWorkOrderStatus.rejected || o.driverStatus === DriverWorkOrderStatus.completed).length ?? 0,
+    unassigned: orders?.filter(o => !o.assignedDriverId && o.driverStatus !== DriverWorkOrderStatus.completed && o.driverStatus !== DriverWorkOrderStatus.rejected).length ?? 0,
+    today: orders?.filter(o => isSameDay(o.scheduledAt)).length ?? 0,
+    overdue: orders?.filter(isOverdue).length ?? 0,
+    assignmentRate: orders?.length ? Math.round((orders.filter(o => Boolean(o.assignedDriverId)).length / orders.length) * 100) : 0,
   }), [orders])
 
   const visibleOrders = (orders ?? []).filter(order =>
@@ -415,12 +452,20 @@ export default function WorkOrders() {
         </div>
       </header>
 
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <SummaryTile label="بانتظار القبول" value={counts.assigned} accent="bg-amber-500" />
         <SummaryTile label="مقبولة" value={counts.accepted} accent="bg-sky-500" />
         <SummaryTile label="قيد التنفيذ" value={counts.started} accent="bg-indigo-500" />
         <SummaryTile label={isDriver ? "السجل" : "إجمالي الحالي"} value={isDriver ? counts.history : (orders?.length ?? 0)} accent="bg-slate-400" />
       </section>
+      {!isDriver && (
+        <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <SummaryTile label="غير مسندة" value={counts.unassigned} accent="bg-rose-500" />
+          <SummaryTile label="مواعيد اليوم" value={counts.today} accent="bg-cyan-500" />
+          <SummaryTile label="متأخرة" value={counts.overdue} accent="bg-orange-500" />
+          <SummaryTile label="نسبة الإسناد" value={counts.assignmentRate} accent="bg-emerald-500" />
+        </section>
+      )}
 
       {isDriver && (
         <div className="flex items-center justify-between gap-3">
@@ -435,7 +480,7 @@ export default function WorkOrders() {
       {activeQuery.isLoading && <div className="grid gap-4 md:grid-cols-2" aria-label="جاري تحميل المهام" data-testid="loading-work-orders">{[1, 2, 3, 4].map(item => <Card key={item} className="h-52 animate-pulse border-0 bg-slate-200/70"><CardContent /></Card>)}</div>}
       {activeQuery.isError && <Card className="border-rose-200 bg-rose-50" data-testid="error-work-orders"><CardContent className="flex flex-col items-center gap-3 p-8 text-center"><XCircle className="text-rose-600" /><p className="font-bold text-rose-900">تعذر تحميل مهام العمل</p><p className="text-sm text-rose-700">تحقق من الصلاحية والاتصال ثم أعد المحاولة.</p><Button onClick={() => activeQuery.refetch()} variant="outline" className="gap-2 border-rose-200 text-rose-700"><RotateCcw size={15} /> إعادة المحاولة</Button></CardContent></Card>}
       {!activeQuery.isLoading && !activeQuery.isError && visibleOrders.length === 0 && <Card className="border-dashed border-slate-300 bg-slate-50/60" data-testid="empty-work-orders"><CardContent className="flex flex-col items-center gap-3 p-10 text-center"><CheckCircle2 className="text-emerald-600" size={30} /><p className="font-bold text-slate-800">{isDriver ? (view === "active" ? "لا توجد مهام تحتاج إجراءً الآن" : "لا يوجد سجل مهام بعد") : "لا توجد أوامر عمل حالية"}</p><p className="text-sm text-slate-500">{isDriver ? "ستظهر هنا المهام الجديدة بمجرد إسنادها إليك." : "ستظهر هنا الطلبات التي تم إسنادها إلى السائقين حتى إكمالها."}</p></CardContent></Card>}
-       {!activeQuery.isLoading && !activeQuery.isError && visibleOrders.length > 0 && <div className="grid gap-4 md:grid-cols-2">{visibleOrders.map(order => <div key={order.id} className="space-y-2"><WorkOrderCard order={order} onAction={handleAction} onOpenDetails={setSelectedOrder} pending={isPending || assigning} isDriver={isDriver} />{isManager && <div className="rounded-xl border border-slate-200 bg-white px-3 py-2"><label className="mb-1 block text-[11px] font-bold text-slate-500" htmlFor={`assign-work-order-${order.id}`}>إسناد أمر العمل</label><select id={`assign-work-order-${order.id}`} value={order.assignedDriverId ? String(order.assignedDriverId) : "unassigned"} disabled={driversLoading || assigning} onChange={event => handleAssignment(order, event.target.value)} className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700"><option value="unassigned">غير مسند</option>{drivers.map(driver => <option key={driver.id} value={driver.id}>{driver.name}</option>)}</select></div>}</div>)}</div>}
+       {!activeQuery.isLoading && !activeQuery.isError && visibleOrders.length > 0 && <div className="grid gap-4 md:grid-cols-2">{visibleOrders.map(order => <div key={order.id} className="space-y-2"><WorkOrderCard order={order} allOrders={orders ?? []} onAction={handleAction} onOpenDetails={setSelectedOrder} pending={isPending || assigning} isDriver={isDriver} />{isManager && <div className="rounded-xl border border-slate-200 bg-white px-3 py-2"><label className="mb-1 block text-[11px] font-bold text-slate-500" htmlFor={`assign-work-order-${order.id}`}>إسناد أمر العمل</label><select id={`assign-work-order-${order.id}`} value={order.assignedDriverId ? String(order.assignedDriverId) : "unassigned"} disabled={driversLoading || assigning} onChange={event => handleAssignment(order, event.target.value)} className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700"><option value="unassigned">غير مسند</option>{drivers.map(driver => <option key={driver.id} value={driver.id}>{driver.name}</option>)}</select></div>}</div>)}</div>}
 
       <OrderDetailsDialog order={selectedOrder} open={!!selectedOrder} onClose={() => setSelectedOrder(null)} isDriver={isDriver} />
       <CompletionEvidenceDialog open={Boolean(completionTarget)} onClose={() => setCompletionTarget(null)} onSubmit={submitCompletion} pending={isPending} />

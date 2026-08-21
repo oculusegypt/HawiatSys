@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, adminsTable, serviceRequestsTable, conversationsTable, messagesTable, activeVisitorsTable, containerSystemAuditTable, containerSystemRecordsTable } from "@workspace/db";
-import { eq, desc, and, inArray, isNotNull, sql } from "drizzle-orm";
+import { eq, desc, and, inArray, isNotNull, or, sql } from "drizzle-orm";
 import { getSetting } from "./settings";
 import { createNotification } from "../lib/pushNotifications";
 import { requireAdmin, requireDriver, requireRequestAssignment, requireManagerOrAdmin, type AdminRequest } from "../middleware/adminAuth";
@@ -554,8 +554,11 @@ router.get("/driver/work-orders", requireAdmin, requireDriver, async (req, res) 
 router.get("/admin/work-orders", requireAdmin, requireManagerOrAdmin, async (_req, res) => {
   const requests = await db.select().from(serviceRequestsTable)
     .where(and(
-      isNotNull(serviceRequestsTable.assignedDriverId),
-       inArray(serviceRequestsTable.driverStatus, ["assigned", "accepted", "started", "en_route", "arrived"]),
+      inArray(serviceRequestsTable.driverStatus, ["unassigned", "assigned", "accepted", "started", "en_route", "arrived"]),
+      or(
+        isNotNull(serviceRequestsTable.contractRecordId),
+        eq(serviceRequestsTable.acquisitionSource, "contract_workflow"),
+      ),
     ))
     .orderBy(desc(serviceRequestsTable.assignedAt), desc(serviceRequestsTable.createdAt));
   const driverIds = [...new Set(requests.map(request => request.assignedDriverId).filter((id): id is number => id !== null))];
