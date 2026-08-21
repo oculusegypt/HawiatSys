@@ -21,14 +21,14 @@ logical_id = "dd2f77f0-5f7e-42ad-893d-b823952e1890"
 id = "e7Hwi4c_9VUpSkVoGq2Ul"
 uri = "file://cleanflow-services-hostinger.zip"
 type = "unspecified"
-title = "CleanFlow — Full Current Hostinger Archive"
-description = "نسخة كاملة من الحالة الحالية، مع قاعدة البيانات الحالية (65 مقالة و104 سجل لنظام الحاويات)، واجهة PHP، الصور، الواجهة الرئيسية وCleanFlow Platform. الأرشيف مسطح وجاهز للاستخراج مباشرة داخل public_html، وتم التحقق من سلامته."
+title = "CleanFlow — Current Hostinger Archive (PHP + SQLite)"
+description = "آخر بناء كامل من النسخة الحالية، بدون اعتماد على Node في Hostinger. يتضمن PHP API، نظام الحاويات، المدونة، قاعدة SQLite الحالية، الصور ومسارات توافق الصور، الواجهة الرئيسية وCleanFlow Platform. تم فحص سلامة الأرشيف وملفات PHP بنجاح."
 logical_id = "c612380d-19d8-4641-8c29-e5ac4a484245"
-content_hash = "sha256:a248adff260f91999dbf8911d126585340d5b57d6a72a34e845d8abddbd8feed"
-size = 14351764
-mtime_ms = 1787339204756
-storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/repl:75393462-3dfd-4f44-a76c-a37409a4ab6a/c612380d-19d8-4641-8c29-e5ac4a484245/07290e43-9915-4968-af44-664a0c8fda45"
-storage_version_token = "1787339215401060"
+content_hash = "sha256:c11ad34e48564d90be1898d714b7d7574c4dd4d6410004aa16094ccb47e3be54"
+size = 16997200
+mtime_ms = 1787339628470
+storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/repl:75393462-3dfd-4f44-a76c-a37409a4ab6a/c612380d-19d8-4641-8c29-e5ac4a484245/f695916e-28a8-437d-ad99-658aff8fd293"
+storage_version_token = "1787339642695725"
 content_type = "application/octet-stream"
 
 [[outputs]]

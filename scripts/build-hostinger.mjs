@@ -99,6 +99,42 @@ function copyDirRecursive(srcDir, dstDir) {
 copyDirRecursive(distPublic, join(ROOT, "build_php"));
 console.log("  ✅ تم نسخ جميع المجلدات والصفحات الثابتة إلى build_php/");
 
+// بعض السجلات القديمة في SQLite تشير إلى /images/<file> بينما الملف المصدر
+// موجود في public/uploads/<file>. أنشئ نسخة توافقية في images/ حتى تعمل
+// المدونة والباقات بعد نقل الموقع إلى Hostinger بنفس مسارات الواجهة الحالية.
+{
+  const compatibilityImages = new Set();
+  const imageDb = new Database(join(ROOT, "data/sabaik.db"), { readonly: true });
+  for (const table of imageDb
+    .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
+    .all()) {
+    const safeTable = String(table.name).replaceAll('"', '""');
+    const columns = imageDb.prepare(`PRAGMA table_info("${safeTable}")`).all();
+    for (const column of columns.filter((item) => String(item.type || "").toUpperCase().includes("TEXT"))) {
+      const safeColumn = String(column.name).replaceAll('"', '""');
+      for (const row of imageDb.prepare(`SELECT "${safeColumn}" AS value FROM "${safeTable}"`).iterate()) {
+        const value = typeof row.value === "string" ? row.value : "";
+        for (const match of value.matchAll(/(?:^|["'])\/images\/([^/"'\\\s?#]+)/g)) {
+          compatibilityImages.add(match[1]);
+        }
+      }
+    }
+  }
+  imageDb.close();
+  const sourceUploads = join(ROOT, "artifacts/sabaik-almasa/public/uploads");
+  const targetImages = join(ROOT, "build_php/images");
+  mkdirSync(targetImages, { recursive: true });
+  for (const filename of compatibilityImages) {
+    const target = join(targetImages, filename);
+    if (existsSync(target)) continue;
+    const source = join(sourceUploads, filename);
+    if (existsSync(source)) {
+      copyFileSync(source, target);
+      console.log(`  ✅ توافق مسار الصورة: /images/${filename}`);
+    }
+  }
+}
+
 // Some Hostinger/Nginx configurations do not honor DirectoryIndex for
 // static folders even when index.html exists. Keep PHP entry points beside
 // the prerendered hubs so /blog/ and /areas/ resolve without a directory
