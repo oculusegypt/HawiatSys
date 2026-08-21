@@ -30,6 +30,8 @@ for (const sql of adminMigrations) {
 
 const serviceRequestMigrations = [
   "ALTER TABLE service_requests ADD COLUMN assigned_driver_id INTEGER",
+  "ALTER TABLE service_requests ADD COLUMN assigned_vehicle_id INTEGER",
+  "ALTER TABLE service_requests ADD COLUMN assigned_vehicle_plate TEXT",
   "ALTER TABLE service_requests ADD COLUMN driver_status TEXT NOT NULL DEFAULT 'unassigned'",
   "ALTER TABLE service_requests ADD COLUMN driver_response_at TEXT",
   "ALTER TABLE service_requests ADD COLUMN driver_started_at TEXT",

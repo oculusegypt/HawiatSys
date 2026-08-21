@@ -10,5 +10,7 @@ export interface ServiceRequestAssignment {
   /** @nullable */
   driverId: number | null;
   /** @nullable */
+  vehicleId?: number | null;
+  /** @nullable */
   adminNotes?: string | null;
 }

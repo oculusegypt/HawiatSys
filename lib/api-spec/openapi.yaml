@@ -1480,6 +1480,8 @@ components:
         adminNotes: { type: ["string", "null"] }
         assignedDriverId: { type: ["integer", "null"] }
         assignedDriverName: { type: ["string", "null"] }
+        assignedVehicleId: { type: ["integer", "null"] }
+        assignedVehiclePlate: { type: ["string", "null"] }
         driverStatus:
           type: string
           enum: [unassigned, assigned, accepted, rejected, started, completed]
@@ -1564,6 +1566,7 @@ components:
       required: [driverId]
       properties:
         driverId: { type: ["integer", "null"] }
+        vehicleId: { type: ["integer", "null"] }
         adminNotes: { type: ["string", "null"] }
 
     DriverWorkOrderStatus:

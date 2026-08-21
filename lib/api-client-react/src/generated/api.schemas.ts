@@ -315,6 +315,10 @@ export interface ServiceRequest {
   assignedDriverId?: number | null;
   /** @nullable */
   assignedDriverName?: string | null;
+  /** @nullable */
+  assignedVehicleId?: number | null;
+  /** @nullable */
+  assignedVehiclePlate?: string | null;
   driverStatus?: ServiceRequestDriverStatus;
   /** @nullable */
   driverResponseAt?: string | null;
@@ -442,6 +446,8 @@ export interface ServiceRequestUpdate {
 export interface ServiceRequestAssignment {
   /** @nullable */
   driverId: number | null;
+  /** @nullable */
+  vehicleId?: number | null;
   /** @nullable */
   adminNotes?: string | null;
 }

@@ -22,6 +22,8 @@ export const serviceRequestsTable = sqliteTable("service_requests", {
   containerRecordId: integer("container_record_id"),
   contractRecordId: integer("contract_record_id"),
   assignedDriverId: integer("assigned_driver_id"),
+  assignedVehicleId: integer("assigned_vehicle_id"),
+  assignedVehiclePlate: text("assigned_vehicle_plate"),
   driverStatus: text("driver_status").notNull().default("unassigned"),
   driverResponseAt: text("driver_response_at"),
   driverStartedAt: text("driver_started_at"),

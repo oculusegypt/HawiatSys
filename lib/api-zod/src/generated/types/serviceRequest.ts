@@ -32,6 +32,10 @@ export interface ServiceRequest {
   assignedDriverId?: number | null;
   /** @nullable */
   assignedDriverName?: string | null;
+  /** @nullable */
+  assignedVehicleId?: number | null;
+  /** @nullable */
+  assignedVehiclePlate?: string | null;
   driverStatus?: ServiceRequestDriverStatus;
   /** @nullable */
   driverResponseAt?: string | null;

@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react"
 import { ArrowLeft, ArrowRight, CalendarClock, ChevronLeft, ChevronRight, ClipboardList, FileDown, FileText, MapPin, Printer, Save, Search, Settings2, Truck, UserRound } from "lucide-react"
-import { getGetAdminWorkOrdersQueryKey, useGetAdminWorkOrders, type ContainerSystemRecord, type ServiceRequest } from "@workspace/api-client-react"
+import { getGetAdminWorkOrdersQueryKey, useAssignServiceRequest, useGetAdminWorkOrders, type ContainerSystemRecord, type ServiceRequest } from "@workspace/api-client-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { useToast } from "@/hooks/use-toast"
 import { Link } from "wouter"
 import { amountOf, KIND_LABELS, RecordKind } from "./ContainerSystemComponents"
 
@@ -91,6 +92,14 @@ type DispatchCalendarProps = {
   onOpenAppointment: (record: ContainerSystemRecord) => void
 }
 
+type DispatchAssignmentProps = {
+  order: ServiceRequest
+  drivers: { id: number; name: string }[]
+  vehicles: { id: number; plate: string; label: string; available: boolean }[]
+  allOrders: ServiceRequest[]
+  onSaved: () => void
+}
+
 const dispatchStatus: Record<string, { label: string; className: string }> = {
   scheduled: { label: "مجدول", className: "border-sky-200 bg-sky-50 text-sky-800" },
   assigned: { label: "بانتظار قبول السائق", className: "border-amber-200 bg-amber-50 text-amber-800" },
@@ -127,12 +136,75 @@ function workOrderFor(appointment: ContainerSystemRecord, workOrders: ServiceReq
   })
 }
 
+function DispatchAssignment({ order, drivers, vehicles, allOrders, onSaved }: DispatchAssignmentProps) {
+  const { toast } = useToast()
+  const [driverId, setDriverId] = useState(order.assignedDriverId ? String(order.assignedDriverId) : "")
+  const [vehicleId, setVehicleId] = useState(order.assignedVehicleId ? String(order.assignedVehicleId) : "")
+  const assignMutation = useAssignServiceRequest()
+  const busy = assignMutation.isPending
+  const save = () => {
+    const selectedVehicle = vehicleId ? Number(vehicleId) : null
+    const conflict = selectedVehicle !== null && allOrders.some(item =>
+      item.id !== order.id &&
+      item.scheduledAt === order.scheduledAt &&
+      item.assignedVehicleId === selectedVehicle &&
+      !["completed", "rejected"].includes(String(item.driverStatus ?? "")),
+    )
+    if (conflict) {
+      toast({ title: "الشاحنة مسندة إلى أمر آخر في نفس الموعد", variant: "destructive" })
+      return
+    }
+    assignMutation.mutate({ id: order.id, data: { driverId: driverId ? Number(driverId) : null, vehicleId: selectedVehicle } }, {
+      onSuccess: () => {
+        toast({ title: "تم حفظ إسناد السائق والشاحنة" })
+        onSaved()
+      },
+      onError: error => toast({ title: error instanceof Error ? error.message : "تعذر حفظ الإسناد", variant: "destructive" }),
+    })
+  }
+  return (
+    <div className="mt-3 border-t border-slate-100 pt-3">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+        <label className="min-w-0 flex-1 text-[11px] font-bold text-slate-500">السائق
+          <select value={driverId} onChange={event => setDriverId(event.target.value)} disabled={busy} className="mt-1 h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-xs font-bold text-slate-700">
+            <option value="">غير مسند</option>
+            {drivers.map(driver => <option key={driver.id} value={driver.id}>{driver.name}</option>)}
+          </select>
+        </label>
+        <label className="min-w-0 flex-1 text-[11px] font-bold text-slate-500">الشاحنة
+          <select value={vehicleId} onChange={event => setVehicleId(event.target.value)} disabled={busy} className="mt-1 h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-xs font-bold text-slate-700">
+            <option value="">غير مسندة</option>
+            {vehicles.map(vehicle => <option key={vehicle.id} value={vehicle.id} disabled={!vehicle.available && String(vehicle.id) !== vehicleId}>{vehicle.label}</option>)}
+          </select>
+        </label>
+        <Button size="sm" onClick={save} disabled={busy || !driverId} className="h-9 shrink-0 gap-1.5 bg-cyan-800 text-xs hover:bg-cyan-900">{busy ? "جارٍ الحفظ..." : "حفظ الإسناد"}</Button>
+      </div>
+    </div>
+  )
+}
+
 export function DispatchCalendar({ records, onOpenAppointment }: DispatchCalendarProps) {
   const workOrdersQuery = useGetAdminWorkOrders({ query: { queryKey: getGetAdminWorkOrdersQueryKey(), staleTime: 30_000 } })
   const [selectedDate, setSelectedDate] = useState(() => dateKey(new Date().toISOString()))
   const [mode, setMode] = useState<"day" | "week">("day")
+  const [drivers, setDrivers] = useState<{ id: number; name: string }[]>([])
   const appointments = useMemo(() => records.filter(record => record.kind === "appointment" && record.status !== "archived"), [records])
   const workOrders = workOrdersQuery.data ?? []
+  const vehicles = useMemo(() => records
+    .filter(record => record.kind === "vehicle" && record.status !== "archived")
+    .map(record => {
+      const payload = record.payload as Record<string, unknown>
+      const plate = String(payload.vehiclePlate ?? payload.plateNumber ?? payload.plate ?? record.reference ?? `شاحنة ${record.id}`)
+      const label = String(payload.name ?? payload.vehicleName ?? payload.type ?? plate)
+      return { id: record.id, plate, label: `${label} · ${plate}`, available: ["available", "ready", "active", "متاحة", "جاهزة", "نشطة"].includes(record.status) }
+    }), [records])
+  useEffect(() => {
+    const token = localStorage.getItem("admin_token") ?? ""
+    fetch(`${import.meta.env.BASE_URL?.replace(/\/$/, "") || ""}/api/admin/employees`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(response => response.ok ? response.json() as Promise<{ id: number; name: string; role: string; isActive: number }[]> : Promise.reject(new Error("drivers")))
+      .then(rows => setDrivers(rows.filter(row => row.role === "driver" && row.isActive === 1).map(row => ({ id: row.id, name: row.name }))))
+      .catch(() => setDrivers(records.filter(record => record.kind === "driver").map(record => ({ id: record.id, name: String(record.payload.name ?? record.reference ?? `سائق ${record.id}`) }))))
+  }, [records])
   const selected = new Date(`${selectedDate}T12:00:00`)
   const dates = useMemo(() => Array.from({ length: mode === "day" ? 1 : 7 }, (_, index) => {
     const date = new Date(selected)
@@ -215,6 +287,7 @@ export function DispatchCalendar({ records, onOpenAppointment }: DispatchCalenda
                                 <span className="flex items-center gap-1.5"><Truck size={14} className="shrink-0 text-slate-400" /> الحاوية {String(payload.containerCode ?? "—")}</span>
                                 <span className="flex items-center gap-1.5"><UserRound size={14} className="shrink-0 text-slate-400" /> {order?.assignedDriverName ?? "لم يُسند سائق"}</span>
                               </div>
+                              {order && <DispatchAssignment order={order} drivers={drivers} vehicles={vehicles} allOrders={workOrders} onSaved={() => void workOrdersQuery.refetch()} />}
                             </div>
                             <div className="flex shrink-0 gap-2">
                               <Button variant="outline" size="sm" onClick={() => onOpenAppointment(appointment)} className="gap-1.5 text-cyan-800">تفاصيل الموعد <ArrowLeft size={14} /></Button>

@@ -459,9 +459,15 @@ router.patch("/service-requests/:id/assignment", requireAdmin, requireRequestAss
   const driverId = req.body?.driverId === null || req.body?.driverId === undefined
     ? null
     : Number(req.body.driverId);
+  const vehicleId = req.body?.vehicleId === null || req.body?.vehicleId === undefined
+    ? null
+    : Number(req.body.vehicleId);
 
   if (driverId !== null && (!Number.isInteger(driverId) || driverId <= 0)) {
     return res.status(400).json({ error: "معرّف السائق غير صحيح" });
+  }
+  if (vehicleId !== null && (!Number.isInteger(vehicleId) || vehicleId <= 0)) {
+    return res.status(400).json({ error: "معرّف الشاحنة غير صحيح" });
   }
 
   if (driverId !== null) {
@@ -474,6 +480,19 @@ router.patch("/service-requests/:id/assignment", requireAdmin, requireRequestAss
       return res.status(400).json({ error: "السائق غير موجود أو غير نشط" });
     }
   }
+  let vehiclePlate: string | null = null;
+  if (vehicleId !== null) {
+    const vehicle = await db.select().from(containerSystemRecordsTable)
+      .where(eq(containerSystemRecordsTable.id, vehicleId)).get();
+    if (!vehicle || vehicle.kind !== "vehicle" || vehicle.status === "archived") {
+      return res.status(400).json({ error: "الشاحنة غير موجودة أو مؤرشفة" });
+    }
+    if (!["available", "ready", "active", "متاحة", "جاهزة", "نشطة"].includes(vehicle.status)) {
+      return res.status(409).json({ error: "الشاحنة ليست متاحة للإسناد" });
+    }
+    const vehiclePayload = parseContainerPayload(vehicle.payload);
+    vehiclePlate = String(vehiclePayload.vehiclePlate ?? vehiclePayload.plateNumber ?? vehiclePayload.plate ?? vehicle.reference ?? "").trim();
+  }
 
   const [request] = await db.select().from(serviceRequestsTable)
     .where(eq(serviceRequestsTable.id, id));
@@ -481,10 +500,17 @@ router.patch("/service-requests/:id/assignment", requireAdmin, requireRequestAss
   if (["completed", "rejected"].includes(request.driverStatus)) {
     return res.status(409).json({ error: "لا يمكن إعادة إسناد أمر عمل مغلق" });
   }
+  if (vehicleId !== null && request.scheduledAt) {
+    const sameDayOrders = await db.select().from(serviceRequestsTable).where(eq(serviceRequestsTable.scheduledAt, request.scheduledAt));
+    const conflict = sameDayOrders.find(item => item.id !== id && item.assignedVehicleId === vehicleId && !["completed", "rejected"].includes(item.driverStatus));
+    if (conflict) return res.status(409).json({ error: "الشاحنة مسندة إلى أمر عمل آخر في نفس الموعد" });
+  }
 
   const now = new Date().toISOString();
   const [updated] = await db.update(serviceRequestsTable).set({
     assignedDriverId: driverId,
+    assignedVehicleId: vehicleId,
+    assignedVehiclePlate: vehiclePlate,
     driverStatus: driverId === null ? "unassigned" : "assigned",
     driverResponseAt: null,
     driverStartedAt: null,
