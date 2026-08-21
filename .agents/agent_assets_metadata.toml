@@ -21,14 +21,14 @@ logical_id = "dd2f77f0-5f7e-42ad-893d-b823952e1890"
 id = "e7Hwi4c_9VUpSkVoGq2Ul"
 uri = "file://cleanflow-services-hostinger.zip"
 type = "unspecified"
-title = "CleanFlow — Verified Current PHP + SQLite Archive"
-description = "نسخة Hostinger النهائية بعد إصلاح ظهور سيستم الحاويات والشعار وتفاصيل الموقع. تم اختبار نسخة PHP المستخرجة فعلياً: الإعدادات والشعار والمدونة والحاويات تعمل، مع قاعدة البيانات الحالية والصور وواجهة CleanFlow Platform، بدون Node.js على Hostinger."
+title = "حزمة هوستنجر الكاملة - تقي جروب"
+description = "الأرشيف النهائي الجاهز للرفع إلى public_html، ويحتوي على الواجهة الكاملة، قاعدة البيانات، واجهات PHP، منصة الإدارة، الصور وملفات الرفع."
 logical_id = "c612380d-19d8-4641-8c29-e5ac4a484245"
-content_hash = "sha256:ce45386050dc6d30b81d24bbd14f96b4c9c8a2d78ccf13ef2467b8f7c6292d9c"
-size = 16997422
-mtime_ms = 1787339788283
-storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/repl:75393462-3dfd-4f44-a76c-a37409a4ab6a/c612380d-19d8-4641-8c29-e5ac4a484245/93df73f1-55c5-4776-b6e3-a1b411c489f4"
-storage_version_token = "1787339913879315"
+content_hash = "sha256:bbd983e6640331b552591e1566cea18df08ded8e835b2ac3ab7b7cbadf2371d4"
+size = 15168642
+mtime_ms = 1787344833851
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:c669304b-477f-41b9-8288-baace37b50fe/c612380d-19d8-4641-8c29-e5ac4a484245/5a7742ac-b954-4af5-a983-02cee7f7db4f"
+storage_version_token = "1787344845008510"
 content_type = "application/octet-stream"
 
 [[outputs]]
