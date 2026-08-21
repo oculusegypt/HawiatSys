@@ -644,7 +644,7 @@ router.post("/admin/container-system/contracts/:id/lifecycle", async (req, res) 
   if (!Number.isInteger(contractId) || contractId <= 0) {
     return res.status(400).json({ error: "رقم العقد غير صحيح" });
   }
-  if (!["deliver", "return"].includes(action)) {
+  if (!["deliver", "return", "approve", "reject"].includes(action)) {
     return res.status(422).json({ error: "إجراء دورة العقد غير مدعوم" });
   }
   if (!canManage(adminReq, "contract")) {
@@ -659,6 +659,36 @@ router.post("/admin/container-system/contracts/:id/lifecycle", async (req, res) 
         throw new Error("العقد غير موجود أو مؤرشف");
       }
       const contractPayload = parsePayload(contract.payload);
+      if (action === "approve" || action === "reject") {
+        if (adminReq.adminRole !== "admin" && adminReq.adminRole !== "manager") {
+          throw new Error("اعتماد العقد متاح للمدير أو المدير الرئيسي فقط");
+        }
+        if (!["draft", "pending_approval", "issued"].includes(contract.status)) {
+          throw new Error("لا يمكن اعتماد العقد من حالته الحالية");
+        }
+        const now = new Date().toISOString();
+        const nextStatus = action === "approve" ? "approved" : "rejected";
+        const nextPayload = {
+          ...contractPayload,
+          approvalStatus: nextStatus,
+          ...(action === "approve" ? { approvedAt: now, approvedBy: adminReq.adminId } : { rejectedAt: now, rejectedBy: adminReq.adminId }),
+          lifecycleAction: action,
+        };
+        const updatedContract = tx.update(containerSystemRecordsTable).set({
+          status: nextStatus,
+          payload: JSON.stringify(nextPayload),
+          updatedAt: now,
+        }).where(eq(containerSystemRecordsTable.id, contractId)).returning().get();
+        tx.insert(containerSystemAuditTable).values({
+          recordId: contractId,
+          kind: "contract",
+          action: `contract_${action}`,
+          beforePayload: contract.payload,
+          afterPayload: JSON.stringify(nextPayload),
+          actorId: adminReq.adminId,
+        }).run();
+        return { contract: updatedContract, movement: null, idempotent: false };
+      }
       const lifecycleKey = action === "deliver" ? "deliverAt" : "returnAt";
       if (contractPayload[lifecycleKey]) {
         return { contract, movement: null, idempotent: true };
