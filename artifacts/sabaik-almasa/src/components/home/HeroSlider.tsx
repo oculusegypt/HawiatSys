@@ -82,13 +82,13 @@ export function HeroSlider() {
           }`}
         >
           <div className="absolute inset-0">
-             <img
+              <img
               src={slide.imageUrl}
                alt={`${slide.title} | ${resolvedCompany}`}
-              className="w-full h-full object-cover"
+               className="hero-slide-image w-full h-full object-cover"
               onError={(e) => { e.currentTarget.style.display = "none" }}
             />
-             <div className="absolute inset-0 bg-gradient-to-t from-primary/25 via-primary/15 to-black/10" />
+              <div className="hero-slide-overlay absolute inset-0" />
           </div>
 
           <div className="absolute inset-0 z-20">
