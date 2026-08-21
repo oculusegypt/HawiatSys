@@ -9,3 +9,4 @@
 - [Hawiat container UI integration](hawiat-container-ui-integration.md) — use the archive's specialized tab vocabulary while keeping the current API-backed record model.
 - [Image optimization](image-optimization.md) — ImageMagick temporary output names must preserve the target extension for reliable WebP conversion.
 - [SQLite seed compatibility](sqlite-seed-transaction-compatibility.md) — portable fixture scripts should verify Drizzle transaction support before relying on `db.transaction(...)`.
+- [Financial idempotency boundary](financial-idempotency-client-boundary.md) — generated clients need operation keys in the body as well as headers for reliable retry protection.
