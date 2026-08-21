@@ -538,10 +538,32 @@ function SignaturePad({ value, onChange }: { value: string; onChange: (value: st
   )
 }
 
+export const CONTRACT_TEMPLATES = [
+  { id: "standard", name: "عقد إيجار حاوية قياسي", terms: "يلتزم الطرف الأول بتوفير الحاوية ونقلها إلى الموقع المحدد، ويلتزم الطرف الثاني بالمحافظة عليها وسداد القيمة في المواعيد المتفق عليها." },
+  { id: "monthly", name: "عقد إيجار شهري", terms: "تبدأ مدة الإيجار من تاريخ التسليم ولمدة شهر قابلة للتجديد، وتشمل القيمة الخدمات المحددة في بنود العقد، وتستحق الدفعة عند بداية كل شهر." },
+  { id: "trips", name: "عقد بالرحلات", terms: "يتم احتساب قيمة العقد وفق عدد الرحلات المتفق عليها، ولا تنفذ الرحلة الإضافية إلا بموافقة الطرفين وتسجيلها في النظام." },
+  { id: "corporate", name: "عقد مؤسسي طويل الأجل", terms: "يمنح هذا العقد أسعارًا وشروطًا تشغيلية خاصة بالمؤسسات طوال مدة التعاقد، مع اعتماد ممثل المؤسسة وجدول الطلبات والدفع الدوري." },
+  { id: "project", name: "عقد مشروع وموقع", terms: "يخص هذا العقد موقعًا أو مشروعًا محددًا، ويشمل مواقع الحاويات وجدول التبديل والتفريغ ومسؤوليات المشرف والممثل المعتمد." },
+] as const
+
+function ContractTemplatePicker({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  return (
+    <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-4 sm:col-span-2">
+      <Label htmlFor="contract-template" className="mb-1.5 block text-xs font-bold text-amber-950">قالب العقد الاحترافي</Label>
+      <select id="contract-template" value={value} onChange={event => onChange(event.target.value)} className="flex h-10 w-full rounded-md border border-amber-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-amber-400" data-testid="select-contract-template">
+        <option value="">اختر قالبًا جاهزًا</option>
+        {CONTRACT_TEMPLATES.map(template => <option key={template.id} value={template.id}>{template.name}</option>)}
+      </select>
+      <p className="mt-2 text-[11px] leading-6 text-amber-900/70">يتم إدراج الشروط الأساسية تلقائيًا ويمكن تعديلها قبل حفظ العقد.</p>
+    </div>
+  )
+}
+
 export function RecordDialog({
   open,
   kind,
   record,
+  records = [],
   busy,
   onOpenChange,
   onSubmit,
@@ -549,6 +571,7 @@ export function RecordDialog({
   open: boolean
   kind: RecordKind
   record?: ContainerSystemRecord | null
+  records?: ContainerSystemRecord[]
   busy?: boolean
   onOpenChange: (open: boolean) => void
   onSubmit: (payload: Record<string, unknown>, status: string) => void
@@ -566,6 +589,27 @@ export function RecordDialog({
 
   const setValue = (key: string, value: string) => setPayload(current => ({ ...current, [key]: value }))
   const fields = FIELD_CONFIG[kind]
+  const optionsFor = (key: string) => {
+    const source: RecordKind | undefined =
+      key.toLowerCase().includes("customer") ? "customer"
+      : key.toLowerCase().includes("container") || key === "containerCode" ? "container"
+      : key.toLowerCase().includes("contract") ? "contract"
+      : key.toLowerCase().includes("driver") ? "driver"
+      : key.toLowerCase().includes("vehicle") || key.toLowerCase().includes("truck") ? "vehicle"
+      : key.toLowerCase().includes("branch") ? "branch"
+      : key.toLowerCase().includes("warehouse") || key.toLowerCase().includes("store") ? "warehouse"
+      : key.toLowerCase().includes("treasury") || key.toLowerCase().includes("cash") ? "treasury"
+      : key === "typeName" || key === "category" ? "container_type"
+      : key === "item" || key === "itemName" ? "category"
+      : undefined
+    if (!source) return []
+    return records.filter(item => item.kind === source && item.status !== "archived").map(item => {
+      const p = item.payload as Record<string, unknown>
+      const label = String(p.name ?? p.customerName ?? p.contractNumber ?? p.assetCode ?? p.plate ?? p.code ?? item.reference ?? `#${item.id}`)
+      const value = key.toLowerCase().endsWith("recordid") || key.toLowerCase().endsWith("id") ? String(item.id) : String(p.name ?? p.contractNumber ?? p.assetCode ?? p.plate ?? p.code ?? label)
+      return { value, label }
+    })
+  }
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent dir="rtl" className="max-w-2xl border-cyan-100 p-0">
@@ -585,6 +629,11 @@ export function RecordDialog({
                 <Label htmlFor={`record-${field.key}`} className="mb-1.5 block text-xs font-bold text-slate-600">{field.label}</Label>
                 {field.type === "textarea" ? (
                   <Textarea id={`record-${field.key}`} value={payload[field.key] ?? ""} onChange={event => setValue(field.key, event.target.value)} placeholder={field.placeholder} rows={3} data-testid={`textarea-record-${field.key}`} />
+                ) : optionsFor(field.key).length > 0 ? (
+                  <select id={`record-${field.key}`} value={payload[field.key] ?? ""} onChange={event => setValue(field.key, event.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-700" data-testid={`select-record-${field.key}`}>
+                    <option value="">اختر {field.label}</option>
+                    {optionsFor(field.key).map(option => <option key={`${field.key}-${option.value}`} value={option.value}>{option.label}</option>)}
+                  </select>
                 ) : (
                   <Input id={`record-${field.key}`} type={field.type ?? "text"} value={payload[field.key] ?? ""} onChange={event => setValue(field.key, event.target.value)} placeholder={field.placeholder} dir={field.key.toLowerCase().includes("phone") || field.type === "number" ? "ltr" : "rtl"} data-testid={`input-record-${field.key}`} />
                 )}
@@ -597,6 +646,7 @@ export function RecordDialog({
               </select>
             </div>
           </div>
+          {kind === "contract" && <ContractTemplatePicker value={payload.contractTemplate ?? ""} onChange={value => { setValue("contractTemplate", value); if (value) setValue("notes", CONTRACT_TEMPLATES.find(template => template.id === value)?.terms ?? "") }} />}
           {kind === "contract" && <SignaturePad value={payload.signatureData ?? ""} onChange={value => setValue("signatureData", value)} />}
           <DialogFooter className="gap-2 border-t border-slate-100 pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="gap-2" data-testid="button-cancel-record"><X size={15} /> إلغاء</Button>

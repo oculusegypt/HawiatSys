@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { Link } from "wouter"
 import {
   AlertCircle, Archive, ArrowDownLeft, ArrowLeftRight, ArrowUpRight, BellRing, BookOpenCheck, Box, CalendarDays, CarFront, CheckCircle2,
-  ChevronLeft, ClipboardList, Coins, FileCheck2, FileDown, FilePenLine, FileText, FolderSearch, Gauge, HandCoins, Landmark, LayoutDashboard, ReceiptText, Truck,
+  ChevronDown, ChevronLeft, ClipboardList, Coins, FileCheck2, FileDown, FilePenLine, FileText, FolderSearch, Gauge, HandCoins, Landmark, LayoutDashboard, ReceiptText, Truck,
   Loader2, Plus, RefreshCw, Search, Settings2, ShieldCheck, SlidersHorizontal, UserCog, UserRound, Users, Wrench, X,
 } from "lucide-react"
 import {
@@ -32,7 +32,7 @@ import { ReportsHub, ReportPage, SettingsPage, REPORTS, ReportId } from "./Conta
 type ViewKey =
   | "overview" | RecordKind | "reports" | "audit" | "container_search"
   | "rental" | "vouchers" | "operations" | "customer_payments" | "bookings"
-  | "expenses" | "payroll" | "fleet" | "warehouses" | "system_settings"
+  | "expenses" | "payroll" | "fleet" | "warehouses" | "system_settings" | "contracts_list"
 type NavItem = { key?: ViewKey; href?: string; label: string; icon: typeof LayoutDashboard }
 
 const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
@@ -49,7 +49,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { key: "container" as ViewKey, label: "الحاويات", icon: Box },
       { key: "container_type" as ViewKey, label: "أنواع الحاويات", icon: SlidersHorizontal },
       { key: "contract_line" as ViewKey, label: "بنود العقود", icon: ClipboardList },
-      { key: "contract" as ViewKey, label: "العقود", icon: FileText },
+      { key: "contracts_list" as ViewKey, label: "العقود", icon: FileText },
     ],
   },
   {
@@ -82,7 +82,6 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { key: "expenses" as ViewKey, label: "الإيرادات والمصروفات", icon: ArrowDownLeft },
       { key: "daily_expense" as ViewKey, label: "المصروفات العامة", icon: ArrowDownLeft },
       { key: "fuel_expense" as ViewKey, label: "مصروفات الشاحنات", icon: CarFront },
-      { key: "expense" as ViewKey, label: "الإيرادات والمصروفات", icon: Coins },
     ],
   },
   {
@@ -162,17 +161,6 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { key: "transfer" as ViewKey, label: "التحويل بين الخزائن", icon: ArrowUpRight },
     ],
   },
-  /* Keep the existing record kinds reachable; these are API-backed operational views. */
-  {
-    label: "موارد النظام",
-    items: [
-      { key: "branch" as ViewKey, label: "الفروع", icon: Landmark },
-      { key: "commission" as ViewKey, label: "العمولات", icon: Coins },
-      { key: "tax" as ViewKey, label: "الضرائب", icon: FileCheck2 },
-      { key: "maintenance" as ViewKey, label: "سجل الصيانة", icon: Wrench },
-      { key: "driver" as ViewKey, label: "السائقون", icon: UserRound },
-    ],
-  },
 ]
 
 const allKinds = Object.keys(KIND_LABELS) as RecordKind[]
@@ -187,6 +175,7 @@ const viewKind: Partial<Record<ViewKey, RecordKind>> = {
   fleet: "vehicle",
   warehouses: "warehouse",
   system_settings: "setting",
+  contracts_list: "contract",
 }
 const viewLabel = (view: ViewKey) =>
   view === "overview" ? "الرئيسية"
@@ -203,7 +192,50 @@ const viewLabel = (view: ViewKey) =>
   : view === "fleet" ? "أسطول الشاحنات"
   : view === "warehouses" ? "المستودعات والمخازن"
   : view === "system_settings" ? "إعدادات النظام والتشغيل"
+  : view === "contracts_list" ? "العقود"
   : KIND_LABELS[view as RecordKind]
+
+function ContainerSidebar({ view, onSelect }: { view: ViewKey; onSelect: (view: ViewKey) => void }) {
+  const [expanded, setExpanded] = useState<Record<string, boolean>>(
+    Object.fromEntries(NAV_GROUPS.map(group => [group.label, ["الرئيسية", "العقود والإيجارات"].includes(group.label)])),
+  )
+  return (
+    <Card className="sticky top-20 border-slate-200/80 bg-white/90 shadow-sm">
+      <CardContent className="p-2.5">
+        {NAV_GROUPS.map(group => {
+          const isOpen = expanded[group.label]
+          const hasActive = group.items.some(item => item.key === view)
+          return (
+            <div key={group.label} className="mb-2 last:mb-0">
+              <button
+                type="button"
+                onClick={() => setExpanded(current => ({ ...current, [group.label]: !current[group.label] }))}
+                className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-right text-[11px] font-black transition ${hasActive ? "bg-cyan-50 text-cyan-900" : "text-slate-500 hover:bg-slate-50"}`}
+                data-testid={`button-toggle-container-group-${group.label}`}
+              >
+                <span>{group.label}</span>
+                <ChevronDown size={15} className={`transition-transform ${isOpen ? "rotate-180 text-cyan-700" : "text-slate-400"}`} />
+              </button>
+              {isOpen && (
+                <div className="mt-1 space-y-0.5 border-r border-slate-100 pr-1">
+                  {group.items.map(item => {
+                    const Icon = item.icon
+                    const active = Boolean(item.key && view === item.key)
+                    const className = `flex w-full items-center gap-2 rounded-lg px-3 py-2 text-right text-xs font-bold transition-all ${active ? "bg-cyan-100/70 text-cyan-950" : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"}`
+                    const testId = item.key ?? item.href?.replace("/admin/", "admin-") ?? item.label
+                    return item.href
+                      ? <Link key={testId} href={item.href} className={className} data-testid={`nav-container-${testId}`}><Icon size={15} className="text-slate-400" /><span>{item.label}</span></Link>
+                      : <button key={testId} type="button" onClick={() => item.key && onSelect(item.key)} className={className} data-testid={`nav-container-${testId}`}><Icon size={15} className={active ? "text-cyan-700" : "text-slate-400"} /><span>{item.label}</span>{active && <span className="mr-auto h-1.5 w-1.5 rounded-full bg-amber-400" />}</button>
+                  })}
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </CardContent>
+    </Card>
+  )
+}
 
 function numericSummary(summary: Record<string, unknown> | undefined, keys: string[], fallback: number) {
   for (const key of keys) {
@@ -489,15 +521,6 @@ function RecordDetails({ record, allRecords, open, onOpenChange, onContractActio
   if (!record) return null
   const entries = Object.entries(record.payload).filter(([, value]) => value !== "" && value !== null && value !== undefined)
   const customerName = String(record.payload.name ?? record.payload.customerName ?? "")
-  const linked = allRecords.filter(item => {
-    const payload = item.payload as Record<string, unknown>
-    return item.id !== record.id && (
-      String(payload.customerName ?? "") === customerName ||
-      String(payload.customerRecordId ?? "") === String(record.id) ||
-      String(payload.customerId ?? "") === String(record.id) ||
-      String(payload.containerCode ?? "") === String(record.payload.assetCode ?? record.payload.code ?? "")
-    )
-  }).slice(0, 12)
   const customerRecords = allRecords.filter(item => {
     const payload = item.payload as Record<string, unknown>
     return String(payload.customerName ?? "") === customerName || String(payload.customerRecordId ?? "") === String(record.id)
@@ -517,7 +540,6 @@ function RecordDetails({ record, allRecords, open, onOpenChange, onContractActio
           {entries.map(([key, value]) => <div key={key} className="rounded-xl border border-slate-100 bg-white p-3"><p className="text-[11px] text-slate-500">{FIELD_CONFIG[record.kind as RecordKind]?.find(field => field.key === key)?.label ?? key}</p><p className="mt-1 break-words text-sm font-bold text-slate-800">{String(value)}</p></div>)}
         </div>
           {record.kind === "customer" && <div className="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4"><h4 className="mb-3 text-sm font-black text-emerald-950">ملف العميل وكشف الحساب</h4><div className="grid grid-cols-3 gap-2"><div className="rounded-xl bg-white p-3"><p className="text-[10px] text-slate-500">العقود</p><p className="mt-1 text-lg font-black text-slate-900">{customerContracts.length}</p></div><div className="rounded-xl bg-white p-3"><p className="text-[10px] text-slate-500">إجمالي المطالبات</p><p className="mt-1 text-lg font-black text-slate-900">{customerCharges.toLocaleString("ar-SA")} ر.س</p></div><div className="rounded-xl bg-white p-3"><p className="text-[10px] text-slate-500">المدفوع</p><p className="mt-1 text-lg font-black text-emerald-700">{customerPayments.toLocaleString("ar-SA")} ر.س</p></div></div><div className="mt-3 rounded-xl bg-white px-3 py-2 text-sm font-black text-rose-700">الرصيد المستحق: {Math.max(customerCharges - customerPayments, 0).toLocaleString("ar-SA")} ر.س</div></div>}
-          {linked.length > 0 && <div className="mt-5 rounded-2xl border border-cyan-100 bg-cyan-50/50 p-4"><h4 className="mb-3 text-sm font-black text-cyan-950">السجل المرتبط</h4><div className="space-y-2">{linked.map(item => <div key={item.id} className="flex items-center justify-between rounded-xl bg-white px-3 py-2 text-xs"><span className="font-bold text-slate-700">{KIND_LABELS[item.kind as RecordKind] ?? "سجل"} · {String(item.payload.name ?? item.payload.contractNumber ?? item.payload.assetCode ?? item.reference)}</span><RecordStatus status={item.status} /></div>)}</div></div>}
           {record.kind === "contract" && <div className="mt-5 rounded-2xl border border-amber-100 bg-amber-50/60 p-4"><h4 className="mb-3 text-sm font-black text-amber-950">دورة العقد</h4><div className="flex flex-wrap gap-2"><Button size="sm" onClick={() => onContractAction(record, "deliver")} className="bg-cyan-800 hover:bg-cyan-900">تسجيل التسليم</Button><Button size="sm" variant="outline" onClick={() => onContractAction(record, "return")} className="border-cyan-200 text-cyan-900">تسجيل الاسترجاع</Button><Button size="sm" variant="outline" onClick={() => onContractAction(record, "settle")} className="border-emerald-200 text-emerald-800">تصفية العقد</Button><Button size="sm" variant="outline" onClick={() => onContractAction(record, "debt")} className="border-rose-200 text-rose-700">تحويل لمديونية</Button><Button size="sm" variant="outline" onClick={() => onContractAction(record, "close")} className="border-slate-200 text-slate-700">إغلاق العقد</Button></div></div>}
       </DialogContent>
     </Dialog>
@@ -659,7 +681,7 @@ export default function ContainerSystem() {
       </div>
       <div className="grid gap-5 lg:grid-cols-[15rem_minmax(0,1fr)]">
         <aside className="order-2 lg:order-1">
-          <Card className="sticky top-20 border-slate-200/80 bg-white/80 shadow-sm"><CardContent className="p-2.5">{NAV_GROUPS.map(group => <div key={group.label} className="mb-3 last:mb-0"><p className="px-3 py-2 text-[10px] font-black tracking-widest text-slate-400">{group.label}</p><div className="space-y-0.5">{group.items.map(item => { const Icon = item.icon; const active = Boolean(item.key && view === item.key); const className = `flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-right text-xs font-bold transition-all ${active ? "bg-cyan-50 text-cyan-900 shadow-sm" : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"}`; const testId = item.key ?? item.href?.replace("/admin/", "admin-") ?? item.label; return item.href ? <Link key={testId} href={item.href} className={className} data-testid={`nav-container-${testId}`}><Icon size={16} className="text-slate-400" /><span>{item.label}</span></Link> : <button key={testId} type="button" onClick={() => { if (item.key) setView(item.key); setSearch("") }} className={className} data-testid={`nav-container-${testId}`}><Icon size={16} className={active ? "text-cyan-700" : "text-slate-400"} /><span>{item.label}</span>{active && <span className="mr-auto h-1.5 w-1.5 rounded-full bg-amber-400" />}</button> })}</div></div>)}</CardContent></Card>
+          <ContainerSidebar view={view} onSelect={nextView => { setView(nextView); setSearch(""); if (nextView !== "reports") setReportId(null) }} />
         </aside>
         <main className="order-1 min-w-0 space-y-5 lg:order-2">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-bold text-cyan-700">نظام الحاويات الكامل / {viewLabel(view)}</p><h2 className="mt-1 text-xl font-black text-slate-900">{viewLabel(view)}</h2></div>{(isCollection || view === "container_search") && <div className="relative w-full sm:w-80"><Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" /><Input value={search} onChange={event => setSearch(event.target.value)} placeholder="رقم الحاوية أو اسم العميل أو الجوال" className="h-10 border-slate-200 bg-white pr-9" data-testid="input-search-container-records" />{search && <button type="button" onClick={() => setSearch("")} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700" data-testid="button-clear-container-search"><X size={15} /></button>}</div>}</div>
@@ -676,7 +698,7 @@ export default function ContainerSystem() {
         </main>
       </div>
       <RecordDetails record={detailRecord} allRecords={snapshot?.records ?? records} open={Boolean(detailRecord)} onOpenChange={open => { if (!open) setDetailRecord(null) }} onContractAction={contractAction} />
-      <RecordDialog open={dialog.open} kind={dialog.kind} record={dialog.record} busy={busy} onOpenChange={open => setDialog(current => ({ ...current, open }))} onSubmit={submitRecord} />
+      <RecordDialog open={dialog.open} kind={dialog.kind} record={dialog.record} records={snapshot?.records ?? records} busy={busy} onOpenChange={open => setDialog(current => ({ ...current, open }))} onSubmit={submitRecord} />
       {archiveMutation.isPending && <div className="fixed bottom-5 left-5 z-50 flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-xs font-bold text-white shadow-xl" data-testid="status-archive-loading"><Loader2 size={14} className="animate-spin" /> جارٍ أرشفة السجل...</div>}
     </div>
   )
