@@ -63,7 +63,7 @@ export function HeroSlider() {
               className="w-full h-full object-cover"
               onError={(e) => { e.currentTarget.style.display = "none" }}
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-primary via-primary/70 to-black/40" />
+             <div className="absolute inset-0 bg-gradient-to-t from-primary/25 via-primary/15 to-black/10" />
           </div>
 
           <div className="absolute inset-0 flex items-center justify-center z-20">
