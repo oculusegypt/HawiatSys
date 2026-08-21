@@ -64,8 +64,29 @@ src/
 
 ## النشر على Hostinger
 
+### قيد التشغيل المؤكد
+
+بيئة Hostinger المستهدفة **لا تدعم تشغيل Node.js أو npm أو PM2 في الإنتاج**. لذلك:
+
+- Node.js وVite وDrizzle تُستخدم محلياً فقط لبناء وتجهيز الأرشيف.
+- الخادم المرفوع إلى Hostinger يعمل حصراً عبر **PHP 8.x + PDO SQLite**.
+- جميع مسارات API، تسجيل الدخول، المدونة، نظام الحاويات، إدارة الطلبات، وقراءة/تعديل قاعدة البيانات يجب أن تكون موجودة في `api/index.php` وملفات PHP المساندة.
+- لا يجوز أن يعتمد الموقع المرفوع على Express أو خادم Node أو اتصال بخدمة Replit.
+- الأرشيف الكامل يجب أن يحتوي على `index.html` و`api/` و`data/` و`uploads/` في جذر الأرشيف، ليتم استخراجها مباشرة داخل `public_html`.
+
 يتم بناء أرشيف رفع جاهز يحتوي على PHP + SQLite مدمجة من خلال الأمر:
 ```bash
 node scripts/build-hostinger.mjs
 ```
-ينتج الملف **`cleanflow-services-hostinger.zip`** الجاهز للرفع المباشر على `public_html/`.
+ينتج الملف **`cleanflow-services-hostinger.zip`**. هذا الأمر يعمل في بيئة البناء فقط؛ لا يتم تشغيله على Hostinger.
+
+بعد استخراج الأرشيف في `public_html/` يجب أن تكون البنية الأساسية:
+```text
+public_html/
+├── index.html
+├── api/index.php
+├── api/container-system.php
+├── data/sabaik.db
+├── uploads/
+└── cleanflow-platform/
+```
