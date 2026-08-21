@@ -185,6 +185,10 @@ export const FIELD_CONFIG: Record<RecordKind, FieldConfig[]> = {
     { key: "driverName", label: "السائق", placeholder: "اسم السائق" },
     { key: "movementDate", label: "تاريخ الحركة", type: "date" },
     { key: "location", label: "الموقع", placeholder: "العنوان أو الموقع" },
+    { key: "locationLat", label: "خط العرض", placeholder: "24.7136" },
+    { key: "locationLng", label: "خط الطول", placeholder: "46.6753" },
+    { key: "proofPhotoUrl", label: "رابط صورة الإثبات", placeholder: "يُضاف بعد رفع صورة التسليم أو الاسترجاع" },
+    { key: "receiverName", label: "اسم المستلم", placeholder: "اسم ممثل العميل" },
     { key: "notes", label: "ملاحظات", type: "textarea", wide: true },
   ],
   ledger_entry: [
@@ -649,7 +653,7 @@ export function RecordDialog({
             </div>
           </div>
           {kind === "contract" && <ContractTemplatePicker value={payload.contractTemplate ?? ""} onChange={value => { setValue("contractTemplate", value); if (value) setValue("notes", CONTRACT_TEMPLATES.find(template => template.id === value)?.terms ?? "") }} />}
-          {kind === "contract" && <SignaturePad value={payload.signatureData ?? ""} onChange={value => setValue("signatureData", value)} />}
+          {["contract", "container_movement"].includes(kind) && <SignaturePad value={payload.signatureData ?? ""} onChange={value => setValue("signatureData", value)} />}
           <DialogFooter className="gap-2 border-t border-slate-100 pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="gap-2" data-testid="button-cancel-record"><X size={15} /> إلغاء</Button>
             <Button type="submit" disabled={busy} className="gap-2 bg-cyan-800 hover:bg-cyan-900" data-testid="button-save-record"><Save size={15} /> {busy ? "جارٍ الحفظ..." : "حفظ السجل"}</Button>

@@ -132,6 +132,17 @@ function movementTransitionAllowed(currentStatus: string, movementType: string) 
   return false;
 }
 
+function validateMovementEvidence(payload: Record<string, unknown>) {
+  for (const key of ["locationLat", "locationLng"]) {
+    const value = String(payload[key] ?? "").trim();
+    if (!value) continue;
+    const number = Number(value);
+    if (!Number.isFinite(number)) throw new Error(`${key === "locationLat" ? "خط العرض" : "خط الطول"} غير صحيح`);
+    if (key === "locationLat" && (number < -90 || number > 90)) throw new Error("خط العرض يجب أن يكون بين -90 و90");
+    if (key === "locationLng" && (number < -180 || number > 180)) throw new Error("خط الطول يجب أن يكون بين -180 و180");
+  }
+}
+
 async function findAssetByCode(containerCode: string) {
   const normalizedCode = containerCode.trim();
   if (!normalizedCode) return null;
@@ -460,6 +471,11 @@ router.post("/admin/container-system/records", async (req, res) => {
     if (!movementStatus(movementType)) return res.status(422).json({ error: "نوع حركة الحاوية غير مدعوم" });
     const asset = await findAssetByCode(containerCode);
     if (!asset) return res.status(422).json({ error: "الحاوية المرتبطة بالحركة غير موجودة" });
+    try {
+      validateMovementEvidence(payload);
+    } catch (error) {
+      return res.status(422).json({ error: error instanceof Error ? error.message : "بيانات موقع الحركة غير صحيحة" });
+    }
   }
   if (kind === "container" || kind === "container_asset") {
     const assetCode = assetCodeOf(payload);
@@ -526,6 +542,9 @@ router.patch("/admin/container-system/records/:id", async (req, res) => {
   const current = await db.select().from(containerSystemRecordsTable).where(eq(containerSystemRecordsTable.id, id)).get();
   if (!current) return res.status(404).json({ error: "السجل غير موجود" });
   if (!canManage(adminReq, current.kind)) return res.status(403).json({ error: "ليس لديك صلاحية لهذه العملية" });
+  if (current.kind === "container_movement") {
+    return res.status(409).json({ error: "حركة التشغيل لا تُعدّل بعد تسجيلها؛ سجّل حركة تصحيحية جديدة للحفاظ على التسلسل والتدقيق" });
+  }
   const body = req.body as { status?: string; payload?: Record<string, unknown> };
   const nextPayload = body.payload ? { ...parsePayload(current.payload), ...body.payload } : parsePayload(current.payload);
   if (current.kind === "contract") {
@@ -598,6 +617,9 @@ router.delete("/admin/container-system/records/:id", async (req, res) => {
   if (!current) return res.status(404).json({ error: "السجل غير موجود" });
   if (adminReq.adminRole !== "admin" && adminReq.adminRole !== "manager") {
     return res.status(403).json({ error: "حذف السجلات يتطلب صلاحية المدير" });
+  }
+  if (current.kind === "container_movement") {
+    return res.status(409).json({ error: "لا يمكن أرشفة حركة تشغيلية بعد تسجيلها؛ استخدم حركة تصحيحية موثقة" });
   }
   await db.update(containerSystemRecordsTable).set({ status: "archived", updatedAt: new Date().toISOString() })
     .where(eq(containerSystemRecordsTable.id, id));
