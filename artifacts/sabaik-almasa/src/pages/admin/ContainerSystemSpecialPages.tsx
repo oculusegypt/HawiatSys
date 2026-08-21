@@ -190,6 +190,14 @@ function dateKey(value: unknown) {
   return Number.isFinite(date.getTime()) ? date.toISOString().slice(0, 10) : ""
 }
 
+function sameDispatchDay(left?: string | null, right?: string | null) {
+  if (!left || !right) return false
+  const leftDate = new Date(left)
+  const rightDate = new Date(right)
+  return Number.isFinite(leftDate.getTime()) && Number.isFinite(rightDate.getTime()) &&
+    dateKey(leftDate) === dateKey(rightDate)
+}
+
 function displayDate(value: string) {
   return new Date(`${value}T12:00:00`).toLocaleDateString("ar-SA", { weekday: "long", day: "numeric", month: "long" })
 }
@@ -220,14 +228,21 @@ function DispatchAssignment({ order, drivers, vehicles, allOrders, onSaved }: Di
   const busy = assignMutation.isPending
   const save = () => {
     const selectedVehicle = vehicleId ? Number(vehicleId) : null
-    const conflict = selectedVehicle !== null && allOrders.some(item =>
+    const vehicleConflict = selectedVehicle !== null && allOrders.some(item =>
       item.id !== order.id &&
-      item.scheduledAt === order.scheduledAt &&
+      sameDispatchDay(item.scheduledAt, order.scheduledAt) &&
       item.assignedVehicleId === selectedVehicle &&
       !["completed", "rejected"].includes(String(item.driverStatus ?? "")),
     )
-    if (conflict) {
-      toast({ title: "الشاحنة مسندة إلى أمر آخر في نفس الموعد", variant: "destructive" })
+    const selectedDriver = driverId ? Number(driverId) : null
+    const driverConflict = selectedDriver !== null && allOrders.some(item =>
+      item.id !== order.id &&
+      sameDispatchDay(item.scheduledAt, order.scheduledAt) &&
+      item.assignedDriverId === selectedDriver &&
+      !["completed", "rejected"].includes(String(item.driverStatus ?? "")),
+    )
+    if (vehicleConflict || driverConflict) {
+      toast({ title: vehicleConflict ? "الشاحنة مسندة إلى أمر آخر في نفس اليوم" : "السائق مسند إلى أمر آخر في نفس اليوم", variant: "destructive" })
       return
     }
     assignMutation.mutate({ id: order.id, data: { driverId: driverId ? Number(driverId) : null, vehicleId: selectedVehicle } }, {

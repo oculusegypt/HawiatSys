@@ -33,6 +33,14 @@ function isReturnWork(request: typeof serviceRequestsTable.$inferSelect) {
   return /استرجاع|سحب|رفع|return|withdraw/i.test(`${request.serviceType} ${request.notes ?? ""}`);
 }
 
+function sameDispatchDay(left?: string | null, right?: string | null) {
+  if (!left || !right) return false;
+  const leftTime = Date.parse(left);
+  const rightTime = Date.parse(right);
+  return Number.isFinite(leftTime) && Number.isFinite(rightTime) &&
+    new Date(leftTime).toISOString().slice(0, 10) === new Date(rightTime).toISOString().slice(0, 10);
+}
+
 async function prepareContainerCompletion(request: typeof serviceRequestsTable.$inferSelect) {
   if (!isContainerWork(request)) return null;
   const contract = await db.select().from(containerSystemRecordsTable)
@@ -500,10 +508,23 @@ router.patch("/service-requests/:id/assignment", requireAdmin, requireRequestAss
   if (["completed", "rejected"].includes(request.driverStatus)) {
     return res.status(409).json({ error: "لا يمكن إعادة إسناد أمر عمل مغلق" });
   }
-  if (vehicleId !== null && request.scheduledAt) {
-    const sameDayOrders = await db.select().from(serviceRequestsTable).where(eq(serviceRequestsTable.scheduledAt, request.scheduledAt));
-    const conflict = sameDayOrders.find(item => item.id !== id && item.assignedVehicleId === vehicleId && !["completed", "rejected"].includes(item.driverStatus));
-    if (conflict) return res.status(409).json({ error: "الشاحنة مسندة إلى أمر عمل آخر في نفس الموعد" });
+  if ((driverId !== null || vehicleId !== null) && request.scheduledAt) {
+    const sameDayOrders = await db.select().from(serviceRequestsTable);
+    const conflict = sameDayOrders.find(item =>
+      item.id !== id &&
+      sameDispatchDay(item.scheduledAt, request.scheduledAt) &&
+      !["completed", "rejected"].includes(item.driverStatus) &&
+      ((driverId !== null && item.assignedDriverId === driverId) ||
+        (vehicleId !== null && item.assignedVehicleId === vehicleId)),
+    );
+    if (conflict) {
+      const sameDriver = driverId !== null && conflict.assignedDriverId === driverId;
+      return res.status(409).json({
+        error: sameDriver
+          ? "السائق مسند إلى أمر عمل آخر في نفس اليوم"
+          : "الشاحنة مسندة إلى أمر عمل آخر في نفس اليوم",
+      });
+    }
   }
 
   const now = new Date().toISOString();
