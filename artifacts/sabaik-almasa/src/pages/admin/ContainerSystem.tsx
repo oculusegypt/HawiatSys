@@ -4,7 +4,7 @@ import { Link, useLocation } from "wouter"
 import {
   AlertCircle, Archive, ArrowDownLeft, ArrowLeftRight, ArrowUpRight, BellRing, BookOpenCheck, Box, CalendarDays, CarFront, CheckCircle2,
   ChevronDown, ChevronLeft, ClipboardList, Coins, FileCheck2, FileDown, FilePenLine, FileText, FolderSearch, Gauge, HandCoins, Landmark, LayoutDashboard, ReceiptText, Truck,
-  Loader2, Plus, RefreshCw, Search, Settings2, ShieldCheck, SlidersHorizontal, UserCog, UserRound, Users, Wrench, X,
+  Link2, Loader2, MapPin, Plus, RefreshCw, Search, Settings2, ShieldCheck, SlidersHorizontal, UserCog, UserRound, Users, Wrench, X,
 } from "lucide-react"
 import {
   getGetContainerSystemAuditQueryKey,
@@ -52,6 +52,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     label: "العملاء والتعاقدات",
     items: [
       { key: "customer" as ViewKey, label: "العملاء", icon: Users },
+      { key: "customer_site" as ViewKey, label: "مواقع العملاء", icon: MapPin },
       { key: "contract" as ViewKey, label: "إنشاء عقد", icon: FileCheck2 },
       { key: "contracts_list" as ViewKey, label: "العقود", icon: FileText },
       { key: "rental" as ViewKey, label: "بنود الإيجار", icon: ReceiptText },
@@ -61,6 +62,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     label: "الأصول والأسطول",
     items: [
       { key: "container" as ViewKey, label: "أصول الحاويات", icon: Box },
+      { key: "container_assignment" as ViewKey, label: "تخصيص الحاويات", icon: Link2 },
       { key: "container_type" as ViewKey, label: "أنواع الحاويات", icon: SlidersHorizontal },
       { key: "operations" as ViewKey, label: "الحركات التشغيلية", icon: ArrowLeftRight },
       { key: "vehicle" as ViewKey, label: "الشاحنات", icon: CarFront },

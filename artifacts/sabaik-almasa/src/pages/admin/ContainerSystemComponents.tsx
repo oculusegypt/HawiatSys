@@ -10,8 +10,10 @@ import { PenLine, RotateCcw, Save, X } from "lucide-react"
 
 export type RecordKind =
   | "customer"
+  | "customer_site"
   | "container_type"
   | "container"
+  | "container_assignment"
   | "contract"
   | "contract_line"
   | "container_movement"
@@ -53,8 +55,10 @@ export type RecordKind =
 
 export const KIND_LABELS: Record<RecordKind, string> = {
   customer: "العملاء",
+  customer_site: "مواقع العملاء",
   container_type: "أنواع الحاويات",
   container: "الحاويات",
+  container_assignment: "تخصيص الحاويات",
   contract: "العقود",
   contract_line: "بنود الإيجار",
   container_movement: "الحركات التشغيلية",
@@ -97,8 +101,10 @@ export const KIND_LABELS: Record<RecordKind, string> = {
 
 export const KIND_ICONS: Record<RecordKind, string> = {
   customer: "عميل",
+  customer_site: "موقع",
   container_type: "نوع",
   container: "أصل",
+  container_assignment: "تخصيص",
   contract: "عقد",
   contract_line: "بند",
   container_movement: "حركة",
@@ -155,6 +161,15 @@ export const FIELD_CONFIG: Record<RecordKind, FieldConfig[]> = {
     { key: "taxNumber", label: "الرقم الضريبي", placeholder: "اختياري" },
     { key: "notes", label: "ملاحظات", type: "textarea", wide: true },
   ],
+  customer_site: [
+    { key: "customerRecordId", label: "معرّف العميل الرسمي", placeholder: "اختر من ملف العميل" },
+    { key: "name", label: "اسم الموقع", placeholder: "موقع المشروع أو الفرع" },
+    { key: "address", label: "العنوان", placeholder: "الحي والشارع ورقم المبنى", wide: true },
+    { key: "city", label: "المدينة", placeholder: "الرياض" },
+    { key: "contactName", label: "اسم مسؤول الموقع", placeholder: "اختياري" },
+    { key: "contactPhone", label: "جوال مسؤول الموقع", placeholder: "05xxxxxxxx" },
+    { key: "notes", label: "ملاحظات الوصول", type: "textarea", wide: true },
+  ],
   container_type: [
     { key: "name", label: "اسم النوع", placeholder: "حاوية أنقاض 20 ياردة" },
     { key: "size", label: "المقاس", placeholder: "6 × 2.4 × 1.8 م" },
@@ -169,9 +184,19 @@ export const FIELD_CONFIG: Record<RecordKind, FieldConfig[]> = {
     { key: "location", label: "الموقع الحالي", placeholder: "مستودع الشفا" },
     { key: "lastInspection", label: "آخر فحص", type: "date" },
   ],
+  container_assignment: [
+    { key: "contractRecordId", label: "معرّف العقد", placeholder: "العقد الرسمي" },
+    { key: "containerRecordId", label: "معرّف أصل الحاوية", placeholder: "الحاوية الفعلية" },
+    { key: "siteRecordId", label: "معرّف موقع العميل", placeholder: "الموقع المرتبط بالعقد" },
+    { key: "assignmentStatus", label: "حالة التخصيص", placeholder: "محجوز / نشط / منتهي" },
+    { key: "startDate", label: "بداية التخصيص", type: "date" },
+    { key: "endDate", label: "نهاية التخصيص", type: "date" },
+    { key: "notes", label: "ملاحظات التخصيص", type: "textarea", wide: true },
+  ],
   contract: [
     { key: "requestId", label: "رقم الطلب المرتبط", placeholder: "معرّف طلب الخدمة" },
     { key: "customerRecordId", label: "معرّف سجل العميل", placeholder: "اختياري" },
+    { key: "siteRecordId", label: "معرّف موقع العميل", placeholder: "مطلوب للعقد التشغيلي" },
     { key: "containerRecordId", label: "معرّف أصل الحاوية", placeholder: "اختياري" },
     { key: "contractNumber", label: "رقم العقد", placeholder: "CNT-2025-014" },
     { key: "customerName", label: "اسم العميل", placeholder: "اسم العميل" },
