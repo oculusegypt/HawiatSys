@@ -1699,3 +1699,105 @@ export const GetContainerSystemAuditResponseItem = zod.object({
 export const GetContainerSystemAuditResponse = zod.array(GetContainerSystemAuditResponseItem)
 
 
+export const GetContainerContractLedgersQueryParams = zod.object({
+  "contractId": zod.coerce.number().optional(),
+  "search": zod.coerce.string().optional()
+})
+
+export const GetContainerContractLedgersResponse = zod.object({
+  "ledgers": zod.array(zod.object({
+  "contract": zod.object({
+  "id": zod.number(),
+  "kind": zod.string(),
+  "status": zod.string(),
+  "reference": zod.string(),
+  "payload": zod.record(zod.string(), zod.unknown()),
+  "createdBy": zod.number().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}),
+  "total": zod.number(),
+  "collected": zod.number(),
+  "deposited": zod.number(),
+  "remaining": zod.number(),
+  "deposits": zod.array(zod.object({
+  "id": zod.number(),
+  "kind": zod.string(),
+  "status": zod.string(),
+  "reference": zod.string(),
+  "payload": zod.record(zod.string(), zod.unknown()),
+  "createdBy": zod.number().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})),
+  "payments": zod.array(zod.object({
+  "id": zod.number(),
+  "kind": zod.string(),
+  "status": zod.string(),
+  "reference": zod.string(),
+  "payload": zod.record(zod.string(), zod.unknown()),
+  "createdBy": zod.number().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}))
+})),
+  "totals": zod.object({
+  "contractValue": zod.number(),
+  "collected": zod.number(),
+  "deposited": zod.number(),
+  "remaining": zod.number()
+})
+})
+
+
+export const settleContainerContractHeaderIdempotencyKeyMin = 8;
+export const settleContainerContractHeaderIdempotencyKeyMax = 160;
+
+
+
+export const SettleContainerContractHeader = zod.object({
+  "Idempotency-Key": zod.string().min(settleContainerContractHeaderIdempotencyKeyMin).max(settleContainerContractHeaderIdempotencyKeyMax)
+})
+
+export const settleContainerContractBodyAmountExclusiveMin = 0;
+
+export const settleContainerContractBodyOperationKeyMin = 8;
+export const settleContainerContractBodyOperationKeyMax = 160;
+
+
+
+export const SettleContainerContractBody = zod.object({
+  "contractId": zod.number(),
+  "amount": zod.number().gt(settleContainerContractBodyAmountExclusiveMin),
+  "paymentMethod": zod.string(),
+  "operationKey": zod.string().min(settleContainerContractBodyOperationKeyMin).max(settleContainerContractBodyOperationKeyMax),
+  "depositId": zod.number().nullish(),
+  "date": zod.string().optional(),
+  "notes": zod.string().optional()
+})
+
+export const SettleContainerContractResponse = zod.object({
+  "payment": zod.object({
+  "id": zod.number(),
+  "kind": zod.string(),
+  "status": zod.string(),
+  "reference": zod.string(),
+  "payload": zod.record(zod.string(), zod.unknown()),
+  "createdBy": zod.number().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}),
+  "ledgerEntry": zod.object({
+  "id": zod.number(),
+  "kind": zod.string(),
+  "status": zod.string(),
+  "reference": zod.string(),
+  "payload": zod.record(zod.string(), zod.unknown()),
+  "createdBy": zod.number().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}),
+  "idempotent": zod.boolean()
+})
+
+

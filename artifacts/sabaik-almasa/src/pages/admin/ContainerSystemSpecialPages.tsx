@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
-import { ArrowLeft, ArrowRight, CalendarClock, ChevronLeft, ChevronRight, ClipboardList, FileDown, FileText, MapPin, Printer, Save, Search, Settings2, Truck, UserRound } from "lucide-react"
-import { getGetAdminWorkOrdersQueryKey, useAssignServiceRequest, useGetAdminWorkOrders, type ContainerSystemRecord, type ServiceRequest } from "@workspace/api-client-react"
+import { useQueryClient } from "@tanstack/react-query"
+import { ArrowLeft, ArrowRight, CalendarClock, ChevronLeft, ChevronRight, ClipboardList, Coins, FileDown, FileText, MapPin, Printer, Save, Search, Settings2, Truck, UserRound } from "lucide-react"
+import { getGetAdminWorkOrdersQueryKey, getGetContainerContractLedgersQueryKey, useAssignServiceRequest, useGetAdminWorkOrders, useGetContainerContractLedgers, useSettleContainerContract, type ContainerSystemRecord, type ServiceRequest } from "@workspace/api-client-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -84,6 +85,79 @@ export function ReportPage({ reportId, records, onBack }: { reportId: ReportId; 
     <Card><CardContent className="flex flex-wrap items-end gap-3 p-4"><div className="min-w-52 flex-1"><label className="mb-1 block text-xs font-bold text-slate-500">بحث داخل التقرير</label><div className="relative"><Search size={15} className="absolute right-3 top-2.5 text-slate-400" /><Input value={query} onChange={event => setQuery(event.target.value)} className="pr-9" placeholder="اسم العميل أو الرقم أو الحاوية" /></div></div><div><label className="mb-1 block text-xs font-bold text-slate-500">من</label><Input type="date" value={from} onChange={event => setFrom(event.target.value)} /></div><div><label className="mb-1 block text-xs font-bold text-slate-500">إلى</label><Input type="date" value={to} onChange={event => setTo(event.target.value)} /></div>{report.filters.map(filter => <Badge key={filter} variant="outline" className="mb-1 border-cyan-200 bg-cyan-50 text-cyan-800">{filter}</Badge>)}</CardContent></Card>
     <div className="grid gap-3 sm:grid-cols-3"><Card><CardContent className="p-4"><p className="text-xs text-slate-500">عدد السجلات</p><b className="mt-1 block text-2xl">{filtered.length}</b></CardContent></Card><Card><CardContent className="p-4"><p className="text-xs text-slate-500">الإجمالي</p><b className="mt-1 block text-2xl text-cyan-800">{total.toLocaleString("ar-SA")} ر.س</b></CardContent></Card><Card><CardContent className="p-4"><p className="text-xs text-slate-500">أنواع السجلات المرتبطة</p><b className="mt-1 block text-sm">{report.kinds.map(kind => KIND_LABELS[kind as RecordKind] ?? kind).join("، ")}</b></CardContent></Card></div>
     <Card className="overflow-hidden"><CardHeader className="border-b bg-slate-50/60"><CardTitle className="text-base">بيانات {report.title}</CardTitle></CardHeader><CardContent className="overflow-x-auto p-0"><table className="min-w-[900px] w-full text-right text-xs"><thead><tr className="border-b bg-slate-50 text-slate-500">{report.columns.map(column => <th key={column} className="whitespace-nowrap px-4 py-3 font-black">{column}</th>)}</tr></thead><tbody>{filtered.length === 0 ? <tr><td colSpan={report.columns.length} className="p-12 text-center text-slate-500">لا توجد بيانات مطابقة للفلاتر الحالية.</td></tr> : filtered.map(record => <tr key={record.id} className="border-b last:border-0 hover:bg-cyan-50/30">{report.columns.map(column => <td key={column} className="whitespace-nowrap px-4 py-3 text-slate-700">{valueFor(record, column)}</td>)}</tr>)}</tbody></table></CardContent></Card>
+  </div>
+}
+
+export function ContractSettlementWorkspace({ records }: { records: ContainerSystemRecord[] }) {
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
+  const ledgerQuery = useGetContainerContractLedgers(undefined, { query: { queryKey: getGetContainerContractLedgersQueryKey(), staleTime: 15_000 } })
+  const settlementMutation = useSettleContainerContract()
+  const [selectedId, setSelectedId] = useState<number | null>(null)
+  const [amount, setAmount] = useState("")
+  const [paymentMethod, setPaymentMethod] = useState("نقدي")
+  const [depositId, setDepositId] = useState("")
+  const [notes, setNotes] = useState("")
+  const ledgers = ledgerQuery.data?.ledgers ?? []
+  const selected = ledgers.find(row => row.contract.id === selectedId) ?? ledgers[0]
+  const deposits = records.filter(record => (record.kind === "deposit" || record.kind === "bank_deposit") && record.status !== "archived")
+  useEffect(() => {
+    if (!selectedId && selected) {
+      setSelectedId(selected.contract.id)
+      setAmount(String(Math.max(selected.remaining, 0)))
+    }
+  }, [selected, selectedId])
+  useEffect(() => {
+    if (selected) setAmount(String(Math.max(selected.remaining, 0)))
+  }, [selected?.contract.id])
+  const submit = () => {
+    if (!selected) return
+    const value = Number(amount)
+    if (!Number.isFinite(value) || value <= 0 || value > selected.remaining + 0.01) {
+      toast({ title: "أدخل مبلغاً صحيحاً لا يتجاوز المتبقي", variant: "destructive" })
+      return
+    }
+    settlementMutation.mutate({ data: {
+      contractId: selected.contract.id, amount: value, paymentMethod,
+      operationKey: crypto.randomUUID(), depositId: depositId ? Number(depositId) : null, notes,
+    } }, {
+      onSuccess: result => {
+        void queryClient.invalidateQueries({ queryKey: getGetContainerContractLedgersQueryKey() })
+        toast({ title: result.idempotent ? "تم تأكيد التحصيل السابق دون تكراره" : "تم تسجيل التحصيل وربطه بكشف العقد" })
+        setNotes("")
+        void ledgerQuery.refetch()
+      },
+      onError: error => toast({ title: error instanceof Error ? error.message : "تعذر تسجيل التحصيل", variant: "destructive" }),
+    })
+  }
+  return <div className="space-y-5" data-testid="contract-settlement-workspace">
+    <Card className="border-cyan-200 bg-gradient-to-br from-cyan-50 to-white">
+      <CardHeader><CardTitle className="flex items-center gap-2 text-base text-cyan-950"><Coins size={18} /> كشف العقود والتحصيل والتسوية</CardTitle><p className="text-xs leading-6 text-slate-600">كل دفعة تُسجل مرة واحدة، وتظهر فوراً في كشف العقد والقيود والإيداع المرتبط.</p></CardHeader>
+      <CardContent className="grid gap-3 sm:grid-cols-4">
+        {[
+          ["قيمة العقود", ledgerQuery.data?.totals.contractValue ?? 0],
+          ["المحصل", ledgerQuery.data?.totals.collected ?? 0],
+          ["المودع", ledgerQuery.data?.totals.deposited ?? 0],
+          ["المتبقي", ledgerQuery.data?.totals.remaining ?? 0],
+        ].map(([label, value]) => <div key={String(label)} className="rounded-xl border border-white bg-white/80 p-3"><p className="text-[11px] font-bold text-slate-500">{label}</p><b className="mt-1 block text-lg text-slate-900">{Number(value).toLocaleString("ar-SA")} ر.س</b></div>)}
+      </CardContent>
+    </Card>
+    <div className="grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(18rem,.75fr)]">
+      <Card className="overflow-hidden"><CardHeader className="border-b bg-slate-50/70"><CardTitle className="text-base">كشوف العقود</CardTitle></CardHeader><CardContent className="overflow-x-auto p-0">
+        <table className="min-w-[680px] w-full text-right text-xs"><thead><tr className="border-b bg-slate-50 text-slate-500"><th className="px-4 py-3">العقد والعميل</th><th className="px-4 py-3">الإجمالي</th><th className="px-4 py-3">المحصل</th><th className="px-4 py-3">المودع</th><th className="px-4 py-3">المتبقي</th></tr></thead><tbody>
+          {ledgerQuery.isLoading ? <tr><td colSpan={5} className="p-10 text-center text-slate-500">جارٍ تحميل الكشوف...</td></tr> : ledgers.length === 0 ? <tr><td colSpan={5} className="p-10 text-center text-slate-500">لا توجد عقود قابلة للتسوية.</td></tr> : ledgers.map(row => <tr key={row.contract.id} onClick={() => setSelectedId(row.contract.id)} className={`cursor-pointer border-b last:border-0 hover:bg-cyan-50/50 ${selected?.contract.id === row.contract.id ? "bg-cyan-50" : ""}`} data-testid={`row-contract-ledger-${row.contract.id}`}><td className="px-4 py-3"><b className="block text-slate-800">{String(row.contract.payload.customerName ?? "عميل غير محدد")}</b><span className="font-mono text-[11px] text-slate-400" dir="ltr">{row.contract.reference}</span></td><td className="px-4 py-3">{row.total.toLocaleString("ar-SA")}</td><td className="px-4 py-3 text-emerald-700">{row.collected.toLocaleString("ar-SA")}</td><td className="px-4 py-3 text-indigo-700">{row.deposited.toLocaleString("ar-SA")}</td><td className="px-4 py-3 font-black text-amber-700">{row.remaining.toLocaleString("ar-SA")}</td></tr>)}
+        </tbody></table>
+      </CardContent></Card>
+      <Card className="h-fit"><CardHeader className="border-b"><CardTitle className="text-base">تسجيل تحصيل</CardTitle><p className="text-xs text-slate-500">يُحدّث العقد وكشف المديونية والقيد في عملية واحدة.</p></CardHeader><CardContent className="space-y-3 p-4">
+        <label className="block text-xs font-bold text-slate-600">العقد<select value={selected?.contract.id ?? ""} onChange={event => setSelectedId(Number(event.target.value))} className="mt-1 h-10 w-full rounded-md border bg-white px-3 text-sm">{ledgers.map(row => <option key={row.contract.id} value={row.contract.id}>{String(row.contract.payload.customerName ?? "عميل")} · {row.contract.reference}</option>)}</select></label>
+        <div className="rounded-xl bg-slate-50 p-3 text-xs"><span className="text-slate-500">المتبقي:</span> <b className="text-amber-700">{(selected?.remaining ?? 0).toLocaleString("ar-SA")} ر.س</b></div>
+        <label className="block text-xs font-bold text-slate-600">مبلغ التحصيل<Input type="number" min="0.01" step="0.01" value={amount} onChange={event => setAmount(event.target.value)} className="mt-1" /></label>
+        <label className="block text-xs font-bold text-slate-600">طريقة الدفع<select value={paymentMethod} onChange={event => setPaymentMethod(event.target.value)} className="mt-1 h-10 w-full rounded-md border bg-white px-3 text-sm"><option>نقدي</option><option>تحويل بنكي</option><option>شبكة</option><option>شيك</option></select></label>
+        <label className="block text-xs font-bold text-slate-600">الإيداع المرتبط (اختياري)<select value={depositId} onChange={event => setDepositId(event.target.value)} className="mt-1 h-10 w-full rounded-md border bg-white px-3 text-sm"><option value="">بدون ربط</option>{deposits.map(record => <option key={record.id} value={record.id}>{record.reference} · {String(record.payload.date ?? record.createdAt).slice(0, 10)}</option>)}</select></label>
+        <label className="block text-xs font-bold text-slate-600">ملاحظات<Input value={notes} onChange={event => setNotes(event.target.value)} className="mt-1" placeholder="مرجع التحويل أو ملاحظة التسوية" /></label>
+        <Button onClick={submit} disabled={!selected || selected.remaining <= 0 || settlementMutation.isPending} className="w-full gap-2 bg-cyan-800 hover:bg-cyan-900"><Save size={15} />{settlementMutation.isPending ? "جارٍ التسجيل..." : "تسجيل التحصيل والتسوية"}</Button>
+      </CardContent></Card>
+    </div>
   </div>
 }
 

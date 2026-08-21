@@ -58,6 +58,50 @@ export interface ContainerSystemSnapshot {
   recent: ContainerSystemRecord[];
 }
 
+export interface ContractLedgerRow {
+  contract: ContainerSystemRecord;
+  total: number;
+  collected: number;
+  deposited: number;
+  remaining: number;
+  deposits: ContainerSystemRecord[];
+  payments: ContainerSystemRecord[];
+}
+
+export type ContractLedgerResponseTotals = {
+  contractValue: number;
+  collected: number;
+  deposited: number;
+  remaining: number;
+};
+
+export interface ContractLedgerResponse {
+  ledgers: ContractLedgerRow[];
+  totals: ContractLedgerResponseTotals;
+}
+
+export interface ContractSettlementInput {
+  contractId: number;
+  /** @exclusiveMinimum 0 */
+  amount: number;
+  paymentMethod: string;
+  /**
+     * @minLength 8
+     * @maxLength 160
+     */
+  operationKey: string;
+  /** @nullable */
+  depositId?: number | null;
+  date?: string;
+  notes?: string;
+}
+
+export interface ContractSettlementResult {
+  payment: ContainerSystemRecord;
+  ledgerEntry: ContainerSystemRecord;
+  idempotent: boolean;
+}
+
 export interface HealthStatus {
   status: string;
 }
@@ -869,6 +913,11 @@ export type SetConversationTyping200 = {
 export type GetContainerSystemRecordsParams = {
 kind?: string;
 status?: string;
+search?: string;
+};
+
+export type GetContainerContractLedgersParams = {
+contractId?: number;
 search?: string;
 };
 

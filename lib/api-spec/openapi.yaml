@@ -1137,6 +1137,58 @@ paths:
                 items:
                   $ref: "#/components/schemas/ContainerSystemAudit"
 
+  /admin/container-system/financial/contract-ledgers:
+    get:
+      operationId: getContainerContractLedgers
+      tags: [admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: contractId
+          in: query
+          schema: { type: integer }
+        - name: search
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Contract statements with collections and deposits
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContractLedgerResponse"
+
+  /admin/container-system/financial/settle:
+    post:
+      operationId: settleContainerContract
+      tags: [admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: { type: string, minLength: 8, maxLength: 160 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContractSettlementInput"
+      responses:
+        "201":
+          description: Collection recorded and linked to the contract statement
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContractSettlementResult"
+        "200":
+          description: Existing collection returned for an idempotent retry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContractSettlementResult"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1213,6 +1265,64 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ContainerSystemRecord"
+
+    ContractLedgerRow:
+      type: object
+      required: [contract, total, collected, deposited, remaining, deposits, payments]
+      properties:
+        contract:
+          $ref: "#/components/schemas/ContainerSystemRecord"
+        total: { type: number }
+        collected: { type: number }
+        deposited: { type: number }
+        remaining: { type: number }
+        deposits:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContainerSystemRecord"
+        payments:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContainerSystemRecord"
+
+    ContractLedgerResponse:
+      type: object
+      required: [ledgers, totals]
+      properties:
+        ledgers:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContractLedgerRow"
+        totals:
+          type: object
+          required: [contractValue, collected, deposited, remaining]
+          properties:
+            contractValue: { type: number }
+            collected: { type: number }
+            deposited: { type: number }
+            remaining: { type: number }
+
+    ContractSettlementInput:
+      type: object
+      required: [contractId, amount, paymentMethod, operationKey]
+      properties:
+        contractId: { type: integer }
+        amount: { type: number, exclusiveMinimum: 0 }
+        paymentMethod: { type: string }
+        operationKey: { type: string, minLength: 8, maxLength: 160 }
+        depositId: { type: ["integer", "null"] }
+        date: { type: string }
+        notes: { type: string }
+
+    ContractSettlementResult:
+      type: object
+      required: [payment, ledgerEntry, idempotent]
+      properties:
+        payment:
+          $ref: "#/components/schemas/ContainerSystemRecord"
+        ledgerEntry:
+          $ref: "#/components/schemas/ContainerSystemRecord"
+        idempotent: { type: boolean }
 
     HealthStatus:
       type: object

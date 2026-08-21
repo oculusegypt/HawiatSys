@@ -33,12 +33,16 @@ import type {
   ContainerSystemRecordInput,
   ContainerSystemRecordUpdate,
   ContainerSystemSnapshot,
+  ContractLedgerResponse,
+  ContractSettlementInput,
+  ContractSettlementResult,
   Conversation,
   ConversationInput,
   ConversationTypingInput,
   ConversationUpdate,
   DashboardStats,
   DriverWorkOrderUpdate,
+  GetContainerContractLedgersParams,
   GetContainerSystemRecordsParams,
   GetDriverWorkOrdersParams,
   GetServiceRequestsParams,
@@ -4530,4 +4534,147 @@ export function useGetContainerSystemAudit<TData = Awaited<ReturnType<typeof get
 
 
 
+
+export const getGetContainerContractLedgersUrl = (params?: GetContainerContractLedgersParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/container-system/financial/contract-ledgers?${stringifiedParams}` : `/api/admin/container-system/financial/contract-ledgers`
+}
+
+export const getContainerContractLedgers = async (params?: GetContainerContractLedgersParams, options?: RequestInit): Promise<ContractLedgerResponse> => {
+
+  return customFetch<ContractLedgerResponse>(getGetContainerContractLedgersUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetContainerContractLedgersQueryKey = (params?: GetContainerContractLedgersParams,) => {
+    return [
+    `/api/admin/container-system/financial/contract-ledgers`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetContainerContractLedgersQueryOptions = <TData = Awaited<ReturnType<typeof getContainerContractLedgers>>, TError = ErrorType<unknown>>(params?: GetContainerContractLedgersParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getContainerContractLedgers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetContainerContractLedgersQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getContainerContractLedgers>>> = ({ signal }) => getContainerContractLedgers(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getContainerContractLedgers>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetContainerContractLedgersQueryResult = NonNullable<Awaited<ReturnType<typeof getContainerContractLedgers>>>
+export type GetContainerContractLedgersQueryError = ErrorType<unknown>
+
+
+
+export function useGetContainerContractLedgers<TData = Awaited<ReturnType<typeof getContainerContractLedgers>>, TError = ErrorType<unknown>>(
+ params?: GetContainerContractLedgersParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getContainerContractLedgers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetContainerContractLedgersQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSettleContainerContractUrl = () => {
+
+
+
+
+  return `/api/admin/container-system/financial/settle`
+}
+
+export const settleContainerContract = async (contractSettlementInput: ContractSettlementInput, options?: RequestInit): Promise<ContractSettlementResult> => {
+
+  return customFetch<ContractSettlementResult>(getSettleContainerContractUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(contractSettlementInput)
+  }
+);}
+
+
+
+
+
+export const getSettleContainerContractMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof settleContainerContract>>, TError,{data: BodyType<ContractSettlementInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof settleContainerContract>>, TError,{data: BodyType<ContractSettlementInput>}, TContext> => {
+
+const mutationKey = ['settleContainerContract'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof settleContainerContract>>, {data: BodyType<ContractSettlementInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  settleContainerContract(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SettleContainerContractMutationResult = NonNullable<Awaited<ReturnType<typeof settleContainerContract>>>
+    export type SettleContainerContractMutationBody = BodyType<ContractSettlementInput>
+    export type SettleContainerContractMutationError = ErrorType<unknown>
+
+    export const useSettleContainerContract = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof settleContainerContract>>, TError,{data: BodyType<ContractSettlementInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof settleContainerContract>>,
+        TError,
+        {data: BodyType<ContractSettlementInput>},
+        TContext
+      > => {
+      return useMutation(getSettleContainerContractMutationOptions(options));
+    }
 

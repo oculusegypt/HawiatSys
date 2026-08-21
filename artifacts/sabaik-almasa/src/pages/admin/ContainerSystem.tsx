@@ -27,7 +27,7 @@ import { useToast } from "@/hooks/use-toast"
 import {
   FIELD_CONFIG, KIND_ICONS, KIND_LABELS, RecordDialog, RecordKind, RecordStatus, amountOf, formatAuditAction, formatRecordDate, formatStatus,
 } from "./ContainerSystemComponents"
-import { DispatchCalendar, ReportsHub, ReportPage, SettingsPage, REPORTS, ReportId } from "./ContainerSystemSpecialPages"
+import { ContractSettlementWorkspace, DispatchCalendar, ReportsHub, ReportPage, SettingsPage, REPORTS, ReportId } from "./ContainerSystemSpecialPages"
 import { ContractWizard } from "./ContractWizard"
 
 const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
@@ -36,6 +36,7 @@ type ViewKey =
   | "overview" | RecordKind | "reports" | "audit" | "container_search"
   | "rental" | "vouchers" | "operations" | "customer_payments" | "bookings"
   | "expenses" | "payroll" | "fleet" | "warehouses" | "system_settings" | "contracts_list"
+  | "settlements"
 type NavItem = { key?: ViewKey; href?: string; label: string; icon: typeof LayoutDashboard }
 
 const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
@@ -85,6 +86,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { key: "treasury" as ViewKey, label: "الخزائن", icon: Landmark },
       { key: "transfer" as ViewKey, label: "التحويل بين الخزائن", icon: ArrowUpRight },
       { key: "customer_payments" as ViewKey, label: "سداد العملاء", icon: Coins },
+      { key: "settlements" as ViewKey, label: "تسوية العقود وكشف الحساب", icon: FileText },
       { key: "ledger_entry" as ViewKey, label: "كشف مديونية العملاء", icon: FileText },
       { key: "daily_expense" as ViewKey, label: "المصروفات العامة", icon: ArrowDownLeft },
       { key: "fuel_expense" as ViewKey, label: "مصروفات الشاحنات", icon: CarFront },
@@ -150,6 +152,7 @@ const viewLabel = (view: ViewKey) =>
   : view === "vouchers" ? "سندات القبض والصرف"
   : view === "operations" ? "التبديل والتفريغ"
   : view === "customer_payments" ? "سداد العملاء"
+  : view === "settlements" ? "تسوية العقود وكشف الحساب"
   : view === "bookings" ? "المواعيد والحجوزات"
   : view === "expenses" ? "الإيرادات والمصروفات"
   : view === "payroll" ? "الرواتب والسلف"
@@ -803,6 +806,7 @@ export default function ContainerSystem() {
           {error ? <Card className="border-rose-200 bg-rose-50/50"><CardContent className="flex flex-col items-center gap-3 p-12 text-center"><AlertCircle size={27} className="text-rose-500" /><h3 className="font-bold text-rose-900">تعذر تحميل بيانات النظام</h3><p className="text-sm text-rose-700">تحقق من الاتصال ثم حاول مرة أخرى.</p><Button onClick={() => { snapshotQuery.refetch(); recordsQuery.refetch() }} variant="outline" className="gap-2 border-rose-200 bg-white text-rose-800" data-testid="button-retry-container-system"><RefreshCw size={15} /> إعادة المحاولة</Button></CardContent></Card>
             : view === "overview" ? <Overview snapshot={snapshot} records={records} onAdd={openCreate} />
               : view === "reports" ? reportId ? <ReportPage reportId={reportId} records={snapshot?.records ?? records} onBack={() => setReportId(null)} /> : <ReportsHub onOpen={setReportId} />
+              : view === "settlements" ? <ContractSettlementWorkspace records={snapshot?.records ?? records} />
               : view === "system_settings" ? <SettingsPage records={snapshot?.records ?? records} organization={organization} onSave={saveSettings} />
              : view === "audit" ? <AuditLog audits={auditQuery.data ?? []} loading={auditQuery.isLoading} />
               : view === "container_search" ? <ContainerSearchPanel records={records} loading={loading} onDetails={record => setDetailRecord(record)} onEdit={openEdit} />
