@@ -7,6 +7,7 @@ uri = "file://sabaik-almasa-updated.zip"
 type = "unspecified"
 title = "الأرشيف المحدث — سبائك الماسة"
 description = "نسخة الأرشيف المرفوع بعد استبدال ملفات الواجهة وخادم API بالمحتوى الحالي في المشروع."
+logical_id = "2d4a7433-8698-4c44-9aa7-312b089d3a9c"
 
 [[outputs]]
 id = "M455l1c0gprcp62URuZhP"
@@ -14,17 +15,32 @@ uri = "file://sabaik-update.zip"
 type = "unspecified"
 title = "حزمة تحديث موقع حاويات - Hostinger"
 description = "حزمة جاهزة للرفع إلى public_html، تشمل assets الجديدة، صفحات FAQ المولدة، API PHP، و.htaccess لمنع خطأ MIME."
+logical_id = "dd2f77f0-5f7e-42ad-893d-b823952e1890"
 
 [[outputs]]
 id = "e7Hwi4c_9VUpSkVoGq2Ul"
 uri = "file://cleanflow-services-hostinger.zip"
 type = "unspecified"
-title = "حزمة CleanFlow الجاهزة لـ Hostinger"
-description = "أرشيف البناء الكامل بعد إصلاح مسارات sidebar-counts وقراءة وكتابة حالة المحادثات، مع الواجهة وPHP API وقاعدة البيانات والملفات اللازمة للرفع."
+title = "حزمة CleanFlow الكاملة لـ Hostinger"
+description = "أرشيف كامل جاهز للرفع إلى public_html ويعمل عبر PHP 8.x وSQLite بدون Node.js."
+logical_id = "c612380d-19d8-4641-8c29-e5ac4a484245"
+content_hash = "sha256:15cbfa9a0a52b5f9725e0e155960c84e11f8a26ceff6f141038a42f08df13627"
+size = 14363131
+mtime_ms = 1787338130357
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:c4732063-b761-4859-a2ed-64213cdda3cb/c612380d-19d8-4641-8c29-e5ac4a484245/31aec5c1-87e0-4c1c-9b02-686825256b02"
+storage_version_token = "1787338137513661"
+content_type = "application/octet-stream"
 
 [[outputs]]
 id = "RTo70OttJokFRCRKOlWig"
 uri = "file://hawiat-update-patch.zip"
 type = "unspecified"
-title = "hawiat-update-patch.zip — إصلاح عداد إشعارات السايدبار"
-description = "حزمة Hostinger محدثة تجعل عداد إشعارات السايدبار يستبعد إشعارات chat وconversation وmessage وwhatsapp، مع إبقاء إشعارات الطلبات والنظام ظاهرة وعدم تغيير قاعدة البيانات أو وظائف الرسائل."
+title = "حزمة التحديث الجزئي لـ Hostinger"
+description = "تحديث خفيف يحتوي على API PHP وطبقة نظام الحاويات وقاعدة SQLite والأصول المحدثة، مع الحفاظ على مجلد uploads الحالي."
+logical_id = "da5e0650-6b63-4e98-9652-3d02a75fa1ad"
+content_hash = "sha256:7c14d1fa1b27c532380460e8957e86f3a423ff090204179da7ae2a4856e60b12"
+size = 2599493
+mtime_ms = 1787338096803
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:c4732063-b761-4859-a2ed-64213cdda3cb/da5e0650-6b63-4e98-9652-3d02a75fa1ad/90a7ad20-de42-4630-9620-74c370a42094"
+storage_version_token = "1787338138206084"
+content_type = "application/octet-stream"

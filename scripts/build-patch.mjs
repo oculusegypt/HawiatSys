@@ -85,6 +85,7 @@ console.log(`✓ تم نسخ ${copiedHtmlPages} صفحة HTML ثابتة محد�
 const apiDir = join(PATCH_DIR, "api");
 mkdirSync(apiDir, { recursive: true });
 copyFileSync(join(ROOT, "scripts/api-index.php"), join(apiDir, "index.php"));
+copyFileSync(join(ROOT, "scripts/container-system.php"), join(apiDir, "container-system.php"));
 
 const htaccessRoot = join(ROOT, "build_php/.htaccess");
 if (existsSync(htaccessRoot)) copyFileSync(htaccessRoot, join(PATCH_DIR, ".htaccess"));

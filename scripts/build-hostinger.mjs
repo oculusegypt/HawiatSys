@@ -116,6 +116,8 @@ for (const hub of ["blog", "areas"]) {
 // ضمان وجود ملف PHP API الأساسي في build_php/api/index.php
 mkdirSync(join(ROOT, "build_php/api"), { recursive: true });
 copyFileSync(join(ROOT, "scripts/api-index.php"), join(ROOT, "build_php/api/index.php"));
+copyFileSync(join(ROOT, "scripts/container-system.php"), join(ROOT, "build_php/api/container-system.php"));
+console.log("  ✅ تم تجهيز طبقة PHP لنظام الحاويات والمالية والتدقيق");
 console.log("  ✅ تم تجهيز ملف PHP API في build_php/api/index.php لبيئة Hostinger");
 
 // تأكد من حذف sitemap.xml الثابت من build_php/ إن وُجد من بناء سابق

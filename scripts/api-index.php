@@ -534,6 +534,12 @@ try {
         ];
     }
 
+    // Hostinger-only container system implementation. The shared-hosting
+    // deployment has no Node.js process, so this PHP route is the production
+    // source of truth for container records, finance records and audit history.
+    require_once __DIR__ . '/container-system.php';
+    hostingerContainerSystemRoute($pdo, (string)$path, (string)$method, $input);
+
     // ── ROUTING ─────────────────────────────────────────────────────────────
 
     // 1. Upload File: POST /api/admin/uploads or /api/uploads
@@ -1016,6 +1022,34 @@ try {
         $driverId = isset($input['driverId']) && $input['driverId'] !== null ? (int)$input['driverId'] : null;
         $driverStatus = $driverId === null ? 'unassigned' : 'assigned';
         $now = date('c');
+
+        if ($driverId !== null) {
+            $requestStmt = $pdo->prepare("SELECT scheduled_at, appointment_type FROM service_requests WHERE id = :id LIMIT 1");
+            $requestStmt->execute([':id' => $id]);
+            $requestForSchedule = $requestStmt->fetch(PDO::FETCH_ASSOC);
+            $scheduledAt = trim((string)($requestForSchedule['scheduled_at'] ?? ''));
+            if (($requestForSchedule['appointment_type'] ?? '') === 'scheduled' && $scheduledAt !== '') {
+                $conflictStmt = $pdo->prepare(
+                    "SELECT id FROM service_requests
+                     WHERE assigned_driver_id = :driver_id
+                       AND id <> :request_id
+                       AND driver_status IN ('assigned', 'accepted', 'started')
+                       AND appointment_type = 'scheduled'
+                       AND scheduled_at = :scheduled_at
+                     LIMIT 1"
+                );
+                $conflictStmt->execute([
+                    ':driver_id' => $driverId,
+                    ':request_id' => $id,
+                    ':scheduled_at' => $scheduledAt,
+                ]);
+                if ($conflictStmt->fetchColumn()) {
+                    http_response_code(409);
+                    echo json_encode(['error' => 'السائق مرتبط بمهمة أخرى في الموعد نفسه'], JSON_UNESCAPED_UNICODE);
+                    exit;
+                }
+            }
+        }
 
         $stmt = $pdo->prepare("UPDATE service_requests SET assigned_driver_id = :did, driver_status = :dst, assigned_at = :ast, updated_at = :now WHERE id = :id");
         $stmt->execute([
@@ -3758,6 +3792,103 @@ try {
     }
 
     // ── 35. WORK ORDERS: /api/admin/work-orders and /api/driver/work-orders ──
+    if (preg_match('#^/driver/work-orders/(\d+)$#', $path, $m) && $method === 'PATCH') {
+        $authHeader = getAuthHeader();
+        if (!$authHeader || !preg_match('/Bearer\s+(.+)$/i', $authHeader, $matches)) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Unauthorized'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        $tokenPayload = verifyToken($matches[1]);
+        $driverId = (int)($tokenPayload['adminId'] ?? 0);
+        if ($driverId <= 0) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Unauthorized'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        $id = (int)$m[1];
+        $stmt = $pdo->prepare("SELECT * FROM service_requests WHERE id = :id AND assigned_driver_id = :driver_id LIMIT 1");
+        $stmt->execute([':id' => $id, ':driver_id' => $driverId]);
+        $request = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$request) {
+            http_response_code(404);
+            echo json_encode(['error' => 'أمر العمل غير موجود'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        $nextStatus = trim((string)($input['status'] ?? ''));
+        $currentStatus = (string)($request['driver_status'] ?? 'assigned');
+        $allowed = [
+            'assigned' => ['accepted', 'rejected'],
+            'accepted' => ['started'],
+            'started' => ['completed'],
+        ];
+        if (!isset($allowed[$currentStatus]) || !in_array($nextStatus, $allowed[$currentStatus], true)) {
+            http_response_code(400);
+            echo json_encode(['error' => 'لا يمكن الانتقال من الحالة الحالية إلى هذه الحالة'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        $notes = array_key_exists('notes', $input) ? trim((string)($input['notes'] ?? '')) : ($request['driver_notes'] ?? null);
+        if ($nextStatus === 'rejected' && !$notes) {
+            http_response_code(422);
+            echo json_encode(['error' => 'سبب الرفض مطلوب'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        foreach (['locationLat' => [-90, 90], 'locationLng' => [-180, 180]] as $key => $range) {
+            if (($input[$key] ?? '') !== '' && (!is_numeric($input[$key]) || (float)$input[$key] < $range[0] || (float)$input[$key] > $range[1])) {
+                http_response_code(422);
+                echo json_encode(['error' => $key === 'locationLat' ? 'خط العرض غير صحيح' : 'خط الطول غير صحيح'], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+        }
+        $now = date('c');
+        $fields = [
+            'driver_status' => $nextStatus,
+            'driver_notes' => $notes ?: null,
+            'driver_location_lat' => array_key_exists('locationLat', $input) ? (($input['locationLat'] ?? '') ?: null) : ($request['driver_location_lat'] ?? null),
+            'driver_location_lng' => array_key_exists('locationLng', $input) ? (($input['locationLng'] ?? '') ?: null) : ($request['driver_location_lng'] ?? null),
+            'driver_proof_photo_url' => array_key_exists('proofPhotoUrl', $input) ? (($input['proofPhotoUrl'] ?? '') ?: null) : ($request['driver_proof_photo_url'] ?? null),
+            'driver_signature_data' => array_key_exists('signatureData', $input) ? (($input['signatureData'] ?? '') ?: null) : ($request['driver_signature_data'] ?? null),
+            'driver_receiver_name' => array_key_exists('receiverName', $input) ? (($input['receiverName'] ?? '') ?: null) : ($request['driver_receiver_name'] ?? null),
+            'updated_at' => $now,
+        ];
+        if ($nextStatus === 'accepted' || $nextStatus === 'rejected') $fields['driver_response_at'] = $request['driver_response_at'] ?? $now;
+        if ($nextStatus === 'started') {
+            $fields['driver_started_at'] = $now;
+            $fields['status'] = 'in_progress';
+        }
+        if ($nextStatus === 'completed') {
+            $fields['driver_completed_at'] = $now;
+            $fields['status'] = 'completed';
+        }
+        if ($nextStatus === 'completed' && ($request['contract_record_id'] ?? null) && (!$fields['driver_receiver_name'] || !$fields['driver_signature_data'])) {
+            http_response_code(422);
+            echo json_encode(['error' => 'يلزم تسجيل اسم المستلم وتوقيع العميل قبل إكمال حركة الحاوية'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        $pdo->beginTransaction();
+        try {
+            $set = [];
+            $params = [':id' => $id];
+            foreach ($fields as $column => $value) {
+                $set[] = "{$column} = :{$column}";
+                $params[":{$column}"] = $value;
+            }
+            $pdo->prepare("UPDATE service_requests SET " . implode(', ', $set) . " WHERE id = :id")->execute($params);
+            if ($pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name='container_system_audit'")->fetchColumn()) {
+                hsAudit($pdo, $id, 'service_request', 'driver_status_transition', json_encode(['driverStatus' => $currentStatus], JSON_UNESCAPED_UNICODE), json_encode(['driverStatus' => $nextStatus, 'notes' => $notes], JSON_UNESCAPED_UNICODE), $driverId);
+            }
+            $pdo->commit();
+        } catch (Throwable $error) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            throw $error;
+        }
+        $updated = $pdo->prepare("SELECT * FROM service_requests WHERE id = :id LIMIT 1");
+        $updated->execute([':id' => $id]);
+        $row = $updated->fetch(PDO::FETCH_ASSOC);
+        echo json_encode($row ?: ['id' => $id], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        exit;
+    }
+
     if ($path === '/admin/work-orders' && $method === 'GET') {
         try {
             $stmt = $pdo->query("SELECT r.*, a.name as assigned_driver_name FROM service_requests r LEFT JOIN admins a ON r.assigned_driver_id = a.id WHERE r.assigned_driver_id IS NOT NULL ORDER BY r.assigned_at DESC, r.created_at DESC");
@@ -3778,6 +3909,14 @@ try {
                     'assignedDriverName' => $r['assigned_driver_name'] ?? null,
                     'driverStatus' => $r['driver_status'] ?? 'assigned',
                     'driverNotes' => $r['driver_notes'] ?? null,
+                     'driverResponseAt' => $r['driver_response_at'] ?? null,
+                     'driverStartedAt' => $r['driver_started_at'] ?? null,
+                     'driverCompletedAt' => $r['driver_completed_at'] ?? null,
+                     'driverLocationLat' => $r['driver_location_lat'] ?? null,
+                     'driverLocationLng' => $r['driver_location_lng'] ?? null,
+                     'driverProofPhotoUrl' => $r['driver_proof_photo_url'] ?? null,
+                     'driverSignatureData' => $r['driver_signature_data'] ?? null,
+                     'driverReceiverName' => $r['driver_receiver_name'] ?? null,
                     'adminNotes' => $r['admin_notes'] ?? null,
                     'assignedAt' => $r['assigned_at'] ?? null,
                     'createdAt' => $r['created_at'] ?? date('c'),
@@ -3992,6 +4131,14 @@ PROMPT;
                     'status' => $r['status'] ?? 'pending',
                     'driverStatus' => $r['driver_status'] ?? 'assigned',
                     'driverNotes' => $r['driver_notes'] ?? null,
+                     'driverResponseAt' => $r['driver_response_at'] ?? null,
+                     'driverStartedAt' => $r['driver_started_at'] ?? null,
+                     'driverCompletedAt' => $r['driver_completed_at'] ?? null,
+                     'driverLocationLat' => $r['driver_location_lat'] ?? null,
+                     'driverLocationLng' => $r['driver_location_lng'] ?? null,
+                     'driverProofPhotoUrl' => $r['driver_proof_photo_url'] ?? null,
+                     'driverSignatureData' => $r['driver_signature_data'] ?? null,
+                     'driverReceiverName' => $r['driver_receiver_name'] ?? null,
                     'adminNotes' => $r['admin_notes'] ?? null,
                     'assignedAt' => $r['assigned_at'] ?? null,
                     'createdAt' => $r['created_at'] ?? date('c')
