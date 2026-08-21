@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, adminsTable, serviceRequestsTable, conversationsTable, messagesTable, activeVisitorsTable } from "@workspace/db";
+import { db, adminsTable, serviceRequestsTable, conversationsTable, messagesTable, activeVisitorsTable, containerSystemAuditTable, containerSystemRecordsTable } from "@workspace/db";
 import { eq, desc, and, inArray, isNotNull, sql } from "drizzle-orm";
 import { getSetting } from "./settings";
 import { createNotification } from "../lib/pushNotifications";
@@ -9,6 +9,125 @@ import { sourceForRow } from "../lib/attribution";
 const router = Router();
 
 const ONLINE_WINDOW_MS = 90 * 1000;
+
+function parseContainerPayload(payload: string): Record<string, unknown> {
+  try {
+    const parsed = JSON.parse(payload);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function containerCodeFrom(payload: Record<string, unknown>) {
+  return String(payload.assetCode ?? payload.code ?? "").trim();
+}
+
+function isContainerWork(request: typeof serviceRequestsTable.$inferSelect) {
+  return Boolean(request.contractRecordId) && /حاوي|نقاض|تفريغ|سحب|استرجاع|تسليم|container|debris|waste/i.test(
+    `${request.serviceType} ${request.notes ?? ""}`,
+  );
+}
+
+function isReturnWork(request: typeof serviceRequestsTable.$inferSelect) {
+  return /استرجاع|سحب|رفع|return|withdraw/i.test(`${request.serviceType} ${request.notes ?? ""}`);
+}
+
+async function prepareContainerCompletion(request: typeof serviceRequestsTable.$inferSelect) {
+  if (!isContainerWork(request)) return null;
+  const contract = await db.select().from(containerSystemRecordsTable)
+    .where(eq(containerSystemRecordsTable.id, request.contractRecordId!)).get();
+  if (!contract || contract.kind !== "contract" || contract.status === "archived") {
+    throw new Error("العقد المرتبط بأمر العمل غير موجود");
+  }
+  const contractPayload = parseContainerPayload(contract.payload);
+  const containerCode = String(contractPayload.containerCode ?? "").trim();
+  if (!containerCode) throw new Error("العقد المرتبط لا يحتوي على رقم حاوية");
+  const assets = await db.select().from(containerSystemRecordsTable);
+  const asset = assets.find(record =>
+    ["container", "container_asset"].includes(record.kind) &&
+    record.status !== "archived" &&
+    containerCodeFrom(parseContainerPayload(record.payload)) === containerCode,
+  );
+  if (!asset) throw new Error("أصل الحاوية المرتبط بأمر العمل غير موجود");
+  return { contract, contractPayload, asset, containerCode, returning: isReturnWork(request) };
+}
+
+async function syncContainerCompletion(
+  request: typeof serviceRequestsTable.$inferSelect,
+  prepared: Awaited<ReturnType<typeof prepareContainerCompletion>>,
+  actorId: number,
+) {
+  if (!prepared) return;
+  const now = new Date().toISOString();
+  const action = prepared.returning ? "استرجاع" : "تسليم";
+  const contractStatus = prepared.returning ? "returned" : "delivered";
+  const assetStatus = prepared.returning ? "available" : "rented";
+  const nextContractPayload = {
+    ...prepared.contractPayload,
+    [`${prepared.returning ? "return" : "deliver"}At`]: now,
+    lastWorkOrderId: request.id,
+  };
+  const nextAssetPayload = {
+    ...parseContainerPayload(prepared.asset.payload),
+    location: request.location,
+    lastMovementAt: now,
+    lastWorkOrderId: request.id,
+  };
+
+  await db.update(containerSystemRecordsTable).set({
+    status: contractStatus,
+    payload: JSON.stringify(nextContractPayload),
+    updatedAt: now,
+  }).where(eq(containerSystemRecordsTable.id, prepared.contract.id));
+  await db.update(containerSystemRecordsTable).set({
+    status: assetStatus,
+    payload: JSON.stringify(nextAssetPayload),
+    updatedAt: now,
+  }).where(eq(containerSystemRecordsTable.id, prepared.asset.id));
+
+  const [movement] = await db.insert(containerSystemRecordsTable).values({
+    kind: "container_movement",
+    status: "posted",
+    reference: `MOV-${request.id}`,
+    payload: JSON.stringify({
+      contractNumber: prepared.contractPayload.contractNumber ?? prepared.contract.reference,
+      containerCode: prepared.containerCode,
+      movementType: action,
+      movementDate: now,
+      location: request.location,
+      driverName: request.assignedDriverId,
+      workOrderId: request.id,
+      source: "driver_work_order",
+    }),
+    createdBy: actorId,
+  }).returning();
+  await db.insert(containerSystemAuditTable).values([
+    {
+      recordId: prepared.contract.id,
+      kind: "contract",
+      action: "work_order_sync",
+      beforePayload: prepared.contract.payload,
+      afterPayload: JSON.stringify(nextContractPayload),
+      actorId,
+    },
+    {
+      recordId: prepared.asset.id,
+      kind: prepared.asset.kind,
+      action: "work_order_sync",
+      beforePayload: prepared.asset.payload,
+      afterPayload: JSON.stringify(nextAssetPayload),
+      actorId,
+    },
+    {
+      recordId: movement.id,
+      kind: "container_movement",
+      action: "work_order_create",
+      afterPayload: movement.payload,
+      actorId,
+    },
+  ]);
+}
 
 function isRecent(value: string | null | undefined, windowMs: number): boolean {
   if (!value) return false;
@@ -364,6 +483,17 @@ router.patch("/driver/work-orders/:id", requireAdmin, requireDriver, async (req,
     return res.status(400).json({ error: "لا يمكن الانتقال من الحالة الحالية إلى هذه الحالة" });
   }
 
+  let preparedContainerCompletion: Awaited<ReturnType<typeof prepareContainerCompletion>> = null;
+  if (nextStatus === "completed") {
+    try {
+      preparedContainerCompletion = await prepareContainerCompletion(request);
+    } catch (error) {
+      return res.status(422).json({
+        error: error instanceof Error ? error.message : "لا يمكن إكمال أمر العمل قبل اكتمال ربط العقد والحاوية",
+      });
+    }
+  }
+
   const now = new Date().toISOString();
   const updateData: Partial<typeof serviceRequestsTable.$inferInsert> = {
     driverStatus: nextStatus,
@@ -378,6 +508,15 @@ router.patch("/driver/work-orders/:id", requireAdmin, requireDriver, async (req,
   };
   const [updated] = await db.update(serviceRequestsTable).set(updateData)
     .where(eq(serviceRequestsTable.id, id)).returning();
+  if (nextStatus === "completed" && preparedContainerCompletion) {
+    try {
+      await syncContainerCompletion(updated, preparedContainerCompletion, adminRequest.adminId);
+    } catch (error) {
+      return res.status(500).json({
+        error: error instanceof Error ? error.message : "تم إكمال أمر العمل ولم تتم مزامنة العقد والحاوية",
+      });
+    }
+  }
   return res.json(updated);
 });
 
