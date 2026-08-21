@@ -17,6 +17,7 @@ type ContractWizardProps = {
 
 type FormState = {
   customerRecordId: string
+  siteRecordId: string
   containerRecordId: string
   contractNumber: string
   startDate: string
@@ -31,6 +32,7 @@ type FormState = {
 
 const initialForm: FormState = {
   customerRecordId: "",
+  siteRecordId: "",
   containerRecordId: "",
   contractNumber: "",
   startDate: new Date().toISOString().slice(0, 10),
@@ -62,10 +64,15 @@ export function ContractWizard({ open, records, busy = false, onClose, onSubmit 
     [records],
   )
   const containers = useMemo(
-    () => records.filter(record => record.kind === "container" && record.status !== "archived" && ["available", "متاح", "active"].includes(record.status)),
+    () => records.filter(record => ["container", "container_asset"].includes(record.kind) && record.status !== "archived" && ["available", "متاح", "active"].includes(record.status)),
     [records],
   )
+  const sites = useMemo(
+    () => records.filter(record => record.kind === "customer_site" && record.status !== "archived" && (!form.customerRecordId || String(payloadOf(record).customerRecordId) === form.customerRecordId)),
+    [form.customerRecordId, records],
+  )
   const customer = customers.find(record => String(record.id) === form.customerRecordId)
+  const site = sites.find(record => String(record.id) === form.siteRecordId)
   const container = containers.find(record => String(record.id) === form.containerRecordId)
   const customerPayload = customer ? payloadOf(customer) : undefined
   const containerPayload = container ? payloadOf(container) : undefined
@@ -78,13 +85,13 @@ export function ContractWizard({ open, records, busy = false, onClose, onSubmit 
 
   const update = (key: keyof FormState, value: string) => {
     setError("")
-    setForm(current => ({ ...current, [key]: value }))
+    setForm(current => ({ ...current, [key]: value, ...(key === "customerRecordId" ? { siteRecordId: "" } : {}) }))
   }
 
   const validateStep = (targetStep = step) => {
     if (targetStep === 0 && !customer) return "اختر عميلاً مسجلاً قبل المتابعة"
+    if (targetStep === 1 && !site) return "اختر موقع العميل قبل المتابعة"
     if (targetStep === 1 && !container) return "اختر أصلاً متاحاً للتخصيص قبل المتابعة"
-    if (targetStep === 1 && !form.contractNumber.trim()) return "رقم العقد مطلوب"
     if (targetStep === 1 && !form.startDate) return "تاريخ بداية العقد مطلوب"
     if (targetStep === 1 && !form.endDate) return "تاريخ نهاية العقد مطلوب"
     if (targetStep === 1 && form.endDate < form.startDate) return "نهاية العقد يجب أن تكون بعد بدايته"
@@ -112,6 +119,7 @@ export function ContractWizard({ open, records, busy = false, onClose, onSubmit 
     onSubmit({
       requestId: null,
       customerRecordId: customer?.id,
+      siteRecordId: site?.id,
       customerName: String(customerPayload?.name ?? customerPayload?.customerName ?? ""),
       customerPhone: String(customerPayload?.phone ?? ""),
       containerRecordId: container?.id,
@@ -125,6 +133,7 @@ export function ContractWizard({ open, records, busy = false, onClose, onSubmit 
       total,
       status: "active",
       notes: form.notes.trim(),
+      location: String(site ? payloadOf(site).address ?? "" : ""),
       createdFrom: "contract_workflow",
       appointmentDate: form.appointmentDate,
       appointmentTime: form.appointmentTime,
@@ -159,10 +168,11 @@ export function ContractWizard({ open, records, busy = false, onClose, onSubmit 
             </section>}
 
             {step === 1 && <section className="space-y-4">
-              <div><h3 className="font-black text-slate-900">بيانات العقد والتخصيص</h3><p className="mt-1 text-sm text-slate-500">لا يمكن إصدار عقد تشغيلي دون أصل متاح وفترة واضحة.</p></div>
+               <div><h3 className="font-black text-slate-900">بيانات العقد والتخصيص</h3><p className="mt-1 text-sm text-slate-500">لا يمكن إصدار عقد تشغيلي دون موقع عميل وأصل متاح وفترة واضحة.</p></div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <div><Label htmlFor="contract-number">رقم العقد</Label><Input id="contract-number" value={form.contractNumber} onChange={event => update("contractNumber", event.target.value)} placeholder="CNT-2026-001" className="mt-2" dir="ltr" /></div>
+                <div><Label htmlFor="contract-number">رقم العقد</Label><Input id="contract-number" value={form.contractNumber} onChange={event => update("contractNumber", event.target.value)} placeholder="سيولد تلقائياً عند الحفظ" className="mt-2" dir="ltr" /><p className="mt-1 text-[11px] text-slate-500">اتركه فارغاً ليولد النظام رقماً فريداً تلقائياً.</p></div>
                 <div><Label htmlFor="contract-container">الأصل المتاح</Label><select id="contract-container" value={form.containerRecordId} onChange={event => update("containerRecordId", event.target.value)} className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm"><option value="">اختر الأصل</option>{containers.map(record => <option key={record.id} value={record.id}>{labelOf(record)} · {String(payloadOf(record).typeName ?? "نوع غير محدد")}</option>)}</select></div>
+                 <div><Label htmlFor="contract-site">موقع العميل</Label><select id="contract-site" value={form.siteRecordId} onChange={event => update("siteRecordId", event.target.value)} className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm"><option value="">{sites.length ? "اختر موقع العميل" : "لا توجد مواقع لهذا العميل"}</option>{sites.map(record => <option key={record.id} value={record.id}>{labelOf(record)} · {String(payloadOf(record).address ?? "")}</option>)}</select></div>
                 <div><Label htmlFor="contract-start">بداية العقد</Label><Input id="contract-start" type="date" value={form.startDate} onChange={event => update("startDate", event.target.value)} className="mt-2" dir="ltr" /></div>
                 <div><Label htmlFor="contract-end">نهاية العقد</Label><Input id="contract-end" type="date" value={form.endDate} onChange={event => update("endDate", event.target.value)} className="mt-2" dir="ltr" /></div>
               </div>
@@ -186,7 +196,7 @@ export function ContractWizard({ open, records, busy = false, onClose, onSubmit 
               <div className="rounded-2xl border border-cyan-100 bg-cyan-50 p-4 text-sm leading-6 text-cyan-950">سيُنشأ موعد مرتبط بالعقد والعميل والأصل بعد نجاح الإصدار. إذا رفض النظام الموعد بسبب تعارض، سيبقى العقد محفوظًا وتظهر نتيجة واضحة للمشرف.</div>
             </section>}
 
-            {step === 4 && <section className="space-y-4"><div><h3 className="font-black text-slate-900">مراجعة قبل الإصدار</h3><p className="mt-1 text-sm text-slate-500">تحقق من العلاقات والقيمة والموعد قبل إنشاء العقد النشط.</p></div><div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm sm:grid-cols-2"><span>العميل: <b>{customer ? labelOf(customer) : "—"}</b></span><span>الأصل: <b>{container ? labelOf(container) : "—"}</b></span><span>رقم العقد: <b dir="ltr">{form.contractNumber || "—"}</b></span><span>الفترة: <b dir="ltr">{form.startDate || "—"} → {form.endDate || "—"}</b></span><span>الموعد الأول: <b dir="ltr">{form.appointmentDate || "—"} · {form.appointmentTime}</b></span><span>الإجمالي: <b>{total.toLocaleString("ar-SA")} ر.س</b></span><span>الحالة بعد الإصدار: <b className="text-emerald-700">نشط</b></span></div><div className="flex items-start gap-2 rounded-xl border border-amber-100 bg-amber-50 p-3 text-xs leading-6 text-amber-950"><ShieldCheck size={16} className="mt-1 shrink-0" />سيُحفظ العقد مع معرّف العميل ومعرّف الأصل، وسيُنشأ موعد مرتبط بهما، مع منع تعارض الفترة أو إعادة استخدام رقم العقد.</div></section>}
+             {step === 4 && <section className="space-y-4"><div><h3 className="font-black text-slate-900">مراجعة قبل الإصدار</h3><p className="mt-1 text-sm text-slate-500">تحقق من العلاقات والقيمة والموعد قبل إنشاء العقد النشط.</p></div><div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm sm:grid-cols-2"><span>العميل: <b>{customer ? labelOf(customer) : "—"}</b></span><span>الموقع: <b>{site ? labelOf(site) : "—"}</b></span><span>الأصل: <b>{container ? labelOf(container) : "—"}</b></span><span>رقم العقد: <b dir="ltr">{form.contractNumber || "سيولد تلقائياً"}</b></span><span>الفترة: <b dir="ltr">{form.startDate || "—"} → {form.endDate || "—"}</b></span><span>الموعد الأول: <b dir="ltr">{form.appointmentDate || "—"} · {form.appointmentTime}</b></span><span>الإجمالي: <b>{total.toLocaleString("ar-SA")} ر.س</b></span><span>الحالة بعد الإصدار: <b className="text-emerald-700">نشط</b></span></div><div className="flex items-start gap-2 rounded-xl border border-amber-100 bg-amber-50 p-3 text-xs leading-6 text-amber-950"><ShieldCheck size={16} className="mt-1 shrink-0" />سيُحفظ العقد مع معرّف العميل والموقع والأصل، وسيُنشأ موعد مرتبط بهم، مع منع تعارض الفترة أو إعادة استخدام رقم العقد.</div></section>}
 
             {error && <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700" role="alert">{error}</p>}
             <div className="flex items-center justify-between border-t border-slate-100 pt-5"><Button type="button" variant="outline" onClick={step === 0 ? onClose : () => { setError(""); setStep(current => current - 1) }} className="gap-2">{step === 0 ? "إلغاء" : <><ArrowRight size={16} /> السابق</>}</Button>{step < 4 ? <Button type="button" onClick={next} className="gap-2 bg-cyan-800 hover:bg-cyan-900">التالي <ArrowLeft size={16} /></Button> : <Button type="button" disabled={busy} onClick={submit} className="gap-2 bg-emerald-700 hover:bg-emerald-800">{busy ? "جارٍ الإصدار..." : "إصدار العقد"} <CheckCircle2 size={16} /></Button>}</div>

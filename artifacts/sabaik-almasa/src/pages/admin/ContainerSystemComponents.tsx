@@ -368,7 +368,7 @@ export const FIELD_CONFIG: Record<RecordKind, FieldConfig[]> = {
     { key: "description", label: "البيان", type: "textarea", wide: true },
   ],
   invoice: [
-    { key: "invoiceNumber", label: "رقم الفاتورة", placeholder: "INV-001" },
+    { key: "invoiceNumber", label: "رقم الفاتورة", placeholder: "سيولد تلقائياً عند الحفظ" },
     { key: "customerName", label: "العميل", placeholder: "اسم العميل" },
     { key: "contractNumber", label: "العقد", placeholder: "رقم العقد" },
     { key: "amount", label: "المبلغ قبل الضريبة", type: "number", placeholder: "0" },

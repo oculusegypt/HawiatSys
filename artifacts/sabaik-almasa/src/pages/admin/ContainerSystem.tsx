@@ -29,6 +29,7 @@ import {
 } from "./ContainerSystemComponents"
 import { ContractSettlementWorkspace, DispatchCalendar, ReportsHub, ReportPage, SettingsPage, REPORTS, ReportId } from "./ContainerSystemSpecialPages"
 import { ContractWizard } from "./ContractWizard"
+import { ContainerAssignmentWizard } from "./ContainerAssignmentWizard"
 
 const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
 
@@ -587,6 +588,7 @@ export default function ContainerSystem() {
   const [search, setSearch] = useState("")
   const [dialog, setDialog] = useState<{ open: boolean; kind: RecordKind; record?: ContainerSystemRecord | null }>({ open: false, kind: "customer" })
   const [contractWizardOpen, setContractWizardOpen] = useState(false)
+  const [assignmentWizardOpen, setAssignmentWizardOpen] = useState(false)
   const [contractFlowBusy, setContractFlowBusy] = useState(false)
   const [detailRecord, setDetailRecord] = useState<ContainerSystemRecord | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -623,6 +625,10 @@ export default function ContainerSystem() {
       setContractWizardOpen(true)
       return
     }
+    if (kind === "container_assignment") {
+      setAssignmentWizardOpen(true)
+      return
+    }
     setDialog({ open: true, kind, record: null })
   }
   const openEdit = (record: ContainerSystemRecord) => setDialog({ open: true, kind: (record.kind as RecordKind) || "customer", record })
@@ -654,6 +660,24 @@ export default function ContainerSystem() {
         const scheduledAt = `${String(appointmentDate)}T${String(appointmentTime)}:00`
         createMutation.mutate({
           data: {
+            kind: "container_assignment",
+            status: "reserved",
+            payload: {
+              contractRecordId: createdContract.id,
+              siteRecordId: contractPayload.siteRecordId,
+              containerRecordId: contractPayload.containerRecordId,
+              contractNumber: String(contractPayload.contractNumber ?? createdContract.reference),
+              assignmentStatus: "reserved",
+              startDate: contractPayload.startDate,
+              endDate: contractPayload.endDate,
+              containerCode: contractPayload.containerCode,
+              customerRecordId: contractPayload.customerRecordId,
+              notes: "تم الإنشاء تلقائياً من معالج العقد",
+            },
+          },
+        }, {
+          onSuccess: () => createMutation.mutate({
+            data: {
             kind: "appointment",
             status: "scheduled",
             payload: {
@@ -669,8 +693,8 @@ export default function ContainerSystem() {
               scheduledAt,
               source: "contract_workflow",
             },
-          },
-        }, {
+            },
+          }, {
           onSuccess: () => {
             void fetch(`${API_BASE}/api/admin/service-requests/from-contract`, {
               method: "POST",
@@ -704,10 +728,18 @@ export default function ContainerSystem() {
               toast({ title: error instanceof Error ? `تم إصدار العقد والموعد، لكن تعذر إنشاء أمر العمل: ${error.message}` : "تم إصدار العقد والموعد، لكن تعذر إنشاء أمر العمل", variant: "destructive" })
             })
           },
-          onError: error => { invalidate(); setContractWizardOpen(false); setContractFlowBusy(false); toast({ title: error instanceof Error ? `تم إصدار العقد، لكن تعذر إنشاء الموعد: ${error.message}` : "تم إصدار العقد، لكن تعذر إنشاء الموعد", variant: "destructive" }) },
+          onError: error => { invalidate(); setContractWizardOpen(false); setContractFlowBusy(false); toast({ title: error instanceof Error ? `تم إصدار العقد والتخصيص، لكن تعذر إنشاء الموعد: ${error.message}` : "تم إصدار العقد والتخصيص، لكن تعذر إنشاء الموعد", variant: "destructive" }) },
+          }),
+          onError: error => { invalidate(); setContractWizardOpen(false); setContractFlowBusy(false); toast({ title: error instanceof Error ? `تم إصدار العقد، لكن تعذر تخصيص الأصل: ${error.message}` : "تم إصدار العقد، لكن تعذر تخصيص الأصل", variant: "destructive" }) },
         })
       },
       onError: error => { setContractFlowBusy(false); toast({ title: error instanceof Error ? error.message : "تعذر إصدار العقد", variant: "destructive" }) },
+    })
+  }
+  const submitAssignment = (payload: Record<string, unknown>) => {
+    createMutation.mutate({ data: { kind: "container_assignment", status: "reserved", payload } }, {
+      onSuccess: () => { invalidate(); setAssignmentWizardOpen(false); showSuccess("تم تخصيص الأصل وربطه بالعقد والموقع") },
+      onError: error => toast({ title: error instanceof Error ? error.message : "تعذر حفظ التخصيص", variant: "destructive" }),
     })
   }
   const saveSettings = (payload: Record<string, unknown>) => {
@@ -820,6 +852,7 @@ export default function ContainerSystem() {
       </div>
       <RecordDetails record={detailRecord} allRecords={snapshot?.records ?? records} open={Boolean(detailRecord)} onOpenChange={open => { if (!open) setDetailRecord(null) }} onContractAction={contractAction} />
       <ContractWizard open={contractWizardOpen} records={snapshot?.records ?? records} busy={busy} onClose={() => { if (!contractFlowBusy) setContractWizardOpen(false) }} onSubmit={submitContract} />
+      <ContainerAssignmentWizard open={assignmentWizardOpen} records={snapshot?.records ?? records} busy={createMutation.isPending} onClose={() => { if (!createMutation.isPending) setAssignmentWizardOpen(false) }} onSubmit={submitAssignment} />
       <RecordDialog open={dialog.open} kind={dialog.kind} record={dialog.record} records={snapshot?.records ?? records} busy={busy} onOpenChange={open => setDialog(current => ({ ...current, open }))} onSubmit={submitRecord} />
       {archiveMutation.isPending && <div className="fixed bottom-5 left-5 z-50 flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-xs font-bold text-white shadow-xl" data-testid="status-archive-loading"><Loader2 size={14} className="animate-spin" /> جارٍ أرشفة السجل...</div>}
     </div>

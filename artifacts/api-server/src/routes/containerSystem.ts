@@ -66,6 +66,11 @@ function referenceFor(kind: string, payload: Record<string, unknown>, nextId: nu
   return String(payload.reference || payload.code || `${prefix[kind] ?? "REC"}-${String(nextId).padStart(5, "0")}`);
 }
 
+function generatedDocumentNumber(kind: "contract" | "invoice", id: number) {
+  const prefix = kind === "contract" ? "RNT" : "INV";
+  return `${prefix}-${new Date().getFullYear()}-${String(id).padStart(6, "0")}`;
+}
+
 function normalizeContractPayload(payload: Record<string, unknown>) {
   const next = { ...payload };
   const amount = Number(next.amount ?? 0);
@@ -839,6 +844,10 @@ router.post("/admin/container-system/records", async (req, res) => {
     payload.containerCode = assetCodeOf(parsePayload(asset.payload));
   }
   if (kind === "invoice") Object.assign(payload, normalizeInvoicePayload(payload));
+  const documentNumberField = kind === "contract" ? "contractNumber" : kind === "invoice" ? "invoiceNumber" : null;
+  if (documentNumberField && !String(payload[documentNumberField] ?? "").trim()) {
+    delete payload[documentNumberField];
+  }
   if (await hasDuplicateDocumentNumber(kind, payload)) {
     return res.status(409).json({ error: "رقم المستند مستخدم مسبقًا" });
   }
@@ -878,6 +887,17 @@ router.post("/admin/container-system/records", async (req, res) => {
         payload: JSON.stringify(payload),
         createdBy: adminReq.adminId,
       }).returning().get();
+      let current = inserted;
+      if (documentNumberField) {
+        const documentNumber = String(payload[documentNumberField] ?? "").trim() ||
+          generatedDocumentNumber(kind as "contract" | "invoice", inserted.id);
+        const nextPayload = { ...parsePayload(inserted.payload), [documentNumberField]: documentNumber };
+        current = tx.update(containerSystemRecordsTable).set({
+          reference: documentNumber,
+          payload: JSON.stringify(nextPayload),
+          updatedAt: new Date().toISOString(),
+        }).where(eq(containerSystemRecordsTable.id, inserted.id)).returning().get();
+      }
       if (kind === "container_assignment") {
         const assetId = Number(payload.containerRecordId);
         const asset = tx.select().from(containerSystemRecordsTable).where(eq(containerSystemRecordsTable.id, assetId)).get();
@@ -907,9 +927,9 @@ router.post("/admin/container-system/records", async (req, res) => {
         }).run();
       }
       tx.insert(containerSystemAuditTable).values({
-        recordId: inserted.id, kind, action: "create", afterPayload: inserted.payload, actorId: adminReq.adminId,
+        recordId: current.id, kind, action: "create", afterPayload: current.payload, actorId: adminReq.adminId,
       }).run();
-      return inserted;
+      return current;
     });
   } catch (error) {
     return res.status(422).json({ error: error instanceof Error ? error.message : "تعذر حفظ التخصيص بشكل كامل" });
