@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react"
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
   getGetAdminWorkOrdersQueryKey,
   getGetDriverWorkOrdersQueryKey,
@@ -8,12 +8,17 @@ import {
   useUpdateDriverWorkOrder,
   DriverWorkOrderStatus,
   type ServiceRequest,
-} from "@workspace/api-client-react"
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { useToast } from "@/hooks/use-toast"
-import { SignaturePad } from "./ContainerSystemComponents"
+} from "@workspace/api-client-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { SignaturePad } from "./ContainerSystemComponents";
 import {
   Check,
   CheckCircle2,
@@ -28,91 +33,167 @@ import {
   UserRound,
   X,
   XCircle,
-} from "lucide-react"
+} from "lucide-react";
 
-const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
+const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || "";
 
 const STATUS: Record<string, { label: string; tone: string; dot: string }> = {
-  assigned: { label: "بانتظار قبول السائق", tone: "bg-amber-50 text-amber-800 border-amber-200", dot: "bg-amber-500" },
-  accepted: { label: "مقبول — جاهز للبدء", tone: "bg-sky-50 text-sky-800 border-sky-200", dot: "bg-sky-500" },
-  started: { label: "قيد التنفيذ", tone: "bg-indigo-50 text-indigo-800 border-indigo-200", dot: "bg-indigo-500" },
-  en_route: { label: "في الطريق", tone: "bg-violet-50 text-violet-800 border-violet-200", dot: "bg-violet-500" },
-  arrived: { label: "وصل إلى الموقع", tone: "bg-cyan-50 text-cyan-800 border-cyan-200", dot: "bg-cyan-500" },
-  rejected: { label: "مرفوض", tone: "bg-rose-50 text-rose-800 border-rose-200", dot: "bg-rose-500" },
-  completed: { label: "مكتمل", tone: "bg-emerald-50 text-emerald-800 border-emerald-200", dot: "bg-emerald-500" },
-}
+  assigned: {
+    label: "بانتظار قبول السائق",
+    tone: "bg-amber-50 text-amber-800 border-amber-200",
+    dot: "bg-amber-500",
+  },
+  accepted: {
+    label: "مقبول — جاهز للبدء",
+    tone: "bg-sky-50 text-sky-800 border-sky-200",
+    dot: "bg-sky-500",
+  },
+  started: {
+    label: "قيد التنفيذ",
+    tone: "bg-indigo-50 text-indigo-800 border-indigo-200",
+    dot: "bg-indigo-500",
+  },
+  en_route: {
+    label: "في الطريق",
+    tone: "bg-violet-50 text-violet-800 border-violet-200",
+    dot: "bg-violet-500",
+  },
+  arrived: {
+    label: "وصل إلى الموقع",
+    tone: "bg-cyan-50 text-cyan-800 border-cyan-200",
+    dot: "bg-cyan-500",
+  },
+  rejected: {
+    label: "مرفوض",
+    tone: "bg-rose-50 text-rose-800 border-rose-200",
+    dot: "bg-rose-500",
+  },
+  completed: {
+    label: "مكتمل",
+    tone: "bg-emerald-50 text-emerald-800 border-emerald-200",
+    dot: "bg-emerald-500",
+  },
+};
 
 function statusInfo(status?: string) {
-  return STATUS[status ?? ""] ?? { label: "غير محدد", tone: "bg-slate-50 text-slate-700 border-slate-200", dot: "bg-slate-400" }
+  return (
+    STATUS[status ?? ""] ?? {
+      label: "غير محدد",
+      tone: "bg-slate-50 text-slate-700 border-slate-200",
+      dot: "bg-slate-400",
+    }
+  );
 }
 
 function directionsUrl(location: string) {
-  const gps = location.match(/إحداثيات GPS:\s*([-\d.]+),\s*([-\d.]+)/) ?? location.match(/^([-\d.]+),\s*([-\d.]+)$/)
-  const destination = gps ? `${gps[1]},${gps[2]}` : `${location}، الرياض، المملكة العربية السعودية`
-  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`
+  const gps =
+    location.match(/إحداثيات GPS:\s*([-\d.]+),\s*([-\d.]+)/) ??
+    location.match(/^([-\d.]+),\s*([-\d.]+)$/);
+  const destination = gps
+    ? `${gps[1]},${gps[2]}`
+    : `${location}، الرياض، المملكة العربية السعودية`;
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`;
 }
 
-function SummaryTile({ label, value, accent }: { label: string; value: number; accent: string }) {
+function SummaryTile({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: number;
+  accent: string;
+}) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm" data-testid={`summary-${label}`}>
+    <div
+      className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm"
+      data-testid={`summary-${label}`}
+    >
       <div className={`mb-3 h-1.5 w-10 rounded-full ${accent}`} />
       <p className="text-xs font-semibold text-slate-500">{label}</p>
-      <p className="mt-1 text-3xl font-black tracking-tight text-slate-900">{value}</p>
+      <p className="mt-1 text-3xl font-black tracking-tight text-slate-900">
+        {value}
+      </p>
     </div>
-  )
+  );
 }
 
 function isSameDay(left?: string | null, right = new Date()) {
-  if (!left) return false
-  const date = new Date(left)
-  return Number.isFinite(date.getTime()) &&
+  if (!left) return false;
+  const date = new Date(left);
+  return (
+    Number.isFinite(date.getTime()) &&
     date.getFullYear() === right.getFullYear() &&
     date.getMonth() === right.getMonth() &&
     date.getDate() === right.getDate()
+  );
 }
 
 function isOverdue(order: ServiceRequest) {
-  if (!order.scheduledAt || ["completed", "rejected"].includes(order.driverStatus ?? "")) return false
-  const scheduled = new Date(order.scheduledAt).getTime()
-  return Number.isFinite(scheduled) && scheduled < Date.now()
+  if (
+    !order.scheduledAt ||
+    ["completed", "rejected"].includes(order.driverStatus ?? "")
+  )
+    return false;
+  const scheduled = new Date(order.scheduledAt).getTime();
+  return Number.isFinite(scheduled) && scheduled < Date.now();
 }
 
 function hasDriverConflict(order: ServiceRequest, orders: ServiceRequest[]) {
-  if (!order.assignedDriverId || !order.scheduledAt) return false
-  return orders.some(candidate =>
-    candidate.id !== order.id &&
-    candidate.assignedDriverId === order.assignedDriverId &&
-    candidate.scheduledAt &&
-    isSameDay(candidate.scheduledAt, new Date(order.scheduledAt as string)) &&
-    !["completed", "rejected"].includes(candidate.driverStatus ?? ""),
-  )
+  if (!order.assignedDriverId || !order.scheduledAt) return false;
+  return orders.some(
+    (candidate) =>
+      candidate.id !== order.id &&
+      candidate.assignedDriverId === order.assignedDriverId &&
+      candidate.scheduledAt &&
+      isSameDay(candidate.scheduledAt, new Date(order.scheduledAt as string)) &&
+      !["completed", "rejected"].includes(candidate.driverStatus ?? ""),
+  );
 }
 
-function OrderDetailsDialog({ order, open, onClose, isDriver }: {
-  order: ServiceRequest | null
-  open: boolean
-  onClose: () => void
-  isDriver: boolean
+function OrderDetailsDialog({
+  order,
+  open,
+  onClose,
+  isDriver,
+}: {
+  order: ServiceRequest | null;
+  open: boolean;
+  onClose: () => void;
+  isDriver: boolean;
 }) {
-  if (!order) return null
-  const cleanLocation = order.location.replace(/\n?إحداثيات GPS:\s*[-\d.]+,\s*[-\d.]+/, "").trim()
-  const locationLabel = cleanLocation || order.location
-  const mapUrl = directionsUrl(order.location)
+  if (!order) return null;
+  const cleanLocation = order.location
+    .replace(/\n?إحداثيات GPS:\s*[-\d.]+,\s*[-\d.]+/, "")
+    .trim();
+  const locationLabel = cleanLocation || order.location;
+  const mapUrl = directionsUrl(order.location);
 
   return (
-    <Dialog open={open} onOpenChange={value => !value && onClose()}>
-      <DialogContent className="max-h-[90vh] w-[95vw] max-w-xl overflow-y-auto rounded-2xl p-0" dir="rtl">
+    <Dialog open={open} onOpenChange={(value) => !value && onClose()}>
+      <DialogContent
+        className="max-h-[90vh] w-[95vw] max-w-xl overflow-y-auto rounded-2xl p-0"
+        dir="rtl"
+      >
         <div className="bg-[#0b2a3f] px-5 py-5 text-white">
           <DialogHeader>
-            <DialogTitle className="text-right text-xl font-black text-white">تفاصيل أمر العمل #{order.id}</DialogTitle>
+            <DialogTitle className="text-right text-xl font-black text-white">
+              تفاصيل أمر العمل #{order.id}
+            </DialogTitle>
           </DialogHeader>
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-bold ${statusInfo(order.driverStatus).tone}`}>
-              <span className={`h-1.5 w-1.5 rounded-full ${statusInfo(order.driverStatus).dot}`} />
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-bold ${statusInfo(order.driverStatus).tone}`}
+            >
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${statusInfo(order.driverStatus).dot}`}
+              />
               {statusInfo(order.driverStatus).label}
             </span>
             {order.assignedDriverName && (
-              <span className="text-xs text-white/70">السائق: {order.assignedDriverName}</span>
+              <span className="text-xs text-white/70">
+                السائق: {order.assignedDriverName}
+              </span>
             )}
           </div>
         </div>
@@ -125,8 +206,14 @@ function OrderDetailsDialog({ order, open, onClose, isDriver }: {
             <div className="grid gap-3 sm:grid-cols-2">
               <Info label="اسم العميل" value={order.clientName} />
               <div>
-                <p className="text-[11px] font-semibold text-slate-400">رقم الجوال</p>
-                <a href={`tel:${order.phone}`} dir="ltr" className="mt-1 flex items-center gap-1.5 text-sm font-bold text-emerald-700 hover:underline">
+                <p className="text-[11px] font-semibold text-slate-400">
+                  رقم الجوال
+                </p>
+                <a
+                  href={`tel:${order.phone}`}
+                  dir="ltr"
+                  className="mt-1 flex items-center gap-1.5 text-sm font-bold text-emerald-700 hover:underline"
+                >
                   <Phone size={14} /> {order.phone}
                 </a>
               </div>
@@ -135,17 +222,33 @@ function OrderDetailsDialog({ order, open, onClose, isDriver }: {
 
           <section className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
             <h3 className="mb-3 flex items-center gap-2 text-sm font-extrabold text-slate-800">
-              <ClipboardList size={16} className="text-[#0b2a3f]" /> تفاصيل الخدمة
+              <ClipboardList size={16} className="text-[#0b2a3f]" /> تفاصيل
+              الخدمة
             </h3>
             <div className="grid gap-3 sm:grid-cols-2">
               <Info label="نوع الخدمة" value={order.serviceType} />
-              <Info label="باقة التنظيف / العقار" value={order.containerSize || "غير محدد"} />
+              <Info
+                label="باقة التنظيف / العقار"
+                value={order.containerSize || "غير محدد"}
+              />
               <Info label="المدة" value={order.duration || "حسب الطلب"} />
-              <Info label="الموعد" value={order.scheduledAt ? new Date(order.scheduledAt).toLocaleString("ar-SA", { dateStyle: "medium", timeStyle: "short" }) : "حسب التوفر"} />
+              <Info
+                label="الموعد"
+                value={
+                  order.scheduledAt
+                    ? new Date(order.scheduledAt).toLocaleString("ar-SA", {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      })
+                    : "حسب التوفر"
+                }
+              />
             </div>
             {order.notes && (
               <div className="mt-3 rounded-xl bg-white p-3 text-sm leading-6 text-slate-600">
-                <p className="mb-1 text-xs font-bold text-slate-400">ملاحظات الطلب</p>
+                <p className="mb-1 text-xs font-bold text-slate-400">
+                  ملاحظات الطلب
+                </p>
                 <p className="whitespace-pre-wrap">{order.notes}</p>
               </div>
             )}
@@ -155,7 +258,9 @@ function OrderDetailsDialog({ order, open, onClose, isDriver }: {
             <h3 className="mb-2 flex items-center gap-2 text-sm font-extrabold text-slate-800">
               <MapPin size={16} className="text-rose-600" /> موقع التنفيذ
             </h3>
-            <p className="text-sm leading-6 text-slate-700">{locationLabel || "الموقع غير محدد"}</p>
+            <p className="text-sm leading-6 text-slate-700">
+              {locationLabel || "الموقع غير محدد"}
+            </p>
             <a
               href={mapUrl}
               target="_blank"
@@ -163,37 +268,73 @@ function OrderDetailsDialog({ order, open, onClose, isDriver }: {
               className="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-bold text-white shadow-sm transition-colors hover:bg-blue-700"
               data-testid={`button-directions-${order.id}`}
             >
-              <Navigation size={17} /> فتح الاتجاهات إلى موقع الطلب <ExternalLink size={14} />
+              <Navigation size={17} /> فتح الاتجاهات إلى موقع الطلب{" "}
+              <ExternalLink size={14} />
             </a>
           </section>
 
           {isDriver && (
-            <p className="text-center text-[11px] text-slate-400">تفاصيل التشغيل لا تتضمن بيانات الأسعار.</p>
+            <p className="text-center text-[11px] text-slate-400">
+              تفاصيل التشغيل لا تتضمن بيانات الأسعار.
+            </p>
           )}
 
-          {(order.driverReceiverName || order.driverSignatureData || order.driverProofPhotoUrl || order.driverNotes) && (
+          {(order.driverReceiverName ||
+            order.driverSignatureData ||
+            order.driverProofPhotoUrl ||
+            order.driverNotes) && (
             <section className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4">
               <h3 className="mb-3 flex items-center gap-2 text-sm font-extrabold text-slate-800">
-                <CheckCircle2 size={16} className="text-emerald-600" /> إثبات التنفيذ
+                <CheckCircle2 size={16} className="text-emerald-600" /> إثبات
+                التنفيذ
               </h3>
               <div className="grid gap-3 sm:grid-cols-2">
-                {order.driverReceiverName && <Info label="اسم المستلم" value={order.driverReceiverName} />}
-                {order.driverCompletedAt && <Info label="وقت الإكمال" value={new Date(order.driverCompletedAt).toLocaleString("ar-SA", { dateStyle: "medium", timeStyle: "short" })} />}
-                {order.driverLocationLat && order.driverLocationLng && <Info label="موقع التنفيذ" value={`${order.driverLocationLat}, ${order.driverLocationLng}`} />}
+                {order.driverReceiverName && (
+                  <Info label="اسم المستلم" value={order.driverReceiverName} />
+                )}
+                {order.driverCompletedAt && (
+                  <Info
+                    label="وقت الإكمال"
+                    value={new Date(order.driverCompletedAt).toLocaleString(
+                      "ar-SA",
+                      { dateStyle: "medium", timeStyle: "short" },
+                    )}
+                  />
+                )}
+                {order.driverLocationLat && order.driverLocationLng && (
+                  <Info
+                    label="موقع التنفيذ"
+                    value={`${order.driverLocationLat}, ${order.driverLocationLng}`}
+                  />
+                )}
               </div>
               {order.driverProofPhotoUrl && (
-                <a href={order.driverProofPhotoUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex text-sm font-bold text-emerald-700 hover:underline">
-                  فتح صورة إثبات التنفيذ <ExternalLink size={14} className="mr-1" />
+                <a
+                  href={order.driverProofPhotoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-3 inline-flex text-sm font-bold text-emerald-700 hover:underline"
+                >
+                  فتح صورة إثبات التنفيذ{" "}
+                  <ExternalLink size={14} className="mr-1" />
                 </a>
               )}
-              {order.driverSignatureData && <p className="mt-3 text-xs font-bold text-emerald-800">تم حفظ توقيع العميل.</p>}
-              {order.driverNotes && <p className="mt-3 whitespace-pre-wrap rounded-xl bg-white p-3 text-sm leading-6 text-slate-600">{order.driverNotes}</p>}
+              {order.driverSignatureData && (
+                <p className="mt-3 text-xs font-bold text-emerald-800">
+                  تم حفظ توقيع العميل.
+                </p>
+              )}
+              {order.driverNotes && (
+                <p className="mt-3 whitespace-pre-wrap rounded-xl bg-white p-3 text-sm leading-6 text-slate-600">
+                  {order.driverNotes}
+                </p>
+              )}
             </section>
           )}
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
 
 function Info({ label, value }: { label: string; value: string }) {
@@ -202,84 +343,189 @@ function Info({ label, value }: { label: string; value: string }) {
       <p className="text-[11px] font-semibold text-slate-400">{label}</p>
       <p className="mt-1 text-sm font-bold text-slate-800">{value}</p>
     </div>
-  )
+  );
 }
 
-function CompletionEvidenceDialog({ open, onClose, onSubmit, pending }: {
-  open: boolean
-  onClose: () => void
-  onSubmit: (evidence: { receiverName: string; locationLat: string; locationLng: string; proofPhotoUrl: string; signatureData: string }) => void
-  pending: boolean
+function CompletionEvidenceDialog({
+  open,
+  onClose,
+  onSubmit,
+  pending,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (evidence: {
+    receiverName: string;
+    locationLat: string;
+    locationLng: string;
+    proofPhotoUrl: string;
+    signatureData: string;
+  }) => void;
+  pending: boolean;
 }) {
-  const [receiverName, setReceiverName] = useState("")
-  const [locationLat, setLocationLat] = useState("")
-  const [locationLng, setLocationLng] = useState("")
-  const [proofFile, setProofFile] = useState<File | null>(null)
-  const [uploadingProof, setUploadingProof] = useState(false)
-  const [signatureData, setSignatureData] = useState("")
-  const [locationMessage, setLocationMessage] = useState("")
+  const [receiverName, setReceiverName] = useState("");
+  const [locationLat, setLocationLat] = useState("");
+  const [locationLng, setLocationLng] = useState("");
+  const [proofFile, setProofFile] = useState<File | null>(null);
+  const [uploadingProof, setUploadingProof] = useState(false);
+  const [signatureData, setSignatureData] = useState("");
+  const [locationMessage, setLocationMessage] = useState("");
   function captureLocation() {
     if (!navigator.geolocation) {
-      setLocationMessage("المتصفح لا يدعم تحديد الموقع؛ أدخل الإحداثيات يدوياً.")
-      return
+      setLocationMessage(
+        "المتصفح لا يدعم تحديد الموقع؛ أدخل الإحداثيات يدوياً.",
+      );
+      return;
     }
-    setLocationMessage("جارٍ التقاط موقعك الحالي...")
+    setLocationMessage("جارٍ التقاط موقعك الحالي...");
     navigator.geolocation.getCurrentPosition(
-      position => {
-        setLocationLat(position.coords.latitude.toFixed(6))
-        setLocationLng(position.coords.longitude.toFixed(6))
-        setLocationMessage("تم التقاط موقع التنفيذ الحالي.")
+      (position) => {
+        setLocationLat(position.coords.latitude.toFixed(6));
+        setLocationLng(position.coords.longitude.toFixed(6));
+        setLocationMessage("تم التقاط موقع التنفيذ الحالي.");
       },
-      () => setLocationMessage("تعذر الوصول للموقع؛ تحقق من الإذن أو أدخل الإحداثيات يدوياً."),
+      () =>
+        setLocationMessage(
+          "تعذر الوصول للموقع؛ تحقق من الإذن أو أدخل الإحداثيات يدوياً.",
+        ),
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 },
-    )
+    );
   }
   async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    if (uploadingProof) return
-    setUploadingProof(true)
+    event.preventDefault();
+    if (uploadingProof) return;
+    setUploadingProof(true);
     try {
-      let proofPhotoUrl = ""
+      let proofPhotoUrl = "";
       if (proofFile) {
-        const form = new FormData()
-        form.append("file", proofFile)
+        const form = new FormData();
+        form.append("file", proofFile);
         const response = await fetch(`${API_BASE}/api/admin/uploads`, {
           method: "POST",
-          headers: { Authorization: `Bearer ${localStorage.getItem("admin_token") ?? ""}` },
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("admin_token") ?? ""}`,
+          },
           body: form,
-        })
-        const body = await response.json().catch(() => ({}))
-        if (!response.ok || !body.url) throw new Error("تعذر رفع صورة الإثبات")
-        proofPhotoUrl = String(body.url)
+        });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok || !body.url) throw new Error("تعذر رفع صورة الإثبات");
+        proofPhotoUrl = String(body.url);
       }
-      onSubmit({ receiverName, locationLat, locationLng, proofPhotoUrl, signatureData })
+      onSubmit({
+        receiverName,
+        locationLat,
+        locationLng,
+        proofPhotoUrl,
+        signatureData,
+      });
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : "تعذر رفع صورة الإثبات")
+      window.alert(
+        error instanceof Error ? error.message : "تعذر رفع صورة الإثبات",
+      );
     } finally {
-      setUploadingProof(false)
+      setUploadingProof(false);
     }
   }
   return (
-    <Dialog open={open} onOpenChange={value => { if (!value) onClose() }}>
+    <Dialog
+      open={open}
+      onOpenChange={(value) => {
+        if (!value) onClose();
+      }}
+    >
       <DialogContent dir="rtl" className="max-w-xl">
-        <DialogHeader><DialogTitle>إثبات إكمال المهمة</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>إثبات إكمال المهمة</DialogTitle>
+        </DialogHeader>
         <form className="space-y-4" onSubmit={submit}>
           <div className="grid gap-3 sm:grid-cols-2">
-            <label className="text-xs font-bold text-slate-600">اسم المستلم<input required value={receiverName} onChange={event => setReceiverName(event.target.value)} className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm" placeholder="اسم ممثل العميل" /></label>
-            <label className="text-xs font-bold text-slate-600">صورة إثبات التنفيذ <span className="text-rose-600">*</span><input required type="file" accept="image/*" capture="environment" onChange={event => setProofFile(event.target.files?.[0] ?? null)} className="mt-1 block w-full rounded-md border border-input bg-background p-2 text-xs" />{proofFile && <span className="mt-1 block truncate text-[11px] text-emerald-700">{proofFile.name}</span>}</label>
-            <label className="text-xs font-bold text-slate-600">خط العرض<input value={locationLat} onChange={event => setLocationLat(event.target.value)} className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm" placeholder="24.7136" dir="ltr" /></label>
-            <label className="text-xs font-bold text-slate-600">خط الطول<input value={locationLng} onChange={event => setLocationLng(event.target.value)} className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm" placeholder="46.6753" dir="ltr" /></label>
+            <label className="text-xs font-bold text-slate-600">
+              اسم المستلم
+              <input
+                required
+                value={receiverName}
+                onChange={(event) => setReceiverName(event.target.value)}
+                className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                placeholder="اسم ممثل العميل"
+              />
+            </label>
+            <label className="text-xs font-bold text-slate-600">
+              صورة إثبات التنفيذ <span className="text-rose-600">*</span>
+              <input
+                required
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={(event) =>
+                  setProofFile(event.target.files?.[0] ?? null)
+                }
+                className="mt-1 block w-full rounded-md border border-input bg-background p-2 text-xs"
+              />
+              {proofFile && (
+                <span className="mt-1 block truncate text-[11px] text-emerald-700">
+                  {proofFile.name}
+                </span>
+              )}
+            </label>
+            <label className="text-xs font-bold text-slate-600">
+              خط العرض
+              <input
+                value={locationLat}
+                onChange={(event) => setLocationLat(event.target.value)}
+                className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                placeholder="24.7136"
+                dir="ltr"
+              />
+            </label>
+            <label className="text-xs font-bold text-slate-600">
+              خط الطول
+              <input
+                value={locationLng}
+                onChange={(event) => setLocationLng(event.target.value)}
+                className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                placeholder="46.6753"
+                dir="ltr"
+              />
+            </label>
           </div>
           <div className="rounded-xl border border-cyan-100 bg-cyan-50/70 p-3">
-            <Button type="button" variant="outline" onClick={captureLocation} className="gap-2 border-cyan-200 text-cyan-800 hover:bg-white"><MapPin size={15} /> استخدام موقعي الحالي</Button>
-            {locationMessage && <p className="mt-2 text-xs font-semibold text-cyan-900">{locationMessage}</p>}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={captureLocation}
+              className="gap-2 border-cyan-200 text-cyan-800 hover:bg-white"
+            >
+              <MapPin size={15} /> استخدام موقعي الحالي
+            </Button>
+            {locationMessage && (
+              <p className="mt-2 text-xs font-semibold text-cyan-900">
+                {locationMessage}
+              </p>
+            )}
           </div>
           <SignaturePad value={signatureData} onChange={setSignatureData} />
-            <div className="flex justify-end gap-2 border-t pt-4"><Button type="button" variant="outline" onClick={onClose}>إلغاء</Button><Button type="submit" disabled={pending || uploadingProof || !signatureData || !proofFile} className="bg-emerald-600 hover:bg-emerald-700">{uploadingProof ? "جارٍ رفع الإثبات..." : pending ? "جارٍ الحفظ..." : "تأكيد الإكمال"}</Button></div>
+          <div className="flex justify-end gap-2 border-t pt-4">
+            <Button type="button" variant="outline" onClick={onClose}>
+              إلغاء
+            </Button>
+            <Button
+              type="submit"
+              disabled={
+                pending || uploadingProof || !signatureData || !proofFile
+              }
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              {uploadingProof
+                ? "جارٍ رفع الإثبات..."
+                : pending
+                  ? "جارٍ الحفظ..."
+                  : "تأكيد الإكمال"}
+            </Button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
 
 function WorkOrderCard({
@@ -290,153 +536,374 @@ function WorkOrderCard({
   pending,
   isDriver,
 }: {
-  order: ServiceRequest
-  allOrders: ServiceRequest[]
-  onAction: (order: ServiceRequest, status: DriverWorkOrderStatus) => void
-  onOpenDetails: (order: ServiceRequest) => void
-  pending: boolean
-  isDriver: boolean
+  order: ServiceRequest;
+  allOrders: ServiceRequest[];
+  onAction: (order: ServiceRequest, status: DriverWorkOrderStatus) => void;
+  onOpenDetails: (order: ServiceRequest) => void;
+  pending: boolean;
+  isDriver: boolean;
 }) {
-  const info = statusInfo(order.driverStatus)
-  const isHistory = order.driverStatus === DriverWorkOrderStatus.rejected || order.driverStatus === DriverWorkOrderStatus.completed
-  const conflict = hasDriverConflict(order, allOrders)
-  const overdue = isOverdue(order)
+  const info = statusInfo(order.driverStatus);
+  const isHistory =
+    order.driverStatus === DriverWorkOrderStatus.rejected ||
+    order.driverStatus === DriverWorkOrderStatus.completed;
+  const conflict = hasDriverConflict(order, allOrders);
+  const overdue = isOverdue(order);
   return (
-    <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md sm:p-5" data-testid={`card-work-order-${order.id}`}>
+    <article
+      className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md sm:p-5"
+      data-testid={`card-work-order-${order.id}`}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="font-mono text-xs font-bold text-slate-400">طلب #{order.id}</span>
-            <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-bold ${info.tone}`} data-testid={`status-work-order-${order.id}`}>
-              <span className={`h-1.5 w-1.5 rounded-full ${info.dot}`} /> {info.label}
+            <span className="font-mono text-xs font-bold text-slate-400">
+              طلب #{order.id}
+            </span>
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-bold ${info.tone}`}
+              data-testid={`status-work-order-${order.id}`}
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${info.dot}`} />{" "}
+              {info.label}
             </span>
           </div>
-          <h3 className="mt-3 truncate text-lg font-extrabold text-slate-900">{order.serviceType}</h3>
+          <h3 className="mt-3 truncate text-lg font-extrabold text-slate-900">
+            {order.serviceType}
+          </h3>
           <p className="mt-1 text-sm text-slate-500">{order.clientName}</p>
-          {!isDriver && order.assignedDriverName && <p className="mt-1 text-xs font-semibold text-slate-400">السائق: {order.assignedDriverName}</p>}
-          {!isDriver && !order.assignedDriverId && <p className="mt-1 text-xs font-bold text-rose-600">يحتاج إلى إسناد</p>}
-          {!isDriver && conflict && <p className="mt-1 text-xs font-bold text-amber-700">تنبيه: يوجد أمر آخر للسائق في نفس اليوم</p>}
-          {!isDriver && overdue && <p className="mt-1 text-xs font-bold text-rose-700">متأخر عن الموعد المجدول</p>}
+          {!isDriver && order.assignedDriverName && (
+            <p className="mt-1 text-xs font-semibold text-slate-400">
+              السائق: {order.assignedDriverName}
+            </p>
+          )}
+          {!isDriver && !order.assignedDriverId && (
+            <p className="mt-1 text-xs font-bold text-rose-600">
+              يحتاج إلى إسناد
+            </p>
+          )}
+          {!isDriver && conflict && (
+            <p className="mt-1 text-xs font-bold text-amber-700">
+              تنبيه: يوجد أمر آخر للسائق في نفس اليوم
+            </p>
+          )}
+          {!isDriver && overdue && (
+            <p className="mt-1 text-xs font-bold text-rose-700">
+              متأخر عن الموعد المجدول
+            </p>
+          )}
         </div>
-        <div className="rounded-xl bg-[#0b2a3f] p-2.5 text-[#e0b84f]"><ClipboardList size={20} /></div>
+        <div className="rounded-xl bg-[#0b2a3f] p-2.5 text-[#e0b84f]">
+          <ClipboardList size={20} />
+        </div>
       </div>
 
       <div className="mt-4 grid gap-2 border-t border-slate-100 pt-4 text-sm text-slate-600 sm:grid-cols-2">
-        <div className="flex min-w-0 items-center gap-2"><MapPin size={15} className="shrink-0 text-slate-400" /><span className="truncate">{order.location || "الموقع غير محدد"}</span></div>
-        <div className="flex items-center gap-2"><Clock3 size={15} className="shrink-0 text-slate-400" /><span>{order.scheduledAt ? new Date(order.scheduledAt).toLocaleString("ar-SA", { dateStyle: "medium", timeStyle: "short" }) : "حسب التوفر"}</span></div>
+        <div className="flex min-w-0 items-center gap-2">
+          <MapPin size={15} className="shrink-0 text-slate-400" />
+          <span className="truncate">
+            {order.location || "الموقع غير محدد"}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Clock3 size={15} className="shrink-0 text-slate-400" />
+          <span>
+            {order.scheduledAt
+              ? new Date(order.scheduledAt).toLocaleString("ar-SA", {
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                })
+              : "حسب التوفر"}
+          </span>
+        </div>
       </div>
 
       <div className="mt-4 flex flex-col gap-2 border-t border-slate-100 pt-4 sm:flex-row">
-        <Button variant="outline" onClick={() => onOpenDetails(order)} className="h-11 flex-1 gap-2 border-slate-200 text-slate-700 hover:bg-slate-50" data-testid={`button-details-${order.id}`}>
+        <Button
+          variant="outline"
+          onClick={() => onOpenDetails(order)}
+          className="h-11 flex-1 gap-2 border-slate-200 text-slate-700 hover:bg-slate-50"
+          data-testid={`button-details-${order.id}`}
+        >
           <ClipboardList size={16} /> عرض التفاصيل
         </Button>
         {isDriver && !isHistory && (
           <>
             {order.driverStatus === DriverWorkOrderStatus.assigned && (
               <>
-                <Button disabled={pending} onClick={() => onAction(order, DriverWorkOrderStatus.accepted)} className="h-11 flex-1 gap-2 bg-[#0b2a3f] text-white hover:bg-[#123f5a]" data-testid={`button-accept-${order.id}`}><Check size={16} /> قبول</Button>
-                <Button disabled={pending} variant="outline" onClick={() => onAction(order, DriverWorkOrderStatus.rejected)} className="h-11 flex-1 gap-2 border-rose-200 text-rose-700 hover:bg-rose-50" data-testid={`button-reject-${order.id}`}><X size={16} /> رفض</Button>
+                <Button
+                  disabled={pending}
+                  onClick={() =>
+                    onAction(order, DriverWorkOrderStatus.accepted)
+                  }
+                  className="h-11 flex-1 gap-2 bg-[#0b2a3f] text-white hover:bg-[#123f5a]"
+                  data-testid={`button-accept-${order.id}`}
+                >
+                  <Check size={16} /> قبول
+                </Button>
+                <Button
+                  disabled={pending}
+                  variant="outline"
+                  onClick={() =>
+                    onAction(order, DriverWorkOrderStatus.rejected)
+                  }
+                  className="h-11 flex-1 gap-2 border-rose-200 text-rose-700 hover:bg-rose-50"
+                  data-testid={`button-reject-${order.id}`}
+                >
+                  <X size={16} /> رفض
+                </Button>
               </>
             )}
-            {order.driverStatus === DriverWorkOrderStatus.accepted && <Button disabled={pending} onClick={() => onAction(order, DriverWorkOrderStatus.started)} className="h-11 flex-1 gap-2 bg-indigo-600 text-white hover:bg-indigo-700" data-testid={`button-start-${order.id}`}><Play size={16} /> بدء التنفيذ</Button>}
-            {order.driverStatus === DriverWorkOrderStatus.started && <Button disabled={pending} onClick={() => onAction(order, DriverWorkOrderStatus.en_route)} className="h-11 flex-1 gap-2 bg-violet-600 text-white hover:bg-violet-700" data-testid={`button-en-route-${order.id}`}><Navigation size={16} /> في الطريق</Button>}
-            {order.driverStatus === DriverWorkOrderStatus.en_route && <Button disabled={pending} onClick={() => onAction(order, DriverWorkOrderStatus.arrived)} className="h-11 flex-1 gap-2 bg-cyan-700 text-white hover:bg-cyan-800" data-testid={`button-arrived-${order.id}`}><MapPin size={16} /> وصلت للموقع</Button>}
-            {order.driverStatus === DriverWorkOrderStatus.arrived && <Button disabled={pending} onClick={() => onAction(order, DriverWorkOrderStatus.completed)} className="h-11 flex-1 gap-2 bg-emerald-600 text-white hover:bg-emerald-700" data-testid={`button-complete-${order.id}`}><CheckCircle2 size={16} /> تأكيد الإكمال</Button>}
+            {order.driverStatus === DriverWorkOrderStatus.accepted && (
+              <Button
+                disabled={pending}
+                onClick={() => onAction(order, DriverWorkOrderStatus.started)}
+                className="h-11 flex-1 gap-2 bg-indigo-600 text-white hover:bg-indigo-700"
+                data-testid={`button-start-${order.id}`}
+              >
+                <Play size={16} /> بدء التنفيذ
+              </Button>
+            )}
+            {order.driverStatus === DriverWorkOrderStatus.started && (
+              <Button
+                disabled={pending}
+                onClick={() => onAction(order, DriverWorkOrderStatus.en_route)}
+                className="h-11 flex-1 gap-2 bg-violet-600 text-white hover:bg-violet-700"
+                data-testid={`button-en-route-${order.id}`}
+              >
+                <Navigation size={16} /> في الطريق
+              </Button>
+            )}
+
+            {order.driverStatus === DriverWorkOrderStatus.en_route && (
+              <Button
+                disabled={pending}
+                onClick={() => onAction(order, DriverWorkOrderStatus.arrived)}
+                className="h-11 flex-1 gap-2 bg-cyan-700 text-white hover:bg-cyan-800"
+                data-testid={`button-arrived-${order.id}`}
+              >
+                <MapPin size={16} /> وصلت للموقع
+              </Button>
+            )}
+            {order.driverStatus === DriverWorkOrderStatus.arrived && (
+              <Button
+                disabled={pending}
+                onClick={() => onAction(order, DriverWorkOrderStatus.completed)}
+                className="h-11 flex-1 gap-2 bg-emerald-600 text-white hover:bg-emerald-700"
+                data-testid={`button-complete-${order.id}`}
+              >
+                <CheckCircle2 size={16} /> تأكيد الإكمال
+              </Button>
+            )}
           </>
         )}
       </div>
     </article>
-  )
+  );
 }
 
 export default function WorkOrders() {
-  const { toast } = useToast()
-  const isDriver = localStorage.getItem("admin_role") === "driver"
-  const isManager = ["admin", "manager"].includes(localStorage.getItem("admin_role") ?? "")
-  const driverQuery = useGetDriverWorkOrders(undefined, { query: { enabled: isDriver, queryKey: getGetDriverWorkOrdersQueryKey() } })
-  const managerQuery = useGetAdminWorkOrders({ query: { enabled: isManager, queryKey: getGetAdminWorkOrdersQueryKey() } })
-  const activeQuery = isDriver ? driverQuery : managerQuery
-  const orders = activeQuery.data
-  const { mutate: updateOrder, isPending } = useUpdateDriverWorkOrder()
-  const { mutate: assignOrder, isPending: assigning } = useAssignServiceRequest()
-  const [view, setView] = useState<"active" | "history">("active")
-  const [selectedOrder, setSelectedOrder] = useState<ServiceRequest | null>(null)
-  const [completionTarget, setCompletionTarget] = useState<ServiceRequest | null>(null)
-  const [drivers, setDrivers] = useState<{ id: number; name: string }[]>([])
-  const [driversLoading, setDriversLoading] = useState(isManager)
+  const { toast } = useToast();
+  const isDriver = localStorage.getItem("admin_role") === "driver";
+  const isManager = ["admin", "manager"].includes(
+    localStorage.getItem("admin_role") ?? "",
+  );
+  const driverQuery = useGetDriverWorkOrders(undefined, {
+    query: { enabled: isDriver, queryKey: getGetDriverWorkOrdersQueryKey() },
+  });
+  const managerQuery = useGetAdminWorkOrders({
+    query: { enabled: isManager, queryKey: getGetAdminWorkOrdersQueryKey() },
+  });
+  const activeQuery = isDriver ? driverQuery : managerQuery;
+  const orders = activeQuery.data;
+  const { mutate: updateOrder, isPending } = useUpdateDriverWorkOrder();
+  const { mutate: assignOrder, isPending: assigning } =
+    useAssignServiceRequest();
+  const [view, setView] = useState<"active" | "history">("active");
+  const [selectedOrder, setSelectedOrder] = useState<ServiceRequest | null>(
+    null,
+  );
+  const [completionTarget, setCompletionTarget] =
+    useState<ServiceRequest | null>(null);
+  const [drivers, setDrivers] = useState<{ id: number; name: string }[]>([]);
+  const [driversLoading, setDriversLoading] = useState(isManager);
 
   useEffect(() => {
-    if (!isManager) return
-    const token = localStorage.getItem("admin_token") ?? ""
-    fetch(`${import.meta.env.BASE_URL?.replace(/\/$/, "") || ""}/api/admin/employees`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(response => response.ok ? response.json() as Promise<{ id: number; name: string; role: string; isActive: number }[]> : Promise.reject(new Error("drivers")))
-      .then(rows => setDrivers(rows.filter(row => row.role === "driver" && row.isActive === 1).map(row => ({ id: row.id, name: row.name }))))
+    if (!isManager) return;
+    const token = localStorage.getItem("admin_token") ?? "";
+    fetch(
+      `${import.meta.env.BASE_URL?.replace(/\/$/, "") || ""}/api/admin/employees`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    )
+      .then((response) =>
+        response.ok
+          ? (response.json() as Promise<
+              { id: number; name: string; role: string; isActive: number }[]
+            >)
+          : Promise.reject(new Error("drivers")),
+      )
+      .then((rows) =>
+        setDrivers(
+          rows
+            .filter((row) => row.role === "driver" && row.isActive === 1)
+            .map((row) => ({ id: row.id, name: row.name })),
+        ),
+      )
       .catch(() => setDrivers([]))
-      .finally(() => setDriversLoading(false))
-  }, [isManager])
+      .finally(() => setDriversLoading(false));
+  }, [isManager]);
 
-  const counts = useMemo(() => ({
-    assigned: orders?.filter(o => o.driverStatus === DriverWorkOrderStatus.assigned).length ?? 0,
-    accepted: orders?.filter(o => o.driverStatus === DriverWorkOrderStatus.accepted).length ?? 0,
-    started: orders?.filter(o => [DriverWorkOrderStatus.started, DriverWorkOrderStatus.en_route, DriverWorkOrderStatus.arrived].includes(o.driverStatus as "started" | "en_route" | "arrived")).length ?? 0,
-    history: orders?.filter(o => o.driverStatus === DriverWorkOrderStatus.rejected || o.driverStatus === DriverWorkOrderStatus.completed).length ?? 0,
-    unassigned: orders?.filter(o => !o.assignedDriverId && o.driverStatus !== DriverWorkOrderStatus.completed && o.driverStatus !== DriverWorkOrderStatus.rejected).length ?? 0,
-    today: orders?.filter(o => isSameDay(o.scheduledAt)).length ?? 0,
-    overdue: orders?.filter(isOverdue).length ?? 0,
-    assignmentRate: orders?.length ? Math.round((orders.filter(o => Boolean(o.assignedDriverId)).length / orders.length) * 100) : 0,
-  }), [orders])
+  const counts = useMemo(
+    () => ({
+      assigned:
+        orders?.filter((o) => o.driverStatus === DriverWorkOrderStatus.assigned)
+          .length ?? 0,
+      accepted:
+        orders?.filter((o) => o.driverStatus === DriverWorkOrderStatus.accepted)
+          .length ?? 0,
 
-  const visibleOrders = (orders ?? []).filter(order =>
+      started:
+        orders?.filter((o) =>
+          [
+            DriverWorkOrderStatus.started,
+            DriverWorkOrderStatus.en_route,
+            DriverWorkOrderStatus.arrived,
+          ].includes(o.driverStatus as "started" | "en_route" | "arrived"),
+        ).length ?? 0,
+
+      history:
+        orders?.filter(
+          (o) =>
+            o.driverStatus === DriverWorkOrderStatus.rejected ||
+            o.driverStatus === DriverWorkOrderStatus.completed,
+        ).length ?? 0,
+      unassigned:
+        orders?.filter(
+          (o) =>
+            !o.assignedDriverId &&
+            o.driverStatus !== DriverWorkOrderStatus.completed &&
+            o.driverStatus !== DriverWorkOrderStatus.rejected,
+        ).length ?? 0,
+      today: orders?.filter((o) => isSameDay(o.scheduledAt)).length ?? 0,
+      overdue: orders?.filter(isOverdue).length ?? 0,
+      assignmentRate: orders?.length
+        ? Math.round(
+            (orders.filter((o) => Boolean(o.assignedDriverId)).length /
+              orders.length) *
+              100,
+          )
+        : 0,
+    }),
+    [orders],
+  );
+
+  const visibleOrders = (orders ?? []).filter((order) =>
     view === "active"
-      ? order.driverStatus !== DriverWorkOrderStatus.rejected && order.driverStatus !== DriverWorkOrderStatus.completed
-      : order.driverStatus === DriverWorkOrderStatus.rejected || order.driverStatus === DriverWorkOrderStatus.completed,
-  )
+      ? order.driverStatus !== DriverWorkOrderStatus.rejected &&
+        order.driverStatus !== DriverWorkOrderStatus.completed
+      : order.driverStatus === DriverWorkOrderStatus.rejected ||
+        order.driverStatus === DriverWorkOrderStatus.completed,
+  );
 
   function handleAction(order: ServiceRequest, status: DriverWorkOrderStatus) {
-    const extended = order as ServiceRequest & { contractRecordId?: number | null; containerRecordId?: number | null }
-    const isContainerOrder = Boolean(extended.contractRecordId || extended.containerRecordId) ||
-      /حاوي|أنقاض|تفريغ|سحب|استرجاع|تسليم|container|debris|waste/i.test(`${order.serviceType} ${order.containerSize}`)
+    const extended = order as ServiceRequest & {
+      contractRecordId?: number | null;
+      containerRecordId?: number | null;
+    };
+    const isContainerOrder =
+      Boolean(extended.contractRecordId || extended.containerRecordId) ||
+      /حاوي|أنقاض|تفريغ|سحب|استرجاع|تسليم|container|debris|waste/i.test(
+        `${order.serviceType} ${order.containerSize}`,
+      );
     if (status === DriverWorkOrderStatus.completed && isContainerOrder) {
-      setCompletionTarget(order)
-      return
+      setCompletionTarget(order);
+      return;
     }
-    const notes = status === DriverWorkOrderStatus.rejected ? window.prompt("اذكر سبب رفض المهمة")?.trim() : null
+    const notes =
+      status === DriverWorkOrderStatus.rejected
+        ? window.prompt("اذكر سبب رفض المهمة")?.trim()
+        : null;
     if (status === DriverWorkOrderStatus.rejected && !notes) {
-      toast({ variant: "destructive", title: "سبب الرفض مطلوب" })
-      return
+      toast({ variant: "destructive", title: "سبب الرفض مطلوب" });
+      return;
     }
-    updateOrder({ id: order.id, data: { status, notes: notes ?? null } }, {
-      onSuccess: () => {
-        toast({ title: status === DriverWorkOrderStatus.completed ? "تم إكمال المهمة" : "تم تحديث حالة المهمة" })
-        activeQuery.refetch()
+    updateOrder(
+      { id: order.id, data: { status, notes: notes ?? null } },
+      {
+        onSuccess: () => {
+          toast({
+            title:
+              status === DriverWorkOrderStatus.completed
+                ? "تم إكمال المهمة"
+                : "تم تحديث حالة المهمة",
+          });
+          activeQuery.refetch();
+        },
+        onError: () =>
+          toast({
+            variant: "destructive",
+            title: "تعذر تحديث المهمة",
+            description: "تحقق من الاتصال وحاول مرة أخرى",
+          }),
       },
-      onError: () => toast({ variant: "destructive", title: "تعذر تحديث المهمة", description: "تحقق من الاتصال وحاول مرة أخرى" }),
-    })
+    );
   }
 
   function handleAssignment(order: ServiceRequest, value: string) {
-    const driverId = value === "unassigned" ? null : Number(value)
-    assignOrder({ id: order.id, data: { driverId } }, {
-      onSuccess: () => {
-        toast({ title: driverId ? "تم إسناد أمر العمل للسائق" : "تم إلغاء إسناد أمر العمل" })
-        activeQuery.refetch()
+    const driverId = value === "unassigned" ? null : Number(value);
+    assignOrder(
+      { id: order.id, data: { driverId } },
+      {
+        onSuccess: () => {
+          toast({
+            title: driverId
+              ? "تم إسناد أمر العمل للسائق"
+              : "تم إلغاء إسناد أمر العمل",
+          });
+          activeQuery.refetch();
+        },
+        onError: () =>
+          toast({
+            variant: "destructive",
+            title: "تعذر تحديث إسناد أمر العمل",
+          }),
       },
-      onError: () => toast({ variant: "destructive", title: "تعذر تحديث إسناد أمر العمل" }),
-    })
+    );
   }
 
-  function submitCompletion(evidence: { receiverName: string; locationLat: string; locationLng: string; proofPhotoUrl: string; signatureData: string }) {
-    if (!completionTarget) return
-    updateOrder({ id: completionTarget.id, data: { status: DriverWorkOrderStatus.completed, notes: "تم استلام إثبات التسليم من السائق", ...evidence } }, {
-      onSuccess: () => {
-        toast({ title: "تم إكمال المهمة وحفظ إثبات التسليم" })
-        setCompletionTarget(null)
-        activeQuery.refetch()
+  function submitCompletion(evidence: {
+    receiverName: string;
+    locationLat: string;
+    locationLng: string;
+    proofPhotoUrl: string;
+    signatureData: string;
+  }) {
+    if (!completionTarget) return;
+    updateOrder(
+      {
+        id: completionTarget.id,
+        data: {
+          status: DriverWorkOrderStatus.completed,
+          notes: "تم استلام إثبات التسليم من السائق",
+          ...evidence,
+        },
       },
-      onError: () => toast({ variant: "destructive", title: "تعذر حفظ إثبات المهمة", description: "تحقق من البيانات وحاول مرة أخرى" }),
-    })
+      {
+        onSuccess: () => {
+          toast({ title: "تم إكمال المهمة وحفظ إثبات التسليم" });
+          setCompletionTarget(null);
+          activeQuery.refetch();
+        },
+        onError: () =>
+          toast({
+            variant: "destructive",
+            title: "تعذر حفظ إثبات المهمة",
+            description: "تحقق من البيانات وحاول مرة أخرى",
+          }),
+      },
+    );
   }
 
   return (
@@ -444,46 +911,216 @@ export default function WorkOrders() {
       <header className="rounded-[1.75rem] bg-[#0b2a3f] px-5 py-6 text-white shadow-lg sm:px-8">
         <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
           <div>
-            <p className="text-xs font-bold tracking-[0.18em] text-[#e0b84f]">{isDriver ? "مسار العمل اليومي" : "متابعة التشغيل"}</p>
-            <h1 className="mt-2 text-2xl font-black sm:text-3xl">{isDriver ? "مهامي الحالية" : "مهام السائقين الحالية"}</h1>
-            <p className="mt-2 max-w-xl text-sm leading-6 text-white/65">{isDriver ? "راجع تفاصيل الطلب، افتح الاتجاهات، وحدّث الحالة عند كل انتقال." : "عرض مباشر لجميع أوامر العمل المسندة إلى السائقين ومراحل تنفيذها."}</p>
+            <p className="text-xs font-bold tracking-[0.18em] text-[#e0b84f]">
+              {isDriver ? "مسار العمل اليومي" : "متابعة التشغيل"}
+            </p>
+            <h1 className="mt-2 text-2xl font-black sm:text-3xl">
+              {isDriver ? "مهامي الحالية" : "مهام السائقين الحالية"}
+            </h1>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-white/65">
+              {isDriver
+                ? "راجع تفاصيل الطلب، افتح الاتجاهات، وحدّث الحالة عند كل انتقال."
+                : "عرض مباشر لجميع أوامر العمل المسندة إلى السائقين ومراحل تنفيذها."}
+            </p>
           </div>
-          <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-xs text-white/75"><span className="h-2 w-2 rounded-full bg-emerald-300" /> لوحة تشغيل مباشرة</div>
+          <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-xs text-white/75">
+            <span className="h-2 w-2 rounded-full bg-emerald-300" /> لوحة تشغيل
+            مباشرة
+          </div>
         </div>
       </header>
 
-       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <SummaryTile label="بانتظار القبول" value={counts.assigned} accent="bg-amber-500" />
-        <SummaryTile label="مقبولة" value={counts.accepted} accent="bg-sky-500" />
-        <SummaryTile label="قيد التنفيذ" value={counts.started} accent="bg-indigo-500" />
-        <SummaryTile label={isDriver ? "السجل" : "إجمالي الحالي"} value={isDriver ? counts.history : (orders?.length ?? 0)} accent="bg-slate-400" />
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <SummaryTile
+          label="بانتظار القبول"
+          value={counts.assigned}
+          accent="bg-amber-500"
+        />
+        <SummaryTile
+          label="مقبولة"
+          value={counts.accepted}
+          accent="bg-sky-500"
+        />
+        <SummaryTile
+          label="قيد التنفيذ"
+          value={counts.started}
+          accent="bg-indigo-500"
+        />
+        <SummaryTile
+          label={isDriver ? "السجل" : "إجمالي الحالي"}
+          value={isDriver ? counts.history : (orders?.length ?? 0)}
+          accent="bg-slate-400"
+        />
       </section>
       {!isDriver && (
         <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <SummaryTile label="غير مسندة" value={counts.unassigned} accent="bg-rose-500" />
-          <SummaryTile label="مواعيد اليوم" value={counts.today} accent="bg-cyan-500" />
-          <SummaryTile label="متأخرة" value={counts.overdue} accent="bg-orange-500" />
-          <SummaryTile label="نسبة الإسناد" value={counts.assignmentRate} accent="bg-emerald-500" />
+          <SummaryTile
+            label="غير مسندة"
+            value={counts.unassigned}
+            accent="bg-rose-500"
+          />
+          <SummaryTile
+            label="مواعيد اليوم"
+            value={counts.today}
+            accent="bg-cyan-500"
+          />
+          <SummaryTile
+            label="متأخرة"
+            value={counts.overdue}
+            accent="bg-orange-500"
+          />
+          <SummaryTile
+            label="نسبة الإسناد"
+            value={counts.assignmentRate}
+            accent="bg-emerald-500"
+          />
         </section>
       )}
 
       {isDriver && (
         <div className="flex items-center justify-between gap-3">
           <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
-            <button onClick={() => setView("active")} className={`rounded-lg px-4 py-2 text-sm font-bold transition-colors ${view === "active" ? "bg-[#0b2a3f] text-white" : "text-slate-500 hover:bg-slate-50"}`} data-testid="button-active-orders">المهام الحالية</button>
-            <button onClick={() => setView("history")} className={`rounded-lg px-4 py-2 text-sm font-bold transition-colors ${view === "history" ? "bg-[#0b2a3f] text-white" : "text-slate-500 hover:bg-slate-50"}`} data-testid="button-order-history">السجل</button>
+            <button
+              onClick={() => setView("active")}
+              className={`rounded-lg px-4 py-2 text-sm font-bold transition-colors ${view === "active" ? "bg-[#0b2a3f] text-white" : "text-slate-500 hover:bg-slate-50"}`}
+              data-testid="button-active-orders"
+            >
+              المهام الحالية
+            </button>
+            <button
+              onClick={() => setView("history")}
+              className={`rounded-lg px-4 py-2 text-sm font-bold transition-colors ${view === "history" ? "bg-[#0b2a3f] text-white" : "text-slate-500 hover:bg-slate-50"}`}
+              data-testid="button-order-history"
+            >
+              السجل
+            </button>
           </div>
           <p className="text-xs text-slate-500">{visibleOrders.length} مهمة</p>
         </div>
       )}
 
-      {activeQuery.isLoading && <div className="grid gap-4 md:grid-cols-2" aria-label="جاري تحميل المهام" data-testid="loading-work-orders">{[1, 2, 3, 4].map(item => <Card key={item} className="h-52 animate-pulse border-0 bg-slate-200/70"><CardContent /></Card>)}</div>}
-      {activeQuery.isError && <Card className="border-rose-200 bg-rose-50" data-testid="error-work-orders"><CardContent className="flex flex-col items-center gap-3 p-8 text-center"><XCircle className="text-rose-600" /><p className="font-bold text-rose-900">تعذر تحميل مهام العمل</p><p className="text-sm text-rose-700">تحقق من الصلاحية والاتصال ثم أعد المحاولة.</p><Button onClick={() => activeQuery.refetch()} variant="outline" className="gap-2 border-rose-200 text-rose-700"><RotateCcw size={15} /> إعادة المحاولة</Button></CardContent></Card>}
-      {!activeQuery.isLoading && !activeQuery.isError && visibleOrders.length === 0 && <Card className="border-dashed border-slate-300 bg-slate-50/60" data-testid="empty-work-orders"><CardContent className="flex flex-col items-center gap-3 p-10 text-center"><CheckCircle2 className="text-emerald-600" size={30} /><p className="font-bold text-slate-800">{isDriver ? (view === "active" ? "لا توجد مهام تحتاج إجراءً الآن" : "لا يوجد سجل مهام بعد") : "لا توجد أوامر عمل حالية"}</p><p className="text-sm text-slate-500">{isDriver ? "ستظهر هنا المهام الجديدة بمجرد إسنادها إليك." : "ستظهر هنا الطلبات التي تم إسنادها إلى السائقين حتى إكمالها."}</p></CardContent></Card>}
-       {!activeQuery.isLoading && !activeQuery.isError && visibleOrders.length > 0 && <div className="grid gap-4 md:grid-cols-2">{visibleOrders.map(order => <div key={order.id} className="space-y-2"><WorkOrderCard order={order} allOrders={orders ?? []} onAction={handleAction} onOpenDetails={setSelectedOrder} pending={isPending || assigning} isDriver={isDriver} />{isManager && <div className="rounded-xl border border-slate-200 bg-white px-3 py-2"><label className="mb-1 block text-[11px] font-bold text-slate-500" htmlFor={`assign-work-order-${order.id}`}>إسناد أمر العمل</label><select id={`assign-work-order-${order.id}`} value={order.assignedDriverId ? String(order.assignedDriverId) : "unassigned"} disabled={driversLoading || assigning} onChange={event => handleAssignment(order, event.target.value)} className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700"><option value="unassigned">غير مسند</option>{drivers.map(driver => <option key={driver.id} value={driver.id}>{driver.name}</option>)}</select></div>}</div>)}</div>}
+      {activeQuery.isLoading && (
+        <div
+          className="grid gap-4 md:grid-cols-2"
+          aria-label="جاري تحميل المهام"
+          data-testid="loading-work-orders"
+        >
+          {[1, 2, 3, 4].map((item) => (
+            <Card
+              key={item}
+              className="h-52 animate-pulse border-0 bg-slate-200/70"
+            >
+              <CardContent />
+            </Card>
+          ))}
+        </div>
+      )}
+      {activeQuery.isError && (
+        <Card
+          className="border-rose-200 bg-rose-50"
+          data-testid="error-work-orders"
+        >
+          <CardContent className="flex flex-col items-center gap-3 p-8 text-center">
+            <XCircle className="text-rose-600" />
+            <p className="font-bold text-rose-900">تعذر تحميل مهام العمل</p>
+            <p className="text-sm text-rose-700">
+              تحقق من الصلاحية والاتصال ثم أعد المحاولة.
+            </p>
+            <Button
+              onClick={() => activeQuery.refetch()}
+              variant="outline"
+              className="gap-2 border-rose-200 text-rose-700"
+            >
+              <RotateCcw size={15} /> إعادة المحاولة
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+      {!activeQuery.isLoading &&
+        !activeQuery.isError &&
+        visibleOrders.length === 0 && (
+          <Card
+            className="border-dashed border-slate-300 bg-slate-50/60"
+            data-testid="empty-work-orders"
+          >
+            <CardContent className="flex flex-col items-center gap-3 p-10 text-center">
+              <CheckCircle2 className="text-emerald-600" size={30} />
+              <p className="font-bold text-slate-800">
+                {isDriver
+                  ? view === "active"
+                    ? "لا توجد مهام تحتاج إجراءً الآن"
+                    : "لا يوجد سجل مهام بعد"
+                  : "لا توجد أوامر عمل حالية"}
+              </p>
+              <p className="text-sm text-slate-500">
+                {isDriver
+                  ? "ستظهر هنا المهام الجديدة بمجرد إسنادها إليك."
+                  : "ستظهر هنا الطلبات التي تم إسنادها إلى السائقين حتى إكمالها."}
+              </p>
+            </CardContent>
+          </Card>
+        )}
+      {!activeQuery.isLoading &&
+        !activeQuery.isError &&
+        visibleOrders.length > 0 && (
+          <div className="grid gap-4 md:grid-cols-2">
+            {visibleOrders.map((order) => (
+              <div key={order.id} className="space-y-2">
+                <WorkOrderCard
+                  order={order}
+                  allOrders={orders ?? []}
+                  onAction={handleAction}
+                  onOpenDetails={setSelectedOrder}
+                  pending={isPending || assigning}
+                  isDriver={isDriver}
+                />
+                {isManager && (
+                  <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+                    <label
+                      className="mb-1 block text-[11px] font-bold text-slate-500"
+                      htmlFor={`assign-work-order-${order.id}`}
+                    >
+                      إسناد أمر العمل
+                    </label>
+                    <select
+                      id={`assign-work-order-${order.id}`}
+                      value={
+                        order.assignedDriverId
+                          ? String(order.assignedDriverId)
+                          : "unassigned"
+                      }
+                      disabled={driversLoading || assigning}
+                      onChange={(event) =>
+                        handleAssignment(order, event.target.value)
+                      }
+                      className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700"
+                    >
+                      <option value="unassigned">غير مسند</option>
+                      {drivers.map((driver) => (
+                        <option key={driver.id} value={driver.id}>
+                          {driver.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
 
-      <OrderDetailsDialog order={selectedOrder} open={!!selectedOrder} onClose={() => setSelectedOrder(null)} isDriver={isDriver} />
-      <CompletionEvidenceDialog open={Boolean(completionTarget)} onClose={() => setCompletionTarget(null)} onSubmit={submitCompletion} pending={isPending} />
+      <OrderDetailsDialog
+        order={selectedOrder}
+        open={!!selectedOrder}
+        onClose={() => setSelectedOrder(null)}
+        isDriver={isDriver}
+      />
+      <CompletionEvidenceDialog
+        open={Boolean(completionTarget)}
+        onClose={() => setCompletionTarget(null)}
+        onSubmit={submitCompletion}
+        pending={isPending}
+      />
     </div>
-  )
+  );
 }
