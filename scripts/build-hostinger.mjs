@@ -10,7 +10,7 @@
  *     (Drizzle ينشئ `order`، لكن PHP يقرأ `sort_order`)
  *  5. ضبط journal_mode=DELETE (WAL غير مدعوم على Hostinger shared hosting)
  *  6. تجهيز مجلد uploads بدون إعادة إدراج صور المشروع القديم
- *  7. ضغط الأرشيف النهائي
+ *  7. تجهيز تعليمات النشر وضغط الأرشيف النهائي بمحتوى الموقع في جذر الأرشيف
  */
 
 import { execSync } from "child_process";
@@ -359,6 +359,49 @@ writeFileSync(join(ROOT, "build_php/api/.htaccess"), `DirectoryIndex index.php
 `);
 console.log("  ✅ .htaccess مكتوبان مع Authorization passthrough");
 
+// ── 8. كتابة بصمة البناء وتعليمات النشر ───────────────────────────────────────
+// يجب أن تُستخرج محتويات هذا الأرشيف مباشرة إلى public_html، وليس إلى مجلد
+// فرعي باسم build_php؛ لأن مسارات /api و /uploads و /data تعتمد على جذر الموقع.
+step("كتابة معلومات النسخة وتعليمات النشر");
+{
+  const sourceDb = new Database(join(ROOT, "data/sabaik.db"), { readonly: true });
+  const tableCounts = {};
+  for (const table of sourceDb
+    .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
+    .all()) {
+    const safeTable = String(table.name).replaceAll('"', '""');
+    tableCounts[table.name] = sourceDb.prepare(`SELECT COUNT(*) AS count FROM "${safeTable}"`).get().count;
+  }
+  sourceDb.close();
+  writeFileSync(
+    join(ROOT, "build_php/BUILD_INFO.json"),
+    JSON.stringify({
+      buildType: "full-hostinger-archive",
+      builtAt: new Date().toISOString(),
+      sourceDatabase: "data/sabaik.db",
+      tableCounts,
+      deployment: "Extract the archive contents directly into public_html; do not keep a build_php subfolder.",
+    }, null, 2),
+    "utf8",
+  );
+  writeFileSync(
+    join(ROOT, "build_php/UPLOAD_INSTRUCTIONS.txt"),
+    [
+      "أرشيف كامل من آخر نسخة حالية للمشروع.",
+      "",
+      "طريقة النشر:",
+      "1) استخرج محتويات الأرشيف مباشرة داخل public_html.",
+      "2) يجب أن تكون index.html و api/ و data/ و uploads/ في جذر public_html.",
+      "3) لا تترك مجلداً باسم build_php داخل public_html.",
+      "4) خذ نسخة احتياطية من data/ و uploads/ قبل الاستبدال إذا كان الموقع يعمل مسبقاً.",
+      "",
+      "يشمل الأرشيف قاعدة البيانات وواجهة PHP والواجهة الرئيسية وCleanFlow Platform وجميع الأصول.",
+    ].join("\n"),
+    "utf8",
+  );
+  console.log(`  ✅ BUILD_INFO.json — ${tableCounts.posts ?? 0} مقالة و${tableCounts.container_system_records ?? 0} سجل حاويات`);
+}
+
 // ── 8. ضغط الأرشيف ───────────────────────────────────────────────────────────
 step("تنظيف اسم العلامة القديمة من ملفات Hostinger");
 {
@@ -395,7 +438,9 @@ rmSync(zipPath, { force: true });
 if (process.platform === "win32") {
   execSync(`powershell -Command "Compress-Archive -Path '${join(ROOT, "build_php")}' -DestinationPath '${zipPath}' -Force"`, { cwd: ROOT, stdio: "inherit" });
 } else {
-  run("zip -r cleanflow-services-hostinger.zip build_php", "zip");
+  // اضغط محتوى build_php لا المجلد نفسه؛ Hostinger يفك الأرشيف مباشرة داخل
+  // public_html، ولذلك يجب أن تكون index.html وapi/ وdata/ وuploads/ في الجذر.
+  run("cd build_php && zip -r ../cleanflow-services-hostinger.zip .", "zip");
 }
 
 if (existsSync(zipPath)) {
