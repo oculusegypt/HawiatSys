@@ -196,7 +196,7 @@ try {
                 'dashboard', 'requests', 'work_orders', 'conversations', 'whatsapp',
                 'notifications', 'analytics', 'ads', 'blog', 'seo_pages', 'services',
                 'reviews', 'packages', 'settings', 'seo', 'employees', 'database',
-                'slides', 'testimonials', 'partners'
+                'slides', 'testimonials', 'partners', 'container_system'
             ];
         } else {
             try {
@@ -1699,7 +1699,10 @@ try {
         try {
             $stmt = $pdo->query("SELECT key, value FROM site_settings");
             $settings = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
-            echo json_encode($settings, JSON_UNESCAPED_UNICODE);
+            // Legacy SQLite text may contain invalid UTF-8 bytes. Without
+            // substitution json_encode() returns false and the frontend sees
+            // an empty 200 response, losing the logo and site details.
+            echo json_encode($settings, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
         } catch (\Exception $e) {
             echo json_encode(new stdClass(), JSON_UNESCAPED_UNICODE);
         }
@@ -1733,7 +1736,7 @@ try {
             }
         }
         $stmt = $pdo->query("SELECT key, value FROM site_settings");
-        echo json_encode($stmt->fetchAll(PDO::FETCH_KEY_PAIR), JSON_UNESCAPED_UNICODE);
+        echo json_encode($stmt->fetchAll(PDO::FETCH_KEY_PAIR), JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
         exit;
     }
 
