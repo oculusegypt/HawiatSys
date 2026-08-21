@@ -1,7 +1,7 @@
-import { ArrowRight, BriefcaseBusiness, CalendarDays, CheckCircle2, FileDown, FileText, MapPin, Phone, Printer, Truck, UserRound, Wallet } from "lucide-react"
+import { ArrowRight, BriefcaseBusiness, CalendarDays, CheckCircle2, FileDown, FileText, MapPin, Phone, Printer, Truck, UserRound, Wallet, Wrench } from "lucide-react"
 import { useMemo } from "react"
 import { useLocation, useParams } from "wouter"
-import { useGetContainerSystem } from "@workspace/api-client-react"
+import { getGetServiceRequestsQueryKey, useGetContainerSystem, useGetServiceRequests } from "@workspace/api-client-react"
 import type { ContainerSystemRecord } from "@workspace/api-client-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -70,7 +70,26 @@ function ContainerProfile({ record, records }: { record: ContainerSystemRecord; 
   })
   const movements = related.filter(item => item.kind === "container_movement")
   const contracts = related.filter(item => item.kind === "contract")
-  return <><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><Stat label="الحالة الحالية" value={formatStatus(record.status)} tone="text-cyan-800" /><Stat label="الموقع الحالي" value={text(p.location, "غير محدد")} /><Stat label="عدد الحركات" value={movements.length} /><Stat label="العقود المرتبطة" value={contracts.length} /></div><div className="grid gap-5 xl:grid-cols-[1fr_1fr]"><RelatedRows title="سجل التسليم والاسترجاع والتبديل" records={movements} /><RelatedRows title="العقود والإيجارات المرتبطة" records={contracts} /></div></>
+  const workOrdersQuery = useGetServiceRequests(undefined, { query: { queryKey: getGetServiceRequestsQueryKey(), staleTime: 30_000 } })
+  const workOrders = (workOrdersQuery.data ?? []).filter(item => {
+    const linked = item as typeof item & { containerRecordId?: number | null; contractRecordId?: number | null }
+    return linked.containerRecordId === record.id || (linked.contractRecordId != null && contracts.some(contract => contract.id === linked.contractRecordId))
+  })
+  const timeline = [
+    ...movements.map(item => ({ id: `movement-${item.id}`, date: item.createdAt, title: text(payloadOf(item).movementType, "حركة حاوية"), detail: text(payloadOf(item).location, "الموقع غير محدد"), icon: ArrowRight, tone: "bg-cyan-50 text-cyan-800" })),
+    ...workOrders.map(item => ({ id: `work-${item.id}`, date: item.scheduledAt ?? item.createdAt, title: item.serviceType, detail: `${item.clientName} · ${text(item.driverStatus, "غير مسند")}`, icon: CalendarDays, tone: "bg-amber-50 text-amber-800" })),
+    ...contracts.map(item => ({ id: `contract-${item.id}`, date: item.createdAt, title: `العقد ${text(payloadOf(item).contractNumber ?? item.reference)}`, detail: text(item.status), icon: FileText, tone: "bg-emerald-50 text-emerald-800" })),
+  ].sort((a, b) => Date.parse(b.date) - Date.parse(a.date))
+  const workOrderRecords: ContainerSystemRecord[] = workOrders.map(item => ({
+    id: item.id,
+    kind: "appointment",
+    status: item.driverStatus ?? "pending",
+    reference: `WO-${item.id}`,
+    payload: { name: item.serviceType, customerName: item.clientName, scheduledAt: item.scheduledAt ?? "", driverStatus: item.driverStatus ?? "unassigned" },
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt ?? item.createdAt,
+  }))
+  return <><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5"><Stat label="الحالة الحالية" value={formatStatus(record.status)} tone="text-cyan-800" /><Stat label="الموقع الحالي" value={text(p.location, "غير محدد")} /><Stat label="عدد الحركات" value={movements.length} /><Stat label="العقود المرتبطة" value={contracts.length} /><Stat label="أوامر العمل" value={workOrders.length} /></div><div className="grid gap-5 xl:grid-cols-[1.15fr_.85fr]"><Card className="border-slate-200/80 shadow-sm"><CardHeader className="border-b border-slate-100 px-5 py-4"><CardTitle className="flex items-center gap-2 text-base"><CalendarDays size={17} className="text-cyan-800" /> القصة التشغيلية للأصل</CardTitle></CardHeader><CardContent className="p-5">{timeline.length === 0 ? <p className="py-8 text-center text-sm text-slate-500">لا توجد أحداث مرتبطة بعد.</p> : <div className="space-y-4">{timeline.map(event => { const Icon = event.icon; return <div key={event.id} className="flex gap-3"><div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${event.tone}`}><Icon size={16} /></div><div className="min-w-0 flex-1 border-b border-slate-100 pb-3"><div className="flex flex-wrap items-center justify-between gap-2"><p className="text-sm font-black text-slate-800">{event.title}</p><time className="text-[11px] text-slate-400">{formatRecordDate(event.date)}</time></div><p className="mt-1 text-xs text-slate-500">{event.detail}</p></div></div> })}</div>}</CardContent></Card><div className="space-y-5"><RelatedRows title="سجل الحركات" records={movements} /><RelatedRows title="العقود المرتبطة" records={contracts} /><RelatedRows title="أوامر العمل" records={workOrderRecords} empty="لا توجد أوامر عمل مرتبطة" /></div></div></>
 }
 
 export function ContainerRecordProfile({ mode }: { mode: ProfileMode }) {

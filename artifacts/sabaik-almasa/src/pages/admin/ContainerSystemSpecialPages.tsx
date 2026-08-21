@@ -102,6 +102,24 @@ const settingSections = [
 ]
 
 const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
+const toggleSettingFields = new Set([
+  "إظهار الشعار", "إظهار بيانات المؤسسة", "طباعة الفاتورة تلقائيًا",
+  "حالة الضريبة", "تطبيق الضريبة على العقود", "تطبيق الضريبة على الإيجارات",
+  "تنبيه تأخر السداد", "تنبيه انتهاء الاستمارة", "تنبيه انتهاء التأمين",
+  "تنبيه غيار الزيت", "تنبيه انتهاء الإقامة", "تنبيه المخزون المنخفض",
+  "إعدادات العمولات", "الوسيط", "تفعيل الموظفين في المصروفات", "إيصالات التسليم",
+  "نظام المواعيد", "تبديل الحاويات", "الإيجار المتعدد", "تفعيل رقم العميل",
+  "تفعيل موقع الإيجار", "الشاحنة مطلوبة في الإيجار", "تفعيل العقود المفتوحة",
+  "تفعيل حد ائتمان العميل", "السماح بسحب الحاويات قبل تفريغها",
+  "تفعيل نوع عملية التفريغ", "إغلاق العقود التلقائي",
+])
+const selectSettingOptions: Record<string, string[]> = {
+  "نوع الطباعة": ["عام", "حسب المستخدم"],
+  "حجم الورق": ["A4", "A5", "حراري 80mm"],
+  "مراحل العقد": ["مرحلة واحدة", "تعدد المراحل"],
+  "ترقيم العقود": ["تلقائي", "يدوي"],
+  "ترقيم التفريغ": ["تلقائي", "يدوي"],
+}
 const organizationSettingKeys: Record<string, string> = {
   "اسم المؤسسة": "company_name",
   "الاسم بالإنجليزية": "company_name_en",
@@ -126,6 +144,9 @@ export function SettingsPage({
   const config = settingSections.find(item => item.id === section) ?? settingSections[0]
   const [values, setValues] = useState<Record<string, string>>({})
   const existing = records.find(record => record.kind === "setting" && record.payload.section === section)
+  const valueFor = (field: string) => values[field] ?? String(existing?.payload[field] ?? "")
+  const isEnabled = (field: string) => ["true", "1", "yes", "نعم", "نشط", "مفعل"].includes(valueFor(field).toLowerCase())
+  const toggle = (field: string) => setValues(current => ({ ...current, [field]: isEnabled(field) ? "false" : "true" }))
   useEffect(() => {
     setValues({})
     if (section !== "organization") return
@@ -151,5 +172,14 @@ export function SettingsPage({
       })
       .catch(() => undefined)
   }, [organization, section])
-  return <div className="grid gap-5 lg:grid-cols-[15rem_minmax(0,1fr)]"><Card className="h-fit"><CardContent className="space-y-1 p-2">{settingSections.map(item => <button key={item.id} type="button" onClick={() => setSection(item.id)} className={`w-full rounded-xl px-3 py-3 text-right text-xs font-bold ${section === item.id ? "bg-cyan-50 text-cyan-900" : "text-slate-500 hover:bg-slate-50"}`}><Settings2 size={14} className="ml-2 inline" />{item.title}</button>)}</CardContent></Card><Card><CardHeader className="border-b"><CardTitle>{config.title}</CardTitle><p className="text-xs text-slate-500">إعدادات محفوظة في نظام الحاويات ويمكن مراجعتها وتعديلها من المستخدمين المخولين.</p></CardHeader><CardContent className="grid gap-4 p-5 sm:grid-cols-2">{config.fields.map(field => <div key={field}><label className="mb-1 block text-xs font-bold text-slate-600">{field}</label><Input value={values[field] ?? String(existing?.payload[field] ?? "")} onChange={event => setValues(current => ({ ...current, [field]: event.target.value }))} placeholder={`أدخل ${field}`} /></div>)}<div className="sm:col-span-2 flex justify-end"><Button onClick={() => onSave({ section, sectionTitle: config.title, ...values })} className="gap-2 bg-cyan-800 hover:bg-cyan-900"><Save size={16} /> حفظ إعدادات {config.title}</Button></div></CardContent></Card></div>
+  return <div className="grid gap-5 lg:grid-cols-[15rem_minmax(0,1fr)]"><Card className="h-fit"><CardContent className="space-y-1 p-2">{settingSections.map(item => <button key={item.id} type="button" onClick={() => setSection(item.id)} className={`w-full rounded-xl px-3 py-3 text-right text-xs font-bold ${section === item.id ? "bg-cyan-50 text-cyan-900" : "text-slate-500 hover:bg-slate-50"}`}><Settings2 size={14} className="ml-2 inline" />{item.title}</button>)}</CardContent></Card><Card><CardHeader className="border-b"><CardTitle>{config.title}</CardTitle><p className="text-xs text-slate-500">كل قاعدة هنا محفوظة في سجل إعدادات قابل للتدقيق، وتؤثر على مسارات التشغيل المرتبطة بها.</p></CardHeader><CardContent className="grid gap-4 p-5 sm:grid-cols-2">{config.fields.map(field => {
+    const options = selectSettingOptions[field]
+    const currentValue = valueFor(field)
+    return <div key={field} className={toggleSettingFields.has(field) ? "flex items-center justify-between gap-4 rounded-xl border border-slate-100 bg-slate-50/60 p-3" : ""}>
+      <label className="block text-xs font-bold text-slate-600">{field}</label>
+      {toggleSettingFields.has(field) ? <button type="button" role="switch" aria-checked={isEnabled(field)} onClick={() => toggle(field)} className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${isEnabled(field) ? "bg-emerald-600" : "bg-slate-300"}`} data-testid={`toggle-setting-${section}-${field}`}><span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all ${isEnabled(field) ? "right-1" : "right-6"}`} /></button>
+        : options ? <select value={currentValue} onChange={event => setValues(current => ({ ...current, [field]: event.target.value }))} className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm" data-testid={`select-setting-${section}-${field}`}>{options.map(option => <option key={option} value={option}>{option}</option>)}</select>
+        : <Input type={field.includes("حجم خط") ? "number" : "text"} value={currentValue} onChange={event => setValues(current => ({ ...current, [field]: event.target.value }))} placeholder={`أدخل ${field}`} />}
+    </div>
+  })}<div className="sm:col-span-2 flex justify-end"><Button onClick={() => onSave({ section, sectionTitle: config.title, ...values })} className="gap-2 bg-cyan-800 hover:bg-cyan-900"><Save size={16} /> حفظ إعدادات {config.title}</Button></div></CardContent></Card></div>
 }

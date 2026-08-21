@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState, type FormEvent } from "react"
 import {
   getGetAdminWorkOrdersQueryKey,
   getGetDriverWorkOrdersQueryKey,
+  useAssignServiceRequest,
   useGetAdminWorkOrders,
   useGetDriverWorkOrders,
   useUpdateDriverWorkOrder,
@@ -28,6 +29,8 @@ import {
   X,
   XCircle,
 } from "lucide-react"
+
+const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
 
 const STATUS: Record<string, { label: string; tone: string; dot: string }> = {
   assigned: { label: "بانتظار قبول السائق", tone: "bg-amber-50 text-amber-800 border-amber-200", dot: "bg-amber-500" },
@@ -183,21 +186,47 @@ function CompletionEvidenceDialog({ open, onClose, onSubmit, pending }: {
   const [receiverName, setReceiverName] = useState("")
   const [locationLat, setLocationLat] = useState("")
   const [locationLng, setLocationLng] = useState("")
-  const [proofPhotoUrl, setProofPhotoUrl] = useState("")
+  const [proofFile, setProofFile] = useState<File | null>(null)
+  const [uploadingProof, setUploadingProof] = useState(false)
   const [signatureData, setSignatureData] = useState("")
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (uploadingProof) return
+    setUploadingProof(true)
+    try {
+      let proofPhotoUrl = ""
+      if (proofFile) {
+        const form = new FormData()
+        form.append("file", proofFile)
+        const response = await fetch(`${API_BASE}/api/admin/uploads`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${localStorage.getItem("admin_token") ?? ""}` },
+          body: form,
+        })
+        const body = await response.json().catch(() => ({}))
+        if (!response.ok || !body.url) throw new Error("تعذر رفع صورة الإثبات")
+        proofPhotoUrl = String(body.url)
+      }
+      onSubmit({ receiverName, locationLat, locationLng, proofPhotoUrl, signatureData })
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "تعذر رفع صورة الإثبات")
+    } finally {
+      setUploadingProof(false)
+    }
+  }
   return (
     <Dialog open={open} onOpenChange={value => { if (!value) onClose() }}>
       <DialogContent dir="rtl" className="max-w-xl">
         <DialogHeader><DialogTitle>إثبات إكمال المهمة</DialogTitle></DialogHeader>
-        <form className="space-y-4" onSubmit={event => { event.preventDefault(); onSubmit({ receiverName, locationLat, locationLng, proofPhotoUrl, signatureData }) }}>
+        <form className="space-y-4" onSubmit={submit}>
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="text-xs font-bold text-slate-600">اسم المستلم<input required value={receiverName} onChange={event => setReceiverName(event.target.value)} className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm" placeholder="اسم ممثل العميل" /></label>
-            <label className="text-xs font-bold text-slate-600">رابط صورة الإثبات<input value={proofPhotoUrl} onChange={event => setProofPhotoUrl(event.target.value)} className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm" placeholder="اختياري" /></label>
+            <label className="text-xs font-bold text-slate-600">صورة إثبات التنفيذ<input type="file" accept="image/*" capture="environment" onChange={event => setProofFile(event.target.files?.[0] ?? null)} className="mt-1 block w-full rounded-md border border-input bg-background p-2 text-xs" />{proofFile && <span className="mt-1 block truncate text-[11px] text-emerald-700">{proofFile.name}</span>}</label>
             <label className="text-xs font-bold text-slate-600">خط العرض<input value={locationLat} onChange={event => setLocationLat(event.target.value)} className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm" placeholder="24.7136" dir="ltr" /></label>
             <label className="text-xs font-bold text-slate-600">خط الطول<input value={locationLng} onChange={event => setLocationLng(event.target.value)} className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm" placeholder="46.6753" dir="ltr" /></label>
           </div>
           <SignaturePad value={signatureData} onChange={setSignatureData} />
-          <div className="flex justify-end gap-2 border-t pt-4"><Button type="button" variant="outline" onClick={onClose}>إلغاء</Button><Button type="submit" disabled={pending || !signatureData} className="bg-emerald-600 hover:bg-emerald-700">{pending ? "جارٍ الحفظ..." : "تأكيد الإكمال"}</Button></div>
+           <div className="flex justify-end gap-2 border-t pt-4"><Button type="button" variant="outline" onClick={onClose}>إلغاء</Button><Button type="submit" disabled={pending || uploadingProof || !signatureData} className="bg-emerald-600 hover:bg-emerald-700">{uploadingProof ? "جارٍ رفع الإثبات..." : pending ? "جارٍ الحفظ..." : "تأكيد الإكمال"}</Button></div>
         </form>
       </DialogContent>
     </Dialog>
@@ -271,9 +300,24 @@ export default function WorkOrders() {
   const activeQuery = isDriver ? driverQuery : managerQuery
   const orders = activeQuery.data
   const { mutate: updateOrder, isPending } = useUpdateDriverWorkOrder()
+  const { mutate: assignOrder, isPending: assigning } = useAssignServiceRequest()
   const [view, setView] = useState<"active" | "history">("active")
   const [selectedOrder, setSelectedOrder] = useState<ServiceRequest | null>(null)
   const [completionTarget, setCompletionTarget] = useState<ServiceRequest | null>(null)
+  const [drivers, setDrivers] = useState<{ id: number; name: string }[]>([])
+  const [driversLoading, setDriversLoading] = useState(isManager)
+
+  useEffect(() => {
+    if (!isManager) return
+    const token = localStorage.getItem("admin_token") ?? ""
+    fetch(`${import.meta.env.BASE_URL?.replace(/\/$/, "") || ""}/api/admin/employees`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(response => response.ok ? response.json() as Promise<{ id: number; name: string; role: string; isActive: number }[]> : Promise.reject(new Error("drivers")))
+      .then(rows => setDrivers(rows.filter(row => row.role === "driver" && row.isActive === 1).map(row => ({ id: row.id, name: row.name }))))
+      .catch(() => setDrivers([]))
+      .finally(() => setDriversLoading(false))
+  }, [isManager])
 
   const counts = useMemo(() => ({
     assigned: orders?.filter(o => o.driverStatus === DriverWorkOrderStatus.assigned).length ?? 0,
@@ -307,6 +351,17 @@ export default function WorkOrders() {
         activeQuery.refetch()
       },
       onError: () => toast({ variant: "destructive", title: "تعذر تحديث المهمة", description: "تحقق من الاتصال وحاول مرة أخرى" }),
+    })
+  }
+
+  function handleAssignment(order: ServiceRequest, value: string) {
+    const driverId = value === "unassigned" ? null : Number(value)
+    assignOrder({ id: order.id, data: { driverId } }, {
+      onSuccess: () => {
+        toast({ title: driverId ? "تم إسناد أمر العمل للسائق" : "تم إلغاء إسناد أمر العمل" })
+        activeQuery.refetch()
+      },
+      onError: () => toast({ variant: "destructive", title: "تعذر تحديث إسناد أمر العمل" }),
     })
   }
 
@@ -355,7 +410,7 @@ export default function WorkOrders() {
       {activeQuery.isLoading && <div className="grid gap-4 md:grid-cols-2" aria-label="جاري تحميل المهام" data-testid="loading-work-orders">{[1, 2, 3, 4].map(item => <Card key={item} className="h-52 animate-pulse border-0 bg-slate-200/70"><CardContent /></Card>)}</div>}
       {activeQuery.isError && <Card className="border-rose-200 bg-rose-50" data-testid="error-work-orders"><CardContent className="flex flex-col items-center gap-3 p-8 text-center"><XCircle className="text-rose-600" /><p className="font-bold text-rose-900">تعذر تحميل مهام العمل</p><p className="text-sm text-rose-700">تحقق من الصلاحية والاتصال ثم أعد المحاولة.</p><Button onClick={() => activeQuery.refetch()} variant="outline" className="gap-2 border-rose-200 text-rose-700"><RotateCcw size={15} /> إعادة المحاولة</Button></CardContent></Card>}
       {!activeQuery.isLoading && !activeQuery.isError && visibleOrders.length === 0 && <Card className="border-dashed border-slate-300 bg-slate-50/60" data-testid="empty-work-orders"><CardContent className="flex flex-col items-center gap-3 p-10 text-center"><CheckCircle2 className="text-emerald-600" size={30} /><p className="font-bold text-slate-800">{isDriver ? (view === "active" ? "لا توجد مهام تحتاج إجراءً الآن" : "لا يوجد سجل مهام بعد") : "لا توجد أوامر عمل حالية"}</p><p className="text-sm text-slate-500">{isDriver ? "ستظهر هنا المهام الجديدة بمجرد إسنادها إليك." : "ستظهر هنا الطلبات التي تم إسنادها إلى السائقين حتى إكمالها."}</p></CardContent></Card>}
-      {!activeQuery.isLoading && !activeQuery.isError && visibleOrders.length > 0 && <div className="grid gap-4 md:grid-cols-2">{visibleOrders.map(order => <WorkOrderCard key={order.id} order={order} onAction={handleAction} onOpenDetails={setSelectedOrder} pending={isPending} isDriver={isDriver} />)}</div>}
+       {!activeQuery.isLoading && !activeQuery.isError && visibleOrders.length > 0 && <div className="grid gap-4 md:grid-cols-2">{visibleOrders.map(order => <div key={order.id} className="space-y-2"><WorkOrderCard order={order} onAction={handleAction} onOpenDetails={setSelectedOrder} pending={isPending || assigning} isDriver={isDriver} />{isManager && <div className="rounded-xl border border-slate-200 bg-white px-3 py-2"><label className="mb-1 block text-[11px] font-bold text-slate-500" htmlFor={`assign-work-order-${order.id}`}>إسناد أمر العمل</label><select id={`assign-work-order-${order.id}`} value={order.assignedDriverId ? String(order.assignedDriverId) : "unassigned"} disabled={driversLoading || assigning} onChange={event => handleAssignment(order, event.target.value)} className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700"><option value="unassigned">غير مسند</option>{drivers.map(driver => <option key={driver.id} value={driver.id}>{driver.name}</option>)}</select></div>}</div>)}</div>}
 
       <OrderDetailsDialog order={selectedOrder} open={!!selectedOrder} onClose={() => setSelectedOrder(null)} isDriver={isDriver} />
       <CompletionEvidenceDialog open={Boolean(completionTarget)} onClose={() => setCompletionTarget(null)} onSubmit={submitCompletion} pending={isPending} />

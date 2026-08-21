@@ -12,6 +12,8 @@ const supportedKinds = [
   "branch", "employee", "permit", "appointment", "warehouse", "treasury", "transfer",
   "invoice", "invoice_return", "category", "category_size", "tax", "commission",
   "oil_change", "salary_advance", "salary_payment", "fuel_expense", "daily_expense",
+  "other_revenue", "notification", "payment_return", "stock_issue", "stock_issue_return",
+  "purchase", "purchase_return",
 ] as const;
 type RecordKind = typeof supportedKinds[number];
 
@@ -445,6 +447,125 @@ router.get("/admin/container-system/records", async (req, res) => {
     .where(filters.length ? and(...filters) : undefined)
     .orderBy(desc(containerSystemRecordsTable.updatedAt));
   return res.json(rows.map(formatRecord));
+});
+
+router.post("/admin/container-system/contracts/:id/lifecycle", async (req, res) => {
+  const adminReq = req as unknown as AdminRequest;
+  const contractId = Number(req.params.id);
+  const action = String(req.body?.action ?? "").trim().toLowerCase();
+  if (!Number.isInteger(contractId) || contractId <= 0) {
+    return res.status(400).json({ error: "رقم العقد غير صحيح" });
+  }
+  if (!["deliver", "return"].includes(action)) {
+    return res.status(422).json({ error: "إجراء دورة العقد غير مدعوم" });
+  }
+  if (!canManage(adminReq, "contract")) {
+    return res.status(403).json({ error: "ليس لديك صلاحية لتنفيذ دورة العقد" });
+  }
+
+  try {
+    const result = db.transaction((tx) => {
+      const contract = tx.select().from(containerSystemRecordsTable)
+        .where(eq(containerSystemRecordsTable.id, contractId)).get();
+      if (!contract || contract.kind !== "contract" || contract.status === "archived") {
+        throw new Error("العقد غير موجود أو مؤرشف");
+      }
+      const contractPayload = parsePayload(contract.payload);
+      const lifecycleKey = action === "deliver" ? "deliverAt" : "returnAt";
+      if (contractPayload[lifecycleKey]) {
+        return { contract, movement: null, idempotent: true };
+      }
+
+      const containerCode = String(contractPayload.containerCode ?? "").trim();
+      if (!containerCode) throw new Error("العقد لا يحتوي على رقم حاوية");
+      const asset = tx.select().from(containerSystemRecordsTable).all().find(row =>
+        ["container", "container_asset"].includes(row.kind) &&
+        row.status !== "archived" &&
+        assetCodeOf(parsePayload(row.payload)) === containerCode,
+      );
+      if (!asset) throw new Error("الحاوية المرتبطة بالعقد غير موجودة");
+      if (!movementTransitionAllowed(asset.status, action)) {
+        throw new Error(`لا يمكن تنفيذ ${action === "deliver" ? "التسليم" : "الاسترجاع"} على حاوية حالتها الحالية ${asset.status}`);
+      }
+
+      const now = new Date().toISOString();
+      const location = String(req.body?.location ?? contractPayload.location ?? "").trim();
+      const nextContractPayload = {
+        ...contractPayload,
+        [lifecycleKey]: now,
+        lifecycleAction: action,
+        atomicLifecycle: true,
+      };
+      const nextAssetPayload = {
+        ...parsePayload(asset.payload),
+        ...(location ? { location } : {}),
+        lastMovementAt: now,
+        lastMovementContractId: contractId,
+      };
+      const nextContractStatus = action === "deliver" ? "delivered" : "returned";
+      const nextAssetStatus = action === "deliver" ? "rented" : "available";
+
+      const updatedContract = tx.update(containerSystemRecordsTable).set({
+        status: nextContractStatus,
+        payload: JSON.stringify(nextContractPayload),
+        updatedAt: now,
+      }).where(eq(containerSystemRecordsTable.id, contractId)).returning().get();
+      tx.update(containerSystemRecordsTable).set({
+        status: nextAssetStatus,
+        payload: JSON.stringify(nextAssetPayload),
+        updatedAt: now,
+      }).where(eq(containerSystemRecordsTable.id, asset.id)).run();
+      const movement = tx.insert(containerSystemRecordsTable).values({
+        kind: "container_movement",
+        status: "posted",
+        reference: `MOV-C${contractId}-${action.toUpperCase()}`,
+        payload: JSON.stringify({
+          contractRecordId: contractId,
+          contractNumber: contractPayload.contractNumber ?? contract.reference,
+          containerRecordId: asset.id,
+          containerCode,
+          movementType: action,
+          movementDate: now,
+          location,
+          source: "contract_lifecycle",
+        }),
+        createdBy: adminReq.adminId,
+      }).returning().get();
+      tx.insert(containerSystemAuditTable).values([
+        {
+          recordId: contractId,
+          kind: "contract",
+          action: `atomic_${action}`,
+          beforePayload: contract.payload,
+          afterPayload: JSON.stringify(nextContractPayload),
+          actorId: adminReq.adminId,
+        },
+        {
+          recordId: asset.id,
+          kind: asset.kind,
+          action: `atomic_${action}`,
+          beforePayload: asset.payload,
+          afterPayload: JSON.stringify(nextAssetPayload),
+          actorId: adminReq.adminId,
+        },
+        {
+          recordId: movement.id,
+          kind: "container_movement",
+          action: "create",
+          afterPayload: movement.payload,
+          actorId: adminReq.adminId,
+        },
+      ]).run();
+      return { contract: updatedContract, movement, idempotent: false };
+    });
+    return res.status(result.idempotent ? 200 : 201).json({
+      contract: formatRecord(result.contract),
+      movement: result.movement ? formatRecord(result.movement) : null,
+      idempotent: result.idempotent,
+    });
+  } catch (error) {
+    return res.status(422).json({ error: error instanceof Error ? error.message : "تعذر تنفيذ دورة العقد بشكل ذري" });
+  }
 });
 
 router.post("/admin/container-system/records", async (req, res) => {

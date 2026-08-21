@@ -73,6 +73,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     label: "المواعيد وأوامر العمل",
     items: [
       { key: "bookings" as ViewKey, label: "المواعيد والحجوزات", icon: CalendarDays },
+      { href: "/admin/work-orders", label: "أوامر العمل الميدانية", icon: ClipboardList },
     ],
   },
   {
@@ -513,7 +514,7 @@ function RecordDetails({ record, allRecords, open, onOpenChange, onContractActio
             <div className="flex flex-wrap gap-2">
               {record.kind === "customer" && <Button size="sm" variant="outline" onClick={() => { onOpenChange(false); navigate(`/admin/container-system/profile/customer/${record.id}`) }} className="gap-1.5 border-cyan-200 text-cyan-800"><UserRound size={14} /> فتح ملف العميل</Button>}
               {["employee", "driver"].includes(record.kind) && <Button size="sm" variant="outline" onClick={() => { onOpenChange(false); navigate(`/admin/container-system/profile/employee/${record.id}`) }} className="gap-1.5 border-cyan-200 text-cyan-800"><UserCog size={14} /> فتح ملف الموظف</Button>}
-              {record.kind === "container" && <Button size="sm" variant="outline" onClick={() => { onOpenChange(false); navigate(`/admin/container-system/profile/container/${record.id}`) }} className="gap-1.5 border-cyan-200 text-cyan-800"><Box size={14} /> فتح ملف الحاوية</Button>}
+              {["container", "container_asset"].includes(record.kind) && <Button size="sm" variant="outline" onClick={() => { onOpenChange(false); navigate(`/admin/container-system/profile/container/${record.id}`) }} className="gap-1.5 border-cyan-200 text-cyan-800"><Box size={14} /> فتح ملف الحاوية</Button>}
               {record.kind === "contract" && <Button size="sm" onClick={() => { onOpenChange(false); navigate(`/admin/container-system/contract/${record.id}/print`) }} className="gap-1.5 bg-cyan-800 hover:bg-cyan-900"><FileText size={14} /> فتح العقد A4</Button>}
             </div>
           </div>
@@ -732,6 +733,20 @@ export default function ContainerSystem() {
     const actionStatus: Record<string, string> = { deliver: "delivered", return: "returned", settle: "settled", debt: "delinquent", close: "closed" }
     const status = actionStatus[action] ?? record.status
     const now = new Date().toISOString()
+    if (action === "deliver" || action === "return") {
+      void fetch(`${API_BASE}/api/admin/container-system/contracts/${record.id}/lifecycle`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("admin_token") ?? ""}` },
+        body: JSON.stringify({ action, location: record.payload.location ?? "" }),
+      }).then(async response => {
+        const body = await response.json().catch(() => ({}))
+        if (!response.ok) throw new Error(String(body.error ?? "تعذر تنفيذ حركة العقد"))
+        invalidate()
+        setDetailRecord(null)
+        showSuccess(body.idempotent ? "تم تأكيد الحركة السابقة دون تكرارها" : action === "deliver" ? "تم التسليم وتحديث الأصل والحركة والتدقيق" : "تم الاسترجاع وتحديث الأصل والحركة والتدقيق")
+      }).catch(error => toast({ title: error instanceof Error ? error.message : "تعذر تنفيذ حركة العقد", variant: "destructive" }))
+      return
+    }
     const payload = { ...record.payload, [`${action}At`]: now, lifecycleAction: action }
     updateMutation.mutate({ id: record.id, data: { status, payload } }, {
       onSuccess: updated => {

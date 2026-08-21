@@ -478,6 +478,9 @@ router.patch("/service-requests/:id/assignment", requireAdmin, requireRequestAss
   const [request] = await db.select().from(serviceRequestsTable)
     .where(eq(serviceRequestsTable.id, id));
   if (!request) return res.status(404).json({ error: "الطلب غير موجود" });
+  if (["completed", "rejected"].includes(request.driverStatus)) {
+    return res.status(409).json({ error: "لا يمكن إعادة إسناد أمر عمل مغلق" });
+  }
 
   const now = new Date().toISOString();
   const [updated] = await db.update(serviceRequestsTable).set({
