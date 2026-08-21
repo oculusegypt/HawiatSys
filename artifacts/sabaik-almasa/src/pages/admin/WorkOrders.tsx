@@ -191,6 +191,23 @@ function CompletionEvidenceDialog({ open, onClose, onSubmit, pending }: {
   const [proofFile, setProofFile] = useState<File | null>(null)
   const [uploadingProof, setUploadingProof] = useState(false)
   const [signatureData, setSignatureData] = useState("")
+  const [locationMessage, setLocationMessage] = useState("")
+  function captureLocation() {
+    if (!navigator.geolocation) {
+      setLocationMessage("المتصفح لا يدعم تحديد الموقع؛ أدخل الإحداثيات يدوياً.")
+      return
+    }
+    setLocationMessage("جارٍ التقاط موقعك الحالي...")
+    navigator.geolocation.getCurrentPosition(
+      position => {
+        setLocationLat(position.coords.latitude.toFixed(6))
+        setLocationLng(position.coords.longitude.toFixed(6))
+        setLocationMessage("تم التقاط موقع التنفيذ الحالي.")
+      },
+      () => setLocationMessage("تعذر الوصول للموقع؛ تحقق من الإذن أو أدخل الإحداثيات يدوياً."),
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 },
+    )
+  }
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (uploadingProof) return
@@ -223,12 +240,16 @@ function CompletionEvidenceDialog({ open, onClose, onSubmit, pending }: {
         <form className="space-y-4" onSubmit={submit}>
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="text-xs font-bold text-slate-600">اسم المستلم<input required value={receiverName} onChange={event => setReceiverName(event.target.value)} className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm" placeholder="اسم ممثل العميل" /></label>
-            <label className="text-xs font-bold text-slate-600">صورة إثبات التنفيذ<input type="file" accept="image/*" capture="environment" onChange={event => setProofFile(event.target.files?.[0] ?? null)} className="mt-1 block w-full rounded-md border border-input bg-background p-2 text-xs" />{proofFile && <span className="mt-1 block truncate text-[11px] text-emerald-700">{proofFile.name}</span>}</label>
+            <label className="text-xs font-bold text-slate-600">صورة إثبات التنفيذ <span className="text-rose-600">*</span><input required type="file" accept="image/*" capture="environment" onChange={event => setProofFile(event.target.files?.[0] ?? null)} className="mt-1 block w-full rounded-md border border-input bg-background p-2 text-xs" />{proofFile && <span className="mt-1 block truncate text-[11px] text-emerald-700">{proofFile.name}</span>}</label>
             <label className="text-xs font-bold text-slate-600">خط العرض<input value={locationLat} onChange={event => setLocationLat(event.target.value)} className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm" placeholder="24.7136" dir="ltr" /></label>
             <label className="text-xs font-bold text-slate-600">خط الطول<input value={locationLng} onChange={event => setLocationLng(event.target.value)} className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm" placeholder="46.6753" dir="ltr" /></label>
           </div>
+          <div className="rounded-xl border border-cyan-100 bg-cyan-50/70 p-3">
+            <Button type="button" variant="outline" onClick={captureLocation} className="gap-2 border-cyan-200 text-cyan-800 hover:bg-white"><MapPin size={15} /> استخدام موقعي الحالي</Button>
+            {locationMessage && <p className="mt-2 text-xs font-semibold text-cyan-900">{locationMessage}</p>}
+          </div>
           <SignaturePad value={signatureData} onChange={setSignatureData} />
-           <div className="flex justify-end gap-2 border-t pt-4"><Button type="button" variant="outline" onClick={onClose}>إلغاء</Button><Button type="submit" disabled={pending || uploadingProof || !signatureData} className="bg-emerald-600 hover:bg-emerald-700">{uploadingProof ? "جارٍ رفع الإثبات..." : pending ? "جارٍ الحفظ..." : "تأكيد الإكمال"}</Button></div>
+            <div className="flex justify-end gap-2 border-t pt-4"><Button type="button" variant="outline" onClick={onClose}>إلغاء</Button><Button type="submit" disabled={pending || uploadingProof || !signatureData || !proofFile} className="bg-emerald-600 hover:bg-emerald-700">{uploadingProof ? "جارٍ رفع الإثبات..." : pending ? "جارٍ الحفظ..." : "تأكيد الإكمال"}</Button></div>
         </form>
       </DialogContent>
     </Dialog>
@@ -286,7 +307,6 @@ function WorkOrderCard({
             )}
             {order.driverStatus === DriverWorkOrderStatus.accepted && <Button disabled={pending} onClick={() => onAction(order, DriverWorkOrderStatus.started)} className="h-11 flex-1 gap-2 bg-indigo-600 text-white hover:bg-indigo-700" data-testid={`button-start-${order.id}`}><Play size={16} /> بدء التنفيذ</Button>}
             {order.driverStatus === DriverWorkOrderStatus.started && <Button disabled={pending} onClick={() => onAction(order, DriverWorkOrderStatus.en_route)} className="h-11 flex-1 gap-2 bg-violet-600 text-white hover:bg-violet-700" data-testid={`button-en-route-${order.id}`}><Navigation size={16} /> في الطريق</Button>}
-            {order.driverStatus === DriverWorkOrderStatus.started && <Button disabled={pending} onClick={() => onAction(order, DriverWorkOrderStatus.completed)} variant="outline" className="h-11 flex-1 gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50" data-testid={`button-complete-direct-${order.id}`}><CheckCircle2 size={16} /> إكمال مباشر</Button>}
             {order.driverStatus === DriverWorkOrderStatus.en_route && <Button disabled={pending} onClick={() => onAction(order, DriverWorkOrderStatus.arrived)} className="h-11 flex-1 gap-2 bg-cyan-700 text-white hover:bg-cyan-800" data-testid={`button-arrived-${order.id}`}><MapPin size={16} /> وصلت للموقع</Button>}
             {order.driverStatus === DriverWorkOrderStatus.arrived && <Button disabled={pending} onClick={() => onAction(order, DriverWorkOrderStatus.completed)} className="h-11 flex-1 gap-2 bg-emerald-600 text-white hover:bg-emerald-700" data-testid={`button-complete-${order.id}`}><CheckCircle2 size={16} /> تأكيد الإكمال</Button>}
           </>

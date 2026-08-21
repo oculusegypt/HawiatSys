@@ -598,6 +598,9 @@ router.patch("/driver/work-orders/:id", requireAdmin, requireDriver, async (req,
       eq(serviceRequestsTable.assignedDriverId, adminRequest.adminId),
     ));
   if (!request) return res.status(404).json({ error: "أمر العمل غير موجود" });
+  if (request.driverStatus === nextStatus) {
+    return res.json(request);
+  }
   if (request.driverStatus === "completed" || request.driverStatus === "rejected") {
     return res.status(400).json({ error: "لا يمكن تغيير أمر العمل بعد إغلاقه" });
   }
@@ -620,8 +623,8 @@ router.patch("/driver/work-orders/:id", requireAdmin, requireDriver, async (req,
         error: error instanceof Error ? error.message : "لا يمكن إكمال أمر العمل قبل اكتمال ربط العقد والحاوية",
       });
     }
-    if (preparedContainerCompletion && (!receiverName || !signatureData)) {
-      return res.status(422).json({ error: "يلزم تسجيل اسم المستلم وتوقيع العميل قبل إكمال حركة الحاوية" });
+    if (preparedContainerCompletion && (!receiverName || !signatureData || !proofPhotoUrl)) {
+      return res.status(422).json({ error: "يلزم تسجيل اسم المستلم وتوقيع العميل وصورة إثبات قبل إكمال حركة الحاوية" });
     }
   }
 
