@@ -55,6 +55,59 @@ function normalizeContractPayload(payload: Record<string, unknown>) {
   return next;
 }
 
+const MOVEMENT_STATUS_BY_TYPE: Record<string, string> = {
+  delivery: "rented",
+  deliver: "rented",
+  "تسليم": "rented",
+  replacement: "in_transit",
+  swap: "in_transit",
+  "تبديل": "in_transit",
+  "تبديل حاوية": "in_transit",
+  unloading: "in_transit",
+  emptying: "in_transit",
+  "تفريغ": "in_transit",
+  withdrawal: "in_transit",
+  withdraw: "in_transit",
+  "سحب": "in_transit",
+  return: "available",
+  returned: "available",
+  "استرجاع": "available",
+  maintenance: "maintenance",
+  "صيانة": "maintenance",
+};
+
+function movementStatus(movementType: string) {
+  const normalized = movementType.trim().toLowerCase();
+  return MOVEMENT_STATUS_BY_TYPE[normalized] ?? null;
+}
+
+function assetCodeOf(payload: Record<string, unknown>) {
+  return String(payload.assetCode ?? payload.code ?? "").trim();
+}
+
+function canonicalAssetStatus(value: unknown, fallback: string) {
+  const status = String(value ?? "").trim().toLowerCase();
+  const aliases: Record<string, string> = {
+    "متاح": "available",
+    "متاحة": "available",
+    "جاهز": "available",
+    "جاهزة": "available",
+    "مؤجر": "rented",
+    "مؤجرة": "rented",
+    "لدى العميل": "rented",
+    "في الطريق": "in_transit",
+    "تحت الفحص": "inspection",
+    "صيانة": "maintenance",
+    "في الصيانة": "maintenance",
+    "تالف": "damaged",
+    "تالفة": "damaged",
+    "مفقود": "lost",
+    "مفقودة": "lost",
+    "خارج الخدمة": "out_of_service",
+  };
+  return aliases[status] ?? (status || fallback);
+}
+
 async function hasOverlappingContract(payload: Record<string, unknown>, ignoredId?: number) {
   const containerCode = String(payload.containerCode ?? "").trim();
   const start = Date.parse(String(payload.startDate ?? ""));
@@ -75,15 +128,15 @@ async function hasOverlappingContract(payload: Record<string, unknown>, ignoredI
 
 async function syncMovement(payload: Record<string, unknown>, actorId: number | null) {
   const movementType = String(payload.movementType ?? "").toLowerCase();
-  const nextStatus = movementType.includes("استرجاع") || movementType.includes("return") ? "available"
-    : movementType.includes("صيانة") || movementType.includes("maintenance") ? "maintenance" : "rented";
+  const nextStatus = movementStatus(movementType);
+  if (!nextStatus) throw new Error("نوع حركة الحاوية غير مدعوم");
   const assets = await db.select().from(containerSystemRecordsTable);
   const asset = assets.find(record => {
     if (!["container", "container_asset"].includes(record.kind)) return false;
     const assetPayload = parsePayload(record.payload);
-    return String(assetPayload.assetCode ?? assetPayload.code ?? "") === String(payload.containerCode ?? "");
+    return assetCodeOf(assetPayload) === String(payload.containerCode ?? "").trim();
   });
-  if (!asset) return;
+  if (!asset) throw new Error("الحاوية المرتبطة بالحركة غير موجودة");
   const before = asset.payload;
   const beforePayload = parsePayload(before);
   const nextPayload = { ...beforePayload, location: payload.location ?? beforePayload.location };
@@ -233,10 +286,21 @@ router.post("/admin/container-system/records", async (req, res) => {
     const movementType = String(payload.movementType ?? "").trim();
     const containerCode = String(payload.containerCode ?? "").trim();
     if (!containerCode || !movementType) return res.status(422).json({ error: "رقم الحاوية ونوع الحركة مطلوبان" });
+    if (!movementStatus(movementType)) return res.status(422).json({ error: "نوع حركة الحاوية غير مدعوم" });
+    const assets = await db.select().from(containerSystemRecordsTable);
+    const asset = assets.find(record =>
+      ["container", "container_asset"].includes(record.kind) &&
+      record.status !== "archived" &&
+      assetCodeOf(parsePayload(record.payload)) === containerCode
+    );
+    if (!asset) return res.status(422).json({ error: "الحاوية المرتبطة بالحركة غير موجودة" });
   }
+  const normalizedStatus = kind === "container" || kind === "container_asset"
+    ? canonicalAssetStatus(payload.status, String(status))
+    : String(status);
   const [created] = await db.insert(containerSystemRecordsTable).values({
     kind,
-    status: String(status),
+    status: normalizedStatus,
     reference: referenceFor(kind, payload, Date.now()),
     payload: JSON.stringify(payload),
     createdBy: adminReq.adminId,
@@ -244,7 +308,14 @@ router.post("/admin/container-system/records", async (req, res) => {
   await db.insert(containerSystemAuditTable).values({
     recordId: created.id, kind, action: "create", afterPayload: created.payload, actorId: adminReq.adminId,
   });
-  if (kind === "container_movement") await syncMovement(payload, adminReq.adminId);
+   if (kind === "container_movement") {
+     try {
+       await syncMovement(payload, adminReq.adminId);
+     } catch (error) {
+       await db.update(containerSystemRecordsTable).set({ status: "archived", updatedAt: new Date().toISOString() }).where(eq(containerSystemRecordsTable.id, created.id));
+       return res.status(422).json({ error: error instanceof Error ? error.message : "تعذر مزامنة حركة الحاوية" });
+     }
+   }
   if (kind === "contract") {
     try {
       await linkContractToRequest(payload, created.id, adminReq.adminId);
@@ -297,8 +368,23 @@ router.patch("/admin/container-system/records/:id", async (req, res) => {
     (!String(nextPayload.containerCode ?? "").trim() || !String(nextPayload.movementType ?? "").trim())) {
     return res.status(422).json({ error: "رقم الحاوية ونوع الحركة مطلوبان" });
   }
+  if (current.kind === "container_movement" && !movementStatus(String(nextPayload.movementType ?? ""))) {
+    return res.status(422).json({ error: "نوع حركة الحاوية غير مدعوم" });
+  }
+  if (current.kind === "container_movement") {
+    const assets = await db.select().from(containerSystemRecordsTable);
+    const asset = assets.find(record =>
+      ["container", "container_asset"].includes(record.kind) &&
+      record.status !== "archived" &&
+      assetCodeOf(parsePayload(record.payload)) === String(nextPayload.containerCode ?? "").trim()
+    );
+    if (!asset) return res.status(422).json({ error: "الحاوية المرتبطة بالحركة غير موجودة" });
+  }
+  const nextStatus = current.kind === "container" || current.kind === "container_asset"
+    ? canonicalAssetStatus(nextPayload.status, String(body.status ?? current.status))
+    : body.status ?? current.status;
   const [updated] = await db.update(containerSystemRecordsTable).set({
-    status: body.status ?? current.status,
+    status: nextStatus,
     payload: JSON.stringify(nextPayload),
     updatedAt: new Date().toISOString(),
   }).where(eq(containerSystemRecordsTable.id, id)).returning();

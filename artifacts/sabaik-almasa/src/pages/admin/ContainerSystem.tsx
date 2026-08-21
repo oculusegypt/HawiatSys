@@ -660,7 +660,19 @@ export default function ContainerSystem() {
         showSuccess(`تم ${action === "deliver" ? "تسجيل التسليم" : action === "return" ? "تسجيل الاسترجاع" : action === "settle" ? "تصفية العقد" : action === "debt" ? "تحويل العقد إلى مديونية" : "إغلاق العقد"}`)
         const containerCode = String(updated.payload.containerCode ?? "")
         if (containerCode && (action === "deliver" || action === "return")) {
-          createMutation.mutate({ data: { kind: "container_movement", status: "posted", payload: { contractNumber: updated.payload.contractNumber ?? updated.reference, containerCode, movementType: action === "deliver" ? "تسليم" : "استرجاع", movementDate: now, location: updated.payload.location ?? "" } } })
+          createMutation.mutate(
+            { data: { kind: "container_movement", status: "posted", payload: { contractNumber: updated.payload.contractNumber ?? updated.reference, containerCode, movementType: action === "deliver" ? "تسليم" : "استرجاع", movementDate: now, location: updated.payload.location ?? "" } } },
+            {
+              onSuccess: () => {
+                invalidate()
+                showSuccess(action === "deliver" ? "تم تحديث حالة الحاوية إلى مؤجرة" : "تم تحديث حالة الحاوية إلى متاحة")
+              },
+              onError: error => {
+                invalidate()
+                toast({ title: error instanceof Error ? error.message : "تم تحديث العقد ولم تتم مزامنة حالة الحاوية", variant: "destructive" })
+              },
+            },
+          )
         }
       },
       onError: () => toast({ title: "تعذر تحديث دورة العقد", variant: "destructive" }),
