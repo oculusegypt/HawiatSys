@@ -220,6 +220,12 @@ router.put("/admin/settings", async (req, res) => {
     if (body.sections_hidden !== undefined) {
       await setSetting("sections_hidden", String(body.sections_hidden));
     }
+    // Hero visibility and placement controls
+    for (const [key, value] of Object.entries(body)) {
+      if (key.startsWith("hero_") && value !== undefined) {
+        await setSetting(key, String(value));
+      }
+    }
 
     // AI provider keys (ai_* prefix)
     for (const [key, value] of Object.entries(body)) {

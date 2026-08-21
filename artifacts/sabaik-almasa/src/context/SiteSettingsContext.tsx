@@ -104,6 +104,10 @@ interface SiteSettings {
   statsItems: StatItem[]
   orderTrackingEnabled: boolean
   themePreset: string
+  heroCompanyVisible: boolean
+  heroCtaVisible: boolean
+  heroCompanyPosition: string
+  heroCtaPosition: string
   isLoaded: boolean
 }
 
@@ -145,6 +149,10 @@ const DEFAULTS: SiteSettings = {
   statsItems: [],
   orderTrackingEnabled: false,
   themePreset: "industrial_amber",
+  heroCompanyVisible: true,
+  heroCtaVisible: true,
+  heroCompanyPosition: "center-center",
+  heroCtaPosition: "center-center",
   isLoaded: false,
 }
 
@@ -200,6 +208,16 @@ function parseStatsItems(raw: unknown): StatItem[] {
   } catch {
     return []
   }
+}
+
+function parseBooleanSetting(raw: unknown, fallback: boolean): boolean {
+  if (raw === undefined || raw === null || raw === "") return fallback
+  return raw === true || raw === "true" || raw === 1 || raw === "1"
+}
+
+function parseHeroPosition(raw: unknown, fallback: string): string {
+  const value = typeof raw === "string" ? raw : ""
+  return /^(top|center|bottom)-(left|center|right)$/.test(value) ? value : fallback
 }
 
 async function fetchSettings(): Promise<SiteSettings> {
@@ -263,6 +281,10 @@ async function fetchSettings(): Promise<SiteSettings> {
       applyThemePreset(p)
       return p
     })(),
+    heroCompanyVisible: parseBooleanSetting(data.hero_company_visible, true),
+    heroCtaVisible: parseBooleanSetting(data.hero_cta_visible, true),
+    heroCompanyPosition: parseHeroPosition(data.hero_company_position, "center-center"),
+    heroCtaPosition: parseHeroPosition(data.hero_cta_position, "center-center"),
     isLoaded: true,
   }
 }

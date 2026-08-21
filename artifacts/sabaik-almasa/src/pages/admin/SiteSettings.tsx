@@ -12,6 +12,7 @@ import {
   ExternalLink, SlidersHorizontal, RotateCcw, LayoutGrid, Upload, RefreshCw, Megaphone,
   Palette, Sparkles,
 } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
 import { THEME_PRESETS, applyThemePreset, type ThemePreset } from "@/lib/themePresets"
 import { motion } from "framer-motion"
 import {
@@ -129,6 +130,18 @@ const SUPPORT_OPTIONS = [
 // ── Slide form ─────────────────────────────────────────────────────────────────
 type SlideForm = { title: string; subtitle: string; imageUrl: string; ctaText: string; order: number; isActive: boolean }
 const emptySlide = (): SlideForm => ({ title: "", subtitle: "", imageUrl: "", ctaText: "اطلب خدمتك الآن", order: 0, isActive: true })
+
+const HERO_POSITIONS = [
+  { value: "top-right", label: "أعلى يمين" },
+  { value: "top-center", label: "أعلى وسط" },
+  { value: "top-left", label: "أعلى يسار" },
+  { value: "center-right", label: "وسط يمين" },
+  { value: "center-center", label: "وسط" },
+  { value: "center-left", label: "وسط يسار" },
+  { value: "bottom-right", label: "أسفل يمين" },
+  { value: "bottom-center", label: "أسفل وسط" },
+  { value: "bottom-left", label: "أسفل يسار" },
+] as const
 
 // ── Testimonial form ───────────────────────────────────────────────────────────
 type TestimonialForm = { clientName: string; company: string; content: string; rating: number; avatarUrl: string; isActive: boolean }
@@ -759,12 +772,61 @@ function GeneralTab() {
 // ── Tab 2: Slides ─────────────────────────────────────────────────────────────
 // ══════════════════════════════════════════════════════════════════════════════
 function SlidesTab() {
+  const { toast } = useToast()
   const { data: slides = [], refetch } = useGetSlides()
   const { mutate: createSlide, isPending: creating } = useCreateSlide()
   const { mutate: updateSlide, isPending: updating } = useUpdateSlide()
   const { mutate: deleteSlide } = useDeleteSlide()
   const [editing, setEditing] = useState<number | "new" | null>(null)
   const [form, setForm] = useState<SlideForm>(emptySlide())
+  const [heroSettings, setHeroSettings] = useState({
+    hero_company_visible: true,
+    hero_cta_visible: true,
+    hero_company_position: "center-center",
+    hero_cta_position: "center-center",
+  })
+  const [heroSettingsLoading, setHeroSettingsLoading] = useState(true)
+  const [heroSettingsSaving, setHeroSettingsSaving] = useState(false)
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/settings?ts=${Date.now()}`, { cache: "no-store" })
+      .then(r => r.json())
+      .then(data => {
+        setHeroSettings({
+          hero_company_visible: data.hero_company_visible !== "false",
+          hero_cta_visible: data.hero_cta_visible !== "false",
+          hero_company_position: HERO_POSITIONS.some(p => p.value === data.hero_company_position) ? data.hero_company_position : "center-center",
+          hero_cta_position: HERO_POSITIONS.some(p => p.value === data.hero_cta_position) ? data.hero_cta_position : "center-center",
+        })
+      })
+      .catch(() => {})
+      .finally(() => setHeroSettingsLoading(false))
+  }, [])
+
+  async function saveHeroSettings(next: typeof heroSettings) {
+    setHeroSettings(next)
+    setHeroSettingsSaving(true)
+    try {
+      const token = localStorage.getItem("admin_token") ?? ""
+      const response = await fetch(`${API_BASE}/api/admin/settings`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          hero_company_visible: String(next.hero_company_visible),
+          hero_cta_visible: String(next.hero_cta_visible),
+          hero_company_position: next.hero_company_position,
+          hero_cta_position: next.hero_cta_position,
+        }),
+      })
+      if (!response.ok) throw new Error()
+      window.dispatchEvent(new Event("siteSettingsChanged"))
+      toast({ title: "تم حفظ إعدادات الهيرو" })
+    } catch {
+      toast({ title: "تعذر حفظ إعدادات الهيرو", variant: "destructive" })
+    } finally {
+      setHeroSettingsSaving(false)
+    }
+  }
 
   const openNew = () => { setForm({ ...emptySlide(), order: slides.length }); setEditing("new") }
   const openEdit = (s: HeroSlide) => { setForm({ title: s.title, subtitle: s.subtitle, imageUrl: s.imageUrl, ctaText: s.ctaText ?? "", order: s.order, isActive: s.isActive }); setEditing(s.id) }
@@ -779,6 +841,62 @@ function SlidesTab() {
 
   return (
     <div className="space-y-6">
+      <Card className="border-primary/20 shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg text-gray-800">ظهور اسم المنشأة والزر</CardTitle>
+          <p className="text-sm font-normal text-gray-500">
+            تحكم في إظهار كل عنصر وتحديد موضعه من 9 مواضع داخل صورة الهيرو.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {heroSettingsLoading ? (
+            <div className="h-24 animate-pulse rounded-xl bg-gray-100" />
+          ) : (
+            <>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 p-4">
+                  <div>
+                    <p className="font-semibold text-gray-800">اسم المنشأة</p>
+                    <p className="mt-1 text-xs text-gray-500">الاسم الظاهر أعلى محتوى الهيرو</p>
+                  </div>
+                  <Switch
+                    checked={heroSettings.hero_company_visible}
+                    disabled={heroSettingsSaving}
+                    onCheckedChange={checked => saveHeroSettings({ ...heroSettings, hero_company_visible: checked })}
+                    aria-label="إظهار اسم المنشأة في الهيرو"
+                  />
+                </div>
+                <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 p-4">
+                  <div>
+                    <p className="font-semibold text-gray-800">زر طلب الخدمة</p>
+                    <p className="mt-1 text-xs text-gray-500">الزر الموجود داخل كل شريحة</p>
+                  </div>
+                  <Switch
+                    checked={heroSettings.hero_cta_visible}
+                    disabled={heroSettingsSaving}
+                    onCheckedChange={checked => saveHeroSettings({ ...heroSettings, hero_cta_visible: checked })}
+                    aria-label="إظهار زر طلب الخدمة في الهيرو"
+                  />
+                </div>
+              </div>
+              <div className="grid gap-6 lg:grid-cols-2">
+                <HeroPositionPicker
+                  title="موضع اسم المنشأة"
+                  value={heroSettings.hero_company_position}
+                  disabled={heroSettingsSaving || !heroSettings.hero_company_visible}
+                  onChange={value => saveHeroSettings({ ...heroSettings, hero_company_position: value })}
+                />
+                <HeroPositionPicker
+                  title="موضع زر طلب الخدمة"
+                  value={heroSettings.hero_cta_position}
+                  disabled={heroSettingsSaving || !heroSettings.hero_cta_visible}
+                  onChange={value => saveHeroSettings({ ...heroSettings, hero_cta_position: value })}
+                />
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
       <div className="flex items-center justify-between">
         <div><h3 className="text-xl font-bold text-gray-800">شرائح الهيرو</h3><p className="text-sm text-gray-500 mt-0.5">صور الشريط الرئيسي في أعلى الصفحة</p></div>
         <Button onClick={openNew} className="gap-2"><Plus size={16} />إضافة شريحة</Button>
@@ -834,6 +952,47 @@ function SlidesTab() {
         {slides.length === 0 && (
           <Card><CardContent className="py-16 flex flex-col items-center gap-3 text-gray-400"><ImageIcon size={48} strokeWidth={1} /><p className="text-lg font-medium">لا توجد شرائح بعد</p><Button onClick={openNew} variant="outline" className="gap-2 mt-2"><Plus size={16} />أضف أول شريحة</Button></CardContent></Card>
         )}
+      </div>
+    </div>
+  )
+}
+
+function HeroPositionPicker({
+  title,
+  value,
+  disabled,
+  onChange,
+}: {
+  title: string
+  value: string
+  disabled?: boolean
+  onChange: (value: string) => void
+}) {
+  return (
+    <div className={`rounded-xl border border-gray-200 p-4 transition-opacity ${disabled ? "opacity-50" : ""}`}>
+      <div className="mb-3 flex items-center justify-between">
+        <p className="font-semibold text-gray-800">{title}</p>
+        <span className="text-xs text-primary">{HERO_POSITIONS.find(position => position.value === value)?.label}</span>
+      </div>
+      <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label={title}>
+        {HERO_POSITIONS.map(position => (
+          <button
+            key={position.value}
+            type="button"
+            disabled={disabled}
+            role="radio"
+            aria-checked={value === position.value}
+            onClick={() => onChange(position.value)}
+            className={`flex min-h-16 flex-col items-center justify-center gap-1 rounded-lg border text-xs transition-all ${
+              value === position.value
+                ? "border-primary bg-primary/10 text-primary shadow-sm"
+                : "border-gray-200 bg-gray-50 text-gray-500 hover:border-primary/40 hover:bg-primary/5"
+            }`}
+          >
+            <span className={`h-2.5 w-2.5 rounded-full ${value === position.value ? "bg-primary" : "bg-gray-300"}`} />
+            <span>{position.label}</span>
+          </button>
+        ))}
       </div>
     </div>
   )
