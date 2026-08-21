@@ -16,6 +16,10 @@ const supportedKinds = [
   "purchase", "purchase_return",
 ] as const;
 type RecordKind = typeof supportedKinds[number];
+const idempotentKinds = new Set([
+  "container_movement", "receipt", "payment", "expense", "deposit", "bank_deposit",
+  "invoice", "invoice_return", "payment_return", "transfer", "purchase", "purchase_return",
+]);
 
 function parsePayload(payload: string): Record<string, unknown> {
   try {
@@ -24,6 +28,21 @@ function parsePayload(payload: string): Record<string, unknown> {
   } catch {
     return {};
   }
+}
+
+function operationKeyOf(payload: Record<string, unknown>) {
+  const key = String(payload.operationKey ?? "").trim();
+  return key.length >= 8 ? key.slice(0, 160) : "";
+}
+
+async function findByOperationKey(kind: string, operationKey: string) {
+  if (!operationKey || !idempotentKinds.has(kind)) return null;
+  const rows = await db.select().from(containerSystemRecordsTable);
+  return rows.find(row =>
+    row.kind === kind &&
+    row.status !== "archived" &&
+    operationKeyOf(parsePayload(row.payload)) === operationKey,
+  ) ?? null;
 }
 
 function formatRecord(row: typeof containerSystemRecordsTable.$inferSelect) {
@@ -578,6 +597,17 @@ router.post("/admin/container-system/records", async (req, res) => {
   }
   if (!canManage(adminReq, kind)) return res.status(403).json({ error: "ليس لديك صلاحية لهذه العملية" });
   if (!payload || typeof payload !== "object") return res.status(400).json({ error: "بيانات السجل غير صالحة" });
+  const requestOperationKey = String(req.get("Idempotency-Key") ?? payload.operationKey ?? "").trim();
+  if (idempotentKinds.has(kind) && requestOperationKey) {
+    if (requestOperationKey.length < 8 || requestOperationKey.length > 160) {
+      return res.status(422).json({ error: "مفتاح العملية غير صالح" });
+    }
+    payload.operationKey = requestOperationKey;
+    const existing = await findByOperationKey(kind, requestOperationKey);
+    if (existing) {
+      return res.status(200).json({ ...formatRecord(existing), idempotent: true });
+    }
+  }
   if (kind === "contract") {
     Object.assign(payload, normalizeContractPayload(payload));
     const amount = Number(payload.amount ?? 0);

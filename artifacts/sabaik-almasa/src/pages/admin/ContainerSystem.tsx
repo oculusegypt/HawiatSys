@@ -626,7 +626,14 @@ export default function ContainerSystem() {
     archiveMutation.mutate({ id: record.id }, { onSuccess: () => { invalidate(); showSuccess("تمت أرشفة السجل") }, onError: () => toast({ title: "تعذر أرشفة السجل", variant: "destructive" }) })
   }
   const submitRecord = (payload: Record<string, unknown>, status: string) => {
-    const data = { kind: dialog.kind, status, payload }
+    const criticalKinds = new Set(["container_movement", "receipt", "payment", "expense", "deposit", "bank_deposit", "invoice", "invoice_return", "payment_return", "transfer", "purchase", "purchase_return"])
+    const data = {
+      kind: dialog.kind,
+      status,
+      payload: !dialog.record && criticalKinds.has(dialog.kind)
+        ? { ...payload, operationKey: crypto.randomUUID() }
+        : payload,
+    }
     if (dialog.record) {
       updateMutation.mutate({ id: dialog.record.id, data: { status, payload } }, { onSuccess: () => { invalidate(); setDialog(current => ({ ...current, open: false })); showSuccess("تم تحديث السجل") }, onError: () => toast({ title: "تعذر تحديث السجل", variant: "destructive" }) })
     } else {
