@@ -105,20 +105,20 @@ export function HeroSlider() {
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: index === currentIndex ? 1 : 0, y: index === currentIndex ? 0 : 30 }}
                 transition={{ duration: 0.8, delay: 0.2 }}
-                className={`absolute inset-x-4 top-1/2 max-w-4xl mx-auto -translate-y-1/2 ${centeredCta ? "flex flex-col items-center" : ""}`}
+                className={`hero-slide-content absolute inset-x-4 top-1/2 max-w-4xl mx-auto -translate-y-1/2 ${centeredCta ? "flex flex-col items-center" : ""}`}
               >
                 {/* Only the active slide gets h1 */}
                 {index === 0 ? (
-                  <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight drop-shadow-lg">
+                    <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight drop-shadow-[0_3px_10px_rgba(0,0,0,0.75)]">
                     {slide.title}
                   </h1>
                 ) : (
-                  <h2 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight drop-shadow-lg">
+                    <h2 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight drop-shadow-[0_3px_10px_rgba(0,0,0,0.75)]">
                     {slide.title}
                   </h2>
                 )}
 
-                <p className="text-lg md:text-2xl text-gray-200 mb-10 drop-shadow-md">
+                <p className="text-lg md:text-2xl text-white mb-10 drop-shadow-[0_2px_7px_rgba(0,0,0,0.8)]">
                   {slide.subtitle}
                 </p>
 
