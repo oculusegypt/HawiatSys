@@ -55,6 +55,19 @@ function normalizeContractPayload(payload: Record<string, unknown>) {
   return next;
 }
 
+function normalizeInvoicePayload(payload: Record<string, unknown>) {
+  const next = { ...payload };
+  const amount = Number(next.amount ?? next.subtotal ?? 0);
+  const taxRate = Number(next.taxRate ?? 15);
+  if (Number.isFinite(amount) && Number.isFinite(taxRate)) {
+    next.amount = amount;
+    next.taxRate = taxRate;
+    next.taxAmount = Math.round(amount * taxRate / 100 * 100) / 100;
+    next.total = Math.round((amount + Number(next.taxAmount)) * 100) / 100;
+  }
+  return next;
+}
+
 const MOVEMENT_STATUS_BY_TYPE: Record<string, string> = {
   delivery: "rented",
   deliver: "rented",
@@ -108,6 +121,17 @@ function canonicalAssetStatus(value: unknown, fallback: string) {
   return aliases[status] ?? (status || fallback);
 }
 
+function movementTransitionAllowed(currentStatus: string, movementType: string) {
+  const type = movementType.trim().toLowerCase();
+  const current = canonicalAssetStatus(currentStatus, currentStatus);
+  if (["delivery", "deliver", "تسليم"].includes(type)) return ["available", "reserved", "inspection"].includes(current);
+  if (["replacement", "swap", "تبديل", "تبديل حاوية"].includes(type)) return ["rented", "with_customer", "awaiting_return", "in_transit"].includes(current);
+  if (["unloading", "emptying", "تفريغ", "withdrawal", "withdraw", "سحب"].includes(type)) return ["rented", "with_customer", "awaiting_return", "in_transit"].includes(current);
+  if (["return", "returned", "استرجاع"].includes(type)) return ["rented", "with_customer", "awaiting_return", "in_transit", "damaged"].includes(current);
+  if (["maintenance", "صيانة"].includes(type)) return !["lost", "out_of_service"].includes(current);
+  return false;
+}
+
 async function findAssetByCode(containerCode: string) {
   const normalizedCode = containerCode.trim();
   if (!normalizedCode) return null;
@@ -159,6 +183,11 @@ async function validateFinancialPayload(kind: string, payload: Record<string, un
     const amount = Number(payload.amount ?? payload.total ?? 0);
     if (!Number.isFinite(amount) || amount <= 0) throw new Error("القيمة المالية يجب أن تكون أكبر من صفر");
   }
+  if (["payment", "receipt"].includes(kind)) {
+    const contractNumber = String(payload.contractNumber ?? "").trim();
+    const invoiceNumber = String(payload.invoiceNumber ?? "").trim();
+    if (!contractNumber && !invoiceNumber) throw new Error("سند التحصيل يجب أن يرتبط برقم عقد أو فاتورة");
+  }
   const contractNumber = String(payload.contractNumber ?? "").trim();
   if (contractNumber && ["payment", "receipt", "invoice", "invoice_return"].includes(kind)) {
     const records = await db.select().from(containerSystemRecordsTable);
@@ -169,6 +198,44 @@ async function validateFinancialPayload(kind: string, payload: Record<string, un
     );
     if (!contract) throw new Error("العقد المرتبط بالمستند المالي غير موجود");
   }
+  const invoiceNumber = String(payload.invoiceNumber ?? "").trim();
+  if (invoiceNumber && ["payment", "receipt", "invoice_return"].includes(kind)) {
+    const records = await db.select().from(containerSystemRecordsTable);
+    const invoice = records.find(record =>
+      record.kind === "invoice" &&
+      record.status !== "archived" &&
+      String(parsePayload(record.payload).invoiceNumber ?? record.reference).trim() === invoiceNumber
+    );
+    if (!invoice) throw new Error("الفاتورة المرتبطة بالمستند المالي غير موجودة");
+    if (kind === "invoice_return") {
+      const invoicePayload = parsePayload(invoice.payload);
+      const invoiceTotal = Number(invoicePayload.total ?? invoicePayload.amount ?? 0);
+      const returned = records
+        .filter(record => record.kind === "invoice_return" && record.status !== "archived")
+        .filter(record => String(parsePayload(record.payload).invoiceNumber ?? "").trim() === invoiceNumber)
+        .reduce((sum, record) => sum + Number(parsePayload(record.payload).amount ?? 0), 0);
+      if (Number.isFinite(invoiceTotal) && Number(payload.amount ?? 0) + returned > invoiceTotal) {
+        throw new Error("قيمة المرتجع تتجاوز الرصيد المتبقي من الفاتورة");
+      }
+    }
+  }
+}
+
+async function hasDuplicateDocumentNumber(kind: string, payload: Record<string, unknown>, ignoredId?: number) {
+  const fieldByKind: Record<string, string> = {
+    contract: "contractNumber", invoice: "invoiceNumber", receipt: "receiptNumber",
+  };
+  const field = fieldByKind[kind];
+  if (!field) return false;
+  const number = String(payload[field] ?? "").trim();
+  if (!number) return false;
+  const rows = await db.select().from(containerSystemRecordsTable);
+  return rows.some(row =>
+    row.kind === kind &&
+    row.status !== "archived" &&
+    row.id !== ignoredId &&
+    String(parsePayload(row.payload)[field] ?? row.reference).trim() === number
+  );
 }
 
 async function hasOverlappingContract(payload: Record<string, unknown>, ignoredId?: number) {
@@ -195,6 +262,9 @@ async function syncMovement(payload: Record<string, unknown>, actorId: number | 
   if (!nextStatus) throw new Error("نوع حركة الحاوية غير مدعوم");
   const asset = await findAssetByCode(String(payload.containerCode ?? ""));
   if (!asset) throw new Error("الحاوية المرتبطة بالحركة غير موجودة");
+  if (!movementTransitionAllowed(asset.status, movementType)) {
+    throw new Error(`لا يمكن تنفيذ حركة ${String(payload.movementType)} على حاوية حالتها الحالية ${asset.status}`);
+  }
   const before = asset.payload;
   const beforePayload = parsePayload(before);
   const nextPayload = { ...beforePayload, location: payload.location ?? beforePayload.location };
@@ -273,9 +343,18 @@ router.get("/admin/container-system", async (req, res) => {
   const rows = await db.select().from(containerSystemRecordsTable).orderBy(desc(containerSystemRecordsTable.updatedAt));
   const records = rows.map(formatRecord);
   const count = (kind: string, status?: string) => records.filter(r => r.kind === kind && (!status || r.status === status)).length;
+  const invoiceToContract = new Map<string, string>();
+  records.filter(r => r.kind === "invoice").forEach(r => {
+    const payload = r.payload as Record<string, unknown>;
+    const invoiceNumber = String(payload.invoiceNumber ?? r.reference).trim();
+    const contractNumber = String(payload.contractNumber ?? "").trim();
+    if (invoiceNumber && contractNumber) invoiceToContract.set(invoiceNumber, contractNumber);
+  });
   const paymentsByContract = new Map<string, number>();
   records.filter(r => r.kind === "payment" || r.kind === "receipt").forEach(r => {
-    const contractNumber = String((r.payload as Record<string, unknown>).contractNumber ?? "");
+    const payload = r.payload as Record<string, unknown>;
+    const contractNumber = String(payload.contractNumber ?? "").trim() ||
+      (invoiceToContract.get(String(payload.invoiceNumber ?? "").trim()) ?? "");
     if (contractNumber) paymentsByContract.set(contractNumber, (paymentsByContract.get(contractNumber) ?? 0) + Number((r.payload as Record<string, unknown>).amount ?? 0));
   });
   const contracts = records.filter(r => r.kind === "contract").map(r => {
@@ -370,6 +449,10 @@ router.post("/admin/container-system/records", async (req, res) => {
       return res.status(422).json({ error: error instanceof Error ? error.message : "بيانات العقد غير صحيحة" });
     }
   }
+  if (kind === "invoice") Object.assign(payload, normalizeInvoicePayload(payload));
+  if (await hasDuplicateDocumentNumber(kind, payload)) {
+    return res.status(409).json({ error: "رقم المستند مستخدم مسبقًا" });
+  }
   if (kind === "container_movement") {
     const movementType = String(payload.movementType ?? "").trim();
     const containerCode = String(payload.containerCode ?? "").trim();
@@ -459,6 +542,10 @@ router.patch("/admin/container-system/records/:id", async (req, res) => {
       const message = error instanceof Error ? error.message : "بيانات العقد غير صحيحة";
       return res.status(message.includes("مرتبطة بعقد") ? 409 : 422).json({ error: message });
     }
+  }
+  if (current.kind === "invoice") Object.assign(nextPayload, normalizeInvoicePayload(nextPayload));
+  if (await hasDuplicateDocumentNumber(current.kind, nextPayload, id)) {
+    return res.status(409).json({ error: "رقم المستند مستخدم مسبقًا" });
   }
   if (current.kind === "container_movement" &&
     (!String(nextPayload.containerCode ?? "").trim() || !String(nextPayload.movementType ?? "").trim())) {

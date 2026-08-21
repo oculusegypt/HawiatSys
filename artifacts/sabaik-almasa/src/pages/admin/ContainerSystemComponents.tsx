@@ -218,6 +218,8 @@ export const FIELD_CONFIG: Record<RecordKind, FieldConfig[]> = {
   receipt: [
     { key: "receiptNumber", label: "رقم الإيصال", placeholder: "REC-001" },
     { key: "customerName", label: "العميل", placeholder: "اسم العميل" },
+    { key: "contractNumber", label: "رقم العقد", placeholder: "RNT-2026-001" },
+    { key: "invoiceNumber", label: "رقم الفاتورة", placeholder: "INV-2026-001" },
     { key: "amount", label: "المبلغ", type: "number", placeholder: "0" },
     { key: "paymentMethod", label: "طريقة الدفع", placeholder: "تحويل / شبكة / نقدي" },
     { key: "date", label: "التاريخ", type: "date" },
