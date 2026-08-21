@@ -597,6 +597,7 @@ export default function ContainerSystem() {
   const updateMutation = useUpdateContainerSystemRecord()
   const archiveMutation = useArchiveContainerSystemRecord()
   const snapshot = snapshotQuery.data
+  const organization = (snapshot as typeof snapshot & { organization?: Record<string, unknown> } | undefined)?.organization
   const records = useMemo(() => {
     const response = recordsQuery.data ?? []
     if (isCollection || search.trim()) return response
@@ -631,7 +632,7 @@ export default function ContainerSystem() {
     if (payload.section === "organization") {
       const values = payload as Record<string, string>
       const updates = {
-        company_name: values["اسم المؤسسة"] ?? "",
+        company_name: (values["اسم المؤسسة"] ?? "").trim(),
         company_name_en: values["الاسم بالإنجليزية"] ?? "",
         company_phone_call: values["الجوال"] ?? "",
         company_email: values["البريد الإلكتروني"] ?? "",
@@ -646,6 +647,7 @@ export default function ContainerSystem() {
         body: JSON.stringify(updates),
       }).then(response => {
         if (!response.ok) throw new Error("settings")
+        void snapshotQuery.refetch()
         showSuccess("تم حفظ بيانات المؤسسة وربطها بالعقود")
       }).catch(() => toast({ title: "تعذر حفظ بيانات المؤسسة", variant: "destructive" }))
       return
@@ -710,7 +712,7 @@ export default function ContainerSystem() {
           {error ? <Card className="border-rose-200 bg-rose-50/50"><CardContent className="flex flex-col items-center gap-3 p-12 text-center"><AlertCircle size={27} className="text-rose-500" /><h3 className="font-bold text-rose-900">تعذر تحميل بيانات النظام</h3><p className="text-sm text-rose-700">تحقق من الاتصال ثم حاول مرة أخرى.</p><Button onClick={() => { snapshotQuery.refetch(); recordsQuery.refetch() }} variant="outline" className="gap-2 border-rose-200 bg-white text-rose-800" data-testid="button-retry-container-system"><RefreshCw size={15} /> إعادة المحاولة</Button></CardContent></Card>
             : view === "overview" ? <Overview snapshot={snapshot} records={records} onAdd={openCreate} />
               : view === "reports" ? reportId ? <ReportPage reportId={reportId} records={snapshot?.records ?? records} onBack={() => setReportId(null)} /> : <ReportsHub onOpen={setReportId} />
-              : view === "system_settings" ? <SettingsPage records={snapshot?.records ?? records} onSave={saveSettings} />
+              : view === "system_settings" ? <SettingsPage records={snapshot?.records ?? records} organization={organization} onSave={saveSettings} />
              : view === "audit" ? <AuditLog audits={auditQuery.data ?? []} loading={auditQuery.isLoading} />
               : view === "container_search" ? <ContainerSearchPanel records={records} loading={loading} onDetails={record => setDetailRecord(record)} onEdit={openEdit} />
              : view === "container"

@@ -389,7 +389,7 @@ router.get("/admin/container-system", async (req, res) => {
   const fleetCount = records.filter(r => r.kind === "vehicle").length;
   const rentedCount = records.filter(r => ["container", "container_asset"].includes(r.kind) && r.status === "rented").length;
   const organization = {
-    name: await getSetting("company_name"),
+    name: (await getSetting("company_name")).trim() || (await getSetting("company_name_en")).trim(),
     logo: await getSetting("company_logo"),
     phone: await getSetting("company_phone_call"),
     whatsapp: await getSetting("company_phone_whatsapp"),
@@ -402,7 +402,7 @@ router.get("/admin/container-system", async (req, res) => {
     latitude: await getSetting("company_latitude"),
     longitude: await getSetting("company_longitude"),
     taxNumber: await getSetting("company_tax_number"),
-    englishName: await getSetting("company_name_en"),
+    englishName: (await getSetting("company_name_en")).trim(),
   };
   return res.json({
     organization,

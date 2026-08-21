@@ -121,6 +121,32 @@ const DEFAULTS: SiteSettings = {
   platform_promo_enabled: "true",
 }
 
+function normalizeGoogleMapEmbed(value: string): { url: string; error: string } {
+  const input = value.trim()
+  if (!input) return { url: "", error: "" }
+
+  // Accept either the URL copied from Google Maps or a complete iframe tag.
+  const srcMatch = input.match(/<iframe[^>]+src\s*=\s*["']([^"']+)["']/i)
+  const candidate = (srcMatch?.[1] ?? input)
+    .replaceAll("&amp;", "&")
+    .replaceAll("&#x26;", "&")
+    .trim()
+
+  try {
+    const url = new URL(candidate)
+    const host = url.hostname.toLowerCase()
+    const isGoogleMapsHost = host === "google.com" || host.endsWith(".google.com") || host === "maps.google.com"
+    const isEmbedPath = url.pathname.toLowerCase().startsWith("/maps/embed")
+    const isEmbedQuery = url.pathname.toLowerCase() === "/maps" && url.searchParams.get("output") === "embed"
+    if (!isGoogleMapsHost || (!isEmbedPath && !isEmbedQuery)) {
+      return { url: "", error: "الصق رابط Embed من خيار «تضمين خريطة» في Google Maps، وليس رابط المشاركة العادي." }
+    }
+    return { url: url.toString(), error: "" }
+  } catch {
+    return { url: "", error: "رابط الخريطة غير صالح. يجب أن يكون رابط Google Maps بصيغة Embed." }
+  }
+}
+
 const SUPPORT_OPTIONS = [
   { value: "available",   label: "متاح",     description: "الدعم المباشر متاح — سيتم تعطيل البوت الذكي", icon: CheckCircle, color: "green" },
   { value: "busy",        label: "مشغول",    description: "الدعم مشغول — البوت يعمل مع إشعار بانتظار الدعم", icon: Clock,        color: "amber" },
@@ -182,6 +208,7 @@ function GeneralTab() {
     typeof window !== "undefined" ? localStorage.getItem("admin_role") ?? "" : "",
   )
   const isAdmin = currentRole === "admin"
+  const mapValidation = normalizeGoogleMapEmbed(settings.company_map_embed)
 
   useEffect(() => {
     // Do not trust a stale localStorage role on Hostinger. Resolve the
@@ -665,7 +692,7 @@ function GeneralTab() {
            </div>
 
           {/* Google Maps embed */}
-          <div className="space-y-2">
+           <div className="space-y-2">
             <label className="text-sm font-bold text-gray-700">رابط خريطة جوجل (src أو كود iframe كامل)</label>
             <textarea
               value={settings.company_map_embed}
@@ -675,11 +702,12 @@ function GeneralTab() {
               dir="ltr"
               className="w-full border border-input rounded-md px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-ring resize-none bg-gray-50"
             />
-            <p className="text-xs text-gray-400">اذهب إلى جوجل ماب ← مشاركة ← تضمين خريطة ← انسخ الرابط أو كود الـ iframe بالكامل</p>
-            {settings.company_map_embed && (
+             <p className="text-xs text-gray-400">اذهب إلى Google Maps ← مشاركة ← تضمين خريطة ← انسخ الرابط أو كود iframe بالكامل. لا تستخدم رابط المشاركة العادي.</p>
+             {mapValidation.error && <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold leading-5 text-amber-800">{mapValidation.error}</p>}
+             {mapValidation.url && (
               <div className="rounded-xl overflow-hidden border border-gray-200">
                 <iframe
-                  src={settings.company_map_embed.match(/src="([^"]+)"/)?.[1] ?? settings.company_map_embed}
+                   src={mapValidation.url}
                   width="100%" height="200" style={{ border: 0, display: "block" }}
                   allowFullScreen loading="lazy" referrerPolicy="strict-origin-when-cross-origin"
                   title="معاينة الخريطة"
@@ -688,7 +716,12 @@ function GeneralTab() {
             )}
           </div>
 
-           <Button onClick={() => save({
+           <Button onClick={() => {
+             if (settings.company_map_embed.trim() && !mapValidation.url) {
+               toast({ variant: "destructive", title: "لا يمكن حفظ الخريطة", description: mapValidation.error })
+               return
+             }
+             save({
              company_name: settings.company_name,
              company_logo: settings.company_logo,
              company_phones: JSON.stringify(phones),
@@ -704,7 +737,7 @@ function GeneralTab() {
              company_longitude: settings.company_longitude,
              company_price_range: settings.company_price_range,
              company_payment_methods: settings.company_payment_methods,
-             company_map_embed: settings.company_map_embed,
+              company_map_embed: mapValidation.url,
              company_footer_description: settings.company_footer_description,
              site_public_url: settings.site_public_url,
              social_facebook: settings.social_facebook,
@@ -714,7 +747,8 @@ function GeneralTab() {
              social_snapchat: settings.social_snapchat,
              social_youtube: settings.social_youtube,
              support_hours: settings.support_hours,
-           })} disabled={saving} className="bg-primary hover:bg-primary/90 text-white">
+            })
+           }} disabled={saving} className="bg-primary hover:bg-primary/90 text-white">
             {saving ? "جاري الحفظ..." : "حفظ بيانات المنشأة"}
           </Button>
         </CardContent>

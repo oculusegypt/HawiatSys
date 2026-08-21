@@ -113,7 +113,15 @@ const organizationSettingKeys: Record<string, string> = {
   Longitude: "company_longitude",
 }
 
-export function SettingsPage({ records, onSave }: { records: ContainerSystemRecord[]; onSave: (payload: Record<string, unknown>) => void }) {
+export function SettingsPage({
+  records,
+  organization,
+  onSave,
+}: {
+  records: ContainerSystemRecord[]
+  organization?: Record<string, unknown>
+  onSave: (payload: Record<string, unknown>) => void
+}) {
   const [section, setSection] = useState("organization")
   const config = settingSections.find(item => item.id === section) ?? settingSections[0]
   const [values, setValues] = useState<Record<string, string>>({})
@@ -121,6 +129,20 @@ export function SettingsPage({ records, onSave }: { records: ContainerSystemReco
   useEffect(() => {
     setValues({})
     if (section !== "organization") return
+    const organizationValues = Object.fromEntries(Object.entries(organizationSettingKeys).map(([label, key]) => {
+      const organizationKey = ({
+        company_name: "name",
+        company_name_en: "englishName",
+        company_phone_call: "phone",
+        company_email: "email",
+        company_address: "address",
+        company_logo: "logo",
+        company_latitude: "latitude",
+        company_longitude: "longitude",
+      } as Record<string, string>)[key] ?? key
+      return [label, String(organization?.[organizationKey] ?? "")]
+    }))
+    if (Object.values(organizationValues).some(Boolean)) setValues(organizationValues)
     void fetch(`${API_BASE}/api/settings?ts=${Date.now()}`, { cache: "no-store" })
       .then(response => response.ok ? response.json() as Promise<Record<string, string>> : {})
       .then(data => {
@@ -128,6 +150,6 @@ export function SettingsPage({ records, onSave }: { records: ContainerSystemReco
         setValues(Object.fromEntries(Object.entries(organizationSettingKeys).map(([label, key]) => [label, settings[key] ?? ""])))
       })
       .catch(() => undefined)
-  }, [section])
+  }, [organization, section])
   return <div className="grid gap-5 lg:grid-cols-[15rem_minmax(0,1fr)]"><Card className="h-fit"><CardContent className="space-y-1 p-2">{settingSections.map(item => <button key={item.id} type="button" onClick={() => setSection(item.id)} className={`w-full rounded-xl px-3 py-3 text-right text-xs font-bold ${section === item.id ? "bg-cyan-50 text-cyan-900" : "text-slate-500 hover:bg-slate-50"}`}><Settings2 size={14} className="ml-2 inline" />{item.title}</button>)}</CardContent></Card><Card><CardHeader className="border-b"><CardTitle>{config.title}</CardTitle><p className="text-xs text-slate-500">إعدادات محفوظة في نظام الحاويات ويمكن مراجعتها وتعديلها من المستخدمين المخولين.</p></CardHeader><CardContent className="grid gap-4 p-5 sm:grid-cols-2">{config.fields.map(field => <div key={field}><label className="mb-1 block text-xs font-bold text-slate-600">{field}</label><Input value={values[field] ?? String(existing?.payload[field] ?? "")} onChange={event => setValues(current => ({ ...current, [field]: event.target.value }))} placeholder={`أدخل ${field}`} /></div>)}<div className="sm:col-span-2 flex justify-end"><Button onClick={() => onSave({ section, sectionTitle: config.title, ...values })} className="gap-2 bg-cyan-800 hover:bg-cyan-900"><Save size={16} /> حفظ إعدادات {config.title}</Button></div></CardContent></Card></div>
 }
