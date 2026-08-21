@@ -53,7 +53,10 @@ async function prepareContainerCompletion(request: typeof serviceRequestsTable.$
   return { contract, contractPayload, asset, containerCode, returning: isReturnWork(request) };
 }
 
-async function syncContainerCompletion(
+type DbWriter = Pick<typeof db, "update" | "insert">;
+
+function syncContainerCompletion(
+  writer: DbWriter,
   request: typeof serviceRequestsTable.$inferSelect,
   prepared: Awaited<ReturnType<typeof prepareContainerCompletion>>,
   actorId: number,
@@ -75,18 +78,18 @@ async function syncContainerCompletion(
     lastWorkOrderId: request.id,
   };
 
-  await db.update(containerSystemRecordsTable).set({
+  writer.update(containerSystemRecordsTable).set({
     status: contractStatus,
     payload: JSON.stringify(nextContractPayload),
     updatedAt: now,
-  }).where(eq(containerSystemRecordsTable.id, prepared.contract.id));
-  await db.update(containerSystemRecordsTable).set({
+  }).where(eq(containerSystemRecordsTable.id, prepared.contract.id)).run();
+  writer.update(containerSystemRecordsTable).set({
     status: assetStatus,
     payload: JSON.stringify(nextAssetPayload),
     updatedAt: now,
-  }).where(eq(containerSystemRecordsTable.id, prepared.asset.id));
+  }).where(eq(containerSystemRecordsTable.id, prepared.asset.id)).run();
 
-  const [movement] = await db.insert(containerSystemRecordsTable).values({
+  const movement = writer.insert(containerSystemRecordsTable).values({
     kind: "container_movement",
     status: "posted",
     reference: `MOV-${request.id}`,
@@ -101,8 +104,8 @@ async function syncContainerCompletion(
       source: "driver_work_order",
     }),
     createdBy: actorId,
-  }).returning();
-  await db.insert(containerSystemAuditTable).values([
+  }).returning().get();
+  writer.insert(containerSystemAuditTable).values([
     {
       recordId: prepared.contract.id,
       kind: "contract",
@@ -126,7 +129,7 @@ async function syncContainerCompletion(
       afterPayload: movement.payload,
       actorId,
     },
-  ]);
+  ]).run();
 }
 
 function isRecent(value: string | null | undefined, windowMs: number): boolean {
@@ -461,6 +464,11 @@ router.patch("/driver/work-orders/:id", requireAdmin, requireDriver, async (req,
   const id = parseInt(String(req.params.id), 10);
   const nextStatus = String(req.body?.status ?? "");
   const notes = req.body?.notes === undefined ? undefined : String(req.body.notes ?? "").trim();
+  const locationLat = req.body?.locationLat === undefined ? undefined : String(req.body.locationLat ?? "").trim();
+  const locationLng = req.body?.locationLng === undefined ? undefined : String(req.body.locationLng ?? "").trim();
+  const proofPhotoUrl = req.body?.proofPhotoUrl === undefined ? undefined : String(req.body.proofPhotoUrl ?? "").trim();
+  const signatureData = req.body?.signatureData === undefined ? undefined : String(req.body.signatureData ?? "").trim();
+  const receiverName = req.body?.receiverName === undefined ? undefined : String(req.body.receiverName ?? "").trim();
   const transitions: Record<string, string[]> = {
     assigned: ["accepted", "rejected"],
     accepted: ["started"],
@@ -482,6 +490,12 @@ router.patch("/driver/work-orders/:id", requireAdmin, requireDriver, async (req,
   if (!transitions[request.driverStatus]?.includes(nextStatus)) {
     return res.status(400).json({ error: "لا يمكن الانتقال من الحالة الحالية إلى هذه الحالة" });
   }
+  if (locationLat !== undefined && locationLat && (!Number.isFinite(Number(locationLat)) || Number(locationLat) < -90 || Number(locationLat) > 90)) {
+    return res.status(422).json({ error: "خط العرض غير صحيح" });
+  }
+  if (locationLng !== undefined && locationLng && (!Number.isFinite(Number(locationLng)) || Number(locationLng) < -180 || Number(locationLng) > 180)) {
+    return res.status(422).json({ error: "خط الطول غير صحيح" });
+  }
 
   let preparedContainerCompletion: Awaited<ReturnType<typeof prepareContainerCompletion>> = null;
   if (nextStatus === "completed") {
@@ -492,6 +506,9 @@ router.patch("/driver/work-orders/:id", requireAdmin, requireDriver, async (req,
         error: error instanceof Error ? error.message : "لا يمكن إكمال أمر العمل قبل اكتمال ربط العقد والحاوية",
       });
     }
+    if (preparedContainerCompletion && (!receiverName || !signatureData)) {
+      return res.status(422).json({ error: "يلزم تسجيل اسم المستلم وتوقيع العميل قبل إكمال حركة الحاوية" });
+    }
   }
 
   const now = new Date().toISOString();
@@ -501,21 +518,53 @@ router.patch("/driver/work-orders/:id", requireAdmin, requireDriver, async (req,
     driverStartedAt: nextStatus === "started" ? now : request.driverStartedAt,
     driverCompletedAt: nextStatus === "completed" ? now : request.driverCompletedAt,
     driverNotes: notes === undefined ? request.driverNotes : notes || null,
+    driverLocationLat: locationLat === undefined ? request.driverLocationLat : locationLat || null,
+    driverLocationLng: locationLng === undefined ? request.driverLocationLng : locationLng || null,
+    driverProofPhotoUrl: proofPhotoUrl === undefined ? request.driverProofPhotoUrl : proofPhotoUrl || null,
+    driverSignatureData: signatureData === undefined ? request.driverSignatureData : signatureData || null,
+    driverReceiverName: receiverName === undefined ? request.driverReceiverName : receiverName || null,
     status: nextStatus === "started" || nextStatus === "completed"
       ? nextStatus === "completed" ? "completed" : "in_progress"
       : request.status,
     updatedAt: now,
   };
-  const [updated] = await db.update(serviceRequestsTable).set(updateData)
-    .where(eq(serviceRequestsTable.id, id)).returning();
-  if (nextStatus === "completed" && preparedContainerCompletion) {
-    try {
-      await syncContainerCompletion(updated, preparedContainerCompletion, adminRequest.adminId);
-    } catch (error) {
-      return res.status(500).json({
-        error: error instanceof Error ? error.message : "تم إكمال أمر العمل ولم تتم مزامنة العقد والحاوية",
-      });
-    }
+  let updated: typeof serviceRequestsTable.$inferSelect;
+  try {
+    updated = db.transaction((tx) => {
+      const nextRequest = tx.update(serviceRequestsTable).set(updateData)
+        .where(eq(serviceRequestsTable.id, id)).returning().get();
+      if (!nextRequest) throw new Error("تعذر تحديث أمر العمل");
+
+      if (nextStatus === "completed" && preparedContainerCompletion) {
+        syncContainerCompletion(tx, nextRequest, preparedContainerCompletion, adminRequest.adminId);
+      }
+
+      tx.insert(containerSystemAuditTable).values({
+        recordId: id,
+        kind: "service_request",
+        action: "driver_status_transition",
+        beforePayload: JSON.stringify({
+          driverStatus: request.driverStatus,
+          status: request.status,
+          driverNotes: request.driverNotes,
+        }),
+        afterPayload: JSON.stringify({
+          driverStatus: nextRequest.driverStatus,
+          status: nextRequest.status,
+          driverNotes: nextRequest.driverNotes,
+          driverResponseAt: nextRequest.driverResponseAt,
+          driverStartedAt: nextRequest.driverStartedAt,
+          driverCompletedAt: nextRequest.driverCompletedAt,
+        }),
+        actorId: adminRequest.adminId,
+      }).run();
+
+      return nextRequest;
+    });
+  } catch (error) {
+    return res.status(500).json({
+      error: error instanceof Error ? error.message : "تعذر حفظ انتقال أمر العمل بشكل كامل",
+    });
   }
   return res.json(updated);
 });

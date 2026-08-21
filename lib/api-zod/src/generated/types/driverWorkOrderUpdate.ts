@@ -11,4 +11,14 @@ export interface DriverWorkOrderUpdate {
   status: DriverWorkOrderStatus;
   /** @nullable */
   notes?: string | null;
+  /** @nullable */
+  locationLat?: string | null;
+  /** @nullable */
+  locationLng?: string | null;
+  /** @nullable */
+  proofPhotoUrl?: string | null;
+  /** @nullable */
+  signatureData?: string | null;
+  /** @nullable */
+  receiverName?: string | null;
 }

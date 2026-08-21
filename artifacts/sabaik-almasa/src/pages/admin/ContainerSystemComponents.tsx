@@ -471,7 +471,7 @@ export function statusTone(status?: string) {
   return "bg-sky-50 text-sky-700 border-sky-200"
 }
 
-function SignaturePad({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+export function SignaturePad({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const drawingRef = useRef(false)
 

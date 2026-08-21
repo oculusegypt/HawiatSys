@@ -1487,6 +1487,11 @@ components:
         driverStartedAt: { type: ["string", "null"] }
         driverCompletedAt: { type: ["string", "null"] }
         driverNotes: { type: ["string", "null"] }
+        driverLocationLat: { type: ["string", "null"] }
+        driverLocationLng: { type: ["string", "null"] }
+        driverProofPhotoUrl: { type: ["string", "null"] }
+        driverSignatureData: { type: ["string", "null"] }
+        driverReceiverName: { type: ["string", "null"] }
         assignedAt: { type: ["string", "null"] }
         sessionId: { type: string }
         acquisitionSource: { type: string }
@@ -1572,6 +1577,11 @@ components:
         status:
           $ref: "#/components/schemas/DriverWorkOrderStatus"
         notes: { type: ["string", "null"] }
+        locationLat: { type: ["string", "null"] }
+        locationLng: { type: ["string", "null"] }
+        proofPhotoUrl: { type: ["string", "null"] }
+        signatureData: { type: ["string", "null"] }
+        receiverName: { type: ["string", "null"] }
 
     DashboardStats:
       type: object

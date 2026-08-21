@@ -12,6 +12,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
+import { SignaturePad } from "./ContainerSystemComponents"
 import {
   Check,
   CheckCircle2,
@@ -138,6 +139,26 @@ function OrderDetailsDialog({ order, open, onClose, isDriver }: {
           {isDriver && (
             <p className="text-center text-[11px] text-slate-400">تفاصيل التشغيل لا تتضمن بيانات الأسعار.</p>
           )}
+
+          {(order.driverReceiverName || order.driverSignatureData || order.driverProofPhotoUrl || order.driverNotes) && (
+            <section className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4">
+              <h3 className="mb-3 flex items-center gap-2 text-sm font-extrabold text-slate-800">
+                <CheckCircle2 size={16} className="text-emerald-600" /> إثبات التنفيذ
+              </h3>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {order.driverReceiverName && <Info label="اسم المستلم" value={order.driverReceiverName} />}
+                {order.driverCompletedAt && <Info label="وقت الإكمال" value={new Date(order.driverCompletedAt).toLocaleString("ar-SA", { dateStyle: "medium", timeStyle: "short" })} />}
+                {order.driverLocationLat && order.driverLocationLng && <Info label="موقع التنفيذ" value={`${order.driverLocationLat}, ${order.driverLocationLng}`} />}
+              </div>
+              {order.driverProofPhotoUrl && (
+                <a href={order.driverProofPhotoUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex text-sm font-bold text-emerald-700 hover:underline">
+                  فتح صورة إثبات التنفيذ <ExternalLink size={14} className="mr-1" />
+                </a>
+              )}
+              {order.driverSignatureData && <p className="mt-3 text-xs font-bold text-emerald-800">تم حفظ توقيع العميل.</p>}
+              {order.driverNotes && <p className="mt-3 whitespace-pre-wrap rounded-xl bg-white p-3 text-sm leading-6 text-slate-600">{order.driverNotes}</p>}
+            </section>
+          )}
         </div>
       </DialogContent>
     </Dialog>
@@ -150,6 +171,36 @@ function Info({ label, value }: { label: string; value: string }) {
       <p className="text-[11px] font-semibold text-slate-400">{label}</p>
       <p className="mt-1 text-sm font-bold text-slate-800">{value}</p>
     </div>
+  )
+}
+
+function CompletionEvidenceDialog({ open, onClose, onSubmit, pending }: {
+  open: boolean
+  onClose: () => void
+  onSubmit: (evidence: { receiverName: string; locationLat: string; locationLng: string; proofPhotoUrl: string; signatureData: string }) => void
+  pending: boolean
+}) {
+  const [receiverName, setReceiverName] = useState("")
+  const [locationLat, setLocationLat] = useState("")
+  const [locationLng, setLocationLng] = useState("")
+  const [proofPhotoUrl, setProofPhotoUrl] = useState("")
+  const [signatureData, setSignatureData] = useState("")
+  return (
+    <Dialog open={open} onOpenChange={value => { if (!value) onClose() }}>
+      <DialogContent dir="rtl" className="max-w-xl">
+        <DialogHeader><DialogTitle>إثبات إكمال المهمة</DialogTitle></DialogHeader>
+        <form className="space-y-4" onSubmit={event => { event.preventDefault(); onSubmit({ receiverName, locationLat, locationLng, proofPhotoUrl, signatureData }) }}>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="text-xs font-bold text-slate-600">اسم المستلم<input required value={receiverName} onChange={event => setReceiverName(event.target.value)} className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm" placeholder="اسم ممثل العميل" /></label>
+            <label className="text-xs font-bold text-slate-600">رابط صورة الإثبات<input value={proofPhotoUrl} onChange={event => setProofPhotoUrl(event.target.value)} className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm" placeholder="اختياري" /></label>
+            <label className="text-xs font-bold text-slate-600">خط العرض<input value={locationLat} onChange={event => setLocationLat(event.target.value)} className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm" placeholder="24.7136" dir="ltr" /></label>
+            <label className="text-xs font-bold text-slate-600">خط الطول<input value={locationLng} onChange={event => setLocationLng(event.target.value)} className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm" placeholder="46.6753" dir="ltr" /></label>
+          </div>
+          <SignaturePad value={signatureData} onChange={setSignatureData} />
+          <div className="flex justify-end gap-2 border-t pt-4"><Button type="button" variant="outline" onClick={onClose}>إلغاء</Button><Button type="submit" disabled={pending || !signatureData} className="bg-emerald-600 hover:bg-emerald-700">{pending ? "جارٍ الحفظ..." : "تأكيد الإكمال"}</Button></div>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -222,6 +273,7 @@ export default function WorkOrders() {
   const { mutate: updateOrder, isPending } = useUpdateDriverWorkOrder()
   const [view, setView] = useState<"active" | "history">("active")
   const [selectedOrder, setSelectedOrder] = useState<ServiceRequest | null>(null)
+  const [completionTarget, setCompletionTarget] = useState<ServiceRequest | null>(null)
 
   const counts = useMemo(() => ({
     assigned: orders?.filter(o => o.driverStatus === DriverWorkOrderStatus.assigned).length ?? 0,
@@ -237,12 +289,36 @@ export default function WorkOrders() {
   )
 
   function handleAction(order: ServiceRequest, status: DriverWorkOrderStatus) {
-    updateOrder({ id: order.id, data: { status, notes: null } }, {
+    const extended = order as ServiceRequest & { contractRecordId?: number | null; containerRecordId?: number | null }
+    const isContainerOrder = Boolean(extended.contractRecordId || extended.containerRecordId) ||
+      /حاوي|أنقاض|تفريغ|سحب|استرجاع|تسليم|container|debris|waste/i.test(`${order.serviceType} ${order.containerSize}`)
+    if (status === DriverWorkOrderStatus.completed && isContainerOrder) {
+      setCompletionTarget(order)
+      return
+    }
+    const notes = status === DriverWorkOrderStatus.rejected ? window.prompt("اذكر سبب رفض المهمة")?.trim() : null
+    if (status === DriverWorkOrderStatus.rejected && !notes) {
+      toast({ variant: "destructive", title: "سبب الرفض مطلوب" })
+      return
+    }
+    updateOrder({ id: order.id, data: { status, notes: notes ?? null } }, {
       onSuccess: () => {
         toast({ title: status === DriverWorkOrderStatus.completed ? "تم إكمال المهمة" : "تم تحديث حالة المهمة" })
-        driverQuery.refetch()
+        activeQuery.refetch()
       },
       onError: () => toast({ variant: "destructive", title: "تعذر تحديث المهمة", description: "تحقق من الاتصال وحاول مرة أخرى" }),
+    })
+  }
+
+  function submitCompletion(evidence: { receiverName: string; locationLat: string; locationLng: string; proofPhotoUrl: string; signatureData: string }) {
+    if (!completionTarget) return
+    updateOrder({ id: completionTarget.id, data: { status: DriverWorkOrderStatus.completed, notes: "تم استلام إثبات التسليم من السائق", ...evidence } }, {
+      onSuccess: () => {
+        toast({ title: "تم إكمال المهمة وحفظ إثبات التسليم" })
+        setCompletionTarget(null)
+        activeQuery.refetch()
+      },
+      onError: () => toast({ variant: "destructive", title: "تعذر حفظ إثبات المهمة", description: "تحقق من البيانات وحاول مرة أخرى" }),
     })
   }
 
@@ -282,6 +358,7 @@ export default function WorkOrders() {
       {!activeQuery.isLoading && !activeQuery.isError && visibleOrders.length > 0 && <div className="grid gap-4 md:grid-cols-2">{visibleOrders.map(order => <WorkOrderCard key={order.id} order={order} onAction={handleAction} onOpenDetails={setSelectedOrder} pending={isPending} isDriver={isDriver} />)}</div>}
 
       <OrderDetailsDialog order={selectedOrder} open={!!selectedOrder} onClose={() => setSelectedOrder(null)} isDriver={isDriver} />
+      <CompletionEvidenceDialog open={Boolean(completionTarget)} onClose={() => setCompletionTarget(null)} onSubmit={submitCompletion} pending={isPending} />
     </div>
   )
 }

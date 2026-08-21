@@ -49,6 +49,11 @@ const serviceRequestMigrations = [
   "ALTER TABLE service_requests ADD COLUMN customer_record_id INTEGER",
   "ALTER TABLE service_requests ADD COLUMN container_record_id INTEGER",
   "ALTER TABLE service_requests ADD COLUMN contract_record_id INTEGER",
+  "ALTER TABLE service_requests ADD COLUMN driver_location_lat TEXT",
+  "ALTER TABLE service_requests ADD COLUMN driver_location_lng TEXT",
+  "ALTER TABLE service_requests ADD COLUMN driver_proof_photo_url TEXT",
+  "ALTER TABLE service_requests ADD COLUMN driver_signature_data TEXT",
+  "ALTER TABLE service_requests ADD COLUMN driver_receiver_name TEXT",
 ];
 for (const sql of serviceRequestMigrations) {
   try { sqlite.exec(sql); } catch { /* column already exists — safe to ignore */ }

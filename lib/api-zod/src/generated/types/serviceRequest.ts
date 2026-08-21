@@ -42,6 +42,16 @@ export interface ServiceRequest {
   /** @nullable */
   driverNotes?: string | null;
   /** @nullable */
+  driverLocationLat?: string | null;
+  /** @nullable */
+  driverLocationLng?: string | null;
+  /** @nullable */
+  driverProofPhotoUrl?: string | null;
+  /** @nullable */
+  driverSignatureData?: string | null;
+  /** @nullable */
+  driverReceiverName?: string | null;
+  /** @nullable */
   assignedAt?: string | null;
   sessionId?: string;
   acquisitionSource?: string;
