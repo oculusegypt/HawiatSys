@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
-import { Link } from "wouter"
+import { Link, useLocation } from "wouter"
 import {
   AlertCircle, Archive, ArrowDownLeft, ArrowLeftRight, ArrowUpRight, BellRing, BookOpenCheck, Box, CalendarDays, CarFront, CheckCircle2,
   ChevronDown, ChevronLeft, ClipboardList, Coins, FileCheck2, FileDown, FilePenLine, FileText, FolderSearch, Gauge, HandCoins, Landmark, LayoutDashboard, ReceiptText, Truck,
@@ -483,6 +483,7 @@ function AuditLog({ audits, loading }: { audits: any[]; loading: boolean }) {
 }
 
 function RecordDetails({ record, allRecords, open, onOpenChange, onContractAction }: { record?: ContainerSystemRecord | null; allRecords: ContainerSystemRecord[]; open: boolean; onOpenChange: (open: boolean) => void; onContractAction: (record: ContainerSystemRecord, action: string) => void }) {
+  const [, navigate] = useLocation()
   if (!record) return null
   const entries = Object.entries(record.payload).filter(([, value]) => value !== "" && value !== null && value !== undefined)
   const customerName = String(record.payload.name ?? record.payload.customerName ?? "")
@@ -506,8 +507,18 @@ function RecordDetails({ record, allRecords, open, onOpenChange, onContractActio
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent dir="rtl" className="max-h-[85vh] max-w-3xl overflow-y-auto border-cyan-100">
         <DialogHeader className="text-right">
-          <DialogTitle className="text-xl text-slate-900">{KIND_LABELS[record.kind as RecordKind] ?? "تفاصيل السجل"}</DialogTitle>
-          <DialogDescription>{record.reference || `سجل رقم ${record.id}`} · آخر تحديث {formatRecordDate(record.updatedAt)}</DialogDescription>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <DialogTitle className="text-xl text-slate-900">{KIND_LABELS[record.kind as RecordKind] ?? "تفاصيل السجل"}</DialogTitle>
+              <DialogDescription>{record.reference || `سجل رقم ${record.id}`} · آخر تحديث {formatRecordDate(record.updatedAt)}</DialogDescription>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {record.kind === "customer" && <Button size="sm" variant="outline" onClick={() => { onOpenChange(false); navigate(`/admin/container-system/profile/customer/${record.id}`) }} className="gap-1.5 border-cyan-200 text-cyan-800"><UserRound size={14} /> فتح ملف العميل</Button>}
+              {["employee", "driver"].includes(record.kind) && <Button size="sm" variant="outline" onClick={() => { onOpenChange(false); navigate(`/admin/container-system/profile/employee/${record.id}`) }} className="gap-1.5 border-cyan-200 text-cyan-800"><UserCog size={14} /> فتح ملف الموظف</Button>}
+              {record.kind === "container" && <Button size="sm" variant="outline" onClick={() => { onOpenChange(false); navigate(`/admin/container-system/profile/container/${record.id}`) }} className="gap-1.5 border-cyan-200 text-cyan-800"><Box size={14} /> فتح ملف الحاوية</Button>}
+              {record.kind === "contract" && <Button size="sm" onClick={() => { onOpenChange(false); navigate(`/admin/container-system/contract/${record.id}/print`) }} className="gap-1.5 bg-cyan-800 hover:bg-cyan-900"><FileText size={14} /> فتح العقد A4</Button>}
+            </div>
+          </div>
         </DialogHeader>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-xl bg-slate-50 p-3"><p className="text-[11px] text-slate-500">الحالة</p><div className="mt-1"><RecordStatus status={record.status} /></div></div>

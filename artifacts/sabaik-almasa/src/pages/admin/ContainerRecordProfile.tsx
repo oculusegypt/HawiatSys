@@ -1,0 +1,100 @@
+import { ArrowRight, BriefcaseBusiness, CalendarDays, CheckCircle2, FileDown, FileText, MapPin, Phone, Printer, Truck, UserRound, Wallet } from "lucide-react"
+import { useMemo } from "react"
+import { useLocation, useParams } from "wouter"
+import { useGetContainerSystem } from "@workspace/api-client-react"
+import type { ContainerSystemRecord } from "@workspace/api-client-react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { amountOf, FIELD_CONFIG, formatRecordDate, formatStatus, KIND_LABELS, RecordStatus, RecordKind } from "./ContainerSystemComponents"
+
+type ProfileMode = "customer" | "employee" | "container"
+
+const money = (value: number) => `${value.toLocaleString("ar-SA")} ر.س`
+const payloadOf = (record?: ContainerSystemRecord | null) => (record?.payload ?? {}) as Record<string, unknown>
+const text = (value: unknown, fallback = "—") => String(value ?? "").trim() || fallback
+
+function Stat({ label, value, tone = "text-slate-900" }: { label: string; value: string | number; tone?: string }) {
+  return <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm"><p className="text-[11px] font-bold text-slate-400">{label}</p><p className={`mt-2 text-xl font-black ${tone}`}>{value}</p></div>
+}
+
+function FieldGrid({ record }: { record: ContainerSystemRecord }) {
+  const fields = FIELD_CONFIG[record.kind as RecordKind] ?? []
+  const payload = payloadOf(record)
+  const entries = fields.filter(field => payload[field.key] !== undefined && payload[field.key] !== "").map(field => ({ label: field.label, value: payload[field.key] }))
+  return <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{entries.map(entry => <div key={entry.label} className="rounded-xl border border-slate-100 bg-slate-50/70 p-3"><p className="text-[10px] font-bold text-slate-400">{entry.label}</p><p className="mt-1 break-words text-sm font-bold text-slate-800">{text(entry.value)}</p></div>)}</div>
+}
+
+function RelatedRows({ title, records, empty = "لا توجد سجلات مرتبطة" }: { title: string; records: ContainerSystemRecord[]; empty?: string }) {
+  return <Card className="border-slate-200/80 shadow-sm"><CardHeader className="border-b border-slate-100 px-5 py-4"><CardTitle className="text-base">{title}</CardTitle></CardHeader><CardContent className="p-0">{records.length === 0 ? <p className="p-8 text-center text-sm text-slate-500">{empty}</p> : records.map(record => <div key={record.id} className="flex items-center gap-3 border-b border-slate-100 px-5 py-3.5 last:border-0"><div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-cyan-50 text-cyan-800"><FileText size={16} /></div><div className="min-w-0 flex-1"><p className="truncate text-sm font-black text-slate-800">{text(record.payload.name ?? record.payload.customerName ?? record.payload.contractNumber ?? record.payload.assetCode ?? record.reference, `سجل ${record.id}`)}</p><p className="mt-1 text-[11px] text-slate-400">{KIND_LABELS[record.kind as RecordKind] ?? record.kind} · {formatRecordDate(record.createdAt)}</p></div><RecordStatus status={record.status} /><span className="text-xs font-black text-slate-700">{amountOf(record) ? money(amountOf(record)) : ""}</span></div>)}</CardContent></Card>
+}
+
+function findProfileRecord(records: ContainerSystemRecord[], mode: ProfileMode, id: string) {
+  const numericId = Number(id)
+  return records.find(record => record.id === numericId && record.kind === mode)
+    ?? records.find(record => record.id === numericId && (mode === "employee" ? ["employee", "driver"].includes(record.kind) : mode === "container" ? ["container", "container_asset"].includes(record.kind) : record.kind === "customer"))
+}
+
+function CustomerProfile({ record, records }: { record: ContainerSystemRecord; records: ContainerSystemRecord[] }) {
+  const p = payloadOf(record)
+  const name = text(p.name ?? p.customerName)
+  const related = records.filter(item => {
+    const payload = payloadOf(item)
+    return text(payload.customerName, "") === name || text(payload.customerRecordId, "") === String(record.id)
+  })
+  const contracts = related.filter(item => item.kind === "contract")
+  const payments = related.filter(item => ["payment", "receipt", "payment_return"].includes(item.kind))
+  const charges = contracts.reduce((sum, item) => sum + Number(payloadOf(item).total ?? payloadOf(item).amount ?? 0), 0)
+  const paid = payments.reduce((sum, item) => sum + amountOf(item) * (item.kind === "payment_return" ? -1 : 1), 0)
+  return <><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><Stat label="إجمالي العقود" value={contracts.length} /><Stat label="إجمالي المطالبات" value={money(charges)} /><Stat label="المدفوع" value={money(paid)} tone="text-emerald-700" /><Stat label="الرصيد المستحق" value={money(Math.max(charges - paid, 0))} tone="text-rose-700" /></div><div className="grid gap-5 xl:grid-cols-[1.1fr_.9fr]"><RelatedRows title="العقود والإيجارات" records={related.filter(item => ["contract", "contract_line"].includes(item.kind))} /><RelatedRows title="التحصيلات والحركات المالية" records={payments} /></div></>
+}
+
+function EmployeeProfile({ record, records }: { record: ContainerSystemRecord; records: ContainerSystemRecord[] }) {
+  const p = payloadOf(record)
+  const name = text(p.name ?? p.employeeName ?? p.driverName)
+  const related = records.filter(item => {
+    const payload = payloadOf(item)
+    return [payload.employeeName, payload.driverName, payload.supervisorName].some(value => text(value, "") === name)
+  })
+  const advances = related.filter(item => item.kind === "salary_advance").reduce((sum, item) => sum + amountOf(item), 0)
+  const salaries = related.filter(item => item.kind === "salary_payment").reduce((sum, item) => sum + amountOf(item), 0)
+  return <><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><Stat label="الوظيفة" value={text(p.jobTitle, "غير محددة")} /><Stat label="الراتب المسجل" value={money(Number(p.salary ?? 0))} /><Stat label="السلف" value={money(advances)} tone="text-amber-700" /><Stat label="الرواتب المصروفة" value={money(salaries)} tone="text-emerald-700" /></div><div className="grid gap-5 xl:grid-cols-[1fr_1fr]"><RelatedRows title="أوامر العمل والحركات" records={related.filter(item => ["container_movement", "appointment", "commission"].includes(item.kind))} /><RelatedRows title="الرواتب والسلف" records={related.filter(item => ["salary_advance", "salary_payment"].includes(item.kind))} /></div></>
+}
+
+function ContainerProfile({ record, records }: { record: ContainerSystemRecord; records: ContainerSystemRecord[] }) {
+  const p = payloadOf(record)
+  const code = text(p.assetCode ?? p.containerCode ?? p.code ?? record.reference)
+  const related = records.filter(item => {
+    const payload = payloadOf(item)
+    return text(payload.containerCode ?? payload.assetCode, "") === code || text(payload.containerRecordId, "") === String(record.id)
+  })
+  const movements = related.filter(item => item.kind === "container_movement")
+  const contracts = related.filter(item => item.kind === "contract")
+  return <><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><Stat label="الحالة الحالية" value={formatStatus(record.status)} tone="text-cyan-800" /><Stat label="الموقع الحالي" value={text(p.location, "غير محدد")} /><Stat label="عدد الحركات" value={movements.length} /><Stat label="العقود المرتبطة" value={contracts.length} /></div><div className="grid gap-5 xl:grid-cols-[1fr_1fr]"><RelatedRows title="سجل التسليم والاسترجاع والتبديل" records={movements} /><RelatedRows title="العقود والإيجارات المرتبطة" records={contracts} /></div></>
+}
+
+export function ContainerRecordProfile({ mode }: { mode: ProfileMode }) {
+  const [, navigate] = useLocation()
+  const params = useParams<{ id: string }>()
+  const query = useGetContainerSystem()
+  const records = query.data?.records ?? []
+  const record = useMemo(() => findProfileRecord(records, mode, params.id), [mode, params.id, records])
+  const p = payloadOf(record)
+  const title = mode === "customer" ? text(p.name ?? p.customerName, "ملف العميل") : mode === "employee" ? text(p.name ?? p.employeeName ?? p.driverName, "ملف الموظف") : text(p.assetCode ?? p.containerCode ?? p.code, "ملف الحاوية")
+  const Icon = mode === "customer" ? UserRound : mode === "employee" ? BriefcaseBusiness : Truck
+  if (query.isLoading) return <div className="flex min-h-[50vh] items-center justify-center text-sm text-slate-500">جارٍ تحميل الملف...</div>
+  if (!record) return <div className="space-y-4 rounded-2xl border border-rose-200 bg-rose-50 p-8 text-center"><h2 className="font-black text-rose-900">لم يتم العثور على الملف</h2><Button onClick={() => navigate("/admin/container-system")} variant="outline">العودة إلى نظام الحاويات</Button></div>
+  return <div dir="rtl" className="container-system space-y-5"><div className="flex flex-wrap items-center justify-between gap-3"><Button variant="ghost" onClick={() => navigate("/admin/container-system")} className="gap-2 px-0 text-cyan-800"><ArrowRight size={16} /> العودة لنظام الحاويات</Button><div className="flex gap-2"><Button variant="outline" onClick={() => window.print()} className="gap-2"><Printer size={15} /> طباعة الملف</Button><Button onClick={() => navigate(`/admin/container-system/profile/${mode}/${record.id}`)} className="hidden">الملف</Button></div></div><Card className="overflow-hidden border-0 bg-[#123d4e] text-white shadow-[0_14px_40px_rgba(18,61,78,.18)]"><CardContent className="p-6 sm:p-8"><div className="flex flex-wrap items-start gap-4"><div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-400 text-slate-900"><Icon size={30} /></div><div className="min-w-0 flex-1"><p className="text-xs font-bold text-cyan-200">{mode === "customer" ? "ملف عميل" : mode === "employee" ? "ملف موظف" : "ملف أصل حاوية"}</p><h1 className="mt-1 text-2xl font-black">{title}</h1><div className="mt-3 flex flex-wrap gap-3 text-xs text-cyan-100/75"><span className="flex items-center gap-1"><Phone size={13} /> {text(p.phone ?? p.customerPhone, "لا يوجد هاتف")}</span><span className="flex items-center gap-1"><MapPin size={13} /> {text(p.address ?? p.location ?? p.branchName, "لا يوجد موقع")}</span><span className="flex items-center gap-1"><CalendarDays size={13} /> آخر تحديث {formatRecordDate(record.updatedAt)}</span></div></div><RecordStatus status={record.status} /></div></CardContent></Card><Card className="border-slate-200/80 shadow-sm"><CardHeader className="border-b border-slate-100 px-5 py-4"><CardTitle className="text-base">البيانات الأساسية</CardTitle></CardHeader><CardContent className="p-5"><FieldGrid record={record} /></CardContent></Card>{mode === "customer" ? <CustomerProfile record={record} records={records} /> : mode === "employee" ? <EmployeeProfile record={record} records={records} /> : <ContainerProfile record={record} records={records} />}</div>
+}
+
+export function ContractPrintPage() {
+  const [, navigate] = useLocation()
+  const params = useParams<{ id: string }>()
+  const query = useGetContainerSystem()
+  const record = query.data?.records.find(item => item.id === Number(params.id) && item.kind === "contract")
+  const p = payloadOf(record)
+  if (query.isLoading) return <div className="p-10 text-center">جارٍ تجهيز العقد...</div>
+  if (!record) return <div className="p-10 text-center"><p className="mb-4 font-bold">العقد غير موجود</p><Button onClick={() => navigate("/admin/container-system")}>العودة</Button></div>
+  const customer = text(p.customerName)
+  return <div dir="rtl" className="contract-print-shell min-h-screen bg-slate-100 p-4 sm:p-8"><style>{`@page { size: A4; margin: 0; } @media print { .contract-print-shell { padding: 0 !important; background: white !important; } .a4-contract { box-shadow: none !important; margin: 0 !important; } .print-hidden { display: none !important; } } .a4-contract { width: 210mm; min-height: 297mm; }`}</style><div className="print-hidden mx-auto mb-4 flex max-w-[210mm] justify-between"><Button variant="ghost" onClick={() => navigate("/admin/container-system")} className="gap-2"><ArrowRight size={16} /> العودة</Button><Button onClick={() => window.print()} className="gap-2 bg-cyan-800"><Printer size={15} /> طباعة عقد A4</Button></div><article className="a4-contract mx-auto bg-white px-[18mm] py-[16mm] text-slate-900 shadow-2xl"><header className="flex items-start justify-between border-b-2 border-cyan-800 pb-5"><div><p className="text-xs font-bold text-cyan-800">مؤسسة سبائك الماسة</p><h1 className="mt-2 text-2xl font-black">عقد تأجير حاوية</h1><p className="mt-1 text-xs text-slate-500">مستند تعاقدي تشغيلي</p></div><div className="text-left text-xs leading-6"><p><b>رقم العقد:</b> {text(p.contractNumber ?? record.reference)}</p><p><b>تاريخ الإصدار:</b> {text(p.issueDate ?? record.createdAt)}</p><p><b>الحالة:</b> {formatStatus(record.status)}</p></div></header><section className="mt-7 space-y-4 text-sm leading-8"><p>بحمد الله تم الاتفاق في هذا العقد بين الطرف الأول <b>مؤسسة سبائك الماسة</b> والطرف الثاني <b>{customer}</b> على تأجير الحاوية الموضحة بياناتها أدناه وفق البنود والشروط التالية:</p><div className="grid grid-cols-2 gap-3 rounded-xl border border-slate-200 p-4"><p><b>جوال العميل:</b> {text(p.customerPhone)}</p><p><b>رقم الحاوية:</b> {text(p.containerCode)}</p><p><b>الموقع:</b> {text(p.location ?? p.address)}</p><p><b>نوع العقد:</b> {text(p.contractType, "تأجير حاوية")}</p><p><b>بداية العقد:</b> {text(p.startDate)}</p><p><b>نهاية العقد:</b> {text(p.endDate)}</p><p><b>عدد الرحلات:</b> {text(p.trips ?? p.quantity)}</p><p><b>قيمة العقد:</b> {money(Number(p.total ?? p.amount ?? 0))}</p></div><h2 className="mt-6 border-r-4 border-amber-400 pr-3 text-base font-black">بنود الاتفاق</h2><ol className="list-decimal space-y-1 pr-6"><li>يلتزم الطرف الأول بتوفير الحاوية وتسليمها إلى الموقع المحدد في العقد، وتنفيذ خدمات النقل والتفريغ المتفق عليها.</li><li>يلتزم الطرف الثاني بالمحافظة على الحاوية وعدم نقلها أو استخدامها لغير الغرض المتفق عليه دون موافقة الطرف الأول.</li><li>تحتسب قيمة العقد والضريبة وأي خدمات إضافية وفق البيانات المالية المثبتة في هذا المستند.</li><li>يتحمل الطرف الثاني أي أضرار ناتجة عن سوء الاستخدام أو تجاوز الوزن أو تعبئة مواد غير مسموحة.</li><li>تسجل كل عملية تسليم أو تبديل أو تفريغ أو استرجاع في النظام وترتبط بهذا العقد.</li><li>يلتزم الطرف الثاني بسداد المستحقات في مواعيدها، ويحق للطرف الأول تعليق الخدمة عند التأخر وفق سياسة المؤسسة.</li><li>أي تعديل على هذا العقد لا يكون نافذًا إلا بعد اعتماده وتسجيله كتابيًا من الطرفين.</li></ol><h2 className="mt-6 border-r-4 border-amber-400 pr-3 text-base font-black">الشروط الخاصة</h2><p className="min-h-20 rounded-xl border border-slate-200 p-4">{text(p.notes, "لا توجد شروط خاصة إضافية.")}</p></section><footer className="mt-16 grid grid-cols-2 gap-12 border-t border-slate-200 pt-8 text-center text-sm font-bold"><div><p>الطرف الأول</p><div className="mt-12 border-t border-slate-400 pt-2">مؤسسة سبائك الماسة</div></div><div><p>الطرف الثاني</p><div className="mt-12 border-t border-slate-400 pt-2">{customer}</div></div></footer><p className="mt-8 text-center text-[10px] text-slate-400">تم إنشاء هذا العقد من نظام إدارة الحاويات — رقم السجل {record.id}</p></article></div>
+}

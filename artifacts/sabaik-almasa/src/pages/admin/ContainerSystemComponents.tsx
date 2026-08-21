@@ -695,7 +695,7 @@ export function RecordDialog({
   }
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent dir="rtl" className="max-w-2xl border-cyan-100 p-0">
+      <DialogContent dir="rtl" className="max-h-[90vh] max-w-3xl overflow-y-auto border-cyan-100 p-0">
         <DialogHeader className="border-b border-slate-100 bg-slate-50/80 p-6 text-right">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-100 text-cyan-800"><PenLine size={20} /></div>
@@ -706,19 +706,27 @@ export function RecordDialog({
           </div>
         </DialogHeader>
         <form onSubmit={event => { event.preventDefault(); onSubmit(payload, status) }} className="space-y-5 p-6">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+            <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <p className="text-sm font-black text-slate-900">البيانات الأساسية</p>
+                <p className="mt-1 text-[11px] text-slate-400">أدخل البيانات في الحقول المتساوية ثم راجعها قبل الحفظ.</p>
+              </div>
+              <Badge variant="outline" className="border-cyan-200 bg-cyan-50 text-cyan-800">{KIND_LABELS[kind]}</Badge>
+            </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {fields.map(field => (
-              <div key={field.key} className={field.wide ? "sm:col-span-2" : ""}>
+              <div key={field.key} className={`min-h-[82px] rounded-xl border border-slate-100 bg-slate-50/45 p-3 ${field.wide ? "sm:col-span-2" : ""}`}>
                 <Label htmlFor={`record-${field.key}`} className="mb-1.5 block text-xs font-bold text-slate-600">{field.label}</Label>
                 {field.type === "textarea" ? (
-                  <Textarea id={`record-${field.key}`} value={payload[field.key] ?? ""} onChange={event => setValue(field.key, event.target.value)} placeholder={field.placeholder} rows={3} data-testid={`textarea-record-${field.key}`} />
+                  <Textarea id={`record-${field.key}`} value={payload[field.key] ?? ""} onChange={event => setValue(field.key, event.target.value)} placeholder={field.placeholder} rows={3} className="min-h-20 resize-y border-slate-200 bg-white" data-testid={`textarea-record-${field.key}`} />
                 ) : optionsFor(field.key).length > 0 ? (
-                  <select id={`record-${field.key}`} value={payload[field.key] ?? ""} onChange={event => setValue(field.key, event.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-700" data-testid={`select-record-${field.key}`}>
+                  <select id={`record-${field.key}`} value={payload[field.key] ?? ""} onChange={event => setValue(field.key, event.target.value)} className="flex h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100" data-testid={`select-record-${field.key}`}>
                     <option value="">اختر {field.label}</option>
                     {optionsFor(field.key).map(option => <option key={`${field.key}-${option.value}`} value={option.value}>{option.label}</option>)}
                   </select>
                 ) : (
-                  <Input id={`record-${field.key}`} type={field.type ?? "text"} value={payload[field.key] ?? ""} onChange={event => setValue(field.key, event.target.value)} placeholder={field.placeholder} dir={field.key.toLowerCase().includes("phone") || field.type === "number" ? "ltr" : "rtl"} data-testid={`input-record-${field.key}`} />
+                  <Input id={`record-${field.key}`} type={field.type ?? "text"} value={payload[field.key] ?? ""} onChange={event => setValue(field.key, event.target.value)} placeholder={field.placeholder} dir={field.key.toLowerCase().includes("phone") || field.type === "number" ? "ltr" : "rtl"} className="h-11 border-slate-200 bg-white" data-testid={`input-record-${field.key}`} />
                 )}
               </div>
             ))}
@@ -728,6 +736,7 @@ export function RecordDialog({
                 {STATUS_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
               </select>
             </div>
+          </div>
           </div>
           {kind === "contract" && <ContractTemplatePicker value={payload.contractTemplate ?? ""} onChange={value => { setValue("contractTemplate", value); if (value) setValue("notes", CONTRACT_TEMPLATES.find(template => template.id === value)?.terms ?? "") }} />}
           {["contract", "container_movement"].includes(kind) && <SignaturePad value={payload.signatureData ?? ""} onChange={value => setValue("signatureData", value)} />}
