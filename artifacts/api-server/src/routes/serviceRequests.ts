@@ -555,7 +555,7 @@ router.get("/admin/work-orders", requireAdmin, requireManagerOrAdmin, async (_re
   const requests = await db.select().from(serviceRequestsTable)
     .where(and(
       isNotNull(serviceRequestsTable.assignedDriverId),
-      inArray(serviceRequestsTable.driverStatus, ["assigned", "accepted", "started"]),
+       inArray(serviceRequestsTable.driverStatus, ["assigned", "accepted", "started", "en_route", "arrived"]),
     ))
     .orderBy(desc(serviceRequestsTable.assignedAt), desc(serviceRequestsTable.createdAt));
   const driverIds = [...new Set(requests.map(request => request.assignedDriverId).filter((id): id is number => id !== null))];
