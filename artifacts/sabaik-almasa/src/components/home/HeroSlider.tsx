@@ -34,6 +34,9 @@ export function HeroSlider() {
     return `${verticalClass} ${horizontalClass}`
   }
 
+  const centeredCompany = heroCompanyPosition === "center-center"
+  const centeredCta = heroCtaPosition === "center-center"
+
   useEffect(() => {
     if (displaySlides.length <= 1) return
     const interval = setInterval(() => {
@@ -94,7 +97,7 @@ export function HeroSlider() {
           <div className="absolute inset-0 z-20">
             <div className="container relative mx-auto h-full px-4 md:px-6 text-center">
               {heroCompanyVisible && (
-                <div className={`absolute z-30 inline-block px-4 py-1 border border-secondary/50 rounded-full bg-black/20 backdrop-blur-sm ${positionClasses(heroCompanyPosition)}`}>
+                <div className={`absolute z-30 inline-block px-4 py-1 border border-secondary/50 rounded-full bg-black/25 backdrop-blur-sm ${centeredCompany ? "top-24 md:top-32 left-1/2 -translate-x-1/2" : positionClasses(heroCompanyPosition)}`}>
                   <span className="text-secondary font-medium tracking-wider text-sm md:text-base">{resolvedCompany}</span>
                 </div>
               )}
@@ -102,7 +105,7 @@ export function HeroSlider() {
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: index === currentIndex ? 1 : 0, y: index === currentIndex ? 0 : 30 }}
                 transition={{ duration: 0.8, delay: 0.2 }}
-                className="absolute inset-x-4 top-1/2 max-w-4xl mx-auto -translate-y-1/2"
+                className={`absolute inset-x-4 top-1/2 max-w-4xl mx-auto -translate-y-1/2 ${centeredCta ? "flex flex-col items-center" : ""}`}
               >
                 {/* Only the active slide gets h1 */}
                 {index === 0 ? (
@@ -119,8 +122,16 @@ export function HeroSlider() {
                   {slide.subtitle}
                 </p>
 
+                {heroCtaVisible && centeredCta && slide.ctaText && (
+                  <button
+                    onClick={() => openModal()}
+                    className="inline-flex items-center justify-center h-14 px-8 rounded-md bg-secondary text-white font-bold text-lg hover:bg-white hover:text-primary transition-all duration-300 shadow-xl hover:shadow-2xl"
+                  >
+                    {slide.ctaText}
+                  </button>
+                )}
               </motion.div>
-              {heroCtaVisible && slide.ctaText && (
+              {heroCtaVisible && slide.ctaText && !centeredCta && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: index === currentIndex ? 1 : 0, scale: index === currentIndex ? 1 : 0.9 }}

@@ -378,22 +378,22 @@ section[id] {
 }
 
 .hero-slide-image {
-  filter: saturate(.9) contrast(1.03) brightness(.94);
+  filter: saturate(.9) contrast(1.03) brightness(.9);
 }
 
 .hero-slide-overlay {
   background:
     linear-gradient(
       180deg,
-      rgba(18, 56, 75, .08) 0%,
-      rgba(18, 56, 75, .16) 38%,
-      rgba(18, 56, 75, .68) 100%
+      rgba(18, 56, 75, .14) 0%,
+      rgba(18, 56, 75, .25) 38%,
+      rgba(18, 56, 75, .78) 100%
     ),
     linear-gradient(
       90deg,
-      rgba(18, 56, 75, .2) 0%,
+      rgba(18, 56, 75, .28) 0%,
       transparent 48%,
-      rgba(18, 56, 75, .18) 100%
+      rgba(18, 56, 75, .24) 100%
     );
 }
 
