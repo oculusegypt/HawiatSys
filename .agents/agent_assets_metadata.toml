@@ -21,14 +21,14 @@ logical_id = "dd2f77f0-5f7e-42ad-893d-b823952e1890"
 id = "e7Hwi4c_9VUpSkVoGq2Ul"
 uri = "file://cleanflow-services-hostinger.zip"
 type = "unspecified"
-title = "حزمة هوستنجر الكاملة - تقي جروب"
-description = "الأرشيف النهائي الجاهز للرفع إلى public_html، ويحتوي على الواجهة الكاملة، قاعدة البيانات، واجهات PHP، منصة الإدارة، الصور وملفات الرفع."
+title = "حزمة Hostinger الجاهزة"
+description = "أرشيف كامل لرفع الموقع على Hostinger بدون Node.js، ويحتوي على الواجهة المبنية، PHP API، قاعدة SQLite، الملفات الثابتة، وملفات .htaccess."
 logical_id = "c612380d-19d8-4641-8c29-e5ac4a484245"
-content_hash = "sha256:bbd983e6640331b552591e1566cea18df08ded8e835b2ac3ab7b7cbadf2371d4"
-size = 15168642
-mtime_ms = 1787344833851
-storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:c669304b-477f-41b9-8288-baace37b50fe/c612380d-19d8-4641-8c29-e5ac4a484245/5a7742ac-b954-4af5-a983-02cee7f7db4f"
-storage_version_token = "1787344845008510"
+content_hash = "sha256:4904350834cb4a3eebc6c196f835e5e5a6a36ef4c94197e175594dfd01be0895"
+size = 15170083
+mtime_ms = 1787347484288
+storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:f46a3ffa-8dd7-4a6c-8bf0-cd2fe3dfe3e3/c612380d-19d8-4641-8c29-e5ac4a484245/be4fbea8-3c24-4abf-ad7b-7d4f4629cae8"
+storage_version_token = "1787347497158286"
 content_type = "application/octet-stream"
 
 [[outputs]]
