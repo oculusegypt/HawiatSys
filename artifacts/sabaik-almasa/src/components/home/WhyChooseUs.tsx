@@ -9,7 +9,7 @@ export function WhyChooseUs() {
   const titlePrefix = content.titlePrefix || "لماذا تختار"
   const titleHighlight = content.titleHighlight || (companyName ? `خدمات ${companyName} لتأجير الحاويات بالرياض؟` : "خدماتنا لتأجير الحاويات بالرياض؟")
   const description = content.description || "نوفر حلولاً لوجستية متطورة لإدارة مخلفات البناء والهدم والمشاريع الكبرى بأعلى درجات الالتزام والأمان والسلامة بالرياض."
-  const imageUrl = content.imageUrl || "/images/Banner-Big.png"
+  const imageUrl = content.imageUrl || "/images/Banner-Big.webp"
   const points = (content.points && content.points.length > 0) ? content.points.filter(Boolean) : [
     "سرعة الاستجابة والتوصيل الفوري 24/7",
     "تنوع مقاسات الحاويات (6، 10، 12، 15، 20، 30 ياردة)",

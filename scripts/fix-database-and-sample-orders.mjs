@@ -40,7 +40,7 @@ const homepageContent = {
       "فريق دعم فني وسائقون محترفون على دراية بأحياء الرياض",
       "خصومات خاصة للمقاولين والمشاريع الكبرى",
     ],
-    imageUrl: "/images/Banner-Big.png",
+    imageUrl: "/images/Banner-Big.webp",
     badgeValue: "✓",
     badgeTitle: "شريك معتمد وموثوق",
     badgeDescription: "خدمة 24 ساعة بالرياض",

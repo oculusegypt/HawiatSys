@@ -36,7 +36,7 @@ export function CEOMessage() {
                   alt={`${authorName} — ${authorTitle}`}
                   className="w-full h-full object-cover"
                   onError={(e) => {
-                    e.currentTarget.src = "/images/shareek-mawsouq.png"
+                    e.currentTarget.src = "/images/shareek-mawsouq.webp"
                   }}
                 />
               </div>
