@@ -28,6 +28,7 @@ import {
   FIELD_CONFIG, KIND_ICONS, KIND_LABELS, RecordDialog, RecordKind, RecordStatus, amountOf, formatAuditAction, formatRecordDate, formatStatus,
 } from "./ContainerSystemComponents"
 import { ReportsHub, ReportPage, SettingsPage, REPORTS, ReportId } from "./ContainerSystemSpecialPages"
+import { ContractWizard } from "./ContractWizard"
 
 const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
 
@@ -50,18 +51,17 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     label: "العملاء والتعاقدات",
     items: [
       { key: "customer" as ViewKey, label: "العملاء", icon: Users },
-      { key: "contract" as ViewKey, label: "تسجيل تعاقد", icon: FileCheck2 },
+      { key: "contract" as ViewKey, label: "إنشاء عقد", icon: FileCheck2 },
       { key: "contracts_list" as ViewKey, label: "العقود", icon: FileText },
-      { key: "rental" as ViewKey, label: "تسجيل إيجار حاوية", icon: ReceiptText },
+      { key: "rental" as ViewKey, label: "بنود الإيجار", icon: ReceiptText },
     ],
   },
   {
-    label: "الأسطول والحاويات",
+    label: "الأصول والأسطول",
     items: [
       { key: "container" as ViewKey, label: "أصول الحاويات", icon: Box },
       { key: "container_type" as ViewKey, label: "أنواع الحاويات", icon: SlidersHorizontal },
-      { key: "operations" as ViewKey, label: "التبديل والتفريغ", icon: ArrowLeftRight },
-      { key: "fleet" as ViewKey, label: "أسطول الشاحنات", icon: Truck },
+      { key: "operations" as ViewKey, label: "الحركات التشغيلية", icon: ArrowLeftRight },
       { key: "vehicle" as ViewKey, label: "الشاحنات", icon: CarFront },
       { key: "maintenance" as ViewKey, label: "الصيانة", icon: Wrench },
       { key: "permit" as ViewKey, label: "التصاريح", icon: FileCheck2 },
@@ -78,7 +78,6 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: "المالية والتحصيل",
     items: [
-      { key: "vouchers" as ViewKey, label: "سندات القبض والصرف", icon: HandCoins },
       { key: "receipt" as ViewKey, label: "سندات القبض", icon: HandCoins },
       { key: "expense" as ViewKey, label: "سندات الصرف", icon: ArrowDownLeft },
       { key: "deposit" as ViewKey, label: "الإيداعات البنكية", icon: Landmark },
@@ -86,10 +85,8 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { key: "transfer" as ViewKey, label: "التحويل بين الخزائن", icon: ArrowUpRight },
       { key: "customer_payments" as ViewKey, label: "سداد العملاء", icon: Coins },
       { key: "ledger_entry" as ViewKey, label: "كشف مديونية العملاء", icon: FileText },
-      { key: "expenses" as ViewKey, label: "الإيرادات والمصروفات", icon: ArrowDownLeft },
       { key: "daily_expense" as ViewKey, label: "المصروفات العامة", icon: ArrowDownLeft },
       { key: "fuel_expense" as ViewKey, label: "مصروفات الشاحنات", icon: CarFront },
-      { key: "payroll" as ViewKey, label: "الرواتب والسلف", icon: Coins },
       { key: "salary_advance" as ViewKey, label: "السلف", icon: Coins },
       { key: "salary_payment" as ViewKey, label: "الرواتب", icon: Coins },
     ],
@@ -105,7 +102,6 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: "المخزون والمستودعات",
     items: [
-      { key: "warehouses" as ViewKey, label: "المستودعات والمخازن", icon: Box },
       { key: "warehouse" as ViewKey, label: "إدارة المخازن", icon: Box },
       { key: "category" as ViewKey, label: "الأصناف", icon: SlidersHorizontal },
       { key: "category_size" as ViewKey, label: "أحجام الأصناف", icon: SlidersHorizontal },
@@ -584,6 +580,7 @@ export default function ContainerSystem() {
   const [view, setView] = useState<ViewKey>("overview")
   const [search, setSearch] = useState("")
   const [dialog, setDialog] = useState<{ open: boolean; kind: RecordKind; record?: ContainerSystemRecord | null }>({ open: false, kind: "customer" })
+  const [contractWizardOpen, setContractWizardOpen] = useState(false)
   const [detailRecord, setDetailRecord] = useState<ContainerSystemRecord | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [reportId, setReportId] = useState<ReportId | null>(null)
@@ -614,7 +611,13 @@ export default function ContainerSystem() {
     toast({ title: message })
     window.setTimeout(() => setNotice(null), 3500)
   }
-  const openCreate = (kind: RecordKind = collectionKind ?? "customer") => setDialog({ open: true, kind, record: null })
+  const openCreate = (kind: RecordKind = collectionKind ?? "customer") => {
+    if (kind === "contract") {
+      setContractWizardOpen(true)
+      return
+    }
+    setDialog({ open: true, kind, record: null })
+  }
   const openEdit = (record: ContainerSystemRecord) => setDialog({ open: true, kind: (record.kind as RecordKind) || "customer", record })
   const archiveRecord = (record: ContainerSystemRecord) => {
     if (!window.confirm(`هل تريد أرشفة السجل ${record.reference || `#${record.id}`}؟`)) return
@@ -627,6 +630,12 @@ export default function ContainerSystem() {
     } else {
       createMutation.mutate({ data }, { onSuccess: () => { invalidate(); setDialog(current => ({ ...current, open: false })); showSuccess("تمت إضافة السجل") }, onError: () => toast({ title: "تعذر إضافة السجل", variant: "destructive" }) })
     }
+  }
+  const submitContract = (payload: Record<string, unknown>) => {
+    createMutation.mutate({ data: { kind: "contract", status: "active", payload } }, {
+      onSuccess: () => { invalidate(); setContractWizardOpen(false); showSuccess("تم إصدار العقد وربطه بالعميل والأصل") },
+      onError: error => toast({ title: error instanceof Error ? error.message : "تعذر إصدار العقد", variant: "destructive" }),
+    })
   }
   const saveSettings = (payload: Record<string, unknown>) => {
     if (payload.section === "organization") {
@@ -721,6 +730,7 @@ export default function ContainerSystem() {
         </main>
       </div>
       <RecordDetails record={detailRecord} allRecords={snapshot?.records ?? records} open={Boolean(detailRecord)} onOpenChange={open => { if (!open) setDetailRecord(null) }} onContractAction={contractAction} />
+      <ContractWizard open={contractWizardOpen} records={snapshot?.records ?? records} busy={createMutation.isPending} onClose={() => setContractWizardOpen(false)} onSubmit={submitContract} />
       <RecordDialog open={dialog.open} kind={dialog.kind} record={dialog.record} records={snapshot?.records ?? records} busy={busy} onOpenChange={open => setDialog(current => ({ ...current, open }))} onSubmit={submitRecord} />
       {archiveMutation.isPending && <div className="fixed bottom-5 left-5 z-50 flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-xs font-bold text-white shadow-xl" data-testid="status-archive-loading"><Loader2 size={14} className="animate-spin" /> جارٍ أرشفة السجل...</div>}
     </div>
