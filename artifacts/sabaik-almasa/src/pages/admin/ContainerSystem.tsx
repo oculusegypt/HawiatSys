@@ -37,72 +37,30 @@ type NavItem = { key?: ViewKey; href?: string; label: string; icon: typeof Layou
 
 const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
-    label: "الرئيسية",
-    items: [{ key: "overview" as ViewKey, label: "الرئيسية", icon: LayoutDashboard }],
-  },
-  {
-    label: "العقود والإيجارات",
+    label: "مركز التشغيل",
     items: [
-      { key: "contract" as ViewKey, label: "تسجيل تعاقد", icon: FileCheck2 },
-      { key: "rental" as ViewKey, label: "تسجيل إيجار حاوية", icon: ReceiptText },
+      { key: "overview" as ViewKey, label: "الرئيسية", icon: LayoutDashboard },
+      { key: "alert" as ViewKey, label: "التنبيهات اليومية", icon: BellRing },
       { key: "container_search" as ViewKey, label: "البحث عن حاوية", icon: FolderSearch },
-      { key: "container" as ViewKey, label: "الحاويات", icon: Box },
-      { key: "container_type" as ViewKey, label: "أنواع الحاويات", icon: SlidersHorizontal },
-      { key: "contract_line" as ViewKey, label: "بنود العقود", icon: ClipboardList },
+    ],
+  },
+  {
+    label: "العملاء والتعاقدات",
+    items: [
+      { key: "customer" as ViewKey, label: "العملاء", icon: Users },
+      { key: "contract" as ViewKey, label: "تسجيل تعاقد", icon: FileCheck2 },
       { key: "contracts_list" as ViewKey, label: "العقود", icon: FileText },
+      { key: "rental" as ViewKey, label: "تسجيل إيجار حاوية", icon: ReceiptText },
     ],
   },
   {
-    label: "التبديل والتفريغ",
+    label: "الأسطول والحاويات",
     items: [
+      { key: "container" as ViewKey, label: "أصول الحاويات", icon: Box },
+      { key: "container_type" as ViewKey, label: "أنواع الحاويات", icon: SlidersHorizontal },
       { key: "operations" as ViewKey, label: "التبديل والتفريغ", icon: ArrowLeftRight },
-      { key: "bookings" as ViewKey, label: "المواعيد والحجوزات", icon: CalendarDays },
-    ],
-  },
-  {
-    label: "سندات القبض والصرف",
-    items: [
-      { key: "vouchers" as ViewKey, label: "سندات القبض والصرف", icon: HandCoins },
-      { key: "receipt" as ViewKey, label: "سندات القبض", icon: HandCoins },
-      { key: "expense" as ViewKey, label: "سندات الصرف", icon: ArrowDownLeft },
-      { key: "deposit" as ViewKey, label: "الإيداعات البنكية", icon: Landmark },
-      { key: "treasury" as ViewKey, label: "الخزائن", icon: Landmark },
-    ],
-  },
-  {
-    label: "سداد العملاء",
-    items: [
-      { key: "customer_payments" as ViewKey, label: "سداد العملاء", icon: Coins },
-      { key: "ledger_entry" as ViewKey, label: "كشف مديونية العملاء", icon: FileText },
-    ],
-  },
-  {
-    label: "الإيرادات والمصروفات",
-    items: [
-      { key: "expenses" as ViewKey, label: "الإيرادات والمصروفات", icon: ArrowDownLeft },
-      { key: "daily_expense" as ViewKey, label: "المصروفات العامة", icon: ArrowDownLeft },
-      { key: "fuel_expense" as ViewKey, label: "مصروفات الشاحنات", icon: CarFront },
-    ],
-  },
-  {
-    label: "التقارير",
-    items: [
-      { key: "reports" as ViewKey, label: "التقارير", icon: ArrowUpRight },
-    ],
-  },
-  {
-    label: "الرواتب والسلف",
-    items: [
-      { key: "payroll" as ViewKey, label: "الرواتب والسلف", icon: Coins },
-      { key: "salary_advance" as ViewKey, label: "السلف", icon: Coins },
-      { key: "salary_payment" as ViewKey, label: "الرواتب", icon: Coins },
-    ],
-  },
-  {
-    label: "الشاحنات",
-    items: [
       { key: "fleet" as ViewKey, label: "أسطول الشاحنات", icon: Truck },
-      { key: "vehicle" as ViewKey, label: "الشاحنات", icon: Truck },
+      { key: "vehicle" as ViewKey, label: "الشاحنات", icon: CarFront },
       { key: "maintenance" as ViewKey, label: "الصيانة", icon: Wrench },
       { key: "permit" as ViewKey, label: "التصاريح", icon: FileCheck2 },
       { key: "oil_change" as ViewKey, label: "غيار الزيت والعدادات", icon: Gauge },
@@ -110,7 +68,40 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     ],
   },
   {
-    label: "المستودعات والمخازن",
+    label: "المواعيد وأوامر العمل",
+    items: [
+      { key: "bookings" as ViewKey, label: "المواعيد والحجوزات", icon: CalendarDays },
+    ],
+  },
+  {
+    label: "المالية والتحصيل",
+    items: [
+      { key: "vouchers" as ViewKey, label: "سندات القبض والصرف", icon: HandCoins },
+      { key: "receipt" as ViewKey, label: "سندات القبض", icon: HandCoins },
+      { key: "expense" as ViewKey, label: "سندات الصرف", icon: ArrowDownLeft },
+      { key: "deposit" as ViewKey, label: "الإيداعات البنكية", icon: Landmark },
+      { key: "treasury" as ViewKey, label: "الخزائن", icon: Landmark },
+      { key: "transfer" as ViewKey, label: "التحويل بين الخزائن", icon: ArrowUpRight },
+      { key: "customer_payments" as ViewKey, label: "سداد العملاء", icon: Coins },
+      { key: "ledger_entry" as ViewKey, label: "كشف مديونية العملاء", icon: FileText },
+      { key: "expenses" as ViewKey, label: "الإيرادات والمصروفات", icon: ArrowDownLeft },
+      { key: "daily_expense" as ViewKey, label: "المصروفات العامة", icon: ArrowDownLeft },
+      { key: "fuel_expense" as ViewKey, label: "مصروفات الشاحنات", icon: CarFront },
+      { key: "payroll" as ViewKey, label: "الرواتب والسلف", icon: Coins },
+      { key: "salary_advance" as ViewKey, label: "السلف", icon: Coins },
+      { key: "salary_payment" as ViewKey, label: "الرواتب", icon: Coins },
+    ],
+  },
+  {
+    label: "الموظفون والصلاحيات",
+    items: [
+      { key: "employee" as ViewKey, label: "الموظفون", icon: Users },
+      { key: "commission" as ViewKey, label: "العمولات", icon: Coins },
+      { href: "/admin/employees", label: "المستخدمون والصلاحيات", icon: UserCog },
+    ],
+  },
+  {
+    label: "المخزون والمستودعات",
     items: [
       { key: "warehouses" as ViewKey, label: "المستودعات والمخازن", icon: Box },
       { key: "warehouse" as ViewKey, label: "إدارة المخازن", icon: Box },
@@ -119,46 +110,20 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     ],
   },
   {
-    label: "العملاء",
+    label: "التقارير والتدقيق",
     items: [
-      { key: "customer" as ViewKey, label: "العملاء", icon: Users },
-    ],
-  },
-  {
-    label: "الموظفون",
-    items: [
-      { key: "employee" as ViewKey, label: "الموظفون", icon: Users },
-      { key: "commission" as ViewKey, label: "العمولات", icon: Coins },
-      { key: "branch" as ViewKey, label: "الفروع", icon: Landmark },
-    ],
-  },
-  {
-    label: "المستخدمون والصلاحيات",
-    items: [
-      { href: "/admin/employees", label: "المستخدمون والصلاحيات", icon: UserCog },
+      { key: "reports" as ViewKey, label: "التقارير الشاملة", icon: ArrowUpRight },
+      { key: "audit" as ViewKey, label: "سجل التدقيق", icon: BookOpenCheck },
     ],
   },
   {
     label: "الإعدادات",
     items: [
-      { key: "system_settings" as ViewKey, label: "إعدادات النظام والتشغيل", icon: Settings2 },
-      { key: "setting" as ViewKey, label: "الإعدادات", icon: Settings2 },
+      { key: "system_settings" as ViewKey, label: "إعدادات المؤسسة والتشغيل", icon: Settings2 },
+      { key: "branch" as ViewKey, label: "الفروع", icon: Landmark },
       { key: "tax" as ViewKey, label: "الضرائب", icon: FileCheck2 },
-    ],
-  },
-  {
-    label: "سجل التدقيق",
-    items: [
-      { key: "audit" as ViewKey, label: "سجل التدقيق", icon: BookOpenCheck },
-    ],
-  },
-  {
-    label: "مراجع التشغيل",
-    items: [
-      { key: "alert" as ViewKey, label: "التنبيهات اليومية", icon: BellRing },
       { key: "invoice" as ViewKey, label: "الفواتير", icon: FileText },
       { key: "invoice_return" as ViewKey, label: "مرتجعات الفواتير", icon: Archive },
-      { key: "transfer" as ViewKey, label: "التحويل بين الخزائن", icon: ArrowUpRight },
     ],
   },
 ]
@@ -197,7 +162,7 @@ const viewLabel = (view: ViewKey) =>
 
 function ContainerSidebar({ view, onSelect }: { view: ViewKey; onSelect: (view: ViewKey) => void }) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>(
-    Object.fromEntries(NAV_GROUPS.map(group => [group.label, ["الرئيسية", "العقود والإيجارات"].includes(group.label)])),
+    Object.fromEntries(NAV_GROUPS.map(group => [group.label, group.label === "مركز التشغيل"])),
   )
   return (
     <Card className="sticky top-20 border-slate-200/80 bg-white/90 shadow-sm">

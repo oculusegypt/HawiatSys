@@ -43,6 +43,13 @@ export type RecordKind =
   | "salary_payment"
   | "fuel_expense"
   | "daily_expense"
+  | "other_revenue"
+  | "notification"
+  | "payment_return"
+  | "stock_issue"
+  | "stock_issue_return"
+  | "purchase"
+  | "purchase_return"
 
 export const KIND_LABELS: Record<RecordKind, string> = {
   customer: "العملاء",
@@ -79,6 +86,13 @@ export const KIND_LABELS: Record<RecordKind, string> = {
   salary_payment: "الرواتب والسلف",
   fuel_expense: "مصروفات السيارات",
   daily_expense: "المصروفات اليومية",
+  other_revenue: "الإيرادات الأخرى",
+  notification: "الإشعارات",
+  payment_return: "مرتجع التسديدات",
+  stock_issue: "صرف الأصناف",
+  stock_issue_return: "مرتجع الصرف",
+  purchase: "المشتريات",
+  purchase_return: "مرتجع المشتريات",
 }
 
 export const KIND_ICONS: Record<RecordKind, string> = {
@@ -116,6 +130,13 @@ export const KIND_ICONS: Record<RecordKind, string> = {
   salary_payment: "راتب",
   fuel_expense: "وقود",
   daily_expense: "مصروف يومي",
+  other_revenue: "إيراد",
+  notification: "إشعار",
+  payment_return: "مرتجع",
+  stock_issue: "صرف",
+  stock_issue_return: "مرتجع صرف",
+  purchase: "شراء",
+  purchase_return: "مرتجع شراء",
 }
 
 type FieldConfig = {
@@ -395,6 +416,62 @@ export const FIELD_CONFIG: Record<RecordKind, FieldConfig[]> = {
     { key: "name", label: "اسم المصروف", placeholder: "وقود / صيانة / تشغيل" },
     { key: "expenseType", label: "نوع المصروف", placeholder: "عام / سيارة" },
     { key: "amount", label: "المبلغ", type: "number", placeholder: "0" },
+    { key: "date", label: "التاريخ", type: "date" },
+    { key: "notes", label: "ملاحظات", type: "textarea", wide: true },
+  ],
+  other_revenue: [
+    { key: "revenueNumber", label: "رقم الإيراد", placeholder: "REV-001" },
+    { key: "employeeName", label: "السائق / المشرف", placeholder: "اسم الموظف" },
+    { key: "commission", label: "العمولة", type: "number", placeholder: "0" },
+    { key: "amount", label: "القيمة", type: "number", placeholder: "0" },
+    { key: "date", label: "التاريخ", type: "date" },
+    { key: "notes", label: "ملاحظات", type: "textarea", wide: true },
+  ],
+  notification: [
+    { key: "notificationNumber", label: "رقم الإشعار", placeholder: "NOT-001" },
+    { key: "customerName", label: "العميل", placeholder: "اسم العميل" },
+    { key: "notificationType", label: "نوع الإشعار", placeholder: "دائن / مدين" },
+    { key: "amount", label: "القيمة", type: "number", placeholder: "0" },
+    { key: "date", label: "التاريخ", type: "date" },
+    { key: "notes", label: "ملاحظات", type: "textarea", wide: true },
+  ],
+  payment_return: [
+    { key: "receiptNumber", label: "رقم السند الأصلي", placeholder: "REC-001" },
+    { key: "customerName", label: "العميل", placeholder: "اسم العميل" },
+    { key: "contractNumber", label: "العقد", placeholder: "رقم العقد" },
+    { key: "amount", label: "قيمة المرتجع", type: "number", placeholder: "0" },
+    { key: "date", label: "التاريخ", type: "date" },
+    { key: "notes", label: "ملاحظات", type: "textarea", wide: true },
+  ],
+  stock_issue: [
+    { key: "warehouseName", label: "المخزن", placeholder: "المخزن الرئيسي" },
+    { key: "itemName", label: "الصنف", placeholder: "اسم الصنف" },
+    { key: "quantity", label: "الكمية", type: "number", placeholder: "0" },
+    { key: "issuedTo", label: "الجهة المستلمة", placeholder: "شاحنة أو موظف" },
+    { key: "date", label: "التاريخ", type: "date" },
+    { key: "notes", label: "ملاحظات", type: "textarea", wide: true },
+  ],
+  stock_issue_return: [
+    { key: "warehouseName", label: "المخزن", placeholder: "المخزن الرئيسي" },
+    { key: "itemName", label: "الصنف", placeholder: "اسم الصنف" },
+    { key: "quantity", label: "الكمية", type: "number", placeholder: "0" },
+    { key: "vehiclePlate", label: "الشاحنة", placeholder: "لوحة المركبة" },
+    { key: "date", label: "التاريخ", type: "date" },
+    { key: "notes", label: "ملاحظات", type: "textarea", wide: true },
+  ],
+  purchase: [
+    { key: "invoiceNumber", label: "رقم الفاتورة", placeholder: "PUR-001" },
+    { key: "warehouseName", label: "المخزن", placeholder: "المخزن الرئيسي" },
+    { key: "itemName", label: "الصنف", placeholder: "اسم الصنف" },
+    { key: "quantity", label: "الكمية", type: "number", placeholder: "0" },
+    { key: "unitPrice", label: "السعر", type: "number", placeholder: "0" },
+    { key: "amount", label: "الإجمالي", type: "number", placeholder: "0" },
+    { key: "date", label: "التاريخ", type: "date" },
+  ],
+  purchase_return: [
+    { key: "invoiceNumber", label: "رقم الفاتورة", placeholder: "PUR-001" },
+    { key: "warehouseName", label: "المخزن", placeholder: "المخزن الرئيسي" },
+    { key: "amount", label: "الإجمالي", type: "number", placeholder: "0" },
     { key: "date", label: "التاريخ", type: "date" },
     { key: "notes", label: "ملاحظات", type: "textarea", wide: true },
   ],
