@@ -5,13 +5,15 @@ import { getSafeMapEmbedUrl, useSiteSettings } from "@/context/SiteSettingsConte
 
 export function Footer() {
   const siteSettings = useSiteSettings()
+  const [mapLoadFailed, setMapLoadFailed] = React.useState(false)
   const phones = siteSettings.phones
-  const mapEmbed = getSafeMapEmbedUrl(siteSettings.mapEmbed, {
+  const mapOptions = {
     latitude: siteSettings.latitude,
     longitude: siteSettings.longitude,
     address: [siteSettings.address, siteSettings.city, siteSettings.region].filter(Boolean).join("، "),
     companyName: siteSettings.companyName,
-  })
+  }
+  const mapEmbed = getSafeMapEmbedUrl(mapLoadFailed ? "" : siteSettings.mapEmbed, mapOptions)
   const description = siteSettings.footerDescription
   const address = [siteSettings.address, siteSettings.city, siteSettings.region]
     .filter(Boolean)
@@ -141,7 +143,8 @@ export function Footer() {
                 allowFullScreen
                 loading="lazy"
                 referrerPolicy="strict-origin-when-cross-origin"
-                 title={`موقع ${siteSettings.companyName} على الخريطة`}
+                onError={() => setMapLoadFailed(true)}
+                title={`موقع ${siteSettings.companyName} على الخريطة`}
               />
             </div>
           </div>

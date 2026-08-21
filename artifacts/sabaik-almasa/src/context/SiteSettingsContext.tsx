@@ -24,10 +24,7 @@ export function getSafeMapEmbedUrl(
     ? `${latitude},${longitude}`
     : [options.address, options.companyName, "الرياض"].filter(Boolean).join("، ")
 
-  // Google occasionally rejects stale/corrupted pb payloads. Never expose
-  // those payloads to visitors; the q/embed endpoint is stable and works with
-  // either coordinates or a textual destination.
-  if (parsed?.searchParams.has("pb") || !parsed) {
+  if (!parsed) {
     return destination
       ? `https://maps.google.com/maps?q=${encodeURIComponent(destination)}&hl=ar&z=14&output=embed`
       : ""
