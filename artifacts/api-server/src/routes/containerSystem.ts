@@ -2,6 +2,7 @@ import { Router } from "express";
 import { and, desc, eq, like } from "drizzle-orm";
 import { db, containerSystemAuditTable, containerSystemRecordsTable, serviceRequestsTable } from "@workspace/db";
 import type { AdminRequest } from "../middleware/adminAuth";
+import { getSetting } from "./settings";
 
 const router = Router();
 const supportedKinds = [
@@ -387,7 +388,24 @@ router.get("/admin/container-system", async (req, res) => {
   const maintenanceCost = records.filter(r => r.kind === "maintenance").reduce((sum, r) => sum + Number((r.payload as Record<string, unknown>).cost ?? 0), 0);
   const fleetCount = records.filter(r => r.kind === "vehicle").length;
   const rentedCount = records.filter(r => ["container", "container_asset"].includes(r.kind) && r.status === "rented").length;
+  const organization = {
+    name: await getSetting("company_name"),
+    logo: await getSetting("company_logo"),
+    phone: await getSetting("company_phone_call"),
+    whatsapp: await getSetting("company_phone_whatsapp"),
+    email: await getSetting("company_email"),
+    address: await getSetting("company_address"),
+    city: await getSetting("company_city"),
+    region: await getSetting("company_region"),
+    country: await getSetting("company_country"),
+    postalCode: await getSetting("company_postal_code"),
+    latitude: await getSetting("company_latitude"),
+    longitude: await getSetting("company_longitude"),
+    taxNumber: await getSetting("company_tax_number"),
+    englishName: await getSetting("company_name_en"),
+  };
   return res.json({
+    organization,
     summary: {
       customers: count("customer"),
       containers: records.filter(r => ["container", "container_asset"].includes(r.kind)).length,

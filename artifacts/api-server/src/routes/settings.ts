@@ -72,7 +72,7 @@ const DEFAULTS: Record<string, string> = {
   analytics_google_search_weight_enabled: "false",
 };
 
-async function getSetting(key: string): Promise<string> {
+export async function getSetting(key: string): Promise<string> {
   const [row] = await db
     .select()
     .from(siteSettingsTable)
@@ -80,7 +80,7 @@ async function getSetting(key: string): Promise<string> {
   return row?.value ?? DEFAULTS[key] ?? "";
 }
 
-async function setSetting(key: string, value: string): Promise<void> {
+export async function setSetting(key: string, value: string): Promise<void> {
   const existing = await db
     .select()
     .from(siteSettingsTable)
@@ -244,5 +244,4 @@ router.put("/admin/settings", async (req, res) => {
   }
 });
 
-export { getSetting, setSetting };
 export default router;

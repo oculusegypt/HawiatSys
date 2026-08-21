@@ -8,3 +8,4 @@
 - [Container permission granularity](container-permission-granularity.md) — container-system permissions must use the exact record kind suffix expected by the API guard.
 - [Hawiat container UI integration](hawiat-container-ui-integration.md) — use the archive's specialized tab vocabulary while keeping the current API-backed record model.
 - [Image optimization](image-optimization.md) — ImageMagick temporary output names must preserve the target extension for reliable WebP conversion.
+- [SQLite seed compatibility](sqlite-seed-transaction-compatibility.md) — portable fixture scripts should verify Drizzle transaction support before relying on `db.transaction(...)`.

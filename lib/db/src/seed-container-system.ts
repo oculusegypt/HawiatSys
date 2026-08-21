@@ -1,7 +1,7 @@
 import { db } from "./index.js";
+import { eq } from "drizzle-orm";
 import { containerSystemAuditTable, containerSystemRecordsTable } from "./schema/containerSystem.js";
-
-const existing = db.select().from(containerSystemRecordsTable).all();
+import { siteSettingsTable } from "./schema/settings.js";
 
 const daysFromNow = (days: number) => {
   const date = new Date();
@@ -91,36 +91,59 @@ const extendedDemo = [
   ["alert", "open", { reference: "ALT-DEMO-001", title: "مديونية متأخرة", severity: "عالية", dueDate: daysFromNow(-240), status: "مفتوح", details: "العميل محمود محمد لديه رصيد متبقٍ على العقد 25111195." }],
 ] as const;
 
-const identityKeys = ["reference", "name", "assetCode", "contractNumber", "plate", "receiptNumber", "depositNumber", "key"];
-const stablePayload = (value: Record<string, unknown>) => JSON.stringify(Object.fromEntries(
-  Object.entries(value)
-    .filter(([key]) => key !== "reference" && !/(date|at|signed|created|updated)/i.test(key))
-    .sort(([a], [b]) => a.localeCompare(b)),
-));
-const isAlreadySeeded = (kind: string, payload: Record<string, unknown>) => existing.some(record => {
-  if (record.kind !== kind) return false;
-  const current = JSON.parse(record.payload) as Record<string, unknown>;
-  if (payload.reference && current.reference === payload.reference) return true;
-  return identityKeys.some(key => payload[key] && current[key] === payload[key]) ||
-    stablePayload(current) === stablePayload(payload);
-});
+// This command is deliberately deterministic: it is the development/demo reset
+// for the whole container system, not an additive fixture that accumulates rows.
+{
+  db.delete(containerSystemAuditTable).run();
+  db.delete(containerSystemRecordsTable).run();
 
-for (const [kind, status, payload] of [...demo, ...linkedDemo, ...extendedDemo]) {
-  const payloadRecord = payload as Record<string, unknown>;
-  const reference = String(payloadRecord.reference ?? `${kind.toUpperCase().slice(0, 4)}-DEMO`);
-  if (isAlreadySeeded(kind, payload as Record<string, unknown>)) continue;
-  const created = db.insert(containerSystemRecordsTable).values({
-    kind,
-    status,
-    reference,
-    payload: JSON.stringify(payload),
-  }).returning().get();
-  db.insert(containerSystemAuditTable).values({
-    recordId: created.id,
-    kind,
-    action: "seed_demo",
-    afterPayload: created.payload,
-  }).run();
+  const organizationSettings = {
+    company_name: "مؤسسة سبائك الماسة",
+    company_name_en: "Sabaik Almasa Establishment",
+    company_phone_call: "0112345678",
+    company_phone_whatsapp: "0551234567",
+    company_phones: JSON.stringify(["0112345678", "0551234567"]),
+    company_email: "hello@sabaik-almasa.sa",
+    company_address: "طريق الملك فهد، حي العليا",
+    company_city: "الرياض",
+    company_region: "منطقة الرياض",
+    company_country: "المملكة العربية السعودية",
+    company_postal_code: "12214",
+    company_latitude: "24.7136",
+    company_longitude: "46.6753",
+    company_tax_number: "310123456700003",
+    company_price_range: "$$",
+    company_payment_methods: "نقدي، شبكة، تحويل بنكي",
+    site_desc: "مؤسسة سبائك الماسة لخدمات الحاويات والنقل والتخلص من المخلفات في الرياض.",
+  };
+  for (const [key, value] of Object.entries(organizationSettings)) {
+    const existingSetting = db.select().from(siteSettingsTable).where(
+      eq(siteSettingsTable.key, key),
+    ).get();
+    if (existingSetting) {
+      db.update(siteSettingsTable).set({ value, updatedAt: new Date().toISOString() })
+        .where(eq(siteSettingsTable.key, key)).run();
+    } else {
+      db.insert(siteSettingsTable).values({ key, value }).run();
+    }
+  }
+
+  for (const [kind, status, payload] of [...demo, ...linkedDemo, ...extendedDemo]) {
+    const payloadRecord = payload as Record<string, unknown>;
+    const reference = String(payloadRecord.reference ?? `${kind.toUpperCase().slice(0, 4)}-DEMO`);
+    const created = db.insert(containerSystemRecordsTable).values({
+      kind,
+      status,
+      reference,
+      payload: JSON.stringify(payload),
+    }).returning().get();
+    db.insert(containerSystemAuditTable).values({
+      recordId: created.id,
+      kind,
+      action: "seed_demo",
+      afterPayload: created.payload,
+    }).run();
+  }
 }
 
-console.log(`✅ Added missing container system demo records. Existing records were preserved.`);
+console.log(`✅ Rebuilt the container system demo dataset and synchronized organization settings.`);

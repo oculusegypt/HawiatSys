@@ -29,6 +29,8 @@ import {
 } from "./ContainerSystemComponents"
 import { ReportsHub, ReportPage, SettingsPage, REPORTS, ReportId } from "./ContainerSystemSpecialPages"
 
+const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
+
 type ViewKey =
   | "overview" | RecordKind | "reports" | "audit" | "container_search"
   | "rental" | "vouchers" | "operations" | "customer_payments" | "bookings"
@@ -626,6 +628,28 @@ export default function ContainerSystem() {
     }
   }
   const saveSettings = (payload: Record<string, unknown>) => {
+    if (payload.section === "organization") {
+      const values = payload as Record<string, string>
+      const updates = {
+        company_name: values["اسم المؤسسة"] ?? "",
+        company_name_en: values["الاسم بالإنجليزية"] ?? "",
+        company_phone_call: values["الجوال"] ?? "",
+        company_email: values["البريد الإلكتروني"] ?? "",
+        company_address: values["العنوان بالإنجليزية"] ?? "",
+        company_logo: values["الشعار"] ?? "",
+        company_latitude: values.Latitude ?? "",
+        company_longitude: values.Longitude ?? "",
+      }
+      void fetch(`${API_BASE}/api/admin/settings`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("admin_token") ?? ""}` },
+        body: JSON.stringify(updates),
+      }).then(response => {
+        if (!response.ok) throw new Error("settings")
+        showSuccess("تم حفظ بيانات المؤسسة وربطها بالعقود")
+      }).catch(() => toast({ title: "تعذر حفظ بيانات المؤسسة", variant: "destructive" }))
+      return
+    }
     const existing = (snapshot?.records ?? []).find(record => record.kind === "setting" && record.payload.section === payload.section)
     if (existing) {
       updateMutation.mutate({ id: existing.id, data: { status: "active", payload } }, { onSuccess: () => { invalidate(); showSuccess("تم حفظ الإعدادات") }, onError: () => toast({ title: "تعذر حفظ الإعدادات", variant: "destructive" }) })
