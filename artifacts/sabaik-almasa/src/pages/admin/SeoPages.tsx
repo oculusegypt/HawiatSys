@@ -175,10 +175,10 @@ export default function SeoPages() {
         headers: { Authorization: `Bearer ${getToken()}` },
       })
       const data = await response.json().catch(() => [])
-      if (!response.ok) throw new Error(errorMessage(data, "تعذر تحميل صفحات SEO"))
+      if (!response.ok) throw new Error(errorMessage(data, "تعذر تحميل الصفحات"))
       setPages(Array.isArray(data) ? data : [])
     } catch (error) {
-      setLoadError(error instanceof Error ? error.message : "تعذر تحميل صفحات SEO")
+      setLoadError(error instanceof Error ? error.message : "تعذر تحميل الصفحات")
     } finally {
       setLoading(false)
     }
@@ -443,7 +443,7 @@ export default function SeoPages() {
             <Sparkles size={13} />
             مساحة نمو البحث
           </div>
-          <h2 className="text-2xl font-black tracking-tight text-gray-900 sm:text-3xl">صفحات SEO</h2>
+          <h2 className="text-2xl font-black tracking-tight text-gray-900 sm:text-3xl">الصفحات</h2>
           <p className="mt-1 max-w-2xl text-sm text-gray-500">
             حوّل كلمات البحث إلى صفحات مفيدة تحمل نية العميل وتدعم حضور {companyName || "الشركة"} في الرياض.
           </p>
@@ -506,7 +506,7 @@ export default function SeoPages() {
       {loadError ? (
         <div className="rounded-2xl border border-red-100 bg-red-50 p-8 text-center" data-testid="state-seo-pages-error">
           <AlertCircle size={34} className="mx-auto mb-3 text-red-500" />
-          <h3 className="font-black text-red-900">تعذر تحميل صفحات SEO</h3>
+          <h3 className="font-black text-red-900">تعذر تحميل الصفحات</h3>
           <p className="mt-1 text-sm text-red-700">{loadError}</p>
           <Button onClick={() => void loadPages()} variant="outline" className="mt-5 rounded-xl border-red-200 bg-white text-red-700" data-testid="button-retry-seo-pages">
             إعادة المحاولة

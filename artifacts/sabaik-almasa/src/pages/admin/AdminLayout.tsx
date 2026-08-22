@@ -24,7 +24,7 @@ const ALL_NAV = [
   { href: "/admin/analytics",      icon: BarChart3,         label: "التقارير والتحليلات", group: "content", section: "analytics" },
   { href: "/admin/ads",            icon: Megaphone,         label: "الإعلانات",        group: "content", section: "ads" },
   { href: "/admin/blog",           icon: BookOpen,          label: "المدونة",          group: "content", section: "blog" },
-  { href: "/admin/seo-pages",      icon: FilePenLine,       label: "صفحات SEO",        group: "content", section: "seo_pages" },
+  { href: "/admin/seo-pages",      icon: FilePenLine,       label: "الصفحات",          group: "content", section: "seo_pages" },
   { href: "/admin/services",       icon: Settings,          label: "الخدمات",          group: "content", section: "services" },
   { href: "/admin/reviews",        icon: Star,              label: "تقييمات الخدمات",  group: "content", section: "reviews" },
   { href: "/admin/packages",          icon: Box,               label: "كتالوج الباقات", group: "content", section: "packages" },
