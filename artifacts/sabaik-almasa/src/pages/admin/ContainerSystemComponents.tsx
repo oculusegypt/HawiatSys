@@ -153,6 +153,12 @@ type FieldConfig = {
   wide?: boolean
 }
 
+function dateInputValue(value: unknown) {
+  const raw = String(value ?? "").trim()
+  if (!raw) return ""
+  return raw.match(/^(\d{4}-\d{2}-\d{2})/)?.[1] ?? ""
+}
+
 export const FIELD_CONFIG: Record<RecordKind, FieldConfig[]> = {
   customer: [
     { key: "name", label: "اسم العميل", placeholder: "شركة أو اسم العميل" },
@@ -707,6 +713,9 @@ export function RecordDialog({
     const initial = emptyPayload(kind)
     Object.entries(initialPayload ?? {}).forEach(([key, value]) => { initial[key] = value })
     Object.entries(record?.payload ?? {}).forEach(([key, value]) => { initial[key] = String(value ?? "") })
+    for (const field of FIELD_CONFIG[kind]) {
+      if (field.type === "date") initial[field.key] = dateInputValue(initial[field.key])
+    }
     setPayload(initial)
     setStatus(record?.status || "active")
   }, [initialPayload, open, kind, record])

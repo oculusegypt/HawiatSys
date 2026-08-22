@@ -675,7 +675,7 @@ function ContainerSearchPanel({ records, loading, onDetails, onEdit }: { records
                   <span className="truncate text-slate-500" dir="ltr">{String(payload.customerPhone ?? payload.phone ?? "—")}</span>
                   <span className="text-slate-500">{String(payload.startDate ?? payload.rentalStartDate ?? "—")}</span>
                   <span className="text-slate-500">{String(payload.endDate ?? payload.rentalEndDate ?? "—")}</span>
-                  <div className="flex items-center gap-1.5"><RecordStatus status={record.status} /><Button type="button" variant="ghost" size="icon" onClick={() => onEdit(record)} className="h-8 w-8 text-slate-400 hover:bg-cyan-50 hover:text-cyan-800" title="تعديل السجل"><FilePenLine size={14} /></Button></div>
+                  <div className="flex items-center gap-1.5"><RecordStatus status={String(payload.status ?? record.status)} />{record.kind !== "container_movement" && <Button type="button" variant="ghost" size="icon" onClick={() => onEdit(record)} className="h-8 w-8 text-slate-400 hover:bg-cyan-50 hover:text-cyan-800" title="تعديل السجل"><FilePenLine size={14} /></Button>}</div>
                 </div>
               })}
             </div>

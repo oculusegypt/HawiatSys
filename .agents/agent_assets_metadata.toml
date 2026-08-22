@@ -21,14 +21,14 @@ logical_id = "dd2f77f0-5f7e-42ad-893d-b823952e1890"
 id = "e7Hwi4c_9VUpSkVoGq2Ul"
 uri = "file://cleanflow-services-hostinger.zip"
 type = "unspecified"
-title = "CleanFlow Hostinger — الصور مضغوطة"
-description = "الأرشيف النهائي الجاهز للرفع على Hostinger بدون Node.js، بعد ضغط واستبدال الصور الكبيرة في النظام وقاعدة البيانات والواجهة."
+title = "CleanFlow Services — Hostinger Archive"
+description = "أرشيف جاهز للرفع إلى Hostinger ويعمل عبر PHP وSQLite بدون Node.js في بيئة الإنتاج."
 logical_id = "c612380d-19d8-4641-8c29-e5ac4a484245"
-content_hash = "sha256:546e04e7d47aae44dcefb0a37d9d093d7fae06e1a2a663b9f4a90a80ff3973ed"
-size = 18312988
-mtime_ms = 1787374395042
-storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:584416fd-4c65-4fb6-b60e-22a5165eacba/c612380d-19d8-4641-8c29-e5ac4a484245/3cc1aa35-d9b2-4f8f-ba24-08e662b154fb"
-storage_version_token = "1787374400831238"
+content_hash = "sha256:08b2b35a5a4412a49551486a6471668d8e812f3f850e5d2c8204192067ae3e4c"
+size = 24140893
+mtime_ms = 1787380459101
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:2e6ea3ef-aea1-4317-a0c0-0fb0f608e2ef/c612380d-19d8-4641-8c29-e5ac4a484245/46e1b677-219c-43e1-91fe-0674ee11f2db"
+storage_version_token = "1787380472345941"
 content_type = "application/octet-stream"
 
 [[outputs]]
