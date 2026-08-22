@@ -55,6 +55,16 @@ function canManage(req: AdminRequest, kind: string): boolean {
   return permissions.includes("container_system") || permissions.includes(`container_system_${kind}`);
 }
 
+function requireContainerPermission(kind: string) {
+  return (req: AdminRequest, res: import("express").Response, next: import("express").NextFunction): void => {
+    if (!canManage(req, kind)) {
+      res.status(403).json({ error: "ليس لديك صلاحية للوصول إلى هذا القسم" });
+      return;
+    }
+    next();
+  };
+}
+
 function referenceFor(kind: string, payload: Record<string, unknown>, nextId: number): string {
   const prefix: Record<string, string> = {
     customer: "CUS", customer_site: "SITE", container_type: "CT", container_asset: "CONT", container_assignment: "ASN", vehicle: "CAR",
@@ -407,7 +417,7 @@ async function linkContractToRequest(payload: Record<string, unknown>, contractI
   });
 }
 
-router.get("/admin/container-system", async (req, res) => {
+router.get("/admin/container-system", requireContainerPermission("container_system"), async (req, res) => {
   const rows = await db.select().from(containerSystemRecordsTable).orderBy(desc(containerSystemRecordsTable.updatedAt));
   const records = rows.map(formatRecord);
   const count = (kind: string, status?: string) => records.filter(r => r.kind === kind && (!status || r.status === status)).length;
@@ -489,7 +499,7 @@ router.get("/admin/container-system", async (req, res) => {
   });
 });
 
-router.get("/admin/container-system/records", async (req, res) => {
+router.get("/admin/container-system/records", requireContainerPermission("container_system"), async (req, res) => {
   const kind = typeof req.query.kind === "string" ? req.query.kind : undefined;
   const status = typeof req.query.status === "string" ? req.query.status : undefined;
   const search = typeof req.query.search === "string" ? req.query.search.trim() : "";
@@ -503,7 +513,7 @@ router.get("/admin/container-system/records", async (req, res) => {
   return res.json(rows.map(formatRecord));
 });
 
-router.post("/admin/container-system/contracts/workflow", async (req, res) => {
+router.post("/admin/container-system/contracts/workflow", requireContainerPermission("contract"), async (req, res) => {
   const adminReq = req as unknown as AdminRequest;
   const body = req.body as {
     operationKey?: string;
@@ -617,7 +627,7 @@ router.post("/admin/container-system/contracts/workflow", async (req, res) => {
   }
 });
 
-router.get("/admin/container-system/financial/contract-ledgers", async (req, res) => {
+router.get("/admin/container-system/financial/contract-ledgers", requireContainerPermission("container_system_ledger_entry"), async (req, res) => {
   const requestedId = Number(req.query.contractId ?? 0);
   const search = String(req.query.search ?? "").trim().toLowerCase();
   const rows = await db.select().from(containerSystemRecordsTable);
@@ -673,7 +683,7 @@ router.get("/admin/container-system/financial/contract-ledgers", async (req, res
   return res.json({ ledgers, totals });
 });
 
-router.post("/admin/container-system/financial/settle", async (req, res) => {
+router.post("/admin/container-system/financial/settle", requireContainerPermission("payment"), async (req, res) => {
   const adminReq = req as unknown as AdminRequest;
   if (!canManage(adminReq, "payment")) return res.status(403).json({ error: "ليس لديك صلاحية تسجيل تحصيل العقود" });
   const body = req.body as {
@@ -763,7 +773,7 @@ function matchContractForSettlement(row: typeof containerSystemRecordsTable.$inf
   return String(invoice ? parsePayload(invoice.payload).contractNumber ?? "" : "").trim();
 }
 
-router.post("/admin/container-system/contracts/:id/lifecycle", async (req, res) => {
+router.post("/admin/container-system/contracts/:id/lifecycle", requireContainerPermission("contract"), async (req, res) => {
   const adminReq = req as unknown as AdminRequest;
   const contractId = Number(req.params.id);
   const action = String(req.body?.action ?? "").trim().toLowerCase();
@@ -785,6 +795,12 @@ router.post("/admin/container-system/contracts/:id/lifecycle", async (req, res) 
         throw new Error("العقد غير موجود أو مؤرشف");
       }
       const contractPayload = parsePayload(contract.payload);
+      if (action === "deliver" && !["active", "approved", "issued", "scheduled"].includes(contract.status)) {
+        throw new Error("لا يمكن تسليم العقد من حالته الحالية");
+      }
+      if (action === "return" && contract.status !== "delivered") {
+        throw new Error("لا يمكن استرجاع الحاوية قبل تسجيل تسليمها");
+      }
       if (action === "approve" || action === "reject") {
         if (adminReq.adminRole !== "admin" && adminReq.adminRole !== "manager") {
           throw new Error("اعتماد العقد متاح للمدير أو المدير الرئيسي فقط");
@@ -828,6 +844,11 @@ router.post("/admin/container-system/contracts/:id/lifecycle", async (req, res) 
         assetCodeOf(parsePayload(row.payload)) === containerCode,
       );
       if (!asset) throw new Error("الحاوية المرتبطة بالعقد غير موجودة");
+      const linkedRequest = tx.select().from(serviceRequestsTable)
+        .where(eq(serviceRequestsTable.contractRecordId, contractId)).get();
+      if (linkedRequest && linkedRequest.containerRecordId !== asset.id) {
+        throw new Error("الطلب المرتبط لا يطابق أصل الحاوية في العقد");
+      }
       if (!movementTransitionAllowed(asset.status, action)) {
         throw new Error(`لا يمكن تنفيذ ${action === "deliver" ? "التسليم" : "الاسترجاع"} على حاوية حالتها الحالية ${asset.status}`);
       }
@@ -1219,7 +1240,7 @@ router.delete("/admin/container-system/records/:id", async (req, res) => {
   return res.status(204).send();
 });
 
-router.get("/admin/container-system/audit", async (_req, res) => {
+router.get("/admin/container-system/audit", requireContainerPermission("container_system_audit"), async (_req, res) => {
   const rows = await db.select().from(containerSystemAuditTable)
     .orderBy(desc(containerSystemAuditTable.createdAt)).limit(100);
   return res.json(rows);

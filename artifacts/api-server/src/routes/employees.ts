@@ -4,13 +4,25 @@
  */
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { adminsTable, ROLE_LABELS } from "@workspace/db";
+import { adminsTable, ADMIN_ROLES, ALL_SECTIONS, ROLE_LABELS } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { hashPasswordBcrypt } from "./auth";
 import { requireManagerOrAdmin, type AdminRequest } from "../middleware/adminAuth";
 
 const router = Router();
+
+function validateRoleAndPermissions(role: unknown, permissions: unknown) {
+  if (typeof role !== "string" || !ADMIN_ROLES.includes(role as typeof ADMIN_ROLES[number])) {
+    return "الدور الوظيفي غير مدعوم";
+  }
+  if (permissions !== undefined && permissions !== null) {
+    if (!Array.isArray(permissions) || permissions.some(item => typeof item !== "string" || !ALL_SECTIONS.includes(item as typeof ALL_SECTIONS[number]))) {
+      return "توجد صلاحية غير مدعومة";
+    }
+  }
+  return null;
+}
 
 // ── GET /api/admin/employees ─── list all employees ──────────────────────────
 router.get("/admin/employees", requireManagerOrAdmin, async (req, res) => {
@@ -53,6 +65,8 @@ router.post("/admin/employees", requireManagerOrAdmin, async (req, res) => {
   if (password.length < 6) {
     return res.status(400).json({ error: "كلمة المرور يجب أن تكون 6 أحرف على الأقل" });
   }
+  const roleError = validateRoleAndPermissions(role, permissions);
+  if (roleError) return res.status(422).json({ error: roleError });
 
   // Managers can't create admin accounts
   if (r.adminRole === "manager" && role === "admin") {
@@ -99,6 +113,8 @@ router.put("/admin/employees/:id", requireManagerOrAdmin, async (req, res) => {
   if (r.adminRole === "manager" && role === "admin") {
     return res.status(403).json({ error: "لا يمكنك تعيين دور مدير النظام" });
   }
+  const roleError = role !== undefined ? validateRoleAndPermissions(role, permissions) : validateRoleAndPermissions(target.role, permissions);
+  if (roleError) return res.status(422).json({ error: roleError });
   // Can't deactivate yourself
   if (target.id === r.adminId && isActive === 0) {
     return res.status(400).json({ error: "لا يمكنك إيقاف حسابك بنفسك" });

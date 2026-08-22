@@ -11,3 +11,4 @@
 - [SQLite seed compatibility](sqlite-seed-transaction-compatibility.md) — portable fixture scripts should verify Drizzle transaction support before relying on `db.transaction(...)`.
 - [Financial idempotency boundary](financial-idempotency-client-boundary.md) — generated clients need operation keys in the body as well as headers for reliable retry protection.
 - [Public tracking privacy](public-tracking-privacy.md) — unauthenticated order tracking must return a reduced customer-facing projection, never operational evidence or live driver data.
+- [Container route authorization](container-route-authorization.md) — enforce container-system permissions at the API boundary, not through hidden admin navigation.
