@@ -13,6 +13,7 @@
     "@types/multer": "^2.2.0",
     "@workspace/api-zod": "workspace:*",
     "@workspace/db": "workspace:*",
+    "basic-ftp": "^5.0.5",
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^11.10.0",
     "cookie-parser": "^1.4.7",

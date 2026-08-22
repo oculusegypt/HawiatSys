@@ -26,6 +26,7 @@ import pushRouter from "./push";
 import seoPagesRouter from "./seoPages";
 import reviewsRouter from "./reviews";
 import containerSystemRouter from "./containerSystem";
+import hostingerDeployRouter from "./hostingerDeploy";
 
 const router: IRouter = Router();
 
@@ -56,5 +57,6 @@ router.use(pushRouter);
 router.use(seoPagesRouter);
 router.use(reviewsRouter);
 router.use(containerSystemRouter);
+router.use(hostingerDeployRouter);
 
 export default router;

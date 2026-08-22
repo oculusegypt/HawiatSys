@@ -10,7 +10,7 @@ import {
   Building2, Phone, MessageCircle, Plus, Trash2, PhoneCall, BarChart2,
   Image as ImageIcon, Star, Users, Pencil, Eye, EyeOff, X, Check, GripVertical,
   ExternalLink, SlidersHorizontal, RotateCcw, LayoutGrid, Upload, RefreshCw, Megaphone,
-  Palette, Sparkles,
+  Palette, Sparkles, Server,
 } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { THEME_PRESETS, applyThemePreset, type ThemePreset } from "@/lib/themePresets"
@@ -1639,6 +1639,136 @@ function AISettingsTab() {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// ── Hostinger deployment tab ──────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+function HostingerTab() {
+  const { toast } = useToast()
+  const [form, setForm] = useState({ host: "", username: "", port: "21", remotePath: "public_html", secure: false, password: "" })
+  const [hasPassword, setHasPassword] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [testing, setTesting] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/admin/hostinger`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem("admin_token")}` },
+      cache: "no-store",
+    })
+      .then(r => r.ok ? r.json() : Promise.reject(new Error()))
+      .then(data => {
+        setForm(f => ({ ...f, host: data.host || "", username: data.username || "", port: String(data.port || "21"), remotePath: data.remotePath || "public_html", secure: data.secure === true }))
+        setHasPassword(Boolean(data.hasPassword))
+      })
+      .catch(() => toast({ title: "تعذر تحميل إعدادات Hostinger", variant: "destructive" }))
+      .finally(() => setLoading(false))
+  }, [toast])
+
+  function update(key: "host" | "username" | "port" | "remotePath" | "password", value: string) {
+    setForm(f => ({ ...f, [key]: value }))
+  }
+
+  async function save() {
+    setSaving(true)
+    try {
+      const r = await fetch(`${API_BASE}/api/admin/hostinger`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("admin_token")}` },
+        body: JSON.stringify(form),
+      })
+      const data = await r.json()
+      if (!r.ok) throw new Error(data.error || "فشل الحفظ")
+      setHasPassword(Boolean(data.hasPassword))
+      setForm(f => ({ ...f, password: "" }))
+      toast({ title: "تم حفظ إعدادات Hostinger", description: "كلمة المرور مشفرة ولا يتم عرضها مرة أخرى" })
+    } catch (error) {
+      toast({ title: "فشل حفظ الإعدادات", description: error instanceof Error ? error.message : "خطأ غير معروف", variant: "destructive" })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function testConnection() {
+    setTesting(true)
+    try {
+      const r = await fetch(`${API_BASE}/api/admin/hostinger/test`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${localStorage.getItem("admin_token")}` },
+      })
+      const data = await r.json()
+      if (!r.ok) throw new Error(data.error || "تعذر الاتصال")
+      toast({ title: "تم الاتصال بـ Hostinger بنجاح", description: `المسار: ${data.path}` })
+    } catch (error) {
+      toast({ title: "فشل اتصال FTP/FTPS", description: error instanceof Error ? error.message : "تحقق من البيانات", variant: "destructive" })
+    } finally {
+      setTesting(false)
+    }
+  }
+
+  async function deploy() {
+    if (!selectedFile) {
+      toast({ title: "اختر ملف الباتش أولاً", variant: "destructive" })
+      return
+    }
+    setUploading(true)
+    try {
+      const body = new FormData()
+      body.append("patch", selectedFile)
+      const r = await fetch(`${API_BASE}/api/admin/hostinger/deploy`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${localStorage.getItem("admin_token")}` },
+        body,
+      })
+      const data = await r.json()
+      if (!r.ok) throw new Error(data.error || "فشل رفع الباتش")
+      toast({ title: "تم رفع الباتش بنجاح", description: `تم تحديث ${data.uploaded} ملفاً داخل ${data.remotePath}` })
+      setSelectedFile(null)
+    } catch (error) {
+      toast({ title: "فشل تحديث Hostinger", description: error instanceof Error ? error.message : "تعذر رفع الملفات", variant: "destructive" })
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  if (loading) return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>
+
+  return (
+    <div className="space-y-5" dir="rtl">
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg"><Server size={20} className="text-primary" />اتصال Hostinger</CardTitle>
+          <p className="text-sm text-gray-500">أدخل بيانات FTP/FTPS مرة واحدة، ثم يمكنك اختبار الاتصال ورفع أي Patch من جهازك.</p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5"><label className="text-sm font-bold text-gray-700">اسم المضيف FTP</label><Input value={form.host} onChange={e => update("host", e.target.value)} placeholder="ftp.example.com" dir="ltr" /></div>
+            <div className="space-y-1.5"><label className="text-sm font-bold text-gray-700">اسم مستخدم FTP</label><Input value={form.username} onChange={e => update("username", e.target.value)} placeholder="اسم المستخدم" dir="ltr" /></div>
+            <div className="space-y-1.5"><label className="text-sm font-bold text-gray-700">المنفذ</label><Input value={form.port} onChange={e => update("port", e.target.value)} placeholder="21" inputMode="numeric" dir="ltr" /></div>
+            <div className="space-y-1.5"><label className="text-sm font-bold text-gray-700">المسار البعيد</label><Input value={form.remotePath} onChange={e => update("remotePath", e.target.value)} placeholder="public_html" dir="ltr" /></div>
+            <div className="space-y-1.5 sm:col-span-2"><label className="text-sm font-bold text-gray-700">كلمة مرور FTP {hasPassword && <span className="font-normal text-emerald-600">(محفوظة ومشفرة — اتركها فارغة دون تغيير)</span>}</label><Input type="password" value={form.password} onChange={e => update("password", e.target.value)} placeholder={hasPassword ? "••••••••••••" : "أدخل كلمة المرور"} dir="ltr" autoComplete="new-password" /></div>
+          </div>
+          <label className="flex items-center gap-2 text-sm font-medium text-gray-700"><input type="checkbox" checked={form.secure} onChange={e => setForm(f => ({ ...f, secure: e.target.checked }))} className="h-4 w-4 accent-primary" /> استخدام FTPS المشفر (موصى به)</label>
+          <div className="flex flex-wrap gap-2 border-t pt-4">
+            <Button onClick={save} disabled={saving} className="gap-2"><Check size={15} />{saving ? "جاري الحفظ..." : "حفظ الإعدادات"}</Button>
+            <Button onClick={testConnection} disabled={testing || !hasPassword} variant="outline" className="gap-2"><Server size={15} />{testing ? "جاري الاختبار..." : "اختبار الاتصال"}</Button>
+          </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="pb-3"><CardTitle className="text-lg">رفع Patch إلى Hostinger</CardTitle><p className="text-sm text-gray-500">اختر ملف ZIP مثل <span dir="ltr" className="font-mono">hawiat-update-patch.zip</span> وسيتم رفع محتوياته إلى المسار المحدد.</p></CardHeader>
+        <CardContent className="space-y-4">
+          <Input type="file" accept=".zip,application/zip" onChange={e => setSelectedFile(e.target.files?.[0] || null)} disabled={uploading} />
+          {selectedFile && <p className="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-600" dir="ltr">{selectedFile.name} — {(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>}
+          <Button onClick={deploy} disabled={uploading || !selectedFile || !hasPassword} className="gap-2"><Upload size={15} />{uploading ? "جاري رفع التحديث..." : "رفع وتحديث Hostinger"}</Button>
+          {!hasPassword && <p className="text-xs text-amber-700">احفظ بيانات الاتصال وكلمة المرور أولاً لتفعيل الرفع.</p>}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // ── Main Page ─────────────────────────────────────────────────────────────────
 // ══════════════════════════════════════════════════════════════════════════════
 export default function SiteSettings() {
@@ -1686,6 +1816,11 @@ export default function SiteSettings() {
               <span className="hidden sm:inline">الذكاء الاصطناعي</span>
               <span className="sm:hidden">AI</span>
             </TabsTrigger>
+            <TabsTrigger value="hostinger" className="flex min-h-11 items-center justify-center gap-2 rounded-lg border border-transparent px-2 py-2.5 text-sm font-medium text-gray-600 transition-all data-[state=active]:border-primary/15 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">
+              <Server size={15} />
+              <span className="hidden sm:inline">تحديث Hostinger</span>
+              <span className="sm:hidden">تحديث</span>
+            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -1696,6 +1831,7 @@ export default function SiteSettings() {
           <TabsContent value="partners"><PartnersTab /></TabsContent>
           <TabsContent value="sections"><SectionsTab /></TabsContent>
           <TabsContent value="ai"><AISettingsTab /></TabsContent>
+          <TabsContent value="hostinger"><HostingerTab /></TabsContent>
         </div>
       </Tabs>
     </div>

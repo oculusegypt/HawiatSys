@@ -108,6 +108,7 @@ const SENSITIVE_KEYS = new Set([
   "vapid_public_key",
   "vapid_private_key",
   "vapid_subject",
+  "hostinger_ftp_password",
 ]);
 
 function redactSensitive(map: Record<string, string>): Record<string, string> {
