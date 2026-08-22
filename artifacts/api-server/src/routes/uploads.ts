@@ -3,6 +3,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import crypto from "crypto";
+import { requireAdmin, requireDriver } from "../middleware/adminAuth";
 
 const router = Router();
 
@@ -40,6 +41,14 @@ function requireToken(req: Request, res: Response, next: NextFunction): void {
 
 // ── POST /api/admin/uploads ────────────────────────────────────────────────────
 router.post("/admin/uploads", requireToken, upload.single("file"), (req: Request, res: Response): void => {
+  if (!req.file) { res.status(400).json({ error: "لم يُرفَق ملف" }); return; }
+  const url = `/api/uploads/${req.file.filename}`;
+  res.json({ url, filename: req.file.filename, size: req.file.size });
+});
+
+// Driver completion evidence uses a dedicated protected route because the
+// global /api/admin middleware intentionally blocks driver accounts.
+router.post("/driver/uploads", requireAdmin, requireDriver, upload.single("file"), (req: Request, res: Response): void => {
   if (!req.file) { res.status(400).json({ error: "لم يُرفَق ملف" }); return; }
   const url = `/api/uploads/${req.file.filename}`;
   res.json({ url, filename: req.file.filename, size: req.file.size });

@@ -400,7 +400,7 @@ function CompletionEvidenceDialog({
       if (proofFile) {
         const form = new FormData();
         form.append("file", proofFile);
-        const response = await fetch(`${API_BASE}/api/admin/uploads`, {
+        const response = await fetch(`${API_BASE}/api/driver/uploads`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${localStorage.getItem("admin_token") ?? ""}`,
