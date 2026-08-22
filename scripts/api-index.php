@@ -719,7 +719,10 @@ try {
         return [$ftp, $remote];
     }
 
-    function hostingerEnsureRemoteDir($ftp, string $dir): void {
+    function hostingerEnsureRemoteDir($ftp, string $root, string $dir): void {
+        if (!@ftp_chdir($ftp, $root)) {
+            throw new RuntimeException('تعذر العودة إلى مجلد الرفع الأساسي');
+        }
         $parts = array_values(array_filter(explode('/', trim($dir, '/')), static fn($part) => $part !== '' && $part !== '.' && $part !== '..'));
         foreach ($parts as $part) {
             if (!@ftp_chdir($ftp, $part)) {
@@ -802,8 +805,13 @@ try {
                 if (!$file->isFile() || $file->isLink()) continue;
                 $relative = str_replace('\\', '/', substr($file->getPathname(), strlen($temp) + 1));
                 $remoteFile = $remote . '/' . $relative;
-                hostingerEnsureRemoteDir($ftp, dirname($relative));
+                hostingerEnsureRemoteDir($ftp, $remote, dirname($relative));
                 if (!@ftp_put($ftp, $remoteFile, $file->getPathname(), FTP_BINARY)) throw new RuntimeException('فشل رفع الملف: ' . $relative);
+                $remoteSize = @ftp_size($ftp, $remoteFile);
+                $localSize = @filesize($file->getPathname());
+                if ($remoteSize < 0 || $localSize === false || $remoteSize !== (int)$localSize) {
+                    throw new RuntimeException('تعذر التحقق من اكتمال رفع الملف: ' . $relative);
+                }
                 $uploaded++;
             }
             @ftp_close($ftp);

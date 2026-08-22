@@ -21,7 +21,8 @@
  */
 
 import { execSync }                  from "child_process";
-import { existsSync, mkdirSync, copyFileSync, rmSync, cpSync, writeFileSync, readdirSync } from "fs";
+import { randomBytes }               from "crypto";
+import { existsSync, mkdirSync, copyFileSync, rmSync, cpSync, writeFileSync, readdirSync, readFileSync } from "fs";
 import { join, dirname }             from "path";
 import { fileURLToPath }             from "url";
 
@@ -107,11 +108,14 @@ for (const route of GENERATED_ROUTES) {
 }
 console.log("  ✅ الصفحات الثابتة المولدة بروابط assets متطابقة");
 
-// ملف PHP — نأخذ المصدر مباشرة حتى لا تُستخدم نسخة build_php قديمة
-copyFileSync(
-  join(ROOT, "scripts/api-index.php"),
-  join(STAGING, "api/index.php")
-);
+// ملف PHP — نحتفظ بمفتاح الحزمة السابقة حتى تبقى كلمة مرور FTP المحفوظة
+// قابلة للفك بعد رفع باتش جديد.
+const apiTemplatePath = join(ROOT, "scripts/api-index.php");
+const previousApiPath = join(ROOT, "build_php/api/index.php");
+const previousApi = existsSync(previousApiPath) ? readFileSync(previousApiPath, "utf8") : "";
+const previousSecret = previousApi.match(/SESSION_SECRET'\)\s*\?:\s*'([0-9a-f]{64})'/)?.[1] || randomBytes(32).toString("hex");
+const apiSource = readFileSync(apiTemplatePath, "utf8").replaceAll("__HOSTINGER_TOKEN_SECRET__", previousSecret);
+writeFileSync(join(STAGING, "api/index.php"), apiSource, "utf8");
 copyFileSync(
   join(ROOT, "scripts/container-system.php"),
   join(STAGING, "api/container-system.php")
