@@ -108,6 +108,7 @@ node scripts/build-hostinger.mjs
 ## التوثيق
 
 - [تقرير المراجعة الشاملة](docs/PROJECT_AUDIT_AND_UX_PLAN.md)
+- [المراجعة الحالية الشاملة وخطة الإصدارات](docs/COMPREHENSIVE_SYSTEM_REVIEW_2026-08-22.md)
 - [دليل تشغيل وأمان نظام الحاويات](docs/container-system-security-and-operations.md)
 - [خطة تطوير نظام الحاويات](docs/container-system-development-plan.md)
 - [خطة صيانة نظام الحاويات](docs/container-system-maintenance-plan.md)
