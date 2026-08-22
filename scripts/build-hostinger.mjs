@@ -73,7 +73,8 @@ for (const legacyImage of [
   "Banner-Big.webp", "Banner-Small.webp", "No1-Banner.webp", "good.webp",
   "shareek-mawsouq.webp", "container1.jpg", "container2.jpg", "container3.jpg", "container4.jpg",
   "hero1.jpg", "hero2.jpg", "hero3.jpg", "hero4.jpg", "ceo.webp", "hawiyat-logo.webp",
-  "partner1.jpg", "partner2.jpg", "partner3.jpg", "partner4.jpg", "partner5.jpg", "partner6.jpg"
+  "partner1.jpg", "partner2.jpg", "partner3.jpg", "partner4.jpg", "partner5.jpg", "partner6.jpg",
+  "logo.png", "favicon.png", "notification-icon.png"
 ]) {
   rmSync(join(ROOT, "build_php", legacyImage), { force: true });
 }
