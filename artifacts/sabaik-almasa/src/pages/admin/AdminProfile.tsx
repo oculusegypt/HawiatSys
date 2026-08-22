@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
-import { User, Mail, Lock, Save, Eye, EyeOff, ShieldCheck, Shield, Headphones, ClipboardList, Loader2, CheckCircle } from "lucide-react"
+import { User, Mail, Lock, Save, Eye, EyeOff, ShieldCheck, Shield, Headphones, ClipboardList, Truck, Loader2, CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
@@ -13,6 +13,7 @@ const ROLE_INFO: Record<string, { label: string; icon: React.ElementType; color:
   manager:          { label: "مدير",           icon: Shield,        color: "text-blue-600 bg-blue-50",       desc: "صلاحيات واسعة عدا إدارة حسابات المدير الرئيسي" },
   customer_service: { label: "خدمة عملاء",    icon: Headphones,    color: "text-green-600 bg-green-50",     desc: "الوصول للمحادثات وواتساب والإشعارات" },
   requests_officer: { label: "مسؤول طلبات",   icon: ClipboardList, color: "text-amber-600 bg-amber-50",     desc: "الوصول للطلبات والإشعارات فقط" },
+  driver:           { label: "سائق",           icon: Truck,          color: "text-teal-600 bg-teal-50",       desc: "تنفيذ أوامر العمل وتحديث حالتها وإثبات التسليم" },
 }
 
 interface MeData {

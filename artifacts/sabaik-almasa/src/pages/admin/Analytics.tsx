@@ -741,8 +741,8 @@ export default function Analytics() {
       <header className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
         <div>
           <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-[#c89b3c]"><Activity size={15} /> لوحة أداء الموقع</div>
-          <h2 className="text-2xl font-extrabold tracking-tight text-[#193b63] sm:text-3xl">تحليلات الموقع</h2>
-          <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">افهم حركة الزوار ومصادرهم ومواقعهم الجغرافية من لوحة واحدة منظمة.</p>
+           <h2 className="text-2xl font-extrabold tracking-tight text-[#193b63] sm:text-3xl">التقارير والتحليلات</h2>
+           <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">تقارير تشغيلية وتسويقية مبنية على الطلبات الفعلية، أداء الخدمات، مصادر العملاء وحركة الزوار.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <span className="hidden text-xs text-slate-400 sm:inline">آخر تحديث: {lastRefresh.toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" })}</span>

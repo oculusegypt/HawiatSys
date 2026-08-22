@@ -807,6 +807,18 @@ export default function WorkOrders() {
   const [driversLoading, setDriversLoading] = useState(isManager);
   const [isOnline, setIsOnline] = useState(() => navigator.onLine);
   const [queuedUpdates, setQueuedUpdates] = useState(() => readStatusQueue().length);
+  const [driverProfile, setDriverProfile] = useState<{ name: string; username: string; email: string; role: string; permissions: string[] } | null>(null);
+
+  useEffect(() => {
+    if (!isDriver) return;
+    fetch(`${API_BASE}/api/auth/me`, { headers: { Authorization: `Bearer ${localStorage.getItem("admin_token") ?? ""}` } })
+      .then(response => response.ok ? response.json() : Promise.reject(new Error("profile")))
+      .then(data => setDriverProfile(data))
+      .catch(() => setDriverProfile({
+        name: localStorage.getItem("admin_name") ?? "السائق",
+        username: "", email: "", role: "driver", permissions: ["dashboard", "work_orders"],
+      }));
+  }, [isDriver]);
 
   useEffect(() => {
     if (!isManager) return;
@@ -1071,6 +1083,26 @@ export default function WorkOrders() {
           </div>
         </div>
       </header>
+      {isDriver && driverProfile && (
+        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6" data-testid="driver-profile-card">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-teal-100 text-2xl font-black text-teal-800">{driverProfile.name.charAt(0)}</div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold text-teal-700">ملفي في غرفة التشغيل</p>
+              <h2 className="mt-1 text-xl font-black text-slate-900">{driverProfile.name}</h2>
+              <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+                <span>اسم المستخدم: <b className="font-mono text-slate-700">{driverProfile.username || "—"}</b></span>
+                <span>البريد: <b className="text-slate-700">{driverProfile.email || "غير مضاف"}</b></span>
+              </div>
+            </div>
+            <span className="inline-flex w-fit items-center gap-2 rounded-full bg-teal-50 px-3 py-2 text-xs font-bold text-teal-700"><UserRound size={14} /> سائق ميداني</span>
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
+            <span className="text-xs font-bold text-slate-400">صلاحياتك:</span>
+            {(driverProfile.permissions?.length ? driverProfile.permissions : ["dashboard", "work_orders"]).map(permission => <span key={permission} className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">{permission === "dashboard" ? "لوحة القيادة" : permission === "work_orders" ? "أوامر العمل" : permission}</span>)}
+          </div>
+        </section>
+      )}
 
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <SummaryTile

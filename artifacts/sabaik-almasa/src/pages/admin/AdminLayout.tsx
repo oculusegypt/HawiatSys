@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Inbox, MessageSquare, Bell, LogOut,
   Settings, Box, ExternalLink, SlidersHorizontal, Search,
   Menu, X, Megaphone, BarChart3, BookOpen, Users, UserCircle,
-  ShieldCheck, Shield, Headphones, ClipboardList, Database, MessageCircle, Truck, FilePenLine, Star,
+  ShieldCheck, Shield, Headphones, ClipboardList, Database, MessageCircle, Truck, FilePenLine, Star, KeyRound,
   Volume2, VolumeX,
 } from "lucide-react"
 import { NotificationBell, AdminToastPortal, NotificationStatusStrip } from "@/components/admin/NotificationBell"
@@ -20,7 +20,7 @@ const ALL_NAV = [
   { href: "/admin/conversations",  icon: MessageSquare,     label: "المحادثات",        group: "main",    section: "conversations" },
   { href: "/admin/whatsapp",       icon: MessageCircle,     label: "واتساب",           group: "main",    section: "whatsapp" },
   { href: "/admin/notifications",  icon: Bell,              label: "الإشعارات",        group: "main",    section: "notifications" },
-  { href: "/admin/analytics",      icon: BarChart3,         label: "تحليلات الموقع",   group: "content", section: "analytics" },
+  { href: "/admin/analytics",      icon: BarChart3,         label: "التقارير والتحليلات", group: "content", section: "analytics" },
   { href: "/admin/ads",            icon: Megaphone,         label: "الإعلانات",        group: "content", section: "ads" },
   { href: "/admin/blog",           icon: BookOpen,          label: "المدونة",          group: "content", section: "blog" },
   { href: "/admin/seo-pages",      icon: FilePenLine,       label: "صفحات SEO",        group: "content", section: "seo_pages" },
@@ -31,6 +31,7 @@ const ALL_NAV = [
   { href: "/admin/settings",       icon: SlidersHorizontal, label: "إعدادات الموقع",   group: "config",  section: "settings" },
   { href: "/admin/seo",            icon: Search,            label: "SEO",              group: "config",  section: "seo" },
   { href: "/admin/employees",      icon: Users,             label: "الموظفون",         group: "config",  section: "employees" },
+  { href: "/admin/roles-permissions", icon: KeyRound,         label: "الأدوار والصلاحيات", group: "config", section: "employees" },
   { href: "/admin/database",       icon: Database,          label: "قاعدة البيانات",   group: "config",  section: "database" },
 ]
 

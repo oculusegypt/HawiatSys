@@ -21,6 +21,7 @@ const AdminAds = lazy(() => import("@/pages/admin/Ads"))
 const AdminAnalytics = lazy(() => import("@/pages/admin/Analytics"))
 const AdminBlog = lazy(() => import("@/pages/admin/Blog"))
 const AdminEmployees = lazy(() => import("@/pages/admin/Employees"))
+const AdminRoles = lazy(() => import("@/pages/admin/RolesPermissions"))
 const AdminProfile = lazy(() => import("@/pages/admin/AdminProfile"))
 const DatabaseManager = lazy(() => import("@/pages/admin/DatabaseManager"))
 const WhatsAppAdmin = lazy(() => import("@/pages/admin/WhatsApp"))
@@ -57,6 +58,7 @@ export function AdminRoutes() {
           <Route path="/admin/settings" component={AdminSiteSettings} />
           <Route path="/admin/seo" component={AdminSEOPanel} />
           <Route path="/admin/employees" component={AdminEmployees} />
+          <Route path="/admin/roles-permissions" component={AdminRoles} />
           <Route path="/admin/profile" component={AdminProfile} />
           <Route path="/admin/database" component={DatabaseManager} />
           <Route path="/admin/whatsapp" component={WhatsAppAdmin} />
