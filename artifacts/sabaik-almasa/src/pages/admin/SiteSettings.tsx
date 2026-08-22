@@ -41,6 +41,7 @@ import {
 import type { HeroSlide, Testimonial, Partner } from "@workspace/api-client-react"
 
 const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
+const formatNumberForSettings = (value: number) => new Intl.NumberFormat("ar-SA").format(value)
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface StatItem { label: string; value: number; suffix: string }
@@ -321,9 +322,27 @@ function GeneralTab() {
   const isLocked = settings.requests_locked === "true"
   const supportStatus = settings.support_status || "unavailable"
   const promoEnabled = settings.platform_promo_enabled !== "false"
+  const filledSocials = [settings.social_facebook, settings.social_x, settings.social_instagram, settings.social_tiktok, settings.social_snapchat, settings.social_youtube].filter(Boolean).length
+  const publicUrl = settings.site_public_url || "سيُكتشف تلقائيًا من النطاق الحالي"
 
   return (
     <div className="space-y-6 max-w-5xl" dir="rtl">
+      <section className="grid gap-3 sm:grid-cols-3" aria-label="ملخص الإعدادات">
+        <div className="flex items-center gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4">
+          <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${isLocked ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"}`}>
+            {isLocked ? <Lock size={18} /> : <CheckCircle size={18} />}
+          </div>
+          <div className="min-w-0"><p className="text-xs font-bold text-slate-500">استقبال الطلبات</p><p className="truncate text-sm font-extrabold text-slate-800">{isLocked ? "متوقف مؤقتًا" : "يعمل الآن"}</p></div>
+        </div>
+        <div className="flex items-center gap-3 rounded-2xl border border-blue-100 bg-blue-50/70 p-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-700"><ExternalLink size={18} /></div>
+          <div className="min-w-0"><p className="text-xs font-bold text-slate-500">الرابط العام</p><p className="truncate text-sm font-extrabold text-slate-800" dir={settings.site_public_url ? "ltr" : "rtl"}>{publicUrl}</p></div>
+        </div>
+        <div className="flex items-center gap-3 rounded-2xl border border-amber-100 bg-amber-50/70 p-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 text-amber-700"><MessageCircle size={18} /></div>
+          <div className="min-w-0"><p className="text-xs font-bold text-slate-500">حضور التواصل</p><p className="truncate text-sm font-extrabold text-slate-800">{formatNumberForSettings(filledSocials)} حساب اجتماعي</p></div>
+        </div>
+      </section>
       {/* Priority controls hero */}
       <section className="relative overflow-hidden rounded-[2rem] bg-[#071a33] px-5 py-6 text-white shadow-xl sm:px-8 sm:py-8">
         <div className="pointer-events-none absolute -left-16 -top-20 h-56 w-56 rounded-full bg-secondary/20 blur-3xl" />

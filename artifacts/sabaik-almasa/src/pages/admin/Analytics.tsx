@@ -10,6 +10,7 @@ import {
   BarChart3,
   CalendarDays,
   Check,
+  CheckCircle2,
   Clock3,
   Download,
   Eye,
@@ -28,6 +29,9 @@ import {
   Printer,
   Users,
   Wifi,
+  Lightbulb,
+  Zap,
+  ArrowDownRight,
 } from "lucide-react"
 
 const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
@@ -285,6 +289,68 @@ function SectionHeading({ icon: Icon, title, description }: { icon: ElementType;
         {description && <p className="mt-1 text-xs leading-5 text-slate-400">{description}</p>}
       </div>
     </div>
+  )
+}
+
+function DecisionBrief({ data, periodLabelValue }: { data: AnalyticsData; periodLabelValue: string }) {
+  const topSource = data.sources[0]
+  const topPage = data.topPages[0]
+  const peakHour = data.hourly.reduce((best, value, index) => value > best.value ? { value, index } : best, { value: 0, index: 0 })
+  const completionRate = data.orders.total > 0 ? Math.round((data.orders.completed / data.orders.total) * 100) : 0
+  const hasSignals = Boolean(topSource || topPage || peakHour.value > 0 || data.orders.total > 0)
+
+  return (
+    <Card className="overflow-hidden border-[#b9d9d1] bg-gradient-to-br from-[#f2fbf8] via-white to-[#fffaf0] shadow-[0_12px_32px_rgba(25,59,99,0.07)]">
+      <CardContent className="p-5 sm:p-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#193b63] text-white shadow-sm">
+              <Lightbulb size={21} />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-base font-extrabold text-[#193b63]">ملخص القرار</h3>
+                <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-slate-500 ring-1 ring-slate-200">{periodLabelValue}</span>
+              </div>
+              <p className="mt-1 text-sm leading-6 text-slate-500">إشارات سريعة تساعدك على تحديد أين تركز جهد التسويق والتشغيل الآن.</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-xs font-bold text-[#408a70]">
+            <Zap size={15} />
+            مبني على البيانات الفعلية
+          </div>
+        </div>
+
+        {!hasSignals ? (
+          <div className="mt-5 rounded-xl border border-dashed border-[#b9d9d1] bg-white/70 px-4 py-4 text-sm text-slate-500">
+            لا توجد إشارات كافية بعد. اترك التتبع يعمل حتى تظهر أولى التوصيات هنا.
+          </div>
+        ) : (
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-2xl border border-white bg-white/80 p-4 shadow-sm">
+              <div className="mb-2 flex items-center justify-between text-xs font-bold text-slate-400"><span>القناة الأقوى</span><MousePointer2 size={15} className="text-[#408a70]" /></div>
+              <p className="truncate text-lg font-extrabold text-[#193b63]">{topSource?.source || "—"}</p>
+              <p className="mt-1 text-xs text-slate-500">{topSource ? `${formatNumber(topSource.count)} زيارة مسجلة` : "لا توجد زيارات"}</p>
+            </div>
+            <div className="rounded-2xl border border-white bg-white/80 p-4 shadow-sm">
+              <div className="mb-2 flex items-center justify-between text-xs font-bold text-slate-400"><span>الصفحة الأكثر جذبًا</span><Eye size={15} className="text-[#c89b3c]" /></div>
+              <p className="truncate text-lg font-extrabold text-[#193b63]">{topPage?.page || "—"}</p>
+              <p className="mt-1 text-xs text-slate-500">{topPage ? `${formatNumber(topPage.count)} مشاهدة` : "لا توجد مشاهدات"}</p>
+            </div>
+            <div className="rounded-2xl border border-white bg-white/80 p-4 shadow-sm">
+              <div className="mb-2 flex items-center justify-between text-xs font-bold text-slate-400"><span>أفضل وقت للنشاط</span><Clock3 size={15} className="text-[#8d5e9b]" /></div>
+              <p className="text-lg font-extrabold text-[#193b63]">{peakHour.value ? `${String(peakHour.index).padStart(2, "0")}:00` : "—"}</p>
+              <p className="mt-1 text-xs text-slate-500">{peakHour.value ? `${formatNumber(peakHour.value)} زيارة في الذروة` : "لا توجد بيانات ساعات"}</p>
+            </div>
+            <div className="rounded-2xl border border-white bg-white/80 p-4 shadow-sm">
+              <div className="mb-2 flex items-center justify-between text-xs font-bold text-slate-400"><span>جودة الطلبات</span>{completionRate >= 50 ? <CheckCircle2 size={15} className="text-[#408a70]" /> : <ArrowDownRight size={15} className="text-[#c05c43]" />}</div>
+              <p className="text-lg font-extrabold text-[#193b63]">{formatNumber(data.orders.total)} طلب</p>
+              <p className="mt-1 text-xs text-slate-500">{formatNumber(data.orders.completed)} مكتمل · {formatNumber(completionRate)}٪ إتمام</p>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   )
 }
 
@@ -611,6 +677,7 @@ export default function Analytics() {
 
       {loading && !data ? <LoadingState /> : error && !data ? <ErrorState message={error} onRetry={() => void load()} /> : data ? (
         <>
+          <DecisionBrief data={data} periodLabelValue={selectedPeriodLabel} />
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
             <StatCard icon={Eye} label="إجمالي المشاهدات" value={data.period.views} sub={`${formatNumber(data.period.unique)} زائر فريد`} accent={{ icon: "text-[#193b63]", background: "bg-[#e7eef7]" }} />
             <StatCard icon={Users} label="الزوار الفريدون" value={data.period.unique} sub={`ضمن ${selectedPeriodLabel}`} accent={{ icon: "text-[#408a70]", background: "bg-[#e5f3ed]" }} />
