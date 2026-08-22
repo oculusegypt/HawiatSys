@@ -33,12 +33,30 @@ function isReturnWork(request: typeof serviceRequestsTable.$inferSelect) {
   return /استرجاع|سحب|رفع|return|withdraw/i.test(`${request.serviceType} ${request.notes ?? ""}`);
 }
 
-function sameDispatchDay(left?: string | null, right?: string | null) {
-  if (!left || !right) return false;
-  const leftTime = Date.parse(left);
-  const rightTime = Date.parse(right);
-  return Number.isFinite(leftTime) && Number.isFinite(rightTime) &&
-    new Date(leftTime).toISOString().slice(0, 10) === new Date(rightTime).toISOString().slice(0, 10);
+function durationInMs(value?: string | null) {
+  const text = String(value ?? "").toLowerCase();
+  const hours = Number(text.match(/(\d+(?:\.\d+)?)\s*(?:hour|hours|ساعة|ساعات)/)?.[1] ?? 0);
+  const minutes = Number(text.match(/(\d+(?:\.\d+)?)\s*(?:min|mins|minute|minutes|دقيقة|دقائق)/)?.[1] ?? 0);
+  const total = hours * 60 + minutes;
+  return (Number.isFinite(total) && total > 0 ? total : 60) * 60 * 1000;
+}
+
+function dispatchWindow(request: typeof serviceRequestsTable.$inferSelect) {
+  if (!request.scheduledAt) return null;
+  const start = Date.parse(request.scheduledAt);
+  if (!Number.isFinite(start)) return null;
+  const hasTime = /T\d{2}:\d{2}/.test(request.scheduledAt);
+  const end = start + (hasTime ? durationInMs(request.duration) : 24 * 60 * 60 * 1000);
+  return { start, end };
+}
+
+function dispatchWindowsOverlap(
+  left: typeof serviceRequestsTable.$inferSelect,
+  right: typeof serviceRequestsTable.$inferSelect,
+) {
+  const leftWindow = dispatchWindow(left);
+  const rightWindow = dispatchWindow(right);
+  return Boolean(leftWindow && rightWindow && leftWindow.start < rightWindow.end && rightWindow.start < leftWindow.end);
 }
 
 async function prepareContainerCompletion(request: typeof serviceRequestsTable.$inferSelect) {
@@ -518,10 +536,10 @@ router.patch("/service-requests/:id/assignment", requireAdmin, requireRequestAss
     return res.status(409).json({ error: "لا يمكن إعادة إسناد أمر عمل مغلق" });
   }
   if ((driverId !== null || vehicleId !== null) && request.scheduledAt) {
-    const sameDayOrders = await db.select().from(serviceRequestsTable);
-    const conflict = sameDayOrders.find(item =>
+    const scheduledOrders = await db.select().from(serviceRequestsTable);
+    const conflict = scheduledOrders.find(item =>
       item.id !== id &&
-      sameDispatchDay(item.scheduledAt, request.scheduledAt) &&
+      dispatchWindowsOverlap(item, request) &&
       !["completed", "rejected"].includes(item.driverStatus) &&
       ((driverId !== null && item.assignedDriverId === driverId) ||
         (vehicleId !== null && item.assignedVehicleId === vehicleId)),

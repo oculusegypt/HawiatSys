@@ -43,6 +43,7 @@ const queryClient = new QueryClient();
 
 const primary = "#e46942";
 const dark = "#153c3c";
+const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
 function Logo() {
   return (
@@ -239,9 +240,39 @@ function DashboardMockup({ onDemo }: { onDemo: () => void }) {
 
 function DemoModal({ onClose }: { onClose: () => void }) {
   const [sent, setSent] = useState(false);
-  const submit = (event: FormEvent<HTMLFormElement>) => {
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setSent(true);
+    setError("");
+    setSending(true);
+    const form = new FormData(event.currentTarget);
+    try {
+      const response = await fetch(`${API_BASE}/api/service-requests`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          isQuoteRequest: true,
+          clientName: String(form.get("name") ?? "").trim(),
+          phone: String(form.get("phone") ?? "").trim(),
+          notes: `عدد الفرق: ${String(form.get("teams") ?? "").trim()}\n${String(form.get("message") ?? "").trim()}`,
+          serviceType: "طلب عرض CleanFlow Platform",
+          tracking: {
+            landingPage: window.location.href,
+            referrer: document.referrer,
+          },
+        }),
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        throw new Error(payload?.message || payload?.error || "تعذر إرسال الطلب");
+      }
+      setSent(true);
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "تعذر إرسال الطلب، حاول مرة أخرى");
+    } finally {
+      setSending(false);
+    }
   };
   return (
     <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="demo-title" data-testid="dialog-demo">
@@ -257,7 +288,10 @@ function DemoModal({ onClose }: { onClose: () => void }) {
               <label>رقم الجوال<input required type="tel" name="phone" placeholder="05X XXX XXXX" data-testid="input-demo-phone" /></label>
               <label>كم فريقاً تدير؟<select required name="teams" defaultValue="" data-testid="select-demo-teams"><option value="" disabled>اختر العدد التقريبي</option><option>فريق واحد إلى ٣ فرق</option><option>من ٤ إلى ١٠ فرق</option><option>أكثر من ١٠ فرق</option></select></label>
               <label>كيف تدير الطلبات اليوم؟<textarea required name="message" rows={3} placeholder="واتساب، مكالمات، إكسل..." data-testid="input-demo-message" /></label>
-              <button type="submit" className="submit-demo" data-testid="button-submit-demo">إرسال طلب العرض <Send size={16} /></button>
+              {error && <small className="form-note" role="alert" style={{ color: "#b84d3d" }}>{error}</small>}
+              <button type="submit" className="submit-demo" disabled={sending} data-testid="button-submit-demo">
+                {sending ? "جارٍ إرسال الطلب..." : "إرسال طلب العرض"} {!sending && <Send size={16} />}
+              </button>
               <small className="form-note">بياناتك للتواصل حول العرض فقط، ولا نرسل رسائل تسويقية.</small>
             </form>
           </>
@@ -481,7 +515,31 @@ function InsightsSection() {
 }
 
 function TrackingSection() {
-  const [showTracking, setShowTracking] = useState(true);
+  const [trackingNumber, setTrackingNumber] = useState("");
+  const [tracking, setTracking] = useState<Record<string, string> | null>(null);
+  const [trackingError, setTrackingError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const track = async () => {
+    const id = trackingNumber.trim().replace(/^#?CF-/i, "");
+    if (!/^\d+$/.test(id)) {
+      setTracking(null);
+      setTrackingError("أدخل رقم طلب صحيح مثل CF-2084");
+      return;
+    }
+    setLoading(true);
+    setTrackingError("");
+    try {
+      const response = await fetch(`${API_BASE}/api/service-requests/${id}`);
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(response.status === 404 ? "لم نعثر على هذا الطلب" : "تعذر جلب حالة الطلب");
+      setTracking(payload);
+    } catch (trackError) {
+      setTracking(null);
+      setTrackingError(trackError instanceof Error ? trackError.message : "تعذر جلب حالة الطلب");
+    } finally {
+      setLoading(false);
+    }
+  };
   return (
     <section className="tracking-section section-pad" id="tracking">
       <div className="page-shell tracking-grid">
@@ -493,9 +551,10 @@ function TrackingSection() {
         </div>
         <div className="tracking-card" data-testid="card-order-tracking">
           <div className="tracking-card-head"><span className="mini-logo"><Workflow size={15} /></span><b>تتبع طلبك</b><span className="secure-label"><ShieldCheck size={12} /> آمن</span></div>
-          <label>رقم الطلب<input defaultValue="CF-2084" aria-label="رقم الطلب" data-testid="input-tracking-number" /></label>
-          <button onClick={() => setShowTracking(!showTracking)} data-testid="button-track-order">{showTracking ? "إخفاء حالة الطلب" : "عرض حالة الطلب"} <ArrowLeft size={16} /></button>
-          {showTracking && <div className="tracking-result"><div className="result-top"><StatusPill>قيد التنفيذ</StatusPill><b>#CF-2084</b></div><p>تنظيف فيلا كاملة · حي الياسمين</p><div className="progress-track"><span /></div><div className="progress-labels"><span>تم التأكيد</span><span>في الطريق</span><span>قيد التنفيذ</span><span>مكتمل</span></div></div>}
+           <label>رقم الطلب<input value={trackingNumber} onChange={(event) => setTrackingNumber(event.target.value)} placeholder="مثال: CF-2084" aria-label="رقم الطلب" data-testid="input-tracking-number" /></label>
+           <button onClick={track} disabled={loading} data-testid="button-track-order">{loading ? "جارٍ البحث..." : "عرض حالة الطلب"} <ArrowLeft size={16} /></button>
+           {trackingError && <small className="form-note" role="alert" style={{ display: "block", color: "#b84d3d", marginTop: 10 }}>{trackingError}</small>}
+           {tracking && <div className="tracking-result"><div className="result-top"><StatusPill>{tracking.status === "completed" ? "مكتمل" : tracking.status === "in_progress" ? "قيد التنفيذ" : tracking.status === "pending" ? "تم التأكيد" : tracking.status}</StatusPill><b>#{tracking.id}</b></div><p>{tracking.serviceType}{tracking.location ? ` · ${tracking.location}` : ""}</p><div className="progress-track"><span style={{ width: tracking.status === "completed" ? "100%" : tracking.status === "in_progress" ? "66%" : "33%" }} /></div><div className="progress-labels"><span>تم التأكيد</span><span>في الطريق</span><span>قيد التنفيذ</span><span>مكتمل</span></div></div>}
         </div>
       </div>
     </section>
