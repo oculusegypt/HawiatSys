@@ -46,7 +46,7 @@ const newPosts = [
     category: "أسعار وتكاليف",
     author: "مؤسسة السهم كلين لخدمات التنظيف بالرياض",
     readTime: 6,
-    coverImage: "/images/container-1.jpeg",
+    coverImage: "/images/container-1.webp",
     seoTitle: "أسعار تنظيف المنازل والفلل بالرياض 2026 | يبدأ من 350 ريال",
     seoDescription: "تعرف على أسعار تنظيف المنازل والفلل والشقق بالرياض لعام 2026. باقة تنظيف الشقة بـ 350 ريال والفيلا بـ 750 ريال مع التعقيم والتلميع الشامل من مؤسسة السهم كلين.",
     seoKeywords: "أسعار شركات تنظيف المنازل بالرياض, كم سعر تنظيف الشقة بالرياض, أسعار تنظيف الفلل بالرياض, شركة تنظيف منازل بالرياض رخيصة",
@@ -77,7 +77,7 @@ const newPosts = [
     category: "تنظيف بعد البناء",
     author: "مؤسسة السهم كلين لخدمات التنظيف بالرياض",
     readTime: 7,
-    coverImage: "/images/container-2.jpeg",
+    coverImage: "/images/container-2.webp",
     seoTitle: "تنظيف بعد البناء والتشطيب بالرياض | إزالة بقايا الدهان والإسمنت",
     seoDescription: "دليل شامل لتنظيف البيوت والفلل بعد انتهاء أعمال البناء والتشطيب بالرياض. إزالة الإسمنت والطلاء وتلميع الأرضيات مع مؤسسة السهم كلين.",
     seoKeywords: "تنظيف بعد التشطيب بالرياض, شركة تنظيف بعد البناء الرياض, إزالة الإسمنت من البلاط بالرياض, تنظيف شقق جديدة بالرياض",
@@ -145,7 +145,7 @@ const newPosts = [
 
 <h2>كيف تبدأ؟</h2>
 <p>تواصل مع فريق مؤسسة السهم كلين، أخبرنا بحجم مشروعك وموقعه، وسنضع لك خطة حاويات تناسب احتياجاتك تماماً. <strong>أفضل حاويات بالرياض</strong> للمقاولين والشركات — جرّبنا مرة وستجعلنا شريكك الدائم.</p>`,
-    coverImage: "/images/container-2.jpeg",
+    coverImage: "/images/container-2.webp",
     author: "مؤسسة السهم كلين",
     category: "خدمات",
     tags: JSON.stringify(["حاويات للمقاولين", "حاويات للشركات", "حاويات المشاريع", "تأجير حاويات الرياض"]),
@@ -156,7 +156,7 @@ const newPosts = [
     seoDescription: "خدمات حاويات متكاملة للمقاولين والشركات والمؤسسات في الرياض. عقود مرنة، توصيل سريع، وأسطول من الحاويات لكل أحجام المشاريع.",
     seoKeywords: "حاويات للمقاولين, حاويات للشركات, حاويات للمؤسسات, حاويات المشاريع, تأجير حاويات مقاولات الرياض",
     seoSlug: "hawyat-muqawilin-sharikaat-riyadh",
-    ogImage: "/images/container-2.jpeg",
+    ogImage: "/images/container-2.webp",
     canonicalUrl: "",
     isActive: true,
     order: 5,
@@ -210,7 +210,7 @@ const newPosts = [
 
 <h2>أرخص حاويات بالرياض — مع ضمان الجودة</h2>
 <p>مؤسسة السهم كلين تقدم <strong>أفضل أسعار الحاويات</strong> في الرياض دون التنازل عن جودة الخدمة. نحن لا نتنافس على السعر وحده، بل على الالتزام بالمواعيد، نظافة الحاوية، وسرعة الاستجابة. احصل على عرض سعر مجاني الآن.</p>`,
-    coverImage: "/images/container-3.jpeg",
+    coverImage: "/images/container-3.webp",
     author: "مؤسسة السهم كلين",
     category: "أسعار",
     tags: JSON.stringify(["أسعار تأجير الحاويات", "إيجار حاوية يومي", "إيجار حاويات شهري", "تكلفة الحاوية"]),
@@ -221,7 +221,7 @@ const newPosts = [
     seoDescription: "تعرّف على أسعار إيجار حاويات المخلفات والأنقاض في الرياض لعام 2026. جدول كامل للأسعار اليومية والأسبوعية والشهرية لكل الأحجام.",
     seoKeywords: "أسعار إيجار الحاويات الرياض, تكلفة تأجير حاوية, أسعار الحاويات اليومية, أسعار الحاويات الشهرية, أرخص حاويات بالرياض",
     seoSlug: "asaar-iijar-hawyat-yawmi-usbuei-shahri-2026",
-    ogImage: "/images/container-3.jpeg",
+    ogImage: "/images/container-3.webp",
     canonicalUrl: "",
     isActive: true,
     order: 6,
@@ -271,7 +271,7 @@ const newPosts = [
 
 <h2>الالتزام بأنظمة أمانة الرياض</h2>
 <p>أمانة الرياض تشترط أن يتم <strong>التخلص من مخلفات الهدم</strong> عبر شركات مرخصة تحمل تصاريح الإزالة. مؤسسة السهم كلين تعمل وفق كافة الأنظمة البلدية المعمول بها، وتضمن أن مخلفاتك تصل إلى المواقع المصرح بها.</p>`,
-    coverImage: "/images/hero-1.jpeg",
+    coverImage: "/images/hero-1.webp",
     author: "مؤسسة السهم كلين",
     category: "إرشادات",
     tags: JSON.stringify(["مخلفات البناء", "إزالة الأنقاض", "نقل مخلفات الهدم", "ترحيل مخلفات البناء"]),
@@ -282,7 +282,7 @@ const newPosts = [
     seoDescription: "دليل عملي للتخلص الصحيح والقانوني من مخلفات البناء والهدم والأنقاض في الرياض. تعرف على الطرق المعتمدة ومتطلبات أمانة الرياض.",
     seoKeywords: "التخلص من مخلفات البناء, إزالة الأنقاض الرياض, ترحيل مخلفات البناء, نقل مخلفات الهدم, جمع الأنقاض",
     seoSlug: "takhalus-makhlatat-binaa-haddm-riyadh",
-    ogImage: "/images/hero-1.jpeg",
+    ogImage: "/images/hero-1.webp",
     canonicalUrl: "",
     isActive: true,
     order: 7,
@@ -384,7 +384,7 @@ const newPosts = [
 
 <h2>اطلب حاوية الآن</h2>
 <p>لا تتردد — إذا كنت بحاجة لحاوية اليوم، تواصل مع مؤسسة السهم كلين الآن وسنكون عندك في أقرب وقت ممكن. <strong>احجز حاوية</strong> الآن وابدأ عملك دون توقف.</p>`,
-    coverImage: "/images/hero-2.jpeg",
+    coverImage: "/images/hero-2.webp",
     author: "مؤسسة السهم كلين",
     category: "خدمات",
     tags: JSON.stringify(["حاويات فورية", "تأجير حاويات سريع", "توصيل حاويات", "حاويات في نفس اليوم"]),
@@ -395,7 +395,7 @@ const newPosts = [
     seoDescription: "خدمة تأجير حاويات فورية في الرياض. توصيل الحاوية خلال ساعات إلى موقعك. تواصل الآن واحصل على حاويتك في أسرع وقت.",
     seoKeywords: "تأجير حاويات سريع الرياض, حاويات فورية, توصيل حاويات نفس اليوم, خدمة سريعة للحاويات, حاويات خلال ساعات",
     seoSlug: "tajir-hawyat-sarri-tawseel-nafs-yawm-riyadh",
-    ogImage: "/images/hero-2.jpeg",
+    ogImage: "/images/hero-2.webp",
     canonicalUrl: "",
     isActive: true,
     order: 9,
@@ -441,7 +441,7 @@ const newPosts = [
 
 <h2>اطلب حاوية الآن في حيّك</h2>
 <p>تواصل معنا وأخبرنا بالحي والحجم المطلوب، وسنضع الحاوية أمام موقعك في أقرب وقت ممكن.</p>`,
-    coverImage: "/images/hero-3.jpeg",
+    coverImage: "/images/hero-3.webp",
     author: "مؤسسة السهم كلين",
     category: "مناطق الخدمة",
     tags: JSON.stringify(["حاويات شمال الرياض", "حاوية الياسمين", "حاوية النرجس", "حاوية العارض", "حاوية الملقا"]),
@@ -452,7 +452,7 @@ const newPosts = [
     seoDescription: "خدمة تأجير حاويات في أحياء شمال الرياض: الياسمين، النرجس، العارض، الملقا، الصحافة، القيروان، حطين. توصيل سريع وأسعار تنافسية.",
     seoKeywords: "تأجير حاويات شمال الرياض, حاويات حي الياسمين, حاويات النرجس, حاويات العارض, حاويات الملقا, إيجار حاويات شمال الرياض",
     seoSlug: "tajir-hawyat-shamal-riyadh-yasmin-narjis",
-    ogImage: "/images/hero-3.jpeg",
+    ogImage: "/images/hero-3.webp",
     canonicalUrl: "",
     isActive: true,
     order: 10,
@@ -505,7 +505,7 @@ const newPosts = [
 
 <h2>نصل إليك أينما كنت في الرياض</h2>
 <p>سواء كان موقعك في <strong>حاويات وسط الرياض</strong> أو أطرافها، التزامنا واحد: حاوية نظيفة، في الوقت المحدد، بسعر عادل. <strong>إيجار حاويات شرق الرياض</strong> أو <strong>إيجار حاويات جنوب الرياض</strong> — نحن حاضرون.</p>`,
-    coverImage: "/images/hero-4.jpeg",
+    coverImage: "/images/hero-4.webp",
     author: "مؤسسة السهم كلين",
     category: "مناطق الخدمة",
     tags: JSON.stringify(["حاويات جنوب الرياض", "حاويات شرق الرياض", "حاويات غرب الرياض", "إيجار حاويات الرياض"]),
@@ -516,7 +516,7 @@ const newPosts = [
     seoDescription: "خدمة تأجير حاويات تغطي جنوب الرياض (لبن، بدر، الشفا) وشرقها (الرمال، اليرموك، الروضة) وغربها. توصيل في نفس اليوم.",
     seoKeywords: "تأجير حاويات جنوب الرياض, حاويات شرق الرياض, إيجار حاويات جنوب الرياض, حاويات غرب الرياض, حاويات بدر لبن الشفا",
     seoSlug: "tajir-hawyat-janub-sharq-gharb-riyadh",
-    ogImage: "/images/hero-4.jpeg",
+    ogImage: "/images/hero-4.webp",
     canonicalUrl: "",
     isActive: true,
     order: 11,
@@ -560,7 +560,7 @@ const newPosts = [
 
 <h2>تواصل معنا لعقد خدمة مخصص</h2>
 <p>أرسل لنا تفاصيل مصنعك أو مستودعك ونوع المخلفات، وسيتواصل معك فريقنا لوضع خطة خدمة مناسبة وعرض سعر تنافسي.</p>`,
-    coverImage: "/images/container-2.jpeg",
+    coverImage: "/images/container-2.webp",
     author: "مؤسسة السهم كلين",
     category: "خدمات",
     tags: JSON.stringify(["حاويات المصانع", "حاويات المستودعات", "مخلفات صناعية", "حاويات الشركات"]),
@@ -571,7 +571,7 @@ const newPosts = [
     seoDescription: "خدمات حاويات متكاملة للمصانع والمستودعات والشركات الصناعية في الرياض. إدارة منتظمة للمخلفات الصناعية وفق الأنظمة البيئية السعودية.",
     seoKeywords: "حاويات المصانع الرياض, حاويات المستودعات, مخلفات صناعية, حاويات الشركات, حاويات المجمعات التجارية",
     seoSlug: "hawyat-masaani-mustawdaat-sina-riyadh",
-    ogImage: "/images/container-2.jpeg",
+    ogImage: "/images/container-2.webp",
     canonicalUrl: "",
     isActive: true,
     order: 12,
@@ -616,7 +616,7 @@ const newPosts = [
 
 <h2>اتصل بنا لطلب خدمة نقل الأنقاض</h2>
 <p>أخبرنا بموقعك وحجم المخلفات المطلوب نقلها، وسيقدم فريقنا عرض سعر فوري لـ<strong>نقل مخلفات البناء بالرياض</strong>.</p>`,
-    coverImage: "/images/container-3.jpeg",
+    coverImage: "/images/container-3.webp",
     author: "مؤسسة السهم كلين",
     category: "خدمات",
     tags: JSON.stringify(["نقل مخلفات البناء", "رفع الأنقاض", "إزالة الركام", "ترحيل مخلفات البناء"]),
@@ -627,7 +627,7 @@ const newPosts = [
     seoDescription: "مؤسسة السهم كلين متخصصة في نقل مخلفات البناء ورفع الأنقاض وإزالة الركام بالرياض. أسطول حديث، مواقع تصريف مرخصة، وخدمة 24 ساعة.",
     seoKeywords: "شركة نقل مخلفات البناء الرياض, رفع الأنقاض, إزالة الركام, ترحيل مخلفات البناء, جمع مخلفات الهدم",
     seoSlug: "sharika-naql-makhlatat-binaa-rafaa-anqaadh-riyadh",
-    ogImage: "/images/container-3.jpeg",
+    ogImage: "/images/container-3.webp",
     canonicalUrl: "",
     isActive: true,
     order: 13,
@@ -670,7 +670,7 @@ const newPosts = [
 
 <h2>احجز حاويتك الآن</h2>
 <p>لا تتردد في الاختيار — <strong>أفضل حاويات بالرياض</strong> في انتظارك. تواصل معنا الآن واحصل على عرض سعر فوري.</p>`,
-    coverImage: "/images/ceo.png",
+    coverImage: "/images/ceo.webp",
     author: "مؤسسة السهم كلين",
     category: "عن الشركة",
     tags: JSON.stringify(["أفضل شركة حاويات", "شركة تأجير حاويات الرياض", "حاويات متوفرة", "أفضل حاويات بالرياض"]),
@@ -681,7 +681,7 @@ const newPosts = [
     seoDescription: "اكتشف لماذا مؤسسة السهم كلين هي أفضل شركة تأجير حاويات في الرياض: سرعة، جودة، أسعار شفافة، وتغطية شاملة لجميع أحياء الرياض منذ 2018.",
     seoKeywords: "أفضل شركة تأجير حاويات الرياض, أفضل شركة إيجار حاويات, شركة تأجير حاويات, مؤسسة تأجير حاويات, أفضل حاويات بالرياض",
     seoSlug: "afdhal-sharika-tajir-hawyat-riyadh-sabaik-almasa",
-    ogImage: "/images/ceo.png",
+    ogImage: "/images/ceo.webp",
     canonicalUrl: "",
     isActive: true,
     order: 14,

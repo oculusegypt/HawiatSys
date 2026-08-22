@@ -111,7 +111,7 @@ const extendedDemo = [
     company_postal_code: "14964",
     company_latitude: "24.5403799",
     company_longitude: "46.6506105",
-    company_logo: "/api/uploads/1787336693429-1c5ead9d52d0.png",
+    company_logo: "/api/uploads/1787336693429-1c5ead9d52d0.webp",
     company_tax_number: "",
     company_price_range: "400",
     company_payment_methods: "نقدي، مدى، فيزا، ماستركارد، تحويل بنكي",

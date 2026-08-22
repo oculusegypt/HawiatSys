@@ -90,7 +90,7 @@ export default function PricingPage() {
           "@type": "LocalBusiness",
           "name": resolvedCompany,
           "@id": `${SITE_URL}/#business`,
-          "image": logoUrl || `${SITE_URL}/images/logo.png`,
+          "image": logoUrl || `${SITE_URL}/images/logo.webp`,
           "priceRange": priceRange || "$$",
           "telephone": phoneCall ? `+966${phoneCall.replace(/^0/, "")}` : "+966554498403",
           "address": {
@@ -193,7 +193,7 @@ export default function PricingPage() {
                       alt={c.name}
                       className="w-full h-full object-cover"
                       loading="lazy"
-                      onError={(e) => { e.currentTarget.src = "/api/uploads/container-debris-small.jpg" }}
+                      onError={(e) => { e.currentTarget.src = "/api/uploads/container-debris-small.webp" }}
                     />
                   </div>
                   <div className="p-5 space-y-3">

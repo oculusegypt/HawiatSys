@@ -22,7 +22,7 @@ const homepageContent = {
       "عقود نظافة معتمدة وموثقة لتجديد الرخص التجارية",
       "تغطية شاملة لكافة أحياء ومناطق الرياض وضواحيها",
     ],
-    imageUrl: "/images/container-1.jpeg",
+    imageUrl: "/images/container-1.webp",
     statValue: "8+",
     statLabel: "سنوات خبرة في تأجير الحاويات ونقل الأنقاض",
   },

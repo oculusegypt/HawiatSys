@@ -23,7 +23,7 @@ const posts = [
 <p>تغطي خدماتنا <strong>حاويات حي الخليج</strong> و<strong>حاويات حي النسيم</strong> بنفس الكفاءة والسرعة. سواء كان مشروعك سكنياً أو تجارياً أو صناعياً، لدينا الحجم المناسب لك.</p>
 <h2>أسعار تأجير الحاويات في شرق الرياض</h2>
 <p>نقدم <strong>أفضل أسعار الحاويات</strong> في شرق الرياض مع شفافية كاملة — لا رسوم خفية. اتصل بنا الآن للحصول على <strong>سعر حاوية مخلفات</strong> مناسب لمشروعك.</p>`,
-    coverImage: "/images/container-1.jpeg",
+    coverImage: "/images/container-1.webp",
     author: "مؤسسة السهم كلين",
     category: "مناطق الخدمة",
     tags: JSON.stringify(["حاويات حي الرمال", "حاويات اليرموك", "حاويات النهضة", "شرق الرياض"]),
@@ -34,7 +34,7 @@ const posts = [
     seoDescription: "تأجير حاويات مخلفات في أحياء الرمال واليرموك والنهضة والخليج والنسيم شرق الرياض. توصيل سريع، أحجام متعددة، أسعار تنافسية.",
     seoKeywords: "حاويات حي الرمال, حاويات اليرموك, حاويات النهضة, حاويات الخليج, حاويات النسيم, تأجير حاويات شرق الرياض",
     seoSlug: "hawyat-rammal-yarmouk-nahda-khalij-nasim",
-    ogImage: "/images/container-1.jpeg", canonicalUrl: "", isActive: true, order: 16, createdAt: pub(20), updatedAt: pub(20),
+    ogImage: "/images/container-1.webp", canonicalUrl: "", isActive: true, order: 16, createdAt: pub(20), updatedAt: pub(20),
   },
 
   // ── 2. حي الروضة وقرطبة والمونسية ──
@@ -57,7 +57,7 @@ const posts = [
   <li>حاوية كبيرة (12–20 م³): للمشاريع الكبيرة</li>
 </ul>
 <p>اطلب <strong>إيجار حاوية</strong> الآن وسنصل إليك في أقرب وقت.</p>`,
-    coverImage: "/images/container-2.jpeg",
+    coverImage: "/images/container-2.webp",
     author: "مؤسسة السهم كلين",
     category: "مناطق الخدمة",
     tags: JSON.stringify(["حاويات الروضة", "حاويات قرطبة", "حاويات المونسية"]),
@@ -68,7 +68,7 @@ const posts = [
     seoDescription: "تأجير حاويات في أحياء الروضة وقرطبة والمونسية بالرياض. حاويات للمشاريع السكنية والتجارية بتوصيل سريع وأسعار منافسة.",
     seoKeywords: "حاويات حي الروضة, حاويات قرطبة الرياض, حاويات المونسية, تأجير حاويات الرياض",
     seoSlug: "hawyat-rawdha-qurtuba-munasiya-riyadh",
-    ogImage: "/images/container-2.jpeg", canonicalUrl: "", isActive: true, order: 17, createdAt: pub(19), updatedAt: pub(19),
+    ogImage: "/images/container-2.webp", canonicalUrl: "", isActive: true, order: 17, createdAt: pub(19), updatedAt: pub(19),
   },
 
   // ── 3. حي الياسمين والنرجس والعارض ──
@@ -86,7 +86,7 @@ const posts = [
 <p><strong>حاويات حي العارض</strong> للمشاريع الضخمة ومجمعات الفلل الجديدة. نوفر حاويات 12 و20 م³ لمشاريع الهدم والبناء الكبيرة في العارض.</p>
 <h2>خدمة سريعة في شمال الرياض</h2>
 <p><strong>تأجير حاويات شمال الرياض</strong> — أسطولنا يعمل على مدار الساعة في هذه الأحياء. <strong>حاويات خلال ساعات</strong> من لحظة طلبك. تواصل معنا الآن.</p>`,
-    coverImage: "/images/container-3.jpeg",
+    coverImage: "/images/container-3.webp",
     author: "مؤسسة السهم كلين",
     category: "مناطق الخدمة",
     tags: JSON.stringify(["حاويات الياسمين", "حاويات النرجس", "حاويات العارض", "شمال الرياض"]),
@@ -97,7 +97,7 @@ const posts = [
     seoDescription: "تأجير حاويات في أحياء الياسمين والنرجس والعارض شمال الرياض. حاويات للفلل والمشاريع الكبيرة بتوصيل سريع.",
     seoKeywords: "حاويات حي الياسمين, حاويات النرجس, حاويات العارض, تأجير حاويات شمال الرياض",
     seoSlug: "hawyat-yasmin-narjis-aaridh-shamal-riyadh",
-    ogImage: "/images/container-3.jpeg", canonicalUrl: "", isActive: true, order: 18, createdAt: pub(18), updatedAt: pub(18),
+    ogImage: "/images/container-3.webp", canonicalUrl: "", isActive: true, order: 18, createdAt: pub(18), updatedAt: pub(18),
   },
 
   // ── 4. حي الملقا والصحافة والقيروان وحطين ──
@@ -148,7 +148,7 @@ const posts = [
 <p><strong>حاويات حي بدر</strong> لمشاريع التطوير السكني والتجاري. <strong>إيجار حاويات جنوب الرياض</strong> بأسعار تنافسية مع ضمان التوصيل في الموعد المحدد.</p>
 <h2>حاويات حي العزيزية</h2>
 <p><strong>حاويات حي العزيزية</strong> للمشاريع السكنية والتجارية. <strong>تأجير حاويات جنوب الرياض</strong> — اتصل بنا الآن للحصول على عرض فوري.</p>`,
-    coverImage: "/images/hero-1.jpeg",
+    coverImage: "/images/hero-1.webp",
     author: "مؤسسة السهم كلين",
     category: "مناطق الخدمة",
     tags: JSON.stringify(["حاويات لبن", "حاويات السويدي", "حاويات الشفا", "حاويات بدر", "جنوب الرياض"]),
@@ -159,7 +159,7 @@ const posts = [
     seoDescription: "تأجير حاويات في أحياء لبن والسويدي والشفا وبدر والعزيزية جنوب الرياض. توصيل سريع وأسعار تنافسية لجميع أنواع المشاريع.",
     seoKeywords: "حاويات حي لبن, حاويات السويدي, حاويات الشفا, حاويات بدر, حاويات العزيزية, تأجير حاويات جنوب الرياض",
     seoSlug: "hawyat-labn-suwaidi-shifa-badr-aziziya-janub",
-    ogImage: "/images/hero-1.jpeg", canonicalUrl: "", isActive: true, order: 20, createdAt: pub(16), updatedAt: pub(16),
+    ogImage: "/images/hero-1.webp", canonicalUrl: "", isActive: true, order: 20, createdAt: pub(16), updatedAt: pub(16),
   },
 
   // ── 6. حي الدار البيضاء والفيحاء والجزيرة والربوة والريان وغرناطة ──
@@ -179,7 +179,7 @@ const posts = [
 <p><strong>حاويات حي الربوة</strong> و<strong>حاويات الريان</strong> و<strong>حاويات غرناطة</strong> لمشاريع الفلل والترميم الراقي. أسطولنا يغطي هذه الأحياء يومياً بحاويات نظيفة جاهزة للاستخدام الفوري.</p>
 <h2>اطلب حاويتك الآن</h2>
 <p><strong>تكلفة إيجار حاوية</strong> تبدأ من 150 ريال يومياً. اتصل بنا للحصول على <strong>عروض تأجير الحاويات</strong> الأنسب لمشروعك.</p>`,
-    coverImage: "/images/hero-2.jpeg",
+    coverImage: "/images/hero-2.webp",
     author: "مؤسسة السهم كلين",
     category: "مناطق الخدمة",
     tags: JSON.stringify(["حاويات الدار البيضاء", "حاويات الفيحاء", "حاويات الربوة", "حاويات غرناطة", "غرب الرياض"]),
@@ -190,7 +190,7 @@ const posts = [
     seoDescription: "تأجير حاويات في أحياء الدار البيضاء والفيحاء والجزيرة والربوة والريان وغرناطة غرب الرياض.",
     seoKeywords: "حاويات الدار البيضاء, حاويات الفيحاء, حاويات الجزيرة, حاويات الربوة, حاويات الريان, حاويات غرناطة",
     seoSlug: "hawyat-dar-baydha-fayha-jazira-rabwa-rayan-gharnata",
-    ogImage: "/images/hero-2.jpeg", canonicalUrl: "", isActive: true, order: 21, createdAt: pub(15), updatedAt: pub(15),
+    ogImage: "/images/hero-2.webp", canonicalUrl: "", isActive: true, order: 21, createdAt: pub(15), updatedAt: pub(15),
   },
 
   // ── 7. حي التعاون والملك فهد والعليا والسلي ──
@@ -210,7 +210,7 @@ const posts = [
 <p><strong>حاويات حي السلي</strong> للمشاريع السكنية الجديدة والتطوير العمراني. <strong>حاوية مشاريع سكنية</strong> بأسعار تنافسية مع إمكانية التمديد الأسبوعي أو الشهري.</p>
 <h2>أسعار حاويات وسط الرياض</h2>
 <p><strong>أسعار إيجار الحاويات</strong> في هذه الأحياء تنافسية جداً. اطلب عرض سعر الآن.</p>`,
-    coverImage: "/images/hero-3.jpeg",
+    coverImage: "/images/hero-3.webp",
     author: "مؤسسة السهم كلين",
     category: "مناطق الخدمة",
     tags: JSON.stringify(["حاويات التعاون", "حاويات الملك فهد", "حاويات العليا", "حاويات السلي", "وسط الرياض"]),
@@ -221,7 +221,7 @@ const posts = [
     seoDescription: "تأجير حاويات في أحياء التعاون والملك فهد والعليا والسلي وسط الرياض. حاويات للمشاريع التجارية والسكنية.",
     seoKeywords: "حاويات حي التعاون, حاويات الملك فهد, حاويات العليا, حاويات السلي, حاويات وسط الرياض",
     seoSlug: "hawyat-taawun-malikfahd-ulya-sali-riyadh",
-    ogImage: "/images/hero-3.jpeg", canonicalUrl: "", isActive: true, order: 22, createdAt: pub(14), updatedAt: pub(14),
+    ogImage: "/images/hero-3.webp", canonicalUrl: "", isActive: true, order: 22, createdAt: pub(14), updatedAt: pub(14),
   },
 
   // ── 8. حاوية إزالة مخلفات + حاوية نفايات مؤقتة ──
@@ -247,7 +247,7 @@ const posts = [
 </ul>
 <h2>أسعار تنافسية وخدمة فورية</h2>
 <p><strong>سعر حاوية مخلفات</strong> مؤقتة يبدأ من 150 ريال يومياً. اتصل بمؤسسة السهم كلين الآن للحصول على <strong>حاويات فورية</strong> في الرياض.</p>`,
-    coverImage: "/images/container-1.jpeg",
+    coverImage: "/images/container-1.webp",
     author: "مؤسسة السهم كلين",
     category: "خدمات",
     tags: JSON.stringify(["حاوية إزالة مخلفات", "حاوية نفايات مؤقتة", "تأجير حاويات الرياض"]),
@@ -258,7 +258,7 @@ const posts = [
     seoDescription: "احصل على حاوية إزالة مخلفات أو حاوية نفايات مؤقتة في الرياض. خيارات يومية وأسبوعية بأسعار تنافسية وتوصيل فوري.",
     seoKeywords: "حاوية إزالة مخلفات, حاوية نفايات مؤقتة, إزالة مخلفات الرياض, حاويات فورية",
     seoSlug: "hawyat-izalat-makhlatat-nifayat-muaqata-riyadh",
-    ogImage: "/images/container-1.jpeg", canonicalUrl: "", isActive: true, order: 23, createdAt: pub(13), updatedAt: pub(13),
+    ogImage: "/images/container-1.webp", canonicalUrl: "", isActive: true, order: 23, createdAt: pub(13), updatedAt: pub(13),
   },
 
   // ── 9. حاوية مخلفات منزلية + حاوية مخلفات حدائق ──
@@ -280,7 +280,7 @@ const posts = [
 <p><strong>حاوية مخلفات حدائق</strong> مثالية لأعمال تنسيق الحدائق وتجديدها: أشجار قديمة، تربة زراعية، نباتات، حجارة زينة، أنابير ري قديمة. حاوية متوسطة تكفي لتنظيف حديقة كبيرة في يوم واحد.</p>
 <h2>حاويات للأفراد — أسعار مناسبة</h2>
 <p>مؤسسة السهم كلين تهتم بالأفراد والعائلات مثلما تهتم بالشركات. <strong>حاويات للأفراد</strong> بأسعار يومية تبدأ من 150 ريال مع توصيل واستلام منزلك دون تعب. <strong>أرخص حاويات بالرياض</strong> مع ضمان الجودة.</p>`,
-    coverImage: "/images/container-2.jpeg",
+    coverImage: "/images/container-2.webp",
     author: "مؤسسة السهم كلين",
     category: "خدمات",
     tags: JSON.stringify(["حاوية مخلفات منزلية", "حاوية مخلفات حدائق", "حاويات للأفراد"]),
@@ -291,7 +291,7 @@ const posts = [
     seoDescription: "حاوية مخلفات منزلية وحاوية مخلفات حدائق في الرياض للأفراد والعائلات. أسعار مناسبة وتوصيل لمنزلك.",
     seoKeywords: "حاوية مخلفات منزلية, حاوية مخلفات حدائق, حاويات للأفراد الرياض, أرخص حاويات بالرياض",
     seoSlug: "hawyat-makhlatat-manziliya-hadaiq-riyadh",
-    ogImage: "/images/container-2.jpeg", canonicalUrl: "", isActive: true, order: 24, createdAt: pub(12), updatedAt: pub(12),
+    ogImage: "/images/container-2.webp", canonicalUrl: "", isActive: true, order: 24, createdAt: pub(12), updatedAt: pub(12),
   },
 
   // ── 10. حاوية مخلفات تجارية + حاوية مشاريع تجارية ──
@@ -313,7 +313,7 @@ const posts = [
 <p><strong>حاوية مشاريع تجارية</strong> مخصصة لأعمال بناء وتجديد وتشطيب المباني التجارية. نوفر حاويات بأحجام 8–20 م³ مع خدمة تبديل الحاويات تلقائياً عند الامتلاء.</p>
 <h2>عقود خدمة للمنشآت التجارية</h2>
 <p>نوفر عقوداً أسبوعية وشهرية لإدارة المخلفات التجارية بجداول منتظمة. <strong>حاويات للمشاريع</strong> التجارية بأفضل <strong>أسعار إيجار الحاويات</strong> في الرياض. تواصل معنا لعرض مخصص.</p>`,
-    coverImage: "/images/container-3.jpeg",
+    coverImage: "/images/container-3.webp",
     author: "مؤسسة السهم كلين",
     category: "خدمات",
     tags: JSON.stringify(["حاوية مخلفات تجارية", "حاوية مشاريع تجارية", "حاويات للشركات"]),
@@ -324,7 +324,7 @@ const posts = [
     seoDescription: "حاوية مخلفات تجارية وحاوية مشاريع تجارية في الرياض. خدمات متكاملة للمراكز التجارية والشركات والمكاتب.",
     seoKeywords: "حاوية مخلفات تجارية, حاوية مشاريع تجارية, حاويات للشركات الرياض, حاويات للمؤسسات",
     seoSlug: "hawyat-makhlatat-tijariya-mashari-tijariya-riyadh",
-    ogImage: "/images/container-3.jpeg", canonicalUrl: "", isActive: true, order: 25, createdAt: pub(11), updatedAt: pub(11),
+    ogImage: "/images/container-3.webp", canonicalUrl: "", isActive: true, order: 25, createdAt: pub(11), updatedAt: pub(11),
   },
 
   // ── 11. حاوية مخلفات صناعية + حاوية أعمال إنشائية ──
@@ -372,7 +372,7 @@ const posts = [
 <p><strong>حاويات للمقاولات</strong> بعقود مرنة تبدأ من أسبوع وتمتد حتى إنهاء المشروع. نضمن وجود الحاوية في موقعك دائماً دون انقطاع.</p>
 <h2>لأصحاب الفلل</h2>
 <p>سواء كنت تبني فيلا جديدة أو تُجدّدها، <strong>حاوية مشاريع سكنية</strong> صغيرة أو متوسطة ستوفر عليك الجهد والوقت. <strong>أفضل أسعار الحاويات</strong> للمشاريع السكنية الفردية.</p>`,
-    coverImage: "/images/hero-1.jpeg",
+    coverImage: "/images/hero-1.webp",
     author: "مؤسسة السهم كلين",
     category: "خدمات",
     tags: JSON.stringify(["حاوية مشاريع سكنية", "حاويات للمطورين", "حاويات للمقاولين"]),
@@ -383,7 +383,7 @@ const posts = [
     seoDescription: "حاوية مشاريع سكنية في الرياض للمطورين العقاريين والمقاولين وأصحاب الفلل. خدمة شاملة بعقود مرنة وأسعار تنافسية.",
     seoKeywords: "حاوية مشاريع سكنية, حاويات للمطورين, حاويات للمقاولات, حاويات سكنية الرياض",
     seoSlug: "hawyat-mashari-sakaniya-riyadh-mutawwirin",
-    ogImage: "/images/hero-1.jpeg", canonicalUrl: "", isActive: true, order: 27, createdAt: pub(9), updatedAt: pub(9),
+    ogImage: "/images/hero-1.webp", canonicalUrl: "", isActive: true, order: 27, createdAt: pub(9), updatedAt: pub(9),
   },
 
   // ── 13. عروض وخصومات وأسعار تنافسية ──
@@ -409,7 +409,7 @@ const posts = [
 </ul>
 <h2>أرخص حاويات بالرياض — مع ضمان الجودة</h2>
 <p>نقدم <strong>أرخص حاويات بالرياض</strong> دون التنازل عن الجودة. حاويات نظيفة ومُصانة بأفضل الأسعار. تواصل معنا لمعرفة <strong>تكلفة تأجير حاوية</strong> مناسبة لمشروعك.</p>`,
-    coverImage: "/images/container-1.jpeg",
+    coverImage: "/images/container-1.webp",
     author: "مؤسسة السهم كلين",
     category: "أسعار",
     tags: JSON.stringify(["عروض تأجير الحاويات", "خصومات الحاويات", "أرخص حاويات الرياض"]),
@@ -420,7 +420,7 @@ const posts = [
     seoDescription: "اكتشف أفضل عروض تأجير الحاويات وخصومات الكميات في الرياض. أسعار يومية وأسبوعية وشهرية تنافسية.",
     seoKeywords: "عروض تأجير الحاويات, خصومات الحاويات, أرخص حاويات بالرياض, أفضل أسعار الحاويات",
     seoSlug: "uroodh-tajir-hawyat-khusoomat-riyadh-2026",
-    ogImage: "/images/container-1.jpeg", canonicalUrl: "", isActive: true, order: 28, createdAt: pub(8), updatedAt: pub(8),
+    ogImage: "/images/container-1.webp", canonicalUrl: "", isActive: true, order: 28, createdAt: pub(8), updatedAt: pub(8),
   },
 
   // ── 14. توصيل واستلام وسحب وتبديل الحاويات ──
@@ -440,7 +440,7 @@ const posts = [
 <p>عند انتهاء مشروعك، اتصل بنا لـ<strong>سحب الحاويات</strong> فوراً. نلتزم بموعد السحب لتحرير موقعك في أسرع وقت.</p>
 <h2>نقل الحاويات بين المواقع</h2>
 <p><strong>نقل الحاويات</strong> من موقع لآخر داخل الرياض — خدمة متاحة للمقاولين الذين يعملون في أكثر من موقع في نفس الوقت.</p>`,
-    coverImage: "/images/container-2.jpeg",
+    coverImage: "/images/container-2.webp",
     author: "مؤسسة السهم كلين",
     category: "خدمات",
     tags: JSON.stringify(["توصيل الحاويات", "استلام الحاويات", "تبديل الحاويات", "سحب الحاويات"]),
@@ -451,7 +451,7 @@ const posts = [
     seoDescription: "خدمات توصيل الحاويات واستلامها وسحبها وتبديلها في الرياض. منظومة لوجستية متكاملة لإدارة الحاويات.",
     seoKeywords: "توصيل الحاويات الرياض, استلام الحاويات, تبديل الحاويات, سحب الحاويات, نقل الحاويات",
     seoSlug: "tawseel-istiilam-sahb-tabdeel-hawyat-riyadh",
-    ogImage: "/images/container-2.jpeg", canonicalUrl: "", isActive: true, order: 29, createdAt: pub(7), updatedAt: pub(7),
+    ogImage: "/images/container-2.webp", canonicalUrl: "", isActive: true, order: 29, createdAt: pub(7), updatedAt: pub(7),
   },
 
   // ── 15. حاويات للمطورين والورش والمؤسسات ──
@@ -469,7 +469,7 @@ const posts = [
 <p><strong>حاويات للمؤسسات</strong> الحكومية والخاصة. نوفر خدمة موثقة مع تقارير التخلص المطلوبة للجهات الرسمية.</p>
 <h2>حاويات للمقاولات والمقاولين</h2>
 <p><strong>حاويات للمقاولات</strong> و<strong>حاويات للمقاولين</strong> بعقود مرنة تناسب متطلبات المشاريع الإنشائية المتغيرة. نحن شريكك اللوجستي الموثوق في الرياض.</p>`,
-    coverImage: "/images/container-3.jpeg",
+    coverImage: "/images/container-3.webp",
     author: "مؤسسة السهم كلين",
     category: "خدمات",
     tags: JSON.stringify(["حاويات للمطورين", "حاويات للورش", "حاويات للمؤسسات", "حاويات للمقاولات"]),
@@ -480,7 +480,7 @@ const posts = [
     seoDescription: "حاويات مخصصة للمطورين العقاريين والورش والمؤسسات في الرياض. عقود مرنة وخدمة احترافية.",
     seoKeywords: "حاويات للمطورين, حاويات للورش, حاويات للمؤسسات, حاويات للمقاولات الرياض",
     seoSlug: "hawyat-mutawwirin-warshat-muassasat-riyadh",
-    ogImage: "/images/container-3.jpeg", canonicalUrl: "", isActive: true, order: 30, createdAt: pub(6), updatedAt: pub(6),
+    ogImage: "/images/container-3.webp", canonicalUrl: "", isActive: true, order: 30, createdAt: pub(6), updatedAt: pub(6),
   },
 
   // ── 16. تكلفة إيجار حاوية — دليل الأسعار الشامل ──
@@ -540,7 +540,7 @@ const posts = [
 <p><strong>حاويات خلال ساعات</strong> في جميع أحياء الرياض — شمالاً وجنوباً وشرقاً وغرباً. أسطولنا المنتشر يضمن <strong>خدمة سريعة للحاويات</strong> في أقصر وقت.</p>
 <h2>حاويات فورية بأسعار ثابتة</h2>
 <p>السرعة لا تعني أسعاراً مرتفعة. <strong>حاويات فورية</strong> بنفس أسعارنا الثابتة والشفافة. لا رسوم إضافية على الخدمة العاجلة في أغلب الأوقات. <strong>تأجير حاويات سريع</strong> — اطلب الآن.</p>`,
-    coverImage: "/images/hero-2.jpeg",
+    coverImage: "/images/hero-2.webp",
     author: "مؤسسة السهم كلين",
     category: "خدمات",
     tags: JSON.stringify(["حاويات فورية", "توفير حاويات فوري", "حاويات خلال ساعات", "خدمة سريعة"]),
@@ -551,7 +551,7 @@ const posts = [
     seoDescription: "خدمة توفير حاويات فوري في الرياض. حاويات خلال ساعات لأي حجم في جميع أحياء الرياض.",
     seoKeywords: "حاويات فورية الرياض, توفير حاويات فوري, حاويات خلال ساعات, خدمة سريعة للحاويات",
     seoSlug: "hawyat-fawriya-tawfir-khilal-saaat-riyadh",
-    ogImage: "/images/hero-2.jpeg", canonicalUrl: "", isActive: true, order: 32, createdAt: pub(4), updatedAt: pub(4),
+    ogImage: "/images/hero-2.webp", canonicalUrl: "", isActive: true, order: 32, createdAt: pub(4), updatedAt: pub(4),
   },
 
   // ── 18. حاويات وسط الرياض ──
@@ -569,7 +569,7 @@ const posts = [
 <p>الشوارع الضيقة والازدحام المروري في بعض أحياء وسط الرياض تتطلب خبرة في التنسيق. سائقونا يعرفون طرق وسط الرياض جيداً ويختارون أفضل أوقات التوصيل لتفادي الازدحام.</p>
 <h2>اطلب الآن</h2>
 <p><strong>تأجير حاويات</strong> في وسط الرياض بأسعار تنافسية. اتصل بنا الآن للحصول على عرض فوري.</p>`,
-    coverImage: "/images/hero-3.jpeg",
+    coverImage: "/images/hero-3.webp",
     author: "مؤسسة السهم كلين",
     category: "مناطق الخدمة",
     tags: JSON.stringify(["حاويات وسط الرياض", "تأجير حاويات وسط الرياض"]),
@@ -580,7 +580,7 @@ const posts = [
     seoDescription: "خدمة تأجير حاويات في وسط الرياض للأحياء التجارية والسكنية المركزية. توصيل سريع وأسعار تنافسية.",
     seoKeywords: "حاويات وسط الرياض, تأجير حاويات وسط الرياض, حاويات المنطقة المركزية الرياض",
     seoSlug: "tajir-hawyat-wasat-riyadh-ahyaa-markaziya",
-    ogImage: "/images/hero-3.jpeg", canonicalUrl: "", isActive: true, order: 33, createdAt: pub(3), updatedAt: pub(3),
+    ogImage: "/images/hero-3.webp", canonicalUrl: "", isActive: true, order: 33, createdAt: pub(3), updatedAt: pub(3),
   },
 
   // ── 19. إيجار حاويات شرق الرياض — تغطية شاملة ──
@@ -609,7 +609,7 @@ const posts = [
   <li><strong>تأجير حاويات شرق الرياض</strong> بأسعار منافسة</li>
 </ul>
 <p>اتصل بنا الآن للحصول على عرض سعر فوري.</p>`,
-    coverImage: "/images/container-1.jpeg",
+    coverImage: "/images/container-1.webp",
     author: "مؤسسة السهم كلين",
     category: "مناطق الخدمة",
     tags: JSON.stringify(["إيجار حاويات شرق الرياض", "تأجير حاويات شرق الرياض", "حاويات شرق الرياض"]),
@@ -620,7 +620,7 @@ const posts = [
     seoDescription: "إيجار حاويات شرق الرياض يغطي الرمال واليرموك والروضة والنهضة والخليج والنسيم وقرطبة والمونسية. توصيل سريع.",
     seoKeywords: "إيجار حاويات شرق الرياض, تأجير حاويات شرق الرياض, حاويات شرق الرياض",
     seoSlug: "iijar-hawyat-sharq-riyadh-taghtiya-shamila",
-    ogImage: "/images/container-1.jpeg", canonicalUrl: "", isActive: true, order: 34, createdAt: pub(2), updatedAt: pub(2),
+    ogImage: "/images/container-1.webp", canonicalUrl: "", isActive: true, order: 34, createdAt: pub(2), updatedAt: pub(2),
   },
 
   // ── 20. إيجار حاويات جنوب الرياض — تغطية شاملة ──
@@ -643,7 +643,7 @@ const posts = [
 </ul>
 <h2>لماذا مؤسسة السهم كلين للجنوب؟</h2>
 <p>أسطولنا يخدم جنوب الرياض يومياً. <strong>تأجير حاويات جنوب الرياض</strong> بأسعار تنافسية وخدمة موثوقة. اتصل الآن للحصول على عرض فوري.</p>`,
-    coverImage: "/images/container-2.jpeg",
+    coverImage: "/images/container-2.webp",
     author: "مؤسسة السهم كلين",
     category: "مناطق الخدمة",
     tags: JSON.stringify(["إيجار حاويات جنوب الرياض", "تأجير حاويات جنوب الرياض", "حاويات جنوب الرياض"]),
@@ -654,7 +654,7 @@ const posts = [
     seoDescription: "إيجار حاويات جنوب الرياض يغطي لبن والسويدي والشفا وبدر والعزيزية والدار البيضاء والسلي والفيحاء.",
     seoKeywords: "إيجار حاويات جنوب الرياض, تأجير حاويات جنوب الرياض, حاويات جنوب الرياض",
     seoSlug: "iijar-hawyat-janub-riyadh-taghtiya-shamila",
-    ogImage: "/images/container-2.jpeg", canonicalUrl: "", isActive: true, order: 35, createdAt: pub(1), updatedAt: pub(1),
+    ogImage: "/images/container-2.webp", canonicalUrl: "", isActive: true, order: 35, createdAt: pub(1), updatedAt: pub(1),
   },
 ];
 

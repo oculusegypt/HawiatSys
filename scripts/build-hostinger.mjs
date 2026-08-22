@@ -70,9 +70,9 @@ rmSync(join(ROOT, "build_php/api/uploads"), { recursive: true, force: true });
 rmSync(join(ROOT, "build_php/sabaik-platform"), { recursive: true, force: true });
 
 for (const legacyImage of [
-  "Banner-Big.png", "Banner-Small.png", "No1-Banner.png", "good.png",
-  "shareek-mawsouq.png", "container1.jpg", "container2.jpg", "container3.jpg", "container4.jpg",
-  "hero1.jpg", "hero2.jpg", "hero3.jpg", "hero4.jpg", "ceo.png", "hawiyat-logo.png",
+  "Banner-Big.webp", "Banner-Small.webp", "No1-Banner.webp", "good.webp",
+  "shareek-mawsouq.webp", "container1.jpg", "container2.jpg", "container3.jpg", "container4.jpg",
+  "hero1.jpg", "hero2.jpg", "hero3.jpg", "hero4.jpg", "ceo.webp", "hawiyat-logo.webp",
   "partner1.jpg", "partner2.jpg", "partner3.jpg", "partner4.jpg", "partner5.jpg", "partner6.jpg"
 ]) {
   rmSync(join(ROOT, "build_php", legacyImage), { force: true });

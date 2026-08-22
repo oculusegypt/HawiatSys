@@ -11,7 +11,7 @@ export function AboutSection() {
   const highlight = content.highlight || "تأجير الحاويات وإدارة المخلفات"
   const eyebrow = content.eyebrow || "عن المنشأة"
   const description = content.description || (resolvedCompany ? `${resolvedCompany} خيارك الأمثل في عالم تأجير الحاويات ونقل الأنقاض ومخلفات البناء والهدم والنفايات بالرياض. نقدم خدماتنا بأسطول حديث ومعايير سلامة بيئية صارمة وسرعة استجابة فائقة.` : "الخيار الأمثل في عالم تأجير الحاويات ونقل الأنقاض ومخلفات البناء والهدم والنفايات بالرياض. نقدم خدماتنا بأسطول حديث ومعايير سلامة بيئية صارمة وسرعة استجابة فائقة.")
-  const imageUrl = content.imageUrl || "/images/container-1.jpeg"
+  const imageUrl = content.imageUrl || "/images/container-1.webp"
   const points = (content.points && content.points.length > 0) ? content.points.filter(Boolean) : [
     "أسطول شاحنات وحاويات بمقاسات متنوعة من 6 إلى 30 ياردة",
     "توصيل وسحب سريع خلال 2 إلى 4 ساعات على مدار الساعة",

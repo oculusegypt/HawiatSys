@@ -20,7 +20,7 @@ export const PUBLIC_PRICING_PACKAGES: PublicPricingPackage[] = [
     priceLabel: "400 ر.س / للرد",
     priceNote: "شامل التوصيل والسحب والتفريغ في المردم الرسمي (بقاء حتى 10 أيام)",
     best: ["مثالية للترميمات والتعديلات السكنية", "مناسبة للشوارع الضيقة والمداخل المحدودة", "تفريغ نظامي في المقالب المعتمدة", "سرعة توصيل وسحب خلال ساعتين"],
-    img: "/images/container-debris-small.jpg",
+    img: "/images/container-debris-small.webp",
   },
   {
     name: "حاوية أنقاض متوسطة (15 ياردة)",
@@ -29,7 +29,7 @@ export const PUBLIC_PRICING_PACKAGES: PublicPricingPackage[] = [
     priceLabel: "450 ر.س / للرد",
     priceNote: "شامل التوصيل والسحب والتفريغ في المردم الرسمي (بقاء حتى 10 أيام)",
     best: ["مناسبة لمشاريع التوسعة والتشطيبات", "تستوعب كميات كبيرة من مخلفات البناء", "حديد صلب مقوى مقاوم للكسر", "التزام تام باشتراطات أمانة الرياض"],
-    img: "/images/container-debris-medium.jpg",
+    img: "/images/container-debris-medium.webp",
   },
   {
     name: "حاوية أنقاض كبيرة (20 ياردة)",
@@ -38,7 +38,7 @@ export const PUBLIC_PRICING_PACKAGES: PublicPricingPackage[] = [
     priceLabel: "500 ر.س / للرد",
     priceNote: "شامل التوصيل والسحب والتفريغ في المردم الرسمي (بقاء حتى 10 أيام)",
     best: ["الخيار الأكثر طلباً لعمائر وبناء الفلل", "سعة ممتازة للخرسانة والبلوك والرمل", "شباك حماية علوية مطابقة للسلامة", "تفريغ فوري وإمكانية التبديل السريع"],
-    img: "/images/container-debris-large.jpg",
+    img: "/images/container-debris-large.webp",
     highlight: true,
   },
   {
@@ -48,7 +48,7 @@ export const PUBLIC_PRICING_PACKAGES: PublicPricingPackage[] = [
     priceLabel: "700 ر.س / للرد",
     priceNote: "شامل التوصيل والسحب والتفريغ في المردم الرسمي (بقاء حتى 10 أيام)",
     best: ["مخصصة للهدم الشامل والمشاريع الكبرى", "أعلى طاقة استيعابية للأنقاض الثقيلة", "توفير تكلفة الردود المتكررة للمقاولين", "دعم لوجستي وتوصيل بشاحنات ثقيلة"],
-    img: "/images/container-debris-jumbo.jpg",
+    img: "/images/container-debris-jumbo.webp",
   },
   {
     name: "حاوية نفايات تجارية (6 و 10 ياردة)",
@@ -57,7 +57,7 @@ export const PUBLIC_PRICING_PACKAGES: PublicPricingPackage[] = [
     priceLabel: "عقد سنوي / حسب الموقع",
     priceNote: "عقد نظافة موثق ومعتمد لتجديد رخص الأنشطة التجارية",
     best: ["مخصصة للمطاعم والمقاهي والمحلات", "تفريغ دوري أسبوعي أو شهري منتظم", "ربط فوري ومباشر مع منصة بلدي", "حاويات محكمة الغلق ومطابقة للنظافة"],
-    img: "/images/container-waste-small.jpg",
+    img: "/images/container-waste-small.webp",
   },
   {
     name: "مكبس نفايات كهربائي هيدروليكي (2 ياردة)",
@@ -66,6 +66,6 @@ export const PUBLIC_PRICING_PACKAGES: PublicPricingPackage[] = [
     priceLabel: "عقد توريد وصيانة",
     priceNote: "مناسب للمجمعات التجارية والفنادق والهايبرماركت",
     best: ["تقليل حجم النفايات بنسبة تصل إلى 80%", "منع انبعاث الروائح وتسرب السوائل", "لوحة تحكم إلكترونية ذكية وآمنة", "صيانة دورية شاملة طوال مدة العقد"],
-    img: "/images/container-compactor-electric.jpg",
+    img: "/images/container-compactor-electric.webp",
   },
 ]

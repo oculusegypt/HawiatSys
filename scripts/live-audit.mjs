@@ -6,7 +6,7 @@ const ENDPOINTS_TO_TEST = [
   "/",
   "/favicon.ico",
   "/favicon.svg",
-  "/favicon.png",
+  "/favicon.webp",
   "/manifest.json",
   "/robots.txt",
   "/sitemap.xml",

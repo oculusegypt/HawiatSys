@@ -94,7 +94,7 @@ if (existsSync(htaccessApi)) copyFileSync(htaccessApi, join(apiDir, ".htaccess")
 
 // 5. Copy notification worker assets. They are not emitted into Vite's assets/
 // directory, but they are required for Web Push on an existing Hostinger site.
-for (const publicFile of ["sw.js", "notification-icon.png"]) {
+for (const publicFile of ["sw.js", "notification-icon.webp"]) {
   const source = join(ROOT, "artifacts/sabaik-almasa/public", publicFile);
   if (existsSync(source)) copyFileSync(source, join(PATCH_DIR, publicFile));
 }
@@ -129,7 +129,7 @@ writeFileSync(join(PATCH_DIR, "UPLOAD_INSTRUCTIONS.txt"), [
   "",
   "ارفع جميع الملفات والمجلدات الموجودة هنا إلى public_html/ مع الاستبدال:",
   "  assets/ + index.html + api/ + .htaccess + data/sabaik.db",
-  "  sw.js + notification-icon.png",
+  "  sw.js + notification-icon.webp",
   "",
   "لا تحذف uploads/ الموجودة على Hostinger.",
   "خذ نسخة احتياطية من data/sabaik.db الحالية قبل الاستبدال.",

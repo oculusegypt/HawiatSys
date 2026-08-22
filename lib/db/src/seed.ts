@@ -77,7 +77,7 @@ function seedAll() {
     {
       title: "نظافة المكاتب والشركات والواجهات",
       subtitle: "حلول نظافة دورية وشاملة للمؤسسات والشركات والمجمعات في جميع أحياء الرياض",
-      imageUrl: "/images/hero-riyadh-business.jpg",
+      imageUrl: "/images/hero-riyadh-business.webp",
       ctaText: "استكشف خدماتنا",
       order: 3,
       isActive: true,

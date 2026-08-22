@@ -58,7 +58,7 @@ function injectLocalBusinessSchema({
   }
   const SITE_URL = getSiteUrl().replace(/\/$/, "")
   const toAbsolute = (url?: string) => {
-    if (!url) return `${SITE_URL}/images/logo.png`
+    if (!url) return `${SITE_URL}/images/logo.webp`
     if (url.startsWith("http://") || url.startsWith("https://")) return url
     return `${SITE_URL}${url.startsWith("/") ? url : `/${url}`}`
   }
@@ -103,7 +103,7 @@ function injectLocalBusinessSchema({
         "url": `${SITE_URL}/`,
         "logo": {
           "@type": "ImageObject",
-          "url": toAbsolute(logoUrl || "/images/logo.png"),
+          "url": toAbsolute(logoUrl || "/images/logo.webp"),
           "width": "512",
           "height": "512"
         },

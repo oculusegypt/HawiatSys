@@ -33,8 +33,8 @@ export function getContainerImage(container: Container): string {
   const firstSavedImage = parseImages(container.images)[0]
   if (container.imageUrl && container.imageUrl.trim()) return container.imageUrl
   if (firstSavedImage) return firstSavedImage
-  if (container.category === "waste") return "/images/container-waste-small.jpg"
-  return "/images/container-debris-small.jpg"
+  if (container.category === "waste") return "/images/container-waste-small.webp"
+  return "/images/container-debris-small.webp"
 }
 
 function parseFeatures(raw: unknown): string[] {
@@ -99,7 +99,7 @@ export function PackageCard({ container: c, onRequest }: PackageCardProps) {
             className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-700"
             loading="lazy"
             onError={(e) => {
-              e.currentTarget.src = "/images/container-debris-small.jpg"
+              e.currentTarget.src = "/images/container-debris-small.webp"
             }}
           />
         ) : (

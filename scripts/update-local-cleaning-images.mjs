@@ -20,7 +20,7 @@ const heroImages = [
   "/images/hero-riyadh-cleaning.jpg",
   "/images/hero-riyadh-postconstruction.jpg",
   "/images/hero-riyadh-majlis.jpg",
-  "/images/hero-riyadh-business.jpg",
+  "/images/hero-riyadh-business.webp",
 ];
 
 const serviceImages = {

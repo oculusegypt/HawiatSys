@@ -55,13 +55,13 @@
 | 8 | **باقة غسيل وتنظيف مكيفات الهواء** | `ac` | تنظيف وغسيل مكيفات | `/images/packages/package-08.png` | `/container/gaseel-mokeyafat` |
 | 9 | **باقة مكافحة وإبادة الحشرات ورش المبيدات** | `pest` | مكافحة وإبادة حشرات | `/images/packages/package-09.png` | `/container/mokafahat-hasharat` |
 | 10 | **باقة تنظيف بعد البناء والتشطيب** | `postcon` | تنظيف بعد التشطيب | `/images/packages/package-10.png` | `/container/tanzeef-bad-albenaa` |
-| 11 | **باقة تنظيف واجهات المباني والمكاتب** | `facades` | واجهات ومكاتب | `/api/uploads/1786852381998-7b9fc2691361.png` | `/container/tanzeef-wajahat` |
+| 11 | **باقة تنظيف واجهات المباني والمكاتب** | `facades` | واجهات ومكاتب | `/api/uploads/1786852381998-7b9fc2691361.webp` | `/container/tanzeef-wajahat` |
 | 12 | **باقة تنظيف وتطهير المساجد والمدارس** | `facilities` | مساجد ومدارس ومنشآت | `/images/packages/package-10.png` | `/container/tanzeef-masajid` |
-| 13 | **باقة شهادة السلامة وتجهيز ملف المنشأة** | `fire_safety` | سلامة ودفاع مدني | `/api/uploads/1786852410628-3417524d6e46.png` | `/container/shahadat-salama` |
-| 14 | **باقة تركيب وتجهيز أنظمة الحماية من الحريق** | `fire_safety` | سلامة ودفاع مدني | `/api/uploads/1786852441444-7bdcaa7c2133.png` | `/container/tarkeeb-anthimat-wiqaya` |
-| 15 | **باقة التقرير الفني الفوري** | `fire_safety` | سلامة ودفاع مدني | `/api/uploads/1786852469840-8c9465939c93.png` | `/container/taqreer-fanni-fawri` |
-| 16 | **باقة التقرير الفني المجدول** | `fire_safety` | سلامة ودفاع مدني | `/api/uploads/1786852497754-e23a365fc223.png` | `/container/taqreer-fanni-ghayr-fawri` |
-| 17 | **باقة عقد صيانة السلامة وتفعيل دفاع مدني** | `fire_safety` | سلامة ودفاع مدني | `/api/uploads/1786852526916-f43fb6a35802.png` | `/container/aqd-siyana-difaa-madani` |
+| 13 | **باقة شهادة السلامة وتجهيز ملف المنشأة** | `fire_safety` | سلامة ودفاع مدني | `/api/uploads/1786852410628-3417524d6e46.webp` | `/container/shahadat-salama` |
+| 14 | **باقة تركيب وتجهيز أنظمة الحماية من الحريق** | `fire_safety` | سلامة ودفاع مدني | `/api/uploads/1786852441444-7bdcaa7c2133.webp` | `/container/tarkeeb-anthimat-wiqaya` |
+| 15 | **باقة التقرير الفني الفوري** | `fire_safety` | سلامة ودفاع مدني | `/api/uploads/1786852469840-8c9465939c93.webp` | `/container/taqreer-fanni-fawri` |
+| 16 | **باقة التقرير الفني المجدول** | `fire_safety` | سلامة ودفاع مدني | `/api/uploads/1786852497754-e23a365fc223.webp` | `/container/taqreer-fanni-ghayr-fawri` |
+| 17 | **باقة عقد صيانة السلامة وتفعيل دفاع مدني** | `fire_safety` | سلامة ودفاع مدني | `/api/uploads/1786852526916-f43fb6a35802.webp` | `/container/aqd-siyana-difaa-madani` |
 
 ---
 

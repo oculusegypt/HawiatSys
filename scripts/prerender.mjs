@@ -42,7 +42,7 @@ const SEO_DEFAULTS = {
 const SITE_URL = (process.env.SITE_URL || settingMap.site_public_url || "https://sabaik-almasa.com").trim().replace(/\/+$/, "");
 const siteCompanyName = settingMap.company_name?.trim() || SEO_DEFAULTS.companyName;
 const siteDescription = settingMap.site_desc?.trim() || SEO_DEFAULTS.description;
-const siteLogo = settingMap.company_logo?.trim() || "/images/logo.png";
+const siteLogo = settingMap.company_logo?.trim() || "/images/logo.webp";
 let sitePhones = [];
 try {
   const parsed = JSON.parse(settingMap.company_phones || "[]");
@@ -167,7 +167,7 @@ function sanitizeHtml(html) {
 }
 
 function absoluteImg(url) {
-  if (!url) return `${SITE_URL}/logo.png`;
+  if (!url) return `${SITE_URL}/logo.webp`;
   if (/^https?:\/\//i.test(url)) return url;
   return `${SITE_URL}${url.startsWith("/") ? "" : "/"}${url}`;
 }
@@ -237,7 +237,7 @@ function renderPage({ title, description, keywords = "", canonical, ogImage, ogT
   // Keep canonical and social URLs absolute so crawlers do not have to infer
   // the preferred origin from a relative URL.
   const canonicalUrl = canonical || `${SITE_URL}/`;
-  const imgUrl = ogImage || `${SITE_URL}/logo.png`;
+  const imgUrl = ogImage || `${SITE_URL}/logo.webp`;
   const imgAlt   = title.replace(/\|.*/,"").trim();
 
   // Replace SITE_URL in JSON-LD with a dynamic script so any domain works
@@ -274,11 +274,11 @@ function renderPage({ title, description, keywords = "", canonical, ogImage, ogT
   <meta name="twitter:image:alt" content="${esc(imgAlt)}" />
 
   <!-- Favicon -->
-  <link rel="icon" type="image/png" sizes="192x192" href="/favicon.png" />
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon.webp" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.webp" />
   <link rel="icon" type="image/x-icon" href="/favicon.ico" />
   <link rel="shortcut icon" href="/favicon.ico" />
-  <link rel="apple-touch-icon" href="/favicon.png" />
+  <link rel="apple-touch-icon" href="/favicon.webp" />
   <link rel="manifest" href="/manifest.json" />
 
   <!-- Schema.org JSON-LD — injected dynamically to replace hardcoded domain -->
@@ -508,7 +508,7 @@ function generateFullHomepageStaticContent() {
   <header style="background:#1e3a5f;color:#fff;padding:12px 20px;border-bottom:1px solid rgba(255,255,255,0.1)">
     <div style="max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
       <div style="display:flex;align-items:center;gap:12px">
-        <img src="/images/logo.png" alt="${esc(siteCompanyName)}" width="48" height="48" style="height:48px;width:auto;border-radius:8px" />
+        <img src="/images/logo.webp" alt="${esc(siteCompanyName)}" width="48" height="48" style="height:48px;width:auto;border-radius:8px" />
         <span style="font-size:20px;font-weight:800">${esc(siteCompanyName)}</span>
       </div>
       <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
@@ -740,7 +740,7 @@ function generateFullHomepageStaticContent() {
 function updateIndexSeo(html) {
   const title = siteCompanyName;
   const description = siteDescription;
-  const logo = siteLogo ? absoluteImg(siteLogo) : publicUrl("/logo.png");
+  const logo = siteLogo ? absoluteImg(siteLogo) : publicUrl("/logo.webp");
   const replace = (source, pattern, value) => source.replace(pattern, value);
   let next = html;
   next = replace(next, /<title>[\s\S]*?<\/title>/i, `<title>${esc(title)}</title>`);

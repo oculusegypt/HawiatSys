@@ -98,9 +98,9 @@ function ArticleCTA({ onOpen, phoneCall, phoneWhatsapp, postTitle }: { onOpen: (
 // ─── Container Packages CTA at article end ────────────────────────────────────────────
 function ArticleContainers({ onOpen }: { onOpen: (size?: string) => void }) {
   const containers = [
-    { name: "حاوية أنقاض صغيرة", size: "12 ياردة", price: "400 ر.س", img: "/api/uploads/container-debris-small.jpg", best: "للترميمات والتعديلات" },
-    { name: "حاوية أنقاض كبيرة", size: "20 ياردة", price: "500 ر.س", img: "/api/uploads/container-debris-large.jpg", best: "لبناء وهدم الفلل والعمائر" },
-    { name: "حاوية أنقاض جامبو", size: "30 ياردة", price: "700 ر.س", img: "/api/uploads/container-debris-jumbo.jpg", best: "للمشاريع الكبرى والهدم الشامل" },
+    { name: "حاوية أنقاض صغيرة", size: "12 ياردة", price: "400 ر.س", img: "/api/uploads/container-debris-small.webp", best: "للترميمات والتعديلات" },
+    { name: "حاوية أنقاض كبيرة", size: "20 ياردة", price: "500 ر.س", img: "/api/uploads/container-debris-large.webp", best: "لبناء وهدم الفلل والعمائر" },
+    { name: "حاوية أنقاض جامبو", size: "30 ياردة", price: "700 ر.س", img: "/api/uploads/container-debris-jumbo.webp", best: "للمشاريع الكبرى والهدم الشامل" },
   ]
 
   return (
@@ -117,7 +117,7 @@ function ArticleContainers({ onOpen }: { onOpen: (size?: string) => void }) {
                 src={c.img}
                 alt={c.name}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                onError={(e) => { e.currentTarget.src = "/api/uploads/container-debris-small.jpg" }}
+                onError={(e) => { e.currentTarget.src = "/api/uploads/container-debris-small.webp" }}
               />
             </div>
             <div className="p-4 flex-1 flex flex-col justify-between">
@@ -231,7 +231,7 @@ export default function BlogPost() {
 
         // ── Inject SEO meta tags ──────────────────────────────────────────
         const canonical = siteUrl(sitePath(d.canonicalUrl || `/blog/${d.slug}`))
-        const ogImg     = siteUrl(sitePath(d.ogImage || d.coverImage || "/logo.png"))
+        const ogImg     = siteUrl(sitePath(d.ogImage || d.coverImage || "/logo.webp"))
         const title     = d.seoTitle || d.title
         const desc      = d.seoDescription || d.excerpt
 
@@ -291,7 +291,7 @@ export default function BlogPost() {
             "publisher": {
               "@type": "Organization",
               "name": companyName,
-              "logo": { "@type": "ImageObject", "url": siteUrl("/logo.png") },
+              "logo": { "@type": "ImageObject", "url": siteUrl("/logo.webp") },
               "telephone": phoneCall ? `+966${phoneCall.replace(/^0/, "")}` : undefined,
               "areaServed": "الرياض",
             },

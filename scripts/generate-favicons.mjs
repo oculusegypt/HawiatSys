@@ -16,9 +16,9 @@ async function generate() {
     return;
   }
 
-  const srcPng = join(PUBLIC_DIR, "favicon.png");
+  const srcPng = join(PUBLIC_DIR, "favicon.webp");
   if (!existsSync(srcPng)) {
-    console.error("favicon.png not found in public!");
+    console.error("favicon.webp not found in public!");
     return;
   }
 

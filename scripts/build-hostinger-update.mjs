@@ -9,7 +9,7 @@
  *   index.html    ← صفحة HTML الرئيسية
  *   الصفحات المولدة/    ← صفحات SEO الثابتة بروابط assets متطابقة
  *   sw.js         ← Service Worker لإظهار الإشعارات وفتح الرابط الصحيح
- *   notification-icon.png ← أيقونة إشعارات الهاتف
+ *   notification-icon.webp ← أيقونة إشعارات الهاتف
  *   api/index.php ← ملف PHP المحدَّث
  *   .htaccess و api/.htaccess ← توجيه API وتمرير Authorization
  *
@@ -65,7 +65,7 @@ copyFileSync(
   join(ROOT, "artifacts/sabaik-almasa/dist/public/index.html"),
   join(STAGING, "index.html")
 );
-for (const publicFile of ["sw.js", "notification-icon.png"]) {
+for (const publicFile of ["sw.js", "notification-icon.webp"]) {
   const source = join(ROOT, "artifacts/sabaik-almasa/public", publicFile);
   if (existsSync(source)) {
     copyFileSync(source, join(STAGING, publicFile));
@@ -116,7 +116,7 @@ writeFileSync(join(STAGING, "UPLOAD_INSTRUCTIONS.txt"), [
   "ارفع هذه الملفات فقط إلى public_html/:",
   "  • assets/       ← مجلد كامل",
   "  • index.html    ← ملف واحد",
-  "  • sw.js و notification-icon.png ← ملفات إشعارات الهاتف",
+  "  • sw.js و notification-icon.webp ← ملفات إشعارات الهاتف",
   "  • api/index.php و api/.htaccess ← ملفات API",
   "  • .htaccess ← ملف التوجيه الرئيسي (استبدله إن كان لديك الإصدار القديم)",
   "",
@@ -142,6 +142,6 @@ const sizeKb = Math.round(
 );
 console.log(`\n${"═".repeat(60)}`);
 console.log(`✅ جاهز: sabaik-update.zip (${sizeKb} KB)`);
-console.log(`   يحتوي على: assets/ + index.html + sw.js + notification-icon.png + api/index.php + .htaccess`);
+console.log(`   يحتوي على: assets/ + index.html + sw.js + notification-icon.webp + api/index.php + .htaccess`);
 console.log(`   لا يحتوي على: uploads/ ولا data/ (بياناتك بأمان ✔)`);
 console.log(`${"═".repeat(60)}\n`);

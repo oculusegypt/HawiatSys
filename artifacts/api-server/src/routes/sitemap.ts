@@ -78,10 +78,10 @@ function getStaticPages(base: string, siteName: string) {
   return [
     { path: "/",                               priority: "1.0",  freq: "weekly",  images: [
       { loc: `${base}/images/hero-riyadh-cleaning.jpg`, title: `${siteName} — شركة تنظيف منازل وفلل بالرياض` },
-      { loc: `${base}/images/logo.png`,    title: `شعار ${siteName}` },
+      { loc: `${base}/images/logo.webp`,    title: `شعار ${siteName}` },
     ]},
     { path: "/about",                          priority: "0.9",  freq: "monthly", images: [
-      { loc: `${base}/images/ceo.png`, title: `رسالة المدير التنفيذي — ${siteName}` },
+      { loc: `${base}/images/ceo.webp`, title: `رسالة المدير التنفيذي — ${siteName}` },
     ]},
     { path: "/pricing",                        priority: "0.95", freq: "monthly", images: [] },
     { path: "/container/",                     priority: "0.9",  freq: "monthly", images: [

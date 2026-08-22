@@ -14,12 +14,12 @@ if (existsSync(apiUploads)) {
 
 // 2. Delete legacy and unreferenced images in public and public/images
 const unreferencedImages = [
-  "ceo.png", "Banner-Small.png", "shareek-mawsouq.png", "good.png",
-  "Banner-Big.png", "No1-Banner.png", "hawiyat-logo.png",
+  "ceo.webp", "Banner-Small.webp", "shareek-mawsouq.webp", "good.webp",
+  "Banner-Big.webp", "No1-Banner.webp", "hawiyat-logo.webp",
   "container1.jpg", "container2.jpg", "container3.jpg", "container4.jpg",
-  "container-1.jpeg", "container-2.jpeg", "container-3.jpeg", "container-4.jpeg",
+  "container-1.webp", "container-2.webp", "container-3.webp", "container-4.jpeg",
   "hero1.jpg", "hero2.jpg", "hero3.jpg", "hero4.jpg",
-  "hero-1.jpeg", "hero-2.jpeg", "hero-3.jpeg", "hero-4.jpeg",
+  "hero-1.webp", "hero-2.webp", "hero-3.webp", "hero-4.webp",
   "partner1.jpg", "partner2.jpg", "partner3.jpg", "partner4.jpg", "partner5.jpg", "partner6.jpg"
 ];
 
