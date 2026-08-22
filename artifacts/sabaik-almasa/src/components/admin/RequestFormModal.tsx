@@ -21,8 +21,10 @@ import {
 import type { ServiceRequestUpdateStatus } from "@workspace/api-client-react"
 import {
   Box, Truck, Layers, Sparkles, Wrench, Factory, Package, CheckCircle, UserPlus, Loader2,
+  Navigation,
   type LucideIcon,
 } from "lucide-react"
+import { DraggableMapPicker } from "@/components/ui/DraggableMapPicker"
 
 // ─── icon map (matches DB icon strings) ──────────────────────────────────────
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -92,6 +94,7 @@ export default function RequestFormModal({ open, onClose, request, onSuccess }: 
   const [newCustomerPhone, setNewCustomerPhone] = useState("")
   const [newCustomerEmail, setNewCustomerEmail] = useState("")
   const [customerMessage, setCustomerMessage] = useState("")
+  const [mapOpen, setMapOpen] = useState(false)
   const { data: containers = [] } = useGetContainers()
   const { data: customerRecords = [], isLoading: customersLoading } =
     useGetContainerSystemRecords({ kind: "customer" })
@@ -385,6 +388,21 @@ export default function RequestFormModal({ open, onClose, request, onSuccess }: 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="موقع المشروع *">
               <Input {...register("location", { required: true })} placeholder="الرياض - حي النزهة" />
+            <button type="button" onClick={() => setMapOpen(value => !value)} className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline">
+              <Navigation size={13} /> {mapOpen ? "إخفاء الخريطة" : "تحديد الموقع من الخريطة"}
+            </button>
+            {mapOpen && (
+              <div className="mt-2 rounded-xl border border-gray-200 bg-gray-50 p-2">
+                <DraggableMapPicker
+                  initialLat={24.7136}
+                  initialLng={46.6753}
+                  onConfirm={(address, lat, lng) => {
+                    if (address) setValue("location", `${address} (إحداثيات GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)})`, { shouldValidate: true })
+                    setMapOpen(false)
+                  }}
+                />
+              </div>
+            )}
             </Field>
             <Field label="مدة الاستئجار">
               <Input {...register("duration")} placeholder="أسبوع / يومان..." />

@@ -576,6 +576,7 @@ router.patch("/service-requests/:id/assignment", requireAdmin, requireRequestAss
       type: "service_request",
       refId: id,
       refType: "service_request",
+      recipientAdminId: driverId,
     });
   }
   return res.json(updated);
@@ -750,6 +751,16 @@ router.patch("/driver/work-orders/:id", requireAdmin, requireDriver, async (req,
   } catch (error) {
     return res.status(500).json({
       error: error instanceof Error ? error.message : "تعذر حفظ انتقال أمر العمل بشكل كامل",
+    });
+  }
+  if (["accepted", "rejected", "completed"].includes(nextStatus)) {
+    const statusLabel = nextStatus === "accepted" ? "قبول" : nextStatus === "rejected" ? "رفض" : "إكمال";
+    await createNotification({
+      title: `تحديث أمر العمل: ${statusLabel}`,
+      message: `قام السائق بتحديث الطلب رقم ${id} إلى حالة ${statusLabel}${notes ? ` — ${notes}` : ""}`,
+      type: "driver_status",
+      refId: id,
+      refType: "service_request",
     });
   }
   return res.json(updated);

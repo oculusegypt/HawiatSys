@@ -100,6 +100,9 @@ for (const sql of messageMigrations) {
   try { sqlite.exec(sql); } catch { /* column already exists — safe to ignore */ }
 }
 
+try { sqlite.exec("ALTER TABLE notifications ADD COLUMN recipient_admin_id INTEGER"); } catch { /* already exists */ }
+try { sqlite.exec("CREATE INDEX IF NOT EXISTS idx_notifications_recipient_created ON notifications(recipient_admin_id, created_at)"); } catch { /* already exists */ }
+
 // Standalone SEO landing pages. Kept as a startup migration because the
 // portable SQLite database may predate this feature.
 sqlite.exec(`

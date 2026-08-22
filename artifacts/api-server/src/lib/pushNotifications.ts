@@ -1,6 +1,6 @@
 import webpush from "web-push";
-import { db, notificationsTable, pushSubscriptionsTable, siteSettingsTable, type Notification } from "@workspace/db";
-import { eq, inArray } from "drizzle-orm";
+import { db, adminsTable, notificationsTable, pushSubscriptionsTable, siteSettingsTable, type Notification } from "@workspace/db";
+import { eq, inArray, isNull } from "drizzle-orm";
 import { logger } from "./logger";
 
 const VAPID_SETTING_KEYS = ["vapid_public_key", "vapid_private_key", "vapid_subject"] as const;
@@ -81,7 +81,17 @@ export async function sendNotificationPush(notification: Notification): Promise<
   }
   webpush.setVapidDetails(config.subject, config.publicKey, config.privateKey);
 
-  const subscriptions = await db.select().from(pushSubscriptionsTable);
+  const subscriptions = notification.recipientAdminId
+    ? await db.select().from(pushSubscriptionsTable)
+      .where(eq(pushSubscriptionsTable.adminId, notification.recipientAdminId))
+    : await db.select({
+        id: pushSubscriptionsTable.id,
+        endpoint: pushSubscriptionsTable.endpoint,
+        p256dh: pushSubscriptionsTable.p256dh,
+        auth: pushSubscriptionsTable.auth,
+      }).from(pushSubscriptionsTable)
+      .innerJoin(adminsTable, eq(adminsTable.id, pushSubscriptionsTable.adminId))
+      .where(inArray(adminsTable.role, ["admin", "manager", "customer_service", "requests_officer"]));
   const payload = JSON.stringify({
     id: notification.id,
     title: notification.title,
@@ -124,6 +134,7 @@ export async function createNotification(
     title: string;
     message: string;
     type?: string;
+    recipientAdminId?: number | null;
     refId?: number | null;
     refType?: string | null;
   },
@@ -133,6 +144,7 @@ export async function createNotification(
       title: values.title,
       message: values.message,
       type: values.type ?? "system",
+      recipientAdminId: values.recipientAdminId ?? null,
       refId: values.refId ?? null,
       refType: values.refType ?? null,
     })

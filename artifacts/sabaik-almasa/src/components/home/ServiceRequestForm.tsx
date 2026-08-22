@@ -10,7 +10,8 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Lock, CalendarClock, Zap, FileText, Phone, CheckCircle, Loader2, Box, Truck, MapPin } from "lucide-react"
+import { Lock, CalendarClock, Zap, FileText, Phone, CheckCircle, Loader2, Box, Truck, MapPin, Navigation } from "lucide-react"
+import { DraggableMapPicker } from "@/components/ui/DraggableMapPicker"
 import { useSiteSettings } from "@/context/SiteSettingsContext"
 import { getContainerValue, getContainersForService } from "@/lib/packageOptions"
 import { getVisitorTracking } from "@/lib/visitorAttribution"
@@ -55,6 +56,8 @@ export function ServiceRequestForm() {
   const [isQuoteSubmitting, setIsQuoteSubmitting] = useState(false)
   const [quoteSuccess, setQuoteSuccess] = useState(false)
   const [quoteOrderId, setQuoteOrderId] = useState<number | null>(null)
+  const [quoteMapOpen, setQuoteMapOpen] = useState(false)
+  const [mainMapOpen, setMainMapOpen] = useState(false)
 
   // Load site settings (lock status)
   useEffect(() => {
@@ -314,6 +317,21 @@ export function ServiceRequestForm() {
                     placeholder="مثال: الرياض - حي الملقا"
                     className="w-full text-sm border rounded-xl p-2.5 bg-white"
                   />
+                  <button type="button" onClick={() => setQuoteMapOpen(value => !value)} className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline">
+                    <Navigation size={13} /> {quoteMapOpen ? "إخفاء الخريطة" : "تحديد الموقع من الخريطة"}
+                  </button>
+                  {quoteMapOpen && (
+                    <div className="mt-2 rounded-xl border border-gray-200 bg-white p-2">
+                      <DraggableMapPicker
+                        initialLat={24.7136}
+                        initialLng={46.6753}
+                        onConfirm={(address, lat, lng) => {
+                          if (address) setQuoteForm(prev => ({ ...prev, location: `${address} (إحداثيات GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)})` }))
+                          setQuoteMapOpen(false)
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -535,6 +553,21 @@ export function ServiceRequestForm() {
                       <FormControl>
                         <Input placeholder="مثال: الرياض - حي الملقا - شارع أنس بن مالك" className="rounded-xl border-gray-200 focus:border-primary focus:ring-primary h-12" {...field} />
                       </FormControl>
+                      <button type="button" onClick={() => setMainMapOpen(value => !value)} className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline">
+                        <Navigation size={13} /> {mainMapOpen ? "إخفاء الخريطة" : "تحديد الموقع من الخريطة"}
+                      </button>
+                      {mainMapOpen && (
+                        <div className="mt-2 rounded-xl border border-gray-200 bg-white p-2">
+                          <DraggableMapPicker
+                            initialLat={24.7136}
+                            initialLng={46.6753}
+                            onConfirm={(address, lat, lng) => {
+                              if (address) form.setValue("location", `${address} (إحداثيات GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)})`, { shouldValidate: true })
+                              setMainMapOpen(false)
+                            }}
+                          />
+                        </div>
+                      )}
                       <FormMessage className="text-xs" />
                     </FormItem>
                   )}

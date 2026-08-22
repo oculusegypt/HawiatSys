@@ -1,5 +1,6 @@
 import { Input } from "@/components/ui/input"
-import type { ReactNode } from "react"
+import { DraggableMapPicker } from "@/components/ui/DraggableMapPicker"
+import { useState, type ReactNode } from "react"
 import {
   AlertCircle,
   Building2,
@@ -8,6 +9,7 @@ import {
   FileText,
   ShieldCheck,
   Wrench,
+  Navigation,
 } from "lucide-react"
 
 export interface SafetyComplianceFormState {
@@ -318,6 +320,7 @@ export function SafetyComplianceDetails({
   value,
   onChange,
 }: SafetyComplianceDetailsProps) {
+  const [mapOpen, setMapOpen] = useState(false)
   const kind = getServiceKind(serviceType)
   const presentation = getServicePresentation(serviceType)
   const ServiceIcon = presentation.icon
@@ -449,6 +452,23 @@ export function SafetyComplianceDetails({
                 onChange={(next) => update("siteAddress", next)}
                 placeholder="مثال: الملقا، الرياض"
               />
+              <div className="sm:col-span-3">
+                <button type="button" onClick={() => setMapOpen((value) => !value)} className="inline-flex items-center gap-1.5 text-xs font-bold text-[#173d4e] hover:underline">
+                  <Navigation size={13} /> {mapOpen ? "إخفاء الخريطة" : "تحديد الموقع من الخريطة"}
+                </button>
+                {mapOpen && (
+                  <div className="mt-2 rounded-xl border border-[#d7e7e6] bg-[#f7fbfb] p-2">
+                    <DraggableMapPicker
+                      initialLat={24.7136}
+                      initialLng={46.6753}
+                      onConfirm={(address, lat, lng) => {
+                        if (address) update("siteAddress", `${address} (إحداثيات GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)})`)
+                        setMapOpen(false)
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
               <TextField
                 id="safety-floors"
                 label="عدد الأدوار"

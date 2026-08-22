@@ -7,6 +7,7 @@ export const notificationsTable = sqliteTable("notifications", {
   title: text("title").notNull(),
   message: text("message").notNull(),
   type: text("type").notNull().default("system"),
+  recipientAdminId: integer("recipient_admin_id"),
   isRead: integer("is_read", { mode: "boolean" }).notNull().default(false),
   refId: integer("ref_id"),
   refType: text("ref_type"),

@@ -85,12 +85,12 @@ function LocationPicker({ value, onChange }: { value: string; onChange: (v: stri
           <DraggableMapPicker
             initialLat={initCoords.lat}
             initialLng={initCoords.lng}
-            onConfirm={(addr) => {
-              if (addr) onChange(addr)
+            onConfirm={(addr, lat, lng) => {
+              if (addr) onChange(`${addr} (إحداثيات GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)})`)
               setGpsState("idle")
             }}
-            onSelectLocation={(_lat, _lng, address) => {
-              if (address) onChange(address)
+            onSelectLocation={(lat, lng, address) => {
+              if (address) onChange(`${address} (إحداثيات GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)})`)
               setGpsState("idle")
             }}
           />

@@ -7,7 +7,7 @@ import {
   ShieldCheck, Shield, Headphones, ClipboardList, Database, MessageCircle, Truck, FilePenLine, Star,
   Volume2, VolumeX,
 } from "lucide-react"
-import { NotificationBell, AdminToastPortal } from "@/components/admin/NotificationBell"
+import { NotificationBell, AdminToastPortal, NotificationStatusStrip } from "@/components/admin/NotificationBell"
 import { useSiteSettings } from "@/context/SiteSettingsContext"
 
 const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
@@ -432,7 +432,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 )}
               </Link>
             )}
-            {!isDriver && <NotificationBell />}
+            <NotificationBell />
             {!isDriver && (
               <>
                 <Link href="/admin/profile"
@@ -453,6 +453,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             )}
           </div>
         </header>
+        <NotificationStatusStrip />
         <div className="min-w-0 w-full max-w-full flex-1 overflow-x-hidden p-3 sm:p-6 lg:p-8">{children}</div>
       </main>
 

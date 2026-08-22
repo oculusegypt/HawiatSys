@@ -1,14 +1,20 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { notificationsTable } from "@workspace/db";
-import { eq, desc } from "drizzle-orm";
-import { requireAdmin, requireNonDriver } from "../middleware/adminAuth";
+import { eq, desc, or, isNull } from "drizzle-orm";
+import { requireAdmin, requireNonDriver, type AdminRequest } from "../middleware/adminAuth";
 
 const router = Router();
 
-router.get("/notifications", requireAdmin, requireNonDriver, async (_req, res) => {
+router.get("/notifications", requireAdmin, async (req, res) => {
+  const adminRequest = req as AdminRequest;
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
-  const notifications = await db.select().from(notificationsTable).orderBy(desc(notificationsTable.createdAt));
+  const visibility = adminRequest.adminRole === "driver"
+    ? eq(notificationsTable.recipientAdminId, adminRequest.adminId)
+    : isNull(notificationsTable.recipientAdminId);
+  const notifications = await db.select().from(notificationsTable)
+    .where(visibility)
+    .orderBy(desc(notificationsTable.createdAt));
   return res.json(notifications);
 });
 
@@ -28,8 +34,8 @@ router.patch("/notifications/read-all", requireAdmin, requireNonDriver, async (_
 });
 
 // Admin: delete single notification
-router.delete("/admin/notifications/:id", async (req, res) => {
-  const id = parseInt(req.params.id);
+router.delete("/admin/notifications/:id", requireAdmin, requireNonDriver, async (req, res) => {
+  const id = parseInt(String(req.params.id), 10);
   const [existing] = await db.select({ id: notificationsTable.id })
     .from(notificationsTable)
     .where(eq(notificationsTable.id, id));
@@ -41,7 +47,7 @@ router.delete("/admin/notifications/:id", async (req, res) => {
 });
 
 // Admin: delete ALL notifications
-router.delete("/admin/notifications", async (_req, res) => {
+router.delete("/admin/notifications", requireAdmin, requireNonDriver, async (_req, res) => {
   await db.delete(notificationsTable);
   return res.json({ success: true });
 });

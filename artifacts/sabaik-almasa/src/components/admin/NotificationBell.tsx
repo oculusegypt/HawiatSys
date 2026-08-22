@@ -28,6 +28,7 @@ async function getPushRegistration(): Promise<ServiceWorkerRegistration> {
 }
 
 function notificationTarget(notification: Pick<Notification, "refId" | "refType">): string {
+  if (localStorage.getItem("admin_role") === "driver") return "/admin/work-orders"
   if (notification.refType === "service_request" && notification.refId) {
     return `/admin/requests?open=${encodeURIComponent(notification.refId)}`
   }
@@ -285,6 +286,40 @@ export function AdminToastPortal() {
           <FloatingToast key={t.id} toast={t} onClose={() => removeToast(t.id)} />
         ))}
       </AnimatePresence>
+    </div>
+  )
+}
+
+export function NotificationStatusStrip() {
+  const [latest, setLatest] = useState<Notification | null>(null)
+  const token = localStorage.getItem("admin_token") || ""
+  const load = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE}/api/notifications`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+      })
+      if (!response.ok) return
+      const rows = await response.json() as Notification[]
+      setLatest(rows[0] ?? null)
+    } catch {}
+  }, [token])
+
+  useEffect(() => {
+    void load()
+    const timer = setInterval(load, 8000)
+    return () => clearInterval(timer)
+  }, [load])
+
+  if (!latest) return null
+  return (
+    <div className="border-b border-primary/10 bg-primary/[0.035] px-4 py-2 text-xs text-gray-600">
+      <div className="mx-auto flex max-w-[1600px] items-center gap-2">
+        <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-emerald-500" />
+        <span className="font-bold text-primary">آخر تحديث</span>
+        <span className="truncate">{latest.title}: {latest.message}</span>
+        <span className="mr-auto shrink-0 text-[10px] text-gray-400">{timeAgo(latest.createdAt)}</span>
+      </div>
     </div>
   )
 }
