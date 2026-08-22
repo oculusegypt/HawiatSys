@@ -11,6 +11,11 @@ import type { ContainerContractWorkflowInputContract } from './containerContract
 import type { ContainerContractWorkflowInputServiceRequest } from './containerContractWorkflowInputServiceRequest';
 
 export interface ContainerContractWorkflowInput {
+  /**
+     * @minLength 8
+     * @maxLength 160
+     */
+  operationKey?: string;
   contract: ContainerContractWorkflowInputContract;
   assignment: ContainerContractWorkflowInputAssignment;
   appointment: ContainerContractWorkflowInputAppointment;

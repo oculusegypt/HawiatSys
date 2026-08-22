@@ -1658,7 +1658,13 @@ export const CreateContainerSystemRecordResponse = zod.object({
 })
 
 
+export const createContainerContractWorkflowBodyOperationKeyMin = 8;
+export const createContainerContractWorkflowBodyOperationKeyMax = 160;
+
+
+
 export const CreateContainerContractWorkflowBody = zod.object({
+  "operationKey": zod.string().min(createContainerContractWorkflowBodyOperationKeyMin).max(createContainerContractWorkflowBodyOperationKeyMax).optional(),
   "contract": zod.record(zod.string(), zod.unknown()),
   "assignment": zod.record(zod.string(), zod.unknown()),
   "appointment": zod.record(zod.string(), zod.unknown()),

@@ -670,6 +670,7 @@ export default function ContainerSystem() {
     const contractNumber = String(contractPayload.contractNumber ?? "")
     contractWorkflowMutation.mutate({
       data: {
+        operationKey: crypto.randomUUID(),
         contract: contractPayload,
         assignment: {
           siteRecordId: contractPayload.siteRecordId,

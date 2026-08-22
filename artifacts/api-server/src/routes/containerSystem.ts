@@ -18,7 +18,7 @@ const supportedKinds = [
 type RecordKind = typeof supportedKinds[number];
 const idempotentKinds = new Set([
   "container_movement", "receipt", "payment", "expense", "deposit", "bank_deposit",
-  "invoice", "invoice_return", "payment_return", "transfer", "purchase", "purchase_return",
+  "invoice", "invoice_return", "payment_return", "transfer", "purchase", "purchase_return", "contract",
 ]);
 
 function parsePayload(payload: string): Record<string, unknown> {
@@ -494,12 +494,36 @@ router.get("/admin/container-system/records", async (req, res) => {
 router.post("/admin/container-system/contracts/workflow", async (req, res) => {
   const adminReq = req as unknown as AdminRequest;
   const body = req.body as {
+    operationKey?: string;
     contract?: Record<string, unknown>;
     assignment?: Record<string, unknown>;
     appointment?: Record<string, unknown>;
     serviceRequest?: Record<string, unknown>;
   };
-  const contractPayload = normalizeContractPayload({ ...(body.contract ?? {}) });
+  const operationKey = String(req.get("Idempotency-Key") ?? body.operationKey ?? "").trim();
+  if (operationKey && (operationKey.length < 8 || operationKey.length > 160)) {
+    return res.status(422).json({ error: "مفتاح العملية غير صالح" });
+  }
+  const existingContract = operationKey ? await findByOperationKey("contract", operationKey) : null;
+  if (existingContract) {
+    const existingPayload = parsePayload(existingContract.payload);
+    const rows = await db.select().from(containerSystemRecordsTable);
+    const related = (kind: string) => rows.find(row => {
+      const payload = parsePayload(row.payload);
+      return row.kind === kind && row.status !== "archived" &&
+        Number(payload.contractRecordId) === existingContract.id;
+    }) ?? null;
+    const serviceRequest = await db.select().from(serviceRequestsTable)
+      .where(eq(serviceRequestsTable.contractRecordId, existingContract.id)).get();
+    return res.status(200).json({
+      contract: formatRecord(existingContract),
+      assignment: related("container_assignment") ? formatRecord(related("container_assignment")!) : null,
+      appointment: related("appointment") ? formatRecord(related("appointment")!) : null,
+      serviceRequest: serviceRequest ?? null,
+      idempotent: true,
+    });
+  }
+  const contractPayload = normalizeContractPayload({ ...(body.contract ?? {}), ...(operationKey ? { operationKey } : {}) });
   const assignmentPayload = { ...(body.assignment ?? {}) };
   const appointmentPayload = { ...(body.appointment ?? {}) };
   const servicePayload = { ...(body.serviceRequest ?? {}) };
@@ -575,7 +599,7 @@ router.post("/admin/container-system/contracts/workflow", async (req, res) => {
       }
       return { contract: finalizedContract, assignment, appointment, serviceRequest };
     });
-    return res.status(201).json({ contract: formatRecord(result.contract), assignment: formatRecord(result.assignment), appointment: formatRecord(result.appointment), serviceRequest: result.serviceRequest });
+    return res.status(201).json({ contract: formatRecord(result.contract), assignment: formatRecord(result.assignment), appointment: formatRecord(result.appointment), serviceRequest: result.serviceRequest, idempotent: false });
   } catch (error) {
     return res.status(422).json({ error: error instanceof Error ? error.message : "تعذر إنشاء دورة العقد كاملة" });
   }

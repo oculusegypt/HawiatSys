@@ -1255,6 +1255,10 @@ components:
       type: object
       required: [contract, assignment, appointment, serviceRequest]
       properties:
+        operationKey:
+          type: string
+          minLength: 8
+          maxLength: 160
         contract:
           type: object
           additionalProperties: true

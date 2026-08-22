@@ -43,6 +43,11 @@ export type ContainerContractWorkflowInputAppointment = { [key: string]: unknown
 export type ContainerContractWorkflowInputServiceRequest = { [key: string]: unknown };
 
 export interface ContainerContractWorkflowInput {
+  /**
+     * @minLength 8
+     * @maxLength 160
+     */
+  operationKey?: string;
   contract: ContainerContractWorkflowInputContract;
   assignment: ContainerContractWorkflowInputAssignment;
   appointment: ContainerContractWorkflowInputAppointment;
