@@ -345,9 +345,19 @@ function slugify(text: string): string {
 function parseImages(raw: any, fallback?: string | null): string[] {
   try {
     const arr = JSON.parse(raw ?? "[]")
-    if (Array.isArray(arr) && arr.length > 0) return arr
+    if (Array.isArray(arr) && arr.length > 0) return uniqueImageUrls(arr)
   } catch {}
   return fallback ? [fallback] : [""]
+}
+
+function uniqueImageUrls(images: unknown[]): string[] {
+  const seen = new Set<string>()
+  return images.filter((value): value is string => {
+    const url = typeof value === "string" ? value.trim() : ""
+    if (!url || seen.has(url)) return false
+    seen.add(url)
+    return true
+  })
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -413,7 +423,7 @@ export default function AdminPackages() {
   }
 
   const handleSave = () => {
-    const validImages = form.images.filter(u => u.trim())
+    const validImages = uniqueImageUrls(form.images)
     const payload: any = {
       name: form.name,
       category: form.category,
@@ -885,8 +895,8 @@ export default function AdminPackages() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {containers.map((c) => {
           const raw = c as any
-          const imgs = (() => { try { return JSON.parse(raw.images || "[]") } catch { return [] } })()
-          const imgCount = imgs.filter((u: string) => u).length || (c.imageUrl ? 1 : 0)
+          const imgs = (() => { try { return uniqueImageUrls(JSON.parse(raw.images || "[]")) } catch { return [] } })()
+          const imgCount = imgs.length || (c.imageUrl ? 1 : 0)
           const seoOn = !!(raw.seoEnabled)
           const seoScore_ = seoOn
             ? calcOverallScore(calcSeoChecks({

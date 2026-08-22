@@ -21,14 +21,14 @@ logical_id = "dd2f77f0-5f7e-42ad-893d-b823952e1890"
 id = "e7Hwi4c_9VUpSkVoGq2Ul"
 uri = "file://cleanflow-services-hostinger.zip"
 type = "unspecified"
-title = "أرشيف Hostinger المحدّث — جميع حالات الحاويات مضغوطة"
-description = "الإصدار النهائي بعد ضغط صور الحالات الأربع: الأزرق والأخضر والأحمر والأصفر، مع الحفاظ على نفس الروابط وشفافية الصور."
+title = "أرشيف Hostinger النهائي — صورة واحدة لكل حاوية"
+description = "يتضمن ضغط صور الحالات الأربع وإزالة تكرار روابط الصور داخل ملفات الحاويات، بحيث تظهر الصورة الرئيسية مرة واحدة فقط."
 logical_id = "c612380d-19d8-4641-8c29-e5ac4a484245"
-content_hash = "sha256:f03b684cf69def784fd328fd1d8319b83abaa23ff96e3e5e51157359a334bb88"
-size = 20914060
-mtime_ms = 1787381015595
-storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:2430911c-28ba-43d9-8faa-a88f9d85d7ba/c612380d-19d8-4641-8c29-e5ac4a484245/8f917128-68b4-407b-bbc4-6f2234198c00"
-storage_version_token = "1787381022938871"
+content_hash = "sha256:acfada3cac34d4504dd1fd3d6c5f04e1d37a11989d5ff6fe0c9e270a6020dfd6"
+size = 20914263
+mtime_ms = 1787381215586
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:2430911c-28ba-43d9-8faa-a88f9d85d7ba/c612380d-19d8-4641-8c29-e5ac4a484245/47829deb-7db5-4893-800e-2b96af4d3306"
+storage_version_token = "1787381220135472"
 content_type = "application/octet-stream"
 
 [[outputs]]
