@@ -15,6 +15,7 @@ const dbPath = process.env["DB_PATH"] ?? path.join(dbDir, "sabaik.db");
 const sqlite: Database.Database = new Database(dbPath);
 sqlite.pragma("journal_mode = WAL");
 sqlite.pragma("foreign_keys = ON");
+sqlite.pragma("busy_timeout = 5000");
 
 // ── Schema migrations: add new columns if they don't exist ───────────────────
 const adminMigrations = [
@@ -126,6 +127,32 @@ sqlite.exec(`
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
   )
+`);
+
+// Defensive SQLite constraints for portable databases. Triggers are used here
+// because older installations cannot add CHECK constraints without rebuilding
+// tables; they protect new writes without rewriting existing records.
+sqlite.exec(`
+  CREATE INDEX IF NOT EXISTS idx_service_requests_driver_status
+    ON service_requests(assigned_driver_id, driver_status);
+  CREATE INDEX IF NOT EXISTS idx_service_requests_status_created
+    ON service_requests(status, created_at);
+  CREATE TRIGGER IF NOT EXISTS validate_service_request_values_insert
+    BEFORE INSERT ON service_requests
+    WHEN NEW.appointment_type NOT IN ('immediate', 'scheduled')
+      OR NEW.driver_status NOT IN ('unassigned', 'assigned', 'accepted', 'started', 'en_route', 'arrived', 'completed', 'rejected')
+      OR NEW.status NOT IN ('pending', 'confirmed', 'in_progress', 'completed', 'cancelled', 'rejected')
+    BEGIN
+      SELECT RAISE(ABORT, 'invalid service request status');
+    END;
+  CREATE TRIGGER IF NOT EXISTS validate_service_request_values_update
+    BEFORE UPDATE OF appointment_type, driver_status, status ON service_requests
+    WHEN NEW.appointment_type NOT IN ('immediate', 'scheduled')
+      OR NEW.driver_status NOT IN ('unassigned', 'assigned', 'accepted', 'started', 'en_route', 'arrived', 'completed', 'rejected')
+      OR NEW.status NOT IN ('pending', 'confirmed', 'in_progress', 'completed', 'cancelled', 'rejected')
+    BEGIN
+      SELECT RAISE(ABORT, 'invalid service request status');
+    END;
 `);
 
 sqlite.exec(`

@@ -21,26 +21,68 @@ const storage = multer.diskStorage({
   },
 });
 
-const ALLOWED_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif", "image/avif"];
+const ALLOWED_TYPES = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif", "image/avif"]);
+const MAX_FILE_SIZE = 8 * 1024 * 1024;
 
 const upload = multer({
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+  limits: { fileSize: MAX_FILE_SIZE, files: 1, fields: 8 },
   fileFilter: (_req, file, cb) => {
-    if (ALLOWED_TYPES.includes(file.mimetype)) cb(null, true);
+    const extension = path.extname(file.originalname).toLowerCase();
+    const allowedExtension = [".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif"].includes(extension);
+    if (ALLOWED_TYPES.has(file.mimetype) && allowedExtension) cb(null, true);
     else cb(new Error("نوع الملف غير مسموح به — يُقبل JPEG/PNG/WebP/GIF/AVIF فقط"));
   },
 });
 
-// ── Auth middleware ────────────────────────────────────────────────────────────
-function requireToken(req: Request, res: Response, next: NextFunction): void {
-  const token = req.headers.authorization?.replace("Bearer ", "") || "";
-  if (!token) { res.status(401).json({ error: "غير مصرح" }); return; }
+function hasImageSignature(filePath: string): boolean {
+  const header = Buffer.alloc(32);
+  const fd = fs.openSync(filePath, "r");
+  try {
+    const bytesRead = fs.readSync(fd, header, 0, header.length, 0);
+    const bytes = header.subarray(0, bytesRead);
+    const isJpeg = bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+    const isPng = bytes.length >= 8 && bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+    const isGif = bytes.length >= 6 && (bytes.subarray(0, 6).toString("ascii") === "GIF87a" || bytes.subarray(0, 6).toString("ascii") === "GIF89a");
+    const isWebp = bytes.length >= 12 && bytes.subarray(0, 4).toString("ascii") === "RIFF" && bytes.subarray(8, 12).toString("ascii") === "WEBP";
+    const isAvif = bytes.length >= 12 && bytes.subarray(4, 8).toString("ascii") === "ftyp" &&
+      ["avif", "avis", "mif1", "msf1"].includes(bytes.subarray(8, 12).toString("ascii"));
+    return isJpeg || isPng || isGif || isWebp || isAvif;
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
+function safeUpload(req: Request, res: Response, next: NextFunction): void {
+  upload.single("file")(req, res, (error: unknown) => {
+    if (error) {
+      const message = error instanceof multer.MulterError && error.code === "LIMIT_FILE_SIZE"
+        ? "حجم الملف أكبر من 8 ميغابايت"
+        : error instanceof Error ? error.message : "تعذر رفع الملف";
+      res.status(400).json({ error: message });
+      return;
+    }
+    if (req.file && !hasImageSignature(req.file.path)) {
+      fs.rmSync(req.file.path, { force: true });
+      res.status(400).json({ error: "محتوى الملف لا يطابق نوع الصورة المعلن" });
+      return;
+    }
+    next();
+  });
+}
+
+function rejectUnsafeFileName(req: Request, res: Response, next: NextFunction): void {
+  const originalName = req.file?.originalname ?? "";
+  if (originalName.includes("\0") || originalName.split(".").length > 2) {
+    if (req.file) fs.rmSync(req.file.path, { force: true });
+    res.status(400).json({ error: "اسم الملف غير صالح" });
+    return;
+  }
   next();
 }
 
 // ── POST /api/admin/uploads ────────────────────────────────────────────────────
-router.post("/admin/uploads", requireToken, upload.single("file"), (req: Request, res: Response): void => {
+router.post("/admin/uploads", requireAdmin, safeUpload, rejectUnsafeFileName, (req: Request, res: Response): void => {
   if (!req.file) { res.status(400).json({ error: "لم يُرفَق ملف" }); return; }
   const url = `/api/uploads/${req.file.filename}`;
   res.json({ url, filename: req.file.filename, size: req.file.size });
@@ -48,7 +90,7 @@ router.post("/admin/uploads", requireToken, upload.single("file"), (req: Request
 
 // Driver completion evidence uses a dedicated protected route because the
 // global /api/admin middleware intentionally blocks driver accounts.
-router.post("/driver/uploads", requireAdmin, requireDriver, upload.single("file"), (req: Request, res: Response): void => {
+router.post("/driver/uploads", requireAdmin, requireDriver, safeUpload, rejectUnsafeFileName, (req: Request, res: Response): void => {
   if (!req.file) { res.status(400).json({ error: "لم يُرفَق ملف" }); return; }
   const url = `/api/uploads/${req.file.filename}`;
   res.json({ url, filename: req.file.filename, size: req.file.size });
@@ -57,15 +99,19 @@ router.post("/driver/uploads", requireAdmin, requireDriver, upload.single("file"
 // Public conversation attachments. Files are still limited to safe image types
 // and are stored in the same deployment-aware uploads directory used by the
 // existing Hostinger build.
-router.post("/uploads", upload.single("file"), (req: Request, res: Response): void => {
+router.post("/uploads", safeUpload, rejectUnsafeFileName, (req: Request, res: Response): void => {
   if (!req.file) { res.status(400).json({ error: "لم يُرفَق ملف" }); return; }
   const url = `/api/uploads/${req.file.filename}`;
   res.json({ url, filename: req.file.filename, size: req.file.size });
 });
 
 // ── DELETE /api/admin/uploads/:filename ───────────────────────────────────────
-router.delete("/admin/uploads/:filename", requireToken, (req: Request, res: Response): void => {
+router.delete("/admin/uploads/:filename", requireAdmin, (req: Request, res: Response): void => {
   const filename = path.basename(String(req.params["filename"] ?? "")); // prevent path traversal
+  if (filename !== req.params["filename"] || !/^[a-zA-Z0-9._-]+$/.test(filename)) {
+    res.status(400).json({ error: "اسم الملف غير صالح" });
+    return;
+  }
   const filepath = path.join(UPLOADS_DIR, filename);
   if (fs.existsSync(filepath)) {
     fs.unlinkSync(filepath);

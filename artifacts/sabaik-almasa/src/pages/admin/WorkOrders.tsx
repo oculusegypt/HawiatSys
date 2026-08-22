@@ -363,6 +363,14 @@ function CompletionEvidenceDialog({
   }) => void;
   pending: boolean;
 }) {
+  const MAX_PROOF_SIZE = 8 * 1024 * 1024;
+  const ACCEPTED_PROOF_TYPES = new Set([
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/gif",
+    "image/avif",
+  ]);
   const [receiverName, setReceiverName] = useState("");
   const [locationLat, setLocationLat] = useState("");
   const [locationLng, setLocationLng] = useState("");
@@ -370,6 +378,7 @@ function CompletionEvidenceDialog({
   const [uploadingProof, setUploadingProof] = useState(false);
   const [signatureData, setSignatureData] = useState("");
   const [locationMessage, setLocationMessage] = useState("");
+  const [fileMessage, setFileMessage] = useState("");
   function captureLocation() {
     if (!navigator.geolocation) {
       setLocationMessage(
@@ -456,14 +465,38 @@ function CompletionEvidenceDialog({
                 type="file"
                 accept="image/*"
                 capture="environment"
-                onChange={(event) =>
-                  setProofFile(event.target.files?.[0] ?? null)
-                }
+                onChange={(event) => {
+                  const file = event.target.files?.[0] ?? null;
+                  if (!file) {
+                    setProofFile(null);
+                    setFileMessage("");
+                    return;
+                  }
+                  if (!ACCEPTED_PROOF_TYPES.has(file.type)) {
+                    setProofFile(null);
+                    setFileMessage("اختر صورة بصيغة JPEG أو PNG أو WebP أو GIF أو AVIF.");
+                    event.target.value = "";
+                    return;
+                  }
+                  if (file.size > MAX_PROOF_SIZE) {
+                    setProofFile(null);
+                    setFileMessage("حجم الصورة يجب ألا يتجاوز 8 ميغابايت.");
+                    event.target.value = "";
+                    return;
+                  }
+                  setFileMessage("");
+                  setProofFile(file);
+                }}
                 className="mt-1 block w-full rounded-md border border-input bg-background p-2 text-xs"
               />
               {proofFile && (
                 <span className="mt-1 block truncate text-[11px] text-emerald-700">
                   {proofFile.name}
+                </span>
+              )}
+              {fileMessage && (
+                <span className="mt-1 block text-[11px] font-semibold text-rose-600">
+                  {fileMessage}
                 </span>
               )}
             </label>

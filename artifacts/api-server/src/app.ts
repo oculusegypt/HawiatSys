@@ -85,10 +85,15 @@ const apiLimiter = rateLimit({
 app.use("/api", apiLimiter);
 
 // ── Serve uploaded files ──────────────────────────────────────────────────────
-app.use("/api/uploads", express.static(path.join(process.cwd(), "uploads")));
-app.use("/api/uploads", express.static(path.join(process.cwd(), "artifacts/api-server/uploads")));
-app.use("/api/uploads", express.static(path.join(process.cwd(), "build_php/uploads")));
-app.use("/api/uploads", express.static(path.join(process.cwd(), "attached_assets")));
+const uploadHeaders = (res: Response) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Content-Disposition", "inline");
+  res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+};
+app.use("/api/uploads", express.static(path.join(process.cwd(), "uploads"), { dotfiles: "deny", fallthrough: true, setHeaders: uploadHeaders }));
+app.use("/api/uploads", express.static(path.join(process.cwd(), "artifacts/api-server/uploads"), { dotfiles: "deny", fallthrough: true, setHeaders: uploadHeaders }));
+app.use("/api/uploads", express.static(path.join(process.cwd(), "build_php/uploads"), { dotfiles: "deny", fallthrough: true, setHeaders: uploadHeaders }));
+app.use("/api/uploads", express.static(path.join(process.cwd(), "attached_assets"), { dotfiles: "deny", fallthrough: true, setHeaders: uploadHeaders }));
 
 // ── Admin routes — require valid token globally ───────────────────────────────
 app.use("/api/admin", requireAdmin, requireNonDriver);
