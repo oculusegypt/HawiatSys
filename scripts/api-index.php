@@ -3281,7 +3281,11 @@ try {
 
     if ($path === '/admin/ads' && $method === 'POST') {
         try {
-            $stmt = $pdo->prepare("INSERT INTO ads (title, content, image_url, link_url, button_text, position, type, bg_color, is_active, ad_order) VALUES (:title, :content, :image_url, :link_url, :button_text, :position, :type, :bg_color, :is_active, :ad_order)");
+            // Legacy Hostinger databases may declare created_at as NOT NULL
+            // without a default. Bind it explicitly instead of relying on
+            // SQLite's schema default.
+            $now = date('c');
+            $stmt = $pdo->prepare("INSERT INTO ads (title, content, image_url, link_url, button_text, position, type, bg_color, is_active, ad_order, created_at) VALUES (:title, :content, :image_url, :link_url, :button_text, :position, :type, :bg_color, :is_active, :ad_order, :created_at)");
             $stmt->execute([
                 ':title' => $input['title'] ?? 'إعلان جديد',
                 ':content' => $input['content'] ?? '',
@@ -3292,7 +3296,8 @@ try {
                 ':type' => $input['type'] ?? 'banner',
                 ':bg_color' => $input['bgColor'] ?? '#eff6ff',
                 ':is_active' => isset($input['isActive']) ? ($input['isActive'] ? 1 : 0) : 1,
-                ':ad_order' => (int)($input['order'] ?? 0)
+                ':ad_order' => (int)($input['order'] ?? 0),
+                ':created_at' => $now
             ]);
             $newId = (int)$pdo->lastInsertId();
             http_response_code(201);
