@@ -660,6 +660,158 @@ try {
     require_once __DIR__ . '/container-system.php';
     hostingerContainerSystemRoute($pdo, (string)$path, (string)$method, $input);
 
+    // Hostinger deployment settings and Patch upload. This is intentionally
+    // implemented here (PHP/FTP) because production has no Node.js process.
+    function hostingerPatchKey(): string {
+        $secret = getenv('SESSION_SECRET') ?: '__HOSTINGER_TOKEN_SECRET__';
+        return hash('sha256', 'hostinger-ftp:' . $secret, true);
+    }
+
+    function hostingerEncrypt(string $plain): string {
+        $iv = random_bytes(12);
+        $tag = '';
+        $cipher = openssl_encrypt($plain, 'aes-256-gcm', hostingerPatchKey(), OPENSSL_RAW_DATA, $iv, $tag);
+        if ($cipher === false) throw new RuntimeException('تعذر تشفير كلمة مرور FTP');
+        return base64url_encode($iv) . '.' . base64url_encode($tag) . '.' . base64url_encode($cipher);
+    }
+
+    function hostingerDecrypt(string $value): string {
+        $parts = explode('.', $value);
+        if (count($parts) !== 3) throw new RuntimeException('بيانات كلمة مرور FTP غير صالحة');
+        $plain = openssl_decrypt(base64url_decode($parts[2]), 'aes-256-gcm', hostingerPatchKey(), OPENSSL_RAW_DATA, base64url_decode($parts[0]), base64url_decode($parts[1]));
+        if ($plain === false) throw new RuntimeException('تعذر فك تشفير كلمة مرور FTP');
+        return $plain;
+    }
+
+    function hostingerSaveSetting(PDO $pdo, string $key, string $value): void {
+        $stmt = $pdo->prepare("INSERT INTO site_settings (key, value, updated_at) VALUES (:key, :value, :now)
+            ON CONFLICT(key) DO UPDATE SET value = :value, updated_at = :now");
+        $stmt->execute([':key' => $key, ':value' => $value, ':now' => date('c')]);
+    }
+
+    function hostingerReadSettings(PDO $pdo): array {
+        $stmt = $pdo->query("SELECT key, value FROM site_settings WHERE key IN
+            ('hostinger_ftp_host','hostinger_ftp_username','hostinger_ftp_port','hostinger_ftp_remote_path','hostinger_ftp_secure','hostinger_ftp_password')");
+        $settings = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) $settings[(string)$row['key']] = (string)$row['value'];
+        return $settings;
+    }
+
+    function hostingerFtpConnect(array $settings) {
+        if (!function_exists('ftp_connect')) throw new RuntimeException('إضافة FTP غير مفعلة على استضافة Hostinger');
+        $host = preg_replace('#^ftps?://#i', '', trim((string)($settings['hostinger_ftp_host'] ?? '')));
+        $host = rtrim((string)$host, '/');
+        $user = trim((string)($settings['hostinger_ftp_username'] ?? ''));
+        $password = hostingerDecrypt((string)($settings['hostinger_ftp_password'] ?? ''));
+        $port = (int)($settings['hostinger_ftp_port'] ?? 21) ?: 21;
+        $secure = (($settings['hostinger_ftp_secure'] ?? 'false') === 'true');
+        $ftp = $secure && function_exists('ftp_ssl_connect') ? @ftp_ssl_connect($host, $port, 20000) : @ftp_connect($host, $port, 20000);
+        if (!$ftp || !@ftp_login($ftp, $user, $password)) {
+            if ($ftp) @ftp_close($ftp);
+            throw new RuntimeException('تعذر الاتصال بخادم FTP');
+        }
+        @ftp_pasv($ftp, true);
+        $remote = '/' . trim((string)($settings['hostinger_ftp_remote_path'] ?? 'public_html'), " /");
+        if (!@ftp_chdir($ftp, $remote)) {
+            @ftp_close($ftp);
+            throw new RuntimeException('المسار البعيد غير موجود: ' . $remote);
+        }
+        return [$ftp, $remote];
+    }
+
+    function hostingerEnsureRemoteDir($ftp, string $dir): void {
+        $parts = array_values(array_filter(explode('/', trim($dir, '/')), static fn($part) => $part !== '' && $part !== '.' && $part !== '..'));
+        foreach ($parts as $part) {
+            if (!@ftp_chdir($ftp, $part)) {
+                if (!@ftp_mkdir($ftp, $part) || !@ftp_chdir($ftp, $part)) {
+                    throw new RuntimeException('تعذر إنشاء مجلد الرفع');
+                }
+            }
+        }
+    }
+
+    function hostingerDeleteTemp(string $directory): void {
+        if (!is_dir($directory)) return;
+        $items = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($directory, FilesystemIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::CHILD_FIRST
+        );
+        foreach ($items as $item) {
+            if ($item->isDir() && !$item->isLink()) @rmdir($item->getPathname());
+            else @unlink($item->getPathname());
+        }
+        @rmdir($directory);
+    }
+
+    if (str_starts_with((string)$path, '/admin/hostinger')) {
+        requireAdminAccess($pdo, 'settings', true, false, true);
+        $hostingerSettings = hostingerReadSettings($pdo);
+        if ($path === '/admin/hostinger' && $method === 'GET') {
+            echo json_encode([
+                'host' => $hostingerSettings['hostinger_ftp_host'] ?? '',
+                'username' => $hostingerSettings['hostinger_ftp_username'] ?? '',
+                'port' => $hostingerSettings['hostinger_ftp_port'] ?? '21',
+                'remotePath' => $hostingerSettings['hostinger_ftp_remote_path'] ?? 'public_html',
+                'secure' => ($hostingerSettings['hostinger_ftp_secure'] ?? 'false') === 'true',
+                'hasPassword' => !empty($hostingerSettings['hostinger_ftp_password']),
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        if ($path === '/admin/hostinger' && $method === 'PUT') {
+            $host = rtrim(preg_replace('#^ftps?://#i', '', trim((string)($input['host'] ?? ''))), '/');
+            $username = trim((string)($input['username'] ?? ''));
+            $port = (int)($input['port'] ?? 21);
+            $remote = trim((string)($input['remotePath'] ?? 'public_html'), " /");
+            if ($host === '' || $username === '' || $port < 1 || $port > 65535 || $remote === '' || str_contains($remote, '..')) {
+                http_response_code(400); echo json_encode(['error' => 'يرجى إدخال بيانات FTP صحيحة'], JSON_UNESCAPED_UNICODE); exit;
+            }
+            hostingerSaveSetting($pdo, 'hostinger_ftp_host', $host);
+            hostingerSaveSetting($pdo, 'hostinger_ftp_username', $username);
+            hostingerSaveSetting($pdo, 'hostinger_ftp_port', (string)$port);
+            hostingerSaveSetting($pdo, 'hostinger_ftp_remote_path', $remote);
+            hostingerSaveSetting($pdo, 'hostinger_ftp_secure', !empty($input['secure']) ? 'true' : 'false');
+            $password = trim((string)($input['password'] ?? ''));
+            if ($password !== '') hostingerSaveSetting($pdo, 'hostinger_ftp_password', hostingerEncrypt($password));
+            echo json_encode(['host' => $host, 'username' => $username, 'port' => (string)$port, 'remotePath' => $remote, 'secure' => !empty($input['secure']), 'hasPassword' => $password !== '' || !empty($hostingerSettings['hostinger_ftp_password'])], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        if ($path === '/admin/hostinger/test' && $method === 'POST') {
+            [$ftp, $remote] = hostingerFtpConnect($hostingerSettings);
+            @ftp_close($ftp);
+            echo json_encode(['ok' => true, 'path' => $remote], JSON_UNESCAPED_UNICODE); exit;
+        }
+        if ($path === '/admin/hostinger/deploy' && $method === 'POST') {
+            if (empty($_FILES['patch']) || !is_uploaded_file($_FILES['patch']['tmp_name']) || strtolower(pathinfo((string)$_FILES['patch']['name'], PATHINFO_EXTENSION)) !== 'zip') {
+                http_response_code(400); echo json_encode(['error' => 'اختر ملف Patch بصيغة ZIP'], JSON_UNESCAPED_UNICODE); exit;
+            }
+            if (!class_exists('ZipArchive')) throw new RuntimeException('إضافة ZIP غير مفعلة على استضافة Hostinger');
+            $temp = sys_get_temp_dir() . '/hawiat-patch-' . bin2hex(random_bytes(8));
+            mkdir($temp, 0700, true);
+            $zip = new ZipArchive();
+            if ($zip->open($_FILES['patch']['tmp_name']) !== true) throw new RuntimeException('ملف ZIP غير صالح');
+            for ($i = 0; $i < $zip->numFiles; $i++) {
+                $name = str_replace('\\', '/', (string)$zip->getNameIndex($i));
+                if ($name === '' || str_starts_with($name, '/') || str_contains($name, '../') || str_contains($name, "\0")) throw new RuntimeException('ملف التحديث يحتوي على مسار غير آمن');
+            }
+            if (!$zip->extractTo($temp)) throw new RuntimeException('تعذر فك ملف التحديث');
+            $zip->close();
+            [$ftp, $remote] = hostingerFtpConnect($hostingerSettings);
+            $uploaded = 0;
+            $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($temp, FilesystemIterator::SKIP_DOTS));
+            foreach ($iterator as $file) {
+                if (!$file->isFile() || $file->isLink()) continue;
+                $relative = str_replace('\\', '/', substr($file->getPathname(), strlen($temp) + 1));
+                $remoteFile = $remote . '/' . $relative;
+                hostingerEnsureRemoteDir($ftp, dirname($relative));
+                if (!@ftp_put($ftp, $remoteFile, $file->getPathname(), FTP_BINARY)) throw new RuntimeException('فشل رفع الملف: ' . $relative);
+                $uploaded++;
+            }
+            @ftp_close($ftp);
+            hostingerDeleteTemp($temp);
+            echo json_encode(['ok' => true, 'uploaded' => $uploaded, 'remotePath' => $remote], JSON_UNESCAPED_UNICODE); exit;
+        }
+    }
+
     // ── ROUTING ─────────────────────────────────────────────────────────────
 
     // Mirror the Node API authorization boundary for the Hostinger archive.

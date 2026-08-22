@@ -41,7 +41,6 @@ import {
 import type { HeroSlide, Testimonial, Partner } from "@workspace/api-client-react"
 
 const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
-const IS_HOSTINGER_TARGET = import.meta.env.VITE_HOSTINGER_TARGET === "1"
 const formatNumberForSettings = (value: number) => new Intl.NumberFormat("ar-SA").format(value)
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -1817,11 +1816,11 @@ export default function SiteSettings() {
               <span className="hidden sm:inline">الذكاء الاصطناعي</span>
               <span className="sm:hidden">AI</span>
             </TabsTrigger>
-            {!IS_HOSTINGER_TARGET && <TabsTrigger value="hostinger" className="flex min-h-11 items-center justify-center gap-2 rounded-lg border border-transparent px-2 py-2.5 text-sm font-medium text-gray-600 transition-all data-[state=active]:border-primary/15 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">
+            <TabsTrigger value="hostinger" className="flex min-h-11 items-center justify-center gap-2 rounded-lg border border-transparent px-2 py-2.5 text-sm font-medium text-gray-600 transition-all data-[state=active]:border-primary/15 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">
               <Server size={15} />
               <span className="hidden sm:inline">تحديث Hostinger</span>
               <span className="sm:hidden">تحديث</span>
-            </TabsTrigger>}
+            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -1832,7 +1831,7 @@ export default function SiteSettings() {
           <TabsContent value="partners"><PartnersTab /></TabsContent>
           <TabsContent value="sections"><SectionsTab /></TabsContent>
           <TabsContent value="ai"><AISettingsTab /></TabsContent>
-          {!IS_HOSTINGER_TARGET && <TabsContent value="hostinger"><HostingerTab /></TabsContent>}
+          <TabsContent value="hostinger"><HostingerTab /></TabsContent>
         </div>
       </Tabs>
     </div>

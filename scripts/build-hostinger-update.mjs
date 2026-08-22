@@ -40,7 +40,7 @@ function step(label) {
 // ── 1. بناء الواجهة الأمامية ──────────────────────────────────────────────────
 step("بناء الواجهة الأمامية (Vite)");
 run(
-  "PORT=19770 BASE_PATH=/ NODE_ENV=production VITE_HOSTINGER_TARGET=1 pnpm --filter @workspace/cleanflow-services run build",
+  "PORT=19770 BASE_PATH=/ NODE_ENV=production pnpm --filter @workspace/cleanflow-services run build",
   "vite build"
 );
 run(
