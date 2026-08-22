@@ -296,6 +296,21 @@ router.get("/admin/analytics", requireAdmin, async (req, res) => {
     }, {} as Record<string, { service: string; total: number; completed: number; inProgress: number; cancelled: number }>))
       .sort((a, b) => b.total - a.total)
       .map(row => ({ ...row, completionRate: row.total > 0 ? Number(((row.completed / row.total) * 100).toFixed(1)) : 0 }));
+    const averageHours = (rows: typeof selectedRequests, endField: "assignedAt" | "driverCompletedAt") => {
+      const durations = rows.flatMap(request => {
+        const end = request[endField];
+        if (!end) return [];
+        const hours = (new Date(end).getTime() - new Date(request.createdAt).getTime()) / 3_600_000;
+        return Number.isFinite(hours) && hours >= 0 ? [hours] : [];
+      });
+      return durations.length ? Number((durations.reduce((sum, value) => sum + value, 0) / durations.length).toFixed(1)) : 0;
+    };
+    const operationalMetrics = {
+      assigned: selectedRequests.filter(request => Boolean(request.assignedAt)).length,
+      averageAssignmentHours: averageHours(selectedRequests, "assignedAt"),
+      completed: selectedRequests.filter(request => request.status === "completed").length,
+      averageCompletionHours: averageHours(selectedRequests.filter(request => request.status === "completed"), "driverCompletedAt"),
+    };
     const selectedUnique = new Set(selectedRows.map(row => row.sessionId)).size;
     const comparisonUnique = new Set(comparisonRows.map(row => row.sessionId)).size;
     const selectedConversion = selectedUnique > 0 ? Number(((selectedRequests.length / selectedUnique) * 100).toFixed(1)) : 0;
@@ -333,6 +348,7 @@ router.get("/admin/analytics", requireAdmin, async (req, res) => {
         conversionRate: comparisonConversion,
       } : null,
       servicePerformance,
+      operationalMetrics,
       conversionSources,
       countries: locationRows("country"),
       cities: locationRows("city"),

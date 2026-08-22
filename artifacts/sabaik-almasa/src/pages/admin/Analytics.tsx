@@ -81,6 +81,12 @@ interface AnalyticsData {
     cancelled: number
     completionRate: number
   }[]
+  operationalMetrics: {
+    assigned: number
+    averageAssignmentHours: number
+    completed: number
+    averageCompletionHours: number
+  }
   conversionSources: { source: string; views: number; orders: number; rate: number }[]
   countries: { country: string; count: number }[]
   cities: { city: string; count: number }[]
@@ -143,6 +149,7 @@ function normalizeAnalytics(raw: Partial<AnalyticsData>): AnalyticsData {
     },
     comparison: raw.comparison ?? null,
     servicePerformance: raw.servicePerformance ?? [],
+    operationalMetrics: raw.operationalMetrics ?? { assigned: 0, averageAssignmentHours: 0, completed: 0, averageCompletionHours: 0 },
     conversionSources: raw.conversionSources ?? [],
     countries: raw.countries ?? [],
     cities: raw.cities ?? [],
@@ -904,6 +911,21 @@ export default function Analytics() {
             </TabsContent>
 
             <TabsContent value="services" className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {[
+                  ["طلبات مسندة", data.operationalMetrics.assigned, "طلب", "text-[#193b63]", "bg-[#e7eef7]"],
+                  ["متوسط سرعة التعيين", data.operationalMetrics.averageAssignmentHours, "ساعة", "text-[#408a70]", "bg-[#e5f3ed]"],
+                  ["طلبات مكتملة", data.operationalMetrics.completed, "طلب", "text-[#8d5e9b]", "bg-[#f3eafa]"],
+                  ["متوسط زمن الإغلاق", data.operationalMetrics.averageCompletionHours, "ساعة", "text-[#ad8127]", "bg-[#fbf4df]"],
+                ].map(([label, value, suffix, color, background]) => (
+                  <Card key={String(label)} className="border-slate-200/80 shadow-[0_8px_24px_rgba(25,59,99,0.04)]">
+                    <CardContent className="flex items-center gap-3 p-4">
+                      <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${background} ${color}`}><Clock3 size={18} /></div>
+                      <div><p className="text-xs font-medium text-slate-500">{label}</p><p className={`mt-1 text-xl font-extrabold ${color}`}>{formatNumber(Number(value))} <span className="text-xs font-bold text-slate-400">{suffix}</span></p></div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
               <Card className="border-slate-200/80 shadow-[0_8px_24px_rgba(25,59,99,0.04)]">
                 <CardHeader><SectionHeading icon={BriefcaseBusiness} title="أداء الخدمات" description="تعرف على الخدمات الأكثر طلبًا ونسبة إتمامها والإلغاءات ضمن الفترة المختارة." /></CardHeader>
                 <CardContent><ServicePerformanceTable rows={data.servicePerformance} /></CardContent>
