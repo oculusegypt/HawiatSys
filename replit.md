@@ -61,6 +61,7 @@ src/
 - **منصة التشغيل التسويقية**: `/cleanflow-platform/` — CleanFlow Platform
 - **الأدوار**: `admin`, `manager`, `customer_service`, `requests_officer`, `driver`
 - **الخدمات المتاحة**: متابعة الطلبات، تعيين أوامر العمل، إدارة المقالات والخدمات والباقات، الإشعارات، والتحليلات.
+- **توثيق الحركات التشغيلية**: قواعد الإدخال، الحالات المسموحة، والتصحيح في `docs/container-system-movements.md`.
 
 ## النشر على Hostinger
 

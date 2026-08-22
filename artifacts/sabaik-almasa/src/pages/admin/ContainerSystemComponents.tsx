@@ -502,6 +502,19 @@ export const FIELD_CONFIG: Record<RecordKind, FieldConfig[]> = {
   ],
 }
 
+const MOVEMENT_TYPE_SUGGESTIONS = [
+  "تسليم",
+  "استرجاع",
+  "تبديل",
+  "نقل",
+  "توصيل",
+  "رفع",
+  "تحميل",
+  "تفريغ",
+  "سحب",
+  "صيانة",
+] as const
+
 const emptyPayload = (kind: RecordKind) =>
   Object.fromEntries(FIELD_CONFIG[kind].map(field => [field.key, ""])) as Record<string, string>
 
@@ -758,7 +771,24 @@ export function RecordDialog({
                     {optionsFor(field.key).map(option => <option key={`${field.key}-${option.value}`} value={option.value}>{option.label}</option>)}
                   </select>
                 ) : (
-                  <Input id={`record-${field.key}`} type={field.type ?? "text"} value={payload[field.key] ?? ""} onChange={event => setValue(field.key, event.target.value)} placeholder={field.placeholder} dir={field.key.toLowerCase().includes("phone") || field.type === "number" ? "ltr" : "rtl"} className="h-11 border-slate-200 bg-white" data-testid={`input-record-${field.key}`} />
+                  <>
+                    <Input
+                      id={`record-${field.key}`}
+                      type={field.type ?? "text"}
+                      list={kind === "container_movement" && field.key === "movementType" ? "movement-type-suggestions" : undefined}
+                      value={payload[field.key] ?? ""}
+                      onChange={event => setValue(field.key, event.target.value)}
+                      placeholder={field.placeholder}
+                      dir={field.key.toLowerCase().includes("phone") || field.type === "number" ? "ltr" : "rtl"}
+                      className="h-11 border-slate-200 bg-white"
+                      data-testid={`input-record-${field.key}`}
+                    />
+                    {kind === "container_movement" && field.key === "movementType" && (
+                      <datalist id="movement-type-suggestions">
+                        {MOVEMENT_TYPE_SUGGESTIONS.map(option => <option key={option} value={option} />)}
+                      </datalist>
+                    )}
+                  </>
                 )}
               </div>
             ))}
