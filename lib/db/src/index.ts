@@ -87,6 +87,26 @@ for (const sql of conversationMigrations) {
   try { sqlite.exec(sql); } catch { /* column already exists — safe to ignore */ }
 }
 
+// Ads were added after some portable SQLite databases were created. Keep the
+// table available at startup so the admin list and public ad slots never fail
+// simply because an older database was deployed.
+sqlite.exec(`
+  CREATE TABLE IF NOT EXISTS ads (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    content TEXT NOT NULL DEFAULT '',
+    image_url TEXT NOT NULL DEFAULT '',
+    link_url TEXT NOT NULL DEFAULT '',
+    button_text TEXT NOT NULL DEFAULT '',
+    position TEXT NOT NULL DEFAULT 'middle',
+    type TEXT NOT NULL DEFAULT 'banner',
+    bg_color TEXT NOT NULL DEFAULT '#eff6ff',
+    is_active INTEGER NOT NULL DEFAULT 1,
+    "order" INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )
+`);
+
 const messageMigrations = [
   "ALTER TABLE messages ADD COLUMN message_type TEXT NOT NULL DEFAULT 'text'",
   "ALTER TABLE messages ADD COLUMN metadata TEXT",

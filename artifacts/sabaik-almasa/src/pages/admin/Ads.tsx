@@ -54,8 +54,24 @@ export default function AdminAds() {
 
   const load = () => {
     fetch(`${API_BASE}/api/admin/ads`, { headers: { Authorization: `Bearer ${token()}` } })
-      .then(r => r.json()).then(d => { setAds(Array.isArray(d) ? d : []); setLoading(false) })
-      .catch(() => setLoading(false))
+      .then(async r => {
+        if (r.status === 401) {
+          localStorage.removeItem("admin_token")
+          localStorage.removeItem("admin_role")
+          localStorage.removeItem("admin_id")
+          localStorage.removeItem("admin_name")
+          window.location.assign(`${API_BASE}/admin/login`)
+          return
+        }
+        const data = await r.json().catch(() => null)
+        if (!r.ok) throw new Error(data?.error || "تعذر تحميل الإعلانات")
+        setAds(Array.isArray(data) ? data : [])
+        setLoading(false)
+      })
+      .catch(error => {
+        setLoading(false)
+        toast({ variant: "destructive", title: error instanceof Error ? error.message : "تعذر تحميل الإعلانات" })
+      })
   }
   useEffect(load, [])
 

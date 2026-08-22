@@ -115,6 +115,42 @@ try {
         $pdo = new PDO('sqlite:' . $dbFile);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+        // Keep older Hostinger SQLite databases compatible with the current
+        // admin ads form. Shared hosting does not run Drizzle migrations.
+        $pdo->exec("CREATE TABLE IF NOT EXISTS ads (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL DEFAULT '',
+            content TEXT NOT NULL DEFAULT '',
+            image_url TEXT NOT NULL DEFAULT '',
+            link_url TEXT NOT NULL DEFAULT '',
+            button_text TEXT NOT NULL DEFAULT '',
+            position TEXT NOT NULL DEFAULT 'middle',
+            type TEXT NOT NULL DEFAULT 'banner',
+            bg_color TEXT NOT NULL DEFAULT '#eff6ff',
+            is_active INTEGER NOT NULL DEFAULT 1,
+            ad_order INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )");
+        $adColumns = $pdo->query("PRAGMA table_info(ads)")->fetchAll(PDO::FETCH_ASSOC);
+        $adColumnNames = array_fill_keys(array_map(static fn(array $column): string => (string)$column['name'], $adColumns), true);
+        $adMigrations = [
+            'title' => "TEXT NOT NULL DEFAULT ''",
+            'content' => "TEXT NOT NULL DEFAULT ''",
+            'image_url' => "TEXT NOT NULL DEFAULT ''",
+            'link_url' => "TEXT NOT NULL DEFAULT ''",
+            'button_text' => "TEXT NOT NULL DEFAULT ''",
+            'position' => "TEXT NOT NULL DEFAULT 'middle'",
+            'type' => "TEXT NOT NULL DEFAULT 'banner'",
+            'bg_color' => "TEXT NOT NULL DEFAULT '#eff6ff'",
+            'is_active' => "INTEGER NOT NULL DEFAULT 1",
+            'ad_order' => "INTEGER NOT NULL DEFAULT 0",
+            'created_at' => "TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP",
+        ];
+        foreach ($adMigrations as $column => $definition) {
+            if (!isset($adColumnNames[$column])) {
+                $pdo->exec("ALTER TABLE ads ADD COLUMN {$column} {$definition}");
+            }
+        }
     } catch (PDOException $e) {
         http_response_code(500);
         echo json_encode(['error' => 'تعذر الاتصال بقاعدة البيانات: ' . $e->getMessage()], JSON_UNESCAPED_UNICODE);
