@@ -13,9 +13,15 @@ logical_id = "2d4a7433-8698-4c44-9aa7-312b089d3a9c"
 id = "M455l1c0gprcp62URuZhP"
 uri = "file://sabaik-update.zip"
 type = "unspecified"
-title = "حزمة تحديث موقع حاويات - Hostinger"
-description = "حزمة جاهزة للرفع إلى public_html، تشمل assets الجديدة، صفحات FAQ المولدة، API PHP، و.htaccess لمنع خطأ MIME."
+title = "حزمة تحديث Hostinger"
+description = "حزمة PHP وواجهة محدثة لإصلاح توليد محتوى المدونة بدون الحاجة إلى Node.js على Hostinger."
 logical_id = "dd2f77f0-5f7e-42ad-893d-b823952e1890"
+content_hash = "sha256:9cef3c46734c560d16629275d197af88406c0b608382036e301aba6ef79a9a73"
+size = 1953681
+mtime_ms = 1787437171537
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:2b3b15e8-b32c-44d6-9e05-10f0d68b288b/dd2f77f0-5f7e-42ad-893d-b823952e1890/9c64b500-ab51-4ee5-8b3b-7b709b8e5e90"
+storage_version_token = "1787437179651843"
+content_type = "application/octet-stream"
 
 [[outputs]]
 id = "e7Hwi4c_9VUpSkVoGq2Ul"

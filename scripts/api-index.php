@@ -4253,6 +4253,52 @@ try {
             $decoded = json_decode(substr($clean, $start, $end - $start + 1), true);
             return is_array($decoded) ? $decoded : null;
         };
+        // Hostinger may block outbound HTTPS requests or have no AI key configured.
+        // Keep blog creation usable in that environment instead of returning 503.
+        $localBlogFallback = static function (string $route, string $topic, string $title, string $excerpt, string $category, array $tags, string $siteName): array {
+            $sourceTitle = $title !== '' ? $title : ($topic !== '' ? $topic : 'خدمات احترافية في الرياض');
+            $safeTitle = htmlspecialchars($sourceTitle, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            $safeSite = htmlspecialchars($siteName, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            $slug = preg_replace('/[\s_]+/u', '-', $sourceTitle) ?? '';
+            $slug = preg_replace('/[^\x{0600}-\x{06FF}0-9-]/u', '', $slug) ?? '';
+            $slug = trim(preg_replace('/-+/u', '-', $slug) ?? '', '-');
+            $fallbackTags = count($tags) > 0 ? array_values(array_map('strval', $tags)) : ['حاويات الأنقاض', 'نقل المخلفات', 'الرياض'];
+
+            if ($route === '/admin/ai/generate-blog-basics') {
+                return [
+                    'title' => 'دليل شامل حول ' . $sourceTitle . ' في الرياض',
+                    'excerpt' => 'تعرف على أفضل الممارسات والنصائح لاختيار الخدمة المناسبة والتعامل مع المخلفات بسهولة وأمان داخل الرياض.',
+                    'category' => $category !== '' ? $category : 'نصائح',
+                    'tags' => $fallbackTags,
+                    'readTime' => 5,
+                    'author' => $siteName,
+                    'provider' => 'local',
+                ];
+            }
+            if ($route === '/admin/ai/generate-blog-content') {
+                $html = '<h2>' . $safeTitle . '</h2>'
+                    . '<p>يحتاج اختيار الخدمة المناسبة في الرياض إلى فهم واضح لطبيعة العمل وحجم المخلفات والوقت المطلوب للتنفيذ. يساعد التخطيط المسبق على تقليل التأخير وتنظيم الموقع بطريقة أكثر أماناً ونظافة.</p>'
+                    . '<p>سواء كان المشروع منزلياً أو تجارياً أو مرتبطاً بأعمال البناء، فإن التعامل المنظم مع المخلفات يجعل خطوات التنفيذ أسهل ويحافظ على المظهر العام للمكان.</p>'
+                    . '<h2>كيف تختار الحل المناسب؟</h2>'
+                    . '<p>ابدأ بتحديد نوع المخلفات والكمية التقريبية وموقع التحميل. هذه المعلومات تساعد فريق الخدمة على اقتراح الحل العملي المناسب دون مبالغة أو تكلفة غير متوقعة.</p>'
+                    . '<ul><li>حدد نوع المخلفات قبل الحجز.</li><li>اختر الحجم المناسب للموقع.</li><li>اتفق على موعد الوصول والاستلام.</li><li>اترك مساحة آمنة للتحميل.</li></ul>'
+                    . '<h2>فوائد التنظيم المسبق</h2>'
+                    . '<p>يقلل التنظيم من تراكم المخلفات ويمنح فريق العمل مساحة أفضل للحركة. كما يساعد على حماية الممرات والمداخل، ويجعل نقل الأنقاض أكثر سرعة ووضوحاً، خصوصاً في الأحياء المزدحمة داخل الرياض.</p>'
+                    . '<h2>نصائح للحفاظ على الموقع</h2>'
+                    . '<p>ضع المخلفات في نقطة يسهل الوصول إليها، وتجنب خلط المواد التي تحتاج إلى معالجة خاصة. راقب امتلاء الحاوية ولا تضع مواداً تتجاوز حدودها، واطلب المشورة عند عدم التأكد من الحجم أو النوع المناسب.</p>'
+                    . '<h2>الخلاصة</h2>'
+                    . '<p>اختيار الخدمة المناسبة يبدأ بمعلومة دقيقة وتواصل واضح. تواصل مع ' . $safeSite . ' للحصول على توجيه مناسب لاحتياجك في الرياض وتنظيم عملية نقل المخلفات بكفاءة.</p>';
+                return ['content' => $html, 'provider' => 'local'];
+            }
+            return [
+                'seoTitle' => mb_substr($sourceTitle . ' | ' . $siteName, 0, 60),
+                'seoDescription' => mb_substr('اقرأ الدليل المفيد حول ' . $sourceTitle . ' وتعرف على خطوات الاختيار والتنفيذ في الرياض. تواصل معنا الآن لمعرفة الحل المناسب.', 0, 160),
+                'seoKeywords' => implode('، ', $fallbackTags),
+                'seoSlug' => $slug,
+                'canonicalUrl' => '',
+                'provider' => 'local',
+            ];
+        };
         $blogPostJson = static function (string $url, array $headers, array $body): ?array {
             $context = stream_context_create(['http' => [
                 'method' => 'POST',
@@ -4303,8 +4349,8 @@ try {
                 $attempts[] = $provider . ': ' . $error->getMessage();
             }
         }
-        http_response_code(503);
-        echo json_encode(['error' => 'فشل توليد محتوى المدونة. تحقق من إعدادات الذكاء الاصطناعي. ' . implode(' | ', $attempts)], JSON_UNESCAPED_UNICODE);
+        // A local result is preferable to a broken admin workflow on shared hosting.
+        echo json_encode($localBlogFallback($path, $topic, $title, $excerpt, $category, $tags, $siteName), JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
         exit;
     }
 
