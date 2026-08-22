@@ -362,7 +362,11 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
         if (!$site || $site['kind'] !== 'customer_site' || $site['status'] === 'archived') hsJson(['error' => 'موقع العميل غير موجود'], 422);
         if ((int)(hsPayload($site['payload'])['customerRecordId'] ?? 0) !== $customerId) hsJson(['error' => 'الموقع لا يتبع العميل المحدد'], 422);
         if (!$asset || !in_array($asset['kind'], ['container', 'container_asset'], true) || $asset['status'] === 'archived') hsJson(['error' => 'أصل الحاوية غير موجود'], 422);
-        if (!in_array(hsCanonicalAssetStatus((string)$asset['status'], (string)$asset['status']), ['available', 'reserved'], true)) hsJson(['error' => 'الحاوية ليست متاحة للتخصيص'], 422);
+        // The row status is the record lifecycle (commonly "active"); the
+        // payload carries the asset's actual availability.
+        $assetPayload = hsPayload($asset['payload']);
+        $assetAvailability = hsCanonicalAssetStatus((string)($assetPayload['status'] ?? $asset['status']), (string)$asset['status']);
+        if (!in_array($assetAvailability, ['available', 'reserved', 'active'], true)) hsJson(['error' => 'الحاوية ليست متاحة للتخصيص'], 422);
         $now = date('c');
         try {
             $pdo->beginTransaction();
@@ -377,7 +381,7 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
             $insert->execute([':kind' => 'container_assignment', ':status' => 'reserved', ':payload' => json_encode($assignment, JSON_UNESCAPED_UNICODE), ':created_by' => $actorId, ':created_at' => $now, ':updated_at' => $now]);
             $assignmentId = (int)$pdo->lastInsertId();
             $pdo->prepare("UPDATE container_system_records SET reference = :reference WHERE id = :id")->execute([':reference' => 'ASSIGN-' . $assignmentId, ':id' => $assignmentId]);
-            $assetPayload = hsPayload($asset['payload']); $assetPayload['assignmentRecordId'] = $assignmentId; $assetPayload['assignedContractRecordId'] = $contractId; $assetPayload['assignedSiteRecordId'] = $siteId;
+            $assetPayload['assignmentRecordId'] = $assignmentId; $assetPayload['assignedContractRecordId'] = $contractId; $assetPayload['assignedSiteRecordId'] = $siteId;
             $pdo->prepare("UPDATE container_system_records SET status = 'reserved', payload = :payload, updated_at = :updated_at WHERE id = :id")->execute([':payload' => json_encode($assetPayload, JSON_UNESCAPED_UNICODE), ':updated_at' => $now, ':id' => $assetId]);
             $appointment['contractRecordId'] = $contractId; $appointment['contractNumber'] = $contractNumber; $appointment['customerRecordId'] = $customerId; $appointment['containerRecordId'] = $assetId;
             $insert->execute([':kind' => 'appointment', ':status' => 'scheduled', ':payload' => json_encode($appointment, JSON_UNESCAPED_UNICODE), ':created_by' => $actorId, ':created_at' => $now, ':updated_at' => $now]);

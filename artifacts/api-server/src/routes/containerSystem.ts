@@ -570,7 +570,13 @@ router.post("/admin/container-system/contracts/workflow", requireContainerPermis
       if (!site || site.kind !== "customer_site" || site.status === "archived") throw new Error("موقع العميل غير موجود");
       if (Number(parsePayload(site.payload).customerRecordId) !== customerId) throw new Error("الموقع لا يتبع العميل المحدد");
       if (!asset || !["container", "container_asset"].includes(asset.kind) || asset.status === "archived") throw new Error("أصل الحاوية غير موجود");
-      if (!["available", "reserved", "متاح"].includes(canonicalAssetStatus(asset.status, asset.status))) throw new Error("الحاوية ليست متاحة للتخصيص");
+      // The record status is the lifecycle of the system record (often
+      // "active"), while the asset availability is stored in its payload.
+      // Check the latter so assets shown as available by the wizard can be
+      // assigned by the workflow.
+      const assetPayload = parsePayload(asset.payload);
+      const assetAvailability = canonicalAssetStatus(assetPayload.status ?? asset.status, asset.status);
+      if (!["available", "reserved", "active"].includes(assetAvailability)) throw new Error("الحاوية ليست متاحة للتخصيص");
       const activeAssignment = tx.select().from(containerSystemRecordsTable).all().find(record =>
         record.kind === "container_assignment" && record.status !== "archived" &&
         ["reserved", "active"].includes(String(parsePayload(record.payload).assignmentStatus ?? record.status)) &&
@@ -594,7 +600,7 @@ router.post("/admin/container-system/contracts/workflow", requireContainerPermis
         payload: JSON.stringify({ ...assignmentPayload, contractRecordId: contract.id, siteRecordId: siteId, containerRecordId: assetId, contractNumber, assignmentStatus: "reserved" }),
         createdBy: adminReq.adminId,
       }).returning().get();
-      const nextAssetPayload = { ...parsePayload(asset.payload), assignmentRecordId: assignment.id, assignedContractRecordId: contract.id, assignedSiteRecordId: siteId };
+      const nextAssetPayload = { ...assetPayload, assignmentRecordId: assignment.id, assignedContractRecordId: contract.id, assignedSiteRecordId: siteId };
       tx.update(containerSystemRecordsTable).set({ status: "reserved", payload: JSON.stringify(nextAssetPayload), updatedAt: now }).where(eq(containerSystemRecordsTable.id, assetId)).run();
       const appointment = tx.insert(containerSystemRecordsTable).values({
         kind: "appointment", status: "scheduled",
