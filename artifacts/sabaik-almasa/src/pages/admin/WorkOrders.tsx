@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
   getGetAdminWorkOrdersQueryKey,
   getGetDriverWorkOrdersQueryKey,
@@ -725,6 +725,7 @@ export default function WorkOrders() {
   );
   const [completionTarget, setCompletionTarget] =
     useState<ServiceRequest | null>(null);
+  const operationKeys = useRef(new Map<string, string>());
   const [drivers, setDrivers] = useState<{ id: number; name: string }[]>([]);
   const [driversLoading, setDriversLoading] = useState(isManager);
 
@@ -829,8 +830,18 @@ export default function WorkOrders() {
       toast({ variant: "destructive", title: "سبب الرفض مطلوب" });
       return;
     }
+    const operationKeyId = `${order.id}:${status}`;
+    const operationKey =
+      operationKeys.current.get(operationKeyId) ??
+      (crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    operationKeys.current.set(operationKeyId, operationKey);
     updateOrder(
-      { id: order.id, data: { status, notes: notes ?? null } },
+      {
+        id: order.id,
+        data: { status, notes: notes ?? null, operationKey },
+      },
       {
         onSuccess: () => {
           toast({
@@ -881,11 +892,20 @@ export default function WorkOrders() {
     signatureData: string;
   }) {
     if (!completionTarget) return;
+    const operationKeyId = `${completionTarget.id}:${DriverWorkOrderStatus.completed}`;
+    const existingKey = operationKeys.current.get(operationKeyId);
+    const operationKey =
+      existingKey ??
+      (crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    operationKeys.current.set(operationKeyId, operationKey);
     updateOrder(
       {
         id: completionTarget.id,
         data: {
           status: DriverWorkOrderStatus.completed,
+          operationKey,
           notes: "تم استلام إثبات التسليم من السائق",
           ...evidence,
         },

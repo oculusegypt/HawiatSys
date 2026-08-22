@@ -9,6 +9,11 @@ import type { DriverWorkOrderStatus } from './driverWorkOrderStatus';
 
 export interface DriverWorkOrderUpdate {
   status: DriverWorkOrderStatus;
+  /**
+     * @minLength 8
+     * @maxLength 160
+     */
+  operationKey?: string;
   /** @nullable */
   notes?: string | null;
   /** @nullable */

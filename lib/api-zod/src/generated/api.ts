@@ -926,8 +926,14 @@ export const UpdateDriverWorkOrderParams = zod.object({
   "id": zod.coerce.number()
 })
 
+export const updateDriverWorkOrderBodyOperationKeyMin = 8;
+export const updateDriverWorkOrderBodyOperationKeyMax = 160;
+
+
+
 export const UpdateDriverWorkOrderBody = zod.object({
   "status": zod.enum(['assigned', 'accepted', 'rejected', 'started', 'en_route', 'arrived', 'completed']),
+  "operationKey": zod.string().min(updateDriverWorkOrderBodyOperationKeyMin).max(updateDriverWorkOrderBodyOperationKeyMax).optional(),
   "notes": zod.string().nullish(),
   "locationLat": zod.string().nullish(),
   "locationLng": zod.string().nullish(),

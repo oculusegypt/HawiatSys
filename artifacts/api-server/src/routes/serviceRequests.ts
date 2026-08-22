@@ -595,6 +595,7 @@ router.patch("/driver/work-orders/:id", requireAdmin, requireDriver, async (req,
   const adminRequest = req as AdminRequest;
   const id = parseInt(String(req.params.id), 10);
   const nextStatus = String(req.body?.status ?? "");
+  const operationKey = String(req.get("Idempotency-Key") ?? req.body?.operationKey ?? "").trim();
   const notes = req.body?.notes === undefined ? undefined : String(req.body.notes ?? "").trim();
   const locationLat = req.body?.locationLat === undefined ? undefined : String(req.body.locationLat ?? "").trim();
   const locationLng = req.body?.locationLng === undefined ? undefined : String(req.body.locationLng ?? "").trim();
@@ -610,6 +611,9 @@ router.patch("/driver/work-orders/:id", requireAdmin, requireDriver, async (req,
   };
   if (!transitions[nextStatus] && nextStatus !== "completed") {
     return res.status(400).json({ error: "حالة أمر العمل غير صحيحة" });
+  }
+  if (operationKey && (operationKey.length < 8 || operationKey.length > 160)) {
+    return res.status(422).json({ error: "مفتاح العملية غير صالح" });
   }
 
   const [request] = await db.select().from(serviceRequestsTable)
@@ -668,6 +672,23 @@ router.patch("/driver/work-orders/:id", requireAdmin, requireDriver, async (req,
   let updated: typeof serviceRequestsTable.$inferSelect;
   try {
     updated = db.transaction((tx) => {
+      if (operationKey) {
+        const previous = tx.select().from(containerSystemAuditTable)
+          .where(and(
+            eq(containerSystemAuditTable.recordId, id),
+            eq(containerSystemAuditTable.kind, "service_request"),
+            eq(containerSystemAuditTable.action, "driver_status_transition"),
+          )).all().find((audit) => {
+            const payload = parseContainerPayload(audit.afterPayload ?? "");
+            return payload.operationKey === operationKey;
+          });
+        if (previous) {
+          const existing = tx.select().from(serviceRequestsTable)
+            .where(eq(serviceRequestsTable.id, id)).get();
+          if (!existing) throw new Error("أمر العمل غير موجود");
+          return existing;
+        }
+      }
       const nextRequest = tx.update(serviceRequestsTable).set(updateData)
         .where(eq(serviceRequestsTable.id, id)).returning().get();
       if (!nextRequest) throw new Error("تعذر تحديث أمر العمل");
@@ -692,6 +713,7 @@ router.patch("/driver/work-orders/:id", requireAdmin, requireDriver, async (req,
           driverResponseAt: nextRequest.driverResponseAt,
           driverStartedAt: nextRequest.driverStartedAt,
           driverCompletedAt: nextRequest.driverCompletedAt,
+          operationKey: operationKey || undefined,
         }),
         actorId: adminRequest.adminId,
       }).run();

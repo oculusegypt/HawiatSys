@@ -1745,6 +1745,10 @@ components:
       properties:
         status:
           $ref: "#/components/schemas/DriverWorkOrderStatus"
+        operationKey:
+          type: string
+          minLength: 8
+          maxLength: 160
         notes: { type: ["string", "null"] }
         locationLat: { type: ["string", "null"] }
         locationLng: { type: ["string", "null"] }
