@@ -27,6 +27,8 @@ import type {
   CompanyValue,
   CompanyValueInput,
   Container,
+  ContainerContractWorkflowInput,
+  ContainerContractWorkflowResult,
   ContainerInput,
   ContainerSystemAudit,
   ContainerSystemRecord,
@@ -4331,6 +4333,71 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getCreateContainerSystemRecordMutationOptions(options));
+    }
+
+export const getCreateContainerContractWorkflowUrl = () => {
+
+
+
+
+  return `/api/admin/container-system/contracts/workflow`
+}
+
+export const createContainerContractWorkflow = async (containerContractWorkflowInput: ContainerContractWorkflowInput, options?: RequestInit): Promise<ContainerContractWorkflowResult> => {
+
+  return customFetch<ContainerContractWorkflowResult>(getCreateContainerContractWorkflowUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(containerContractWorkflowInput)
+  }
+);}
+
+
+
+
+
+export const getCreateContainerContractWorkflowMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createContainerContractWorkflow>>, TError,{data: BodyType<ContainerContractWorkflowInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createContainerContractWorkflow>>, TError,{data: BodyType<ContainerContractWorkflowInput>}, TContext> => {
+
+const mutationKey = ['createContainerContractWorkflow'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createContainerContractWorkflow>>, {data: BodyType<ContainerContractWorkflowInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createContainerContractWorkflow(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateContainerContractWorkflowMutationResult = NonNullable<Awaited<ReturnType<typeof createContainerContractWorkflow>>>
+    export type CreateContainerContractWorkflowMutationBody = BodyType<ContainerContractWorkflowInput>
+    export type CreateContainerContractWorkflowMutationError = ErrorType<unknown>
+
+    export const useCreateContainerContractWorkflow = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createContainerContractWorkflow>>, TError,{data: BodyType<ContainerContractWorkflowInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createContainerContractWorkflow>>,
+        TError,
+        {data: BodyType<ContainerContractWorkflowInput>},
+        TContext
+      > => {
+      return useMutation(getCreateContainerContractWorkflowMutationOptions(options));
     }
 
 export const getUpdateContainerSystemRecordUrl = (id: number,) => {

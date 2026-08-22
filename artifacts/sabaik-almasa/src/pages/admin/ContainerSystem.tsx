@@ -12,6 +12,7 @@ import {
   getGetContainerSystemRecordsQueryKey,
   useArchiveContainerSystemRecord,
   useCreateContainerSystemRecord,
+  useCreateContainerContractWorkflow,
   useGetContainerSystem,
   useGetContainerSystemAudit,
   useGetContainerSystemRecords,
@@ -609,6 +610,7 @@ export default function ContainerSystem() {
   const recordsQuery = useGetContainerSystemRecords(filterParams)
   const auditQuery = useGetContainerSystemAudit({ query: { enabled: view === "audit", queryKey: getGetContainerSystemAuditQueryKey() } })
   const createMutation = useCreateContainerSystemRecord()
+  const contractWorkflowMutation = useCreateContainerContractWorkflow()
   const updateMutation = useUpdateContainerSystemRecord()
   const archiveMutation = useArchiveContainerSystemRecord()
   const snapshot = snapshotQuery.data
@@ -664,98 +666,58 @@ export default function ContainerSystem() {
     if (contractFlowBusy) return
     setContractFlowBusy(true)
     const { appointmentDate, appointmentTime, appointmentType, ...contractPayload } = payload
-    createMutation.mutate({ data: { kind: "contract", status: "active", payload: contractPayload } }, {
-      onSuccess: createdContract => {
-        const scheduledAt = `${String(appointmentDate)}T${String(appointmentTime)}:00`
-        createMutation.mutate({
-          data: {
-            kind: "container_assignment",
-            status: "reserved",
-            payload: {
-              contractRecordId: createdContract.id,
-              siteRecordId: contractPayload.siteRecordId,
-              containerRecordId: contractPayload.containerRecordId,
-              contractNumber: String(contractPayload.contractNumber ?? createdContract.reference),
-              assignmentStatus: "reserved",
-              startDate: contractPayload.startDate,
-              endDate: contractPayload.endDate,
-              containerCode: contractPayload.containerCode,
-              customerRecordId: contractPayload.customerRecordId,
-              notes: "تم الإنشاء تلقائياً من معالج العقد",
-            },
-          },
-        }, {
-          onSuccess: createdAssignment => createMutation.mutate({
-            data: {
-            kind: "appointment",
-            status: "scheduled",
-            payload: {
-              contractNumber: String(contractPayload.contractNumber ?? createdContract.reference),
-              contractRecordId: createdContract.id,
-              customerRecordId: contractPayload.customerRecordId,
-              customerName: contractPayload.customerName,
-              containerRecordId: contractPayload.containerRecordId,
-              containerCode: contractPayload.containerCode,
-              appointmentType,
-              appointmentDate,
-              appointmentTime,
-              scheduledAt,
-              source: "contract_workflow",
-            },
-            },
-          }, {
-          onSuccess: () => {
-            void fetch(`${API_BASE}/api/admin/service-requests/from-contract`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("admin_token") ?? ""}` },
-              body: JSON.stringify({
-                clientName: contractPayload.customerName,
-                phone: contractPayload.customerPhone,
-                serviceType: appointmentType === "pickup" ? "استرجاع حاوية" : appointmentType === "inspection" ? "فحص وتجهيز حاوية" : "تسليم حاوية",
-                containerSize: contractPayload.containerCode,
-                location: contractPayload.location ?? "يحدد لاحقًا",
-                duration: contractPayload.duration ?? "",
-                notes: contractPayload.notes ?? "",
-                appointmentType: "scheduled",
-                scheduledAt,
-                customerRecordId: contractPayload.customerRecordId,
-                containerRecordId: contractPayload.containerRecordId,
-                contractRecordId: createdContract.id,
-              }),
-            }).then(response => {
-              if (!response.ok) return response.json().then(body => { throw new Error(String(body.error ?? "تعذر إنشاء أمر العمل")) })
-              return response.json()
-            }).then(() => {
-              invalidate()
-              setContractWizardOpen(false)
-              setContractFlowBusy(false)
-              showSuccess("تم إصدار العقد وإنشاء الموعد وأمر العمل وربطهما بالأصل")
-            }).catch(error => {
-              invalidate()
-              setContractWizardOpen(false)
-              setContractFlowBusy(false)
-              toast({ title: error instanceof Error ? `تم إصدار العقد والموعد، لكن تعذر إنشاء أمر العمل: ${error.message}` : "تم إصدار العقد والموعد، لكن تعذر إنشاء أمر العمل", variant: "destructive" })
-            })
-          },
-          onError: error => {
-            archiveMutation.mutate({ id: createdAssignment.id })
-            archiveMutation.mutate({ id: createdContract.id })
-            invalidate()
-            setContractWizardOpen(false)
-            setContractFlowBusy(false)
-            toast({ title: error instanceof Error ? `تعذر إنشاء الموعد وتم تنظيف العقد والتخصيص: ${error.message}` : "تعذر إنشاء الموعد وتم تنظيف العقد والتخصيص", variant: "destructive" })
-          },
-          }),
-          onError: error => {
-            archiveMutation.mutate({ id: createdContract.id })
-            invalidate()
-            setContractWizardOpen(false)
-            setContractFlowBusy(false)
-            toast({ title: error instanceof Error ? `تعذر تخصيص الأصل وتم تنظيف العقد الجزئي: ${error.message}` : "تعذر تخصيص الأصل وتم تنظيف العقد الجزئي", variant: "destructive" })
-          },
-        })
+    const scheduledAt = `${String(appointmentDate)}T${String(appointmentTime)}:00`
+    const contractNumber = String(contractPayload.contractNumber ?? "")
+    contractWorkflowMutation.mutate({
+      data: {
+        contract: contractPayload,
+        assignment: {
+          siteRecordId: contractPayload.siteRecordId,
+          containerRecordId: contractPayload.containerRecordId,
+          contractNumber,
+          assignmentStatus: "reserved",
+          startDate: contractPayload.startDate,
+          endDate: contractPayload.endDate,
+          containerCode: contractPayload.containerCode,
+          customerRecordId: contractPayload.customerRecordId,
+          notes: "تم الإنشاء تلقائياً من معالج العقد",
+        },
+        appointment: {
+          contractNumber,
+          customerRecordId: contractPayload.customerRecordId,
+          customerName: contractPayload.customerName,
+          containerRecordId: contractPayload.containerRecordId,
+          containerCode: contractPayload.containerCode,
+          appointmentType,
+          appointmentDate,
+          appointmentTime,
+          scheduledAt,
+          source: "contract_workflow",
+        },
+        serviceRequest: {
+          clientName: contractPayload.customerName,
+          phone: contractPayload.customerPhone,
+          email: contractPayload.customerEmail,
+          serviceType: appointmentType === "pickup" ? "استرجاع حاوية" : appointmentType === "inspection" ? "فحص وتجهيز حاوية" : "تسليم حاوية",
+          containerSize: contractPayload.containerCode,
+          location: contractPayload.location ?? "يحدد لاحقًا",
+          duration: contractPayload.duration ?? "",
+          notes: contractPayload.notes ?? "",
+          appointmentType: "scheduled",
+          scheduledAt,
+        },
       },
-      onError: error => { setContractFlowBusy(false); toast({ title: error instanceof Error ? error.message : "تعذر إصدار العقد", variant: "destructive" }) },
+    }, {
+      onSuccess: () => {
+        invalidate()
+        setContractWizardOpen(false)
+        setContractFlowBusy(false)
+        showSuccess("تم إصدار العقد وإنشاء الموعد وأمر العمل وربطهما بالأصل")
+      },
+      onError: error => {
+        setContractFlowBusy(false)
+        toast({ title: error instanceof Error ? error.message : "تعذر إنشاء دورة العقد كاملة", variant: "destructive" })
+      },
     })
   }
   const submitAssignment = (payload: Record<string, unknown>) => {

@@ -1064,6 +1064,7 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/ContainerSystemRecord"
+
     post:
       operationId: createContainerSystemRecord
       tags: [admin]
@@ -1082,6 +1083,26 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ContainerSystemRecord"
+
+  /admin/container-system/contracts/workflow:
+    post:
+      operationId: createContainerContractWorkflow
+      tags: [admin]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContainerContractWorkflowInput"
+      responses:
+        "201":
+          description: Contract workflow created atomically
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContainerContractWorkflowResult"
 
   /admin/container-system/records/{id}:
     patch:
@@ -1227,6 +1248,37 @@ components:
       properties:
         status: { type: string }
         payload:
+          type: object
+          additionalProperties: true
+
+    ContainerContractWorkflowInput:
+      type: object
+      required: [contract, assignment, appointment, serviceRequest]
+      properties:
+        contract:
+          type: object
+          additionalProperties: true
+        assignment:
+          type: object
+          additionalProperties: true
+        appointment:
+          type: object
+          additionalProperties: true
+        serviceRequest:
+          type: object
+          additionalProperties: true
+
+    ContainerContractWorkflowResult:
+      type: object
+      required: [contract, assignment, appointment, serviceRequest]
+      properties:
+        contract:
+          $ref: "#/components/schemas/ContainerSystemRecord"
+        assignment:
+          $ref: "#/components/schemas/ContainerSystemRecord"
+        appointment:
+          $ref: "#/components/schemas/ContainerSystemRecord"
+        serviceRequest:
           type: object
           additionalProperties: true
 

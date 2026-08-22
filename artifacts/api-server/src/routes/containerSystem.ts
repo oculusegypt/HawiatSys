@@ -491,6 +491,96 @@ router.get("/admin/container-system/records", async (req, res) => {
   return res.json(rows.map(formatRecord));
 });
 
+router.post("/admin/container-system/contracts/workflow", async (req, res) => {
+  const adminReq = req as unknown as AdminRequest;
+  const body = req.body as {
+    contract?: Record<string, unknown>;
+    assignment?: Record<string, unknown>;
+    appointment?: Record<string, unknown>;
+    serviceRequest?: Record<string, unknown>;
+  };
+  const contractPayload = normalizeContractPayload({ ...(body.contract ?? {}) });
+  const assignmentPayload = { ...(body.assignment ?? {}) };
+  const appointmentPayload = { ...(body.appointment ?? {}) };
+  const servicePayload = { ...(body.serviceRequest ?? {}) };
+  const customerId = Number(contractPayload.customerRecordId);
+  const siteId = Number(assignmentPayload.siteRecordId ?? contractPayload.siteRecordId);
+  const assetId = Number(assignmentPayload.containerRecordId ?? contractPayload.containerRecordId);
+  if (![customerId, siteId, assetId].every(value => Number.isInteger(value) && value > 0)) {
+    return res.status(422).json({ error: "العميل والموقع وأصل الحاوية مطلوبة لإنشاء دورة العقد" });
+  }
+  try {
+    await validateContractPayload(contractPayload);
+    if (await hasOverlappingContract(contractPayload)) return res.status(409).json({ error: "الحاوية مرتبطة بعقد آخر خلال نفس الفترة" });
+  } catch (error) {
+    return res.status(422).json({ error: error instanceof Error ? error.message : "بيانات العقد غير صحيحة" });
+  }
+  try {
+    const result = db.transaction((tx) => {
+      const customer = tx.select().from(containerSystemRecordsTable).where(eq(containerSystemRecordsTable.id, customerId)).get();
+      const site = tx.select().from(containerSystemRecordsTable).where(eq(containerSystemRecordsTable.id, siteId)).get();
+      const asset = tx.select().from(containerSystemRecordsTable).where(eq(containerSystemRecordsTable.id, assetId)).get();
+      if (!customer || customer.kind !== "customer" || customer.status === "archived") throw new Error("العميل غير موجود");
+      if (!site || site.kind !== "customer_site" || site.status === "archived") throw new Error("موقع العميل غير موجود");
+      if (Number(parsePayload(site.payload).customerRecordId) !== customerId) throw new Error("الموقع لا يتبع العميل المحدد");
+      if (!asset || !["container", "container_asset"].includes(asset.kind) || asset.status === "archived") throw new Error("أصل الحاوية غير موجود");
+      if (!["available", "reserved", "متاح"].includes(canonicalAssetStatus(asset.status, asset.status))) throw new Error("الحاوية ليست متاحة للتخصيص");
+      const activeAssignment = tx.select().from(containerSystemRecordsTable).all().find(record =>
+        record.kind === "container_assignment" && record.status !== "archived" &&
+        ["reserved", "active"].includes(String(parsePayload(record.payload).assignmentStatus ?? record.status)) &&
+        Number(parsePayload(record.payload).containerRecordId) === assetId,
+      );
+      if (activeAssignment) throw new Error("الحاوية مرتبطة بتخصيص نشط بالفعل");
+      const now = new Date().toISOString();
+      const contract = tx.insert(containerSystemRecordsTable).values({
+        kind: "contract", status: "active", reference: referenceFor("contract", contractPayload, Date.now()),
+        payload: JSON.stringify(contractPayload), createdBy: adminReq.adminId,
+      }).returning().get();
+      const contractNumber = String(contractPayload.contractNumber ?? generatedDocumentNumber("contract", contract.id));
+      const finalizedContract = tx.update(containerSystemRecordsTable).set({
+        reference: contractNumber,
+        payload: JSON.stringify({ ...contractPayload, contractNumber }),
+        updatedAt: now,
+      }).where(eq(containerSystemRecordsTable.id, contract.id)).returning().get();
+      const assignment = tx.insert(containerSystemRecordsTable).values({
+        kind: "container_assignment", status: "reserved",
+        reference: referenceFor("container_assignment", assignmentPayload, Date.now()),
+        payload: JSON.stringify({ ...assignmentPayload, contractRecordId: contract.id, siteRecordId: siteId, containerRecordId: assetId, contractNumber, assignmentStatus: "reserved" }),
+        createdBy: adminReq.adminId,
+      }).returning().get();
+      const nextAssetPayload = { ...parsePayload(asset.payload), assignmentRecordId: assignment.id, assignedContractRecordId: contract.id, assignedSiteRecordId: siteId };
+      tx.update(containerSystemRecordsTable).set({ status: "reserved", payload: JSON.stringify(nextAssetPayload), updatedAt: now }).where(eq(containerSystemRecordsTable.id, assetId)).run();
+      const appointment = tx.insert(containerSystemRecordsTable).values({
+        kind: "appointment", status: "scheduled",
+        reference: referenceFor("appointment", appointmentPayload, Date.now()),
+        payload: JSON.stringify({ ...appointmentPayload, contractRecordId: contract.id, contractNumber, customerRecordId: customerId, containerRecordId: assetId }),
+        createdBy: adminReq.adminId,
+      }).returning().get();
+      const customerPayload = parsePayload(customer.payload);
+      const serviceRequest = tx.insert(serviceRequestsTable).values({
+        clientName: String(servicePayload.clientName ?? customerPayload.name ?? ""),
+        phone: String(servicePayload.phone ?? customerPayload.phone ?? ""),
+        email: String(servicePayload.email ?? customerPayload.email ?? ""),
+        serviceType: String(servicePayload.serviceType ?? "تسليم حاوية"),
+        containerSize: String(servicePayload.containerSize ?? contractPayload.containerCode ?? ""),
+        propertyType: String(servicePayload.propertyType ?? ""), areaSize: String(servicePayload.areaSize ?? ""),
+        location: String(servicePayload.location ?? contractPayload.location ?? "يحدد لاحقًا"),
+        duration: String(servicePayload.duration ?? contractPayload.duration ?? ""),
+        notes: String(servicePayload.notes ?? contractPayload.notes ?? ""),
+        appointmentType: "scheduled", scheduledAt: String(servicePayload.scheduledAt ?? appointmentPayload.scheduledAt ?? ""),
+        customerRecordId: customerId, containerRecordId: assetId, contractRecordId: contract.id,
+      }).returning().get();
+      for (const record of [finalizedContract, assignment, appointment]) {
+        tx.insert(containerSystemAuditTable).values({ recordId: record.id, kind: record.kind, action: "workflow_create", afterPayload: record.payload, actorId: adminReq.adminId }).run();
+      }
+      return { contract: finalizedContract, assignment, appointment, serviceRequest };
+    });
+    return res.status(201).json({ contract: formatRecord(result.contract), assignment: formatRecord(result.assignment), appointment: formatRecord(result.appointment), serviceRequest: result.serviceRequest });
+  } catch (error) {
+    return res.status(422).json({ error: error instanceof Error ? error.message : "تعذر إنشاء دورة العقد كاملة" });
+  }
+});
+
 router.get("/admin/container-system/financial/contract-ledgers", async (req, res) => {
   const requestedId = Number(req.query.contractId ?? 0);
   const search = String(req.query.search ?? "").trim().toLowerCase();

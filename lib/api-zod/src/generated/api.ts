@@ -1658,6 +1658,48 @@ export const CreateContainerSystemRecordResponse = zod.object({
 })
 
 
+export const CreateContainerContractWorkflowBody = zod.object({
+  "contract": zod.record(zod.string(), zod.unknown()),
+  "assignment": zod.record(zod.string(), zod.unknown()),
+  "appointment": zod.record(zod.string(), zod.unknown()),
+  "serviceRequest": zod.record(zod.string(), zod.unknown())
+})
+
+export const CreateContainerContractWorkflowResponse = zod.object({
+  "contract": zod.object({
+  "id": zod.number(),
+  "kind": zod.string(),
+  "status": zod.string(),
+  "reference": zod.string(),
+  "payload": zod.record(zod.string(), zod.unknown()),
+  "createdBy": zod.number().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}),
+  "assignment": zod.object({
+  "id": zod.number(),
+  "kind": zod.string(),
+  "status": zod.string(),
+  "reference": zod.string(),
+  "payload": zod.record(zod.string(), zod.unknown()),
+  "createdBy": zod.number().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}),
+  "appointment": zod.object({
+  "id": zod.number(),
+  "kind": zod.string(),
+  "status": zod.string(),
+  "reference": zod.string(),
+  "payload": zod.record(zod.string(), zod.unknown()),
+  "createdBy": zod.number().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}),
+  "serviceRequest": zod.record(zod.string(), zod.unknown())
+})
+
+
 export const UpdateContainerSystemRecordParams = zod.object({
   "id": zod.coerce.number()
 })

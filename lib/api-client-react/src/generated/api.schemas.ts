@@ -34,6 +34,30 @@ export interface ContainerSystemRecordUpdate {
   payload?: ContainerSystemRecordUpdatePayload;
 }
 
+export type ContainerContractWorkflowInputContract = { [key: string]: unknown };
+
+export type ContainerContractWorkflowInputAssignment = { [key: string]: unknown };
+
+export type ContainerContractWorkflowInputAppointment = { [key: string]: unknown };
+
+export type ContainerContractWorkflowInputServiceRequest = { [key: string]: unknown };
+
+export interface ContainerContractWorkflowInput {
+  contract: ContainerContractWorkflowInputContract;
+  assignment: ContainerContractWorkflowInputAssignment;
+  appointment: ContainerContractWorkflowInputAppointment;
+  serviceRequest: ContainerContractWorkflowInputServiceRequest;
+}
+
+export type ContainerContractWorkflowResultServiceRequest = { [key: string]: unknown };
+
+export interface ContainerContractWorkflowResult {
+  contract: ContainerSystemRecord;
+  assignment: ContainerSystemRecord;
+  appointment: ContainerSystemRecord;
+  serviceRequest: ContainerContractWorkflowResultServiceRequest;
+}
+
 export interface ContainerSystemAudit {
   id: number;
   /** @nullable */
