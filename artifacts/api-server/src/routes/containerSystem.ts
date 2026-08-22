@@ -103,6 +103,15 @@ const MOVEMENT_STATUS_BY_TYPE: Record<string, string> = {
   swap: "in_transit",
   "تبديل": "in_transit",
   "تبديل حاوية": "in_transit",
+  transport: "in_transit",
+  move: "in_transit",
+  "نقل": "in_transit",
+  "نقل حاوية": "in_transit",
+  "توصيل": "in_transit",
+  "توصيل حاوية": "in_transit",
+  "رفع": "in_transit",
+  "رفع حاوية": "in_transit",
+  "تحميل": "in_transit",
   unloading: "in_transit",
   emptying: "in_transit",
   "تفريغ": "in_transit",
@@ -153,6 +162,9 @@ function movementTransitionAllowed(currentStatus: string, movementType: string) 
   const current = canonicalAssetStatus(currentStatus, currentStatus);
   if (["delivery", "deliver", "تسليم"].includes(type)) return ["available", "reserved", "inspection"].includes(current);
   if (["replacement", "swap", "تبديل", "تبديل حاوية"].includes(type)) return ["rented", "with_customer", "awaiting_return", "in_transit"].includes(current);
+  if (["transport", "move", "نقل", "نقل حاوية", "توصيل", "توصيل حاوية", "رفع", "رفع حاوية", "تحميل"].includes(type)) {
+    return ["available", "reserved", "rented", "with_customer", "awaiting_return", "in_transit"].includes(current);
+  }
   if (["unloading", "emptying", "تفريغ", "withdrawal", "withdraw", "سحب"].includes(type)) return ["rented", "with_customer", "awaiting_return", "in_transit"].includes(current);
   if (["return", "returned", "استرجاع"].includes(type)) return ["rented", "with_customer", "awaiting_return", "in_transit", "damaged"].includes(current);
   if (["maintenance", "صيانة"].includes(type)) return !["lost", "out_of_service"].includes(current);

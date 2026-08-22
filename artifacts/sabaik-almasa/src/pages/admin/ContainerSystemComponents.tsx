@@ -224,9 +224,9 @@ export const FIELD_CONFIG: Record<RecordKind, FieldConfig[]> = {
     { key: "notes", label: "ملاحظات", type: "textarea", wide: true },
   ],
   container_movement: [
-    { key: "contractNumber", label: "رقم العقد", placeholder: "RNT-2026-001" },
+    { key: "contractNumber", label: "رقم العقد (اختياري)", placeholder: "يمكن تركه فارغًا أو إدخاله يدويًا" },
     { key: "containerCode", label: "رقم الحاوية", placeholder: "CNT-101" },
-    { key: "movementType", label: "نوع الحركة", placeholder: "تسليم / استرجاع / تبديل / نقل" },
+    { key: "movementType", label: "نوع الحركة (إدخال يدوي)", placeholder: "اكتب: تسليم / استرجاع / تبديل / نقل" },
     { key: "vehiclePlate", label: "المركبة", placeholder: "أ ب ج 1234" },
     { key: "driverName", label: "السائق", placeholder: "اسم السائق" },
     { key: "movementDate", label: "تاريخ الحركة", type: "date" },
@@ -701,6 +701,10 @@ export function RecordDialog({
   const setValue = (key: string, value: string) => setPayload(current => ({ ...current, [key]: value }))
   const fields = FIELD_CONFIG[kind]
   const optionsFor = (key: string) => {
+    // Operational movements may be entered without a contract number, and
+    // movementType intentionally remains free text so the operator can use
+    // the exact operational wording used on the job.
+    if (kind === "container_movement" && (key === "contractNumber" || key === "movementType")) return []
     const source: RecordKind | undefined =
       key.toLowerCase().includes("customer") ? "customer"
       : key.toLowerCase().includes("container") || key === "containerCode" ? "container"

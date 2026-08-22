@@ -265,7 +265,7 @@ function RecordRow({ record, kind, onDetails, onEdit, onArchive }: { record: Con
       <div className="hidden sm:block"><RecordStatus status={record.status} /><p className="mt-1 text-[10px] text-slate-400">{formatRecordDate(record.updatedAt)}</p></div>
       <div className="flex items-center justify-end gap-1">
         <Button variant="ghost" size="sm" onClick={onDetails} className="h-8 gap-1 text-xs text-cyan-800 hover:bg-cyan-50" data-testid={`button-details-record-${record.id}`}><FileText size={14} /> <span className="hidden md:inline">التفاصيل</span></Button>
-        <Button variant="ghost" size="sm" onClick={onEdit} className="h-8 gap-1 text-xs text-slate-500 hover:bg-cyan-50 hover:text-cyan-800" data-testid={`button-edit-record-${record.id}`}><FilePenLine size={14} /> <span className="hidden md:inline">تعديل</span></Button>
+        {kind !== "container_movement" && <Button variant="ghost" size="sm" onClick={onEdit} className="h-8 gap-1 text-xs text-slate-500 hover:bg-cyan-50 hover:text-cyan-800" data-testid={`button-edit-record-${record.id}`}><FilePenLine size={14} /> <span className="hidden md:inline">تعديل</span></Button>}
         <Button variant="ghost" size="icon" onClick={onArchive} className="h-8 w-8 text-slate-400 hover:bg-rose-50 hover:text-rose-600" title="أرشفة السجل" data-testid={`button-archive-record-${record.id}`}><Archive size={14} /></Button>
       </div>
     </div>
@@ -657,9 +657,9 @@ export default function ContainerSystem() {
         : payload,
     }
     if (dialog.record) {
-      updateMutation.mutate({ id: dialog.record.id, data: { status, payload } }, { onSuccess: () => { invalidate(); setDialog(current => ({ ...current, open: false })); showSuccess("تم تحديث السجل") }, onError: () => toast({ title: "تعذر تحديث السجل", variant: "destructive" }) })
+      updateMutation.mutate({ id: dialog.record.id, data: { status, payload } }, { onSuccess: () => { invalidate(); setDialog(current => ({ ...current, open: false })); showSuccess("تم تحديث السجل") }, onError: error => toast({ title: error instanceof Error ? error.message : "تعذر تحديث السجل", variant: "destructive" }) })
     } else {
-      createMutation.mutate({ data }, { onSuccess: () => { invalidate(); setDialog(current => ({ ...current, open: false })); showSuccess("تمت إضافة السجل") }, onError: () => toast({ title: "تعذر إضافة السجل", variant: "destructive" }) })
+      createMutation.mutate({ data }, { onSuccess: () => { invalidate(); setDialog(current => ({ ...current, open: false })); showSuccess("تمت إضافة السجل") }, onError: error => toast({ title: error instanceof Error ? error.message : "تعذر إضافة السجل", variant: "destructive" }) })
     }
   }
   const submitContract = (payload: Record<string, unknown>) => {
