@@ -21,14 +21,14 @@ logical_id = "dd2f77f0-5f7e-42ad-893d-b823952e1890"
 id = "e7Hwi4c_9VUpSkVoGq2Ul"
 uri = "file://cleanflow-services-hostinger.zip"
 type = "unspecified"
-title = "أرشيف Hostinger الجاهز"
-description = "نسخة كاملة قابلة للرفع مباشرة إلى public_html وتعمل عبر PHP + SQLite بدون Node.js."
+title = "أرشيف Hostinger بعد إصلاح المصادقة"
+description = "نسخة PHP + SQLite محدثة، تشمل إصلاح مسار الملف الشخصي وإيقاف تكرار طلبات 401 بعد انتهاء الجلسة."
 logical_id = "c612380d-19d8-4641-8c29-e5ac4a484245"
-content_hash = "sha256:c863933e0fc7679858a45cb9e0793f64d2597c85281a9bf647a6ec5f1340559d"
-size = 20915262
-mtime_ms = 1787382478518
-storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:574976c8-a826-4c41-a9dd-899f215b73c0/c612380d-19d8-4641-8c29-e5ac4a484245/656d4171-0990-4de2-936d-c4b7b2004930"
-storage_version_token = "1787382488599146"
+content_hash = "sha256:9e19d8623b89fc5c6352f2fd3d7bbfc5de8e6a9012c5b5373e97e693d663b651"
+size = 20916170
+mtime_ms = 1787382939115
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:574976c8-a826-4c41-a9dd-899f215b73c0/c612380d-19d8-4641-8c29-e5ac4a484245/dc496ecc-5a08-47dd-b097-c1d58a77b5a4"
+storage_version_token = "1787382951729391"
 content_type = "application/octet-stream"
 
 [[outputs]]

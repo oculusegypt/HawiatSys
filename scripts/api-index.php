@@ -1400,7 +1400,61 @@ try {
         exit;
     }
 
-    // 10f. Employees Management: /api/admin/employees
+    // 10f. Current employee profile: support both read and update operations.
+    // Some deployed frontend bundles read this resource directly instead of
+    // using /auth/me, so keep the PHP contract aligned with the Node API.
+    if ($path === '/admin/employees/me/profile' && $method === 'GET') {
+        $admin = requireAdminAccess($pdo);
+        echo json_encode(formatUser($admin), JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        exit;
+    }
+
+    if ($path === '/admin/employees/me/profile' && ($method === 'PUT' || $method === 'POST')) {
+        $admin = requireAdminAccess($pdo);
+        $updates = [];
+        $params = [':id' => (int)$admin['id']];
+
+        if (isset($input['name']) && trim((string)$input['name']) !== '') {
+            $updates[] = 'name = :name';
+            $params[':name'] = trim((string)$input['name']);
+        }
+        if (array_key_exists('email', $input)) {
+            $updates[] = 'email = :email';
+            $params[':email'] = trim((string)$input['email']) ?: null;
+        }
+        if (!empty($input['newPassword'])) {
+            if (empty($input['currentPassword'])) {
+                http_response_code(400);
+                echo json_encode(['error' => 'كلمة المرور الحالية مطلوبة'], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+            if (strlen((string)$input['newPassword']) < 6) {
+                http_response_code(400);
+                echo json_encode(['error' => 'كلمة المرور الجديدة يجب أن تكون 6 أحرف على الأقل'], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+            if (!verifyPassword((string)$input['currentPassword'], (string)$admin['password_hash'])) {
+                http_response_code(400);
+                echo json_encode(['error' => 'كلمة المرور الحالية غير صحيحة'], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+            $updates[] = 'password_hash = :password_hash';
+            $params[':password_hash'] = password_hash((string)$input['newPassword'], PASSWORD_BCRYPT);
+        }
+
+        if (!$updates) {
+            http_response_code(400);
+            echo json_encode(['error' => 'لا توجد بيانات للتحديث'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        $stmt = $pdo->prepare('UPDATE admins SET ' . implode(', ', $updates) . ' WHERE id = :id');
+        $stmt->execute($params);
+        echo json_encode(['message' => 'تم تحديث البيانات بنجاح'], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    // 10g. Employees Management: /api/admin/employees
     if ($path === '/admin/employees' && $method === 'GET') {
         try {
             $stmt = $pdo->query("SELECT id, username, name, email, role, permissions, is_active as isActive, created_by as createdBy, created_at as createdAt FROM admins ORDER BY id ASC");

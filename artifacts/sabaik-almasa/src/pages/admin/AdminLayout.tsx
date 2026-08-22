@@ -251,6 +251,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       try { Notification.requestPermission() } catch {}
     }
 
+    let stopped = false
+    let timer: ReturnType<typeof setInterval> | undefined
     const pollBadges = async () => {
       try {
         const sRes = await fetch(`${API_BASE}/api/admin/sidebar-counts`, {
@@ -260,6 +262,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           },
           cache: "no-store",
         })
+        if (sRes.status === 401) {
+          stopped = true
+          if (timer) clearInterval(timer)
+          return
+        }
         if (sRes.ok) {
           const data = await sRes.json()
           const messages = Number(data.unreadMessages ?? data.unreadConversations ?? 0)
@@ -276,8 +283,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
 
     pollBadges()
-    const timer = setInterval(pollBadges, 3000)
-    return () => clearInterval(timer)
+    timer = setInterval(() => {
+      if (!stopped) void pollBadges()
+    }, 3000)
+    return () => {
+      stopped = true
+      if (timer) clearInterval(timer)
+    }
   }, [])
 
   // The chat stream can arrive from the service worker before the next badge

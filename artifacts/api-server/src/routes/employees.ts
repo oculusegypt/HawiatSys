@@ -4,7 +4,7 @@
  */
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { adminsTable, ADMIN_ROLES, ALL_SECTIONS, ROLE_LABELS } from "@workspace/db";
+import { adminsTable, ADMIN_ROLES, ALL_SECTIONS, ROLE_LABELS, resolvePermissions } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { hashPasswordBcrypt } from "./auth";
@@ -166,6 +166,21 @@ router.delete("/admin/employees/:id", requireAdmin, requireSectionPermission("em
 
   await db.delete(adminsTable).where(eq(adminsTable.id, targetId));
   return res.json({ message: "تم حذف الموظف بنجاح" });
+});
+
+// ── GET /api/admin/employees/me/profile ─── read own profile ─────────────────
+router.get("/admin/employees/me/profile", requireAdmin, async (req, res) => {
+  const r = req as AdminRequest;
+  const [me] = await db.select().from(adminsTable).where(eq(adminsTable.id, r.adminId));
+  if (!me) return res.status(404).json({ error: "الحساب غير موجود" });
+  return res.json({
+    id: me.id,
+    username: me.username,
+    name: me.name,
+    email: me.email ?? "",
+    role: me.role,
+    permissions: resolvePermissions(me.role, me.permissions ?? null),
+  });
 });
 
 // ── PUT /api/admin/employees/me/profile ─── update own profile ───────────────
