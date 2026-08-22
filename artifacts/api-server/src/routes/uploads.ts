@@ -3,6 +3,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import crypto from "crypto";
+import { execFileSync } from "child_process";
 import { requireAdmin, requireDriver, requireSectionPermission } from "../middleware/adminAuth";
 
 const router = Router();
@@ -53,6 +54,30 @@ function hasImageSignature(filePath: string): boolean {
   }
 }
 
+function compressImage(filePath: string): { path: string; filename: string; size: number } {
+  const optimizedPath = `${filePath}.tmp.webp`;
+  try {
+    execFileSync("magick", [
+      filePath,
+      "-auto-orient",
+      "-resize", "2400x2400>",
+      "-strip",
+      "-quality", "86",
+      optimizedPath,
+    ], { stdio: "ignore", timeout: 30_000 });
+    const optimized = fs.statSync(optimizedPath);
+    if (!optimized.size) throw new Error("empty optimized image");
+    fs.rmSync(filePath, { force: true });
+    const filename = `${path.basename(filePath).replace(/\.[^.]+$/, "")}.webp`;
+    const finalPath = path.join(path.dirname(filePath), filename);
+    fs.renameSync(optimizedPath, finalPath);
+    return { path: finalPath, filename, size: optimized.size };
+  } catch {
+    fs.rmSync(optimizedPath, { force: true });
+    throw new Error("تعذر ضغط الصورة على الخادم");
+  }
+}
+
 function safeUpload(req: Request, res: Response, next: NextFunction): void {
   upload.single("file")(req, res, (error: unknown) => {
     if (error) {
@@ -66,6 +91,19 @@ function safeUpload(req: Request, res: Response, next: NextFunction): void {
       fs.rmSync(req.file.path, { force: true });
       res.status(400).json({ error: "محتوى الملف لا يطابق نوع الصورة المعلن" });
       return;
+    }
+    if (req.file) {
+      try {
+        const optimized = compressImage(req.file.path);
+        req.file.path = optimized.path;
+        req.file.filename = optimized.filename;
+        req.file.size = optimized.size;
+        req.file.mimetype = "image/webp";
+      } catch (error) {
+        fs.rmSync(req.file.path, { force: true });
+        res.status(422).json({ error: error instanceof Error ? error.message : "تعذر ضغط الصورة على الخادم" });
+        return;
+      }
     }
     next();
   });
@@ -83,6 +121,12 @@ function rejectUnsafeFileName(req: Request, res: Response, next: NextFunction): 
 
 // ── POST /api/admin/uploads ────────────────────────────────────────────────────
 router.post("/admin/uploads", requireAdmin, requireSectionPermission("settings"), safeUpload, rejectUnsafeFileName, (req: Request, res: Response): void => {
+  if (!req.file) { res.status(400).json({ error: "لم يُرفَق ملف" }); return; }
+  const url = `/api/uploads/${req.file.filename}`;
+  res.json({ url, filename: req.file.filename, size: req.file.size });
+});
+
+router.post("/admin/slides/upload", requireAdmin, requireSectionPermission("slides"), safeUpload, rejectUnsafeFileName, (req: Request, res: Response): void => {
   if (!req.file) { res.status(400).json({ error: "لم يُرفَق ملف" }); return; }
   const url = `/api/uploads/${req.file.filename}`;
   res.json({ url, filename: req.file.filename, size: req.file.size });

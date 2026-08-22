@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { useGetSlides, useCreateSlide, useUpdateSlide, useDeleteSlide } from "@workspace/api-client-react"
 import type { HeroSlide } from "@workspace/api-client-react"
 import { Card, CardContent } from "@/components/ui/card"
@@ -32,6 +32,8 @@ export default function AdminSlides() {
 
   const [editing, setEditing] = useState<number | "new" | null>(null)
   const [form, setForm] = useState<SlideForm>(emptyForm())
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const openNew = () => {
     setForm({ ...emptyForm(), order: slides.length })
@@ -55,6 +57,27 @@ export default function AdminSlides() {
       createSlide({ data: form }, { onSuccess: () => { refetch(); setEditing(null) } })
     } else if (typeof editing === "number") {
       updateSlide({ id: editing, data: form }, { onSuccess: () => { refetch(); setEditing(null) } })
+    }
+  }
+
+  const handleImageUpload = async (file: File) => {
+    setUploading(true)
+    try {
+      const token = localStorage.getItem("admin_token") ?? ""
+      const body = new FormData()
+      body.append("file", file)
+      const response = await fetch("/api/admin/slides/upload", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body,
+      })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error || "فشل رفع الصورة")
+      setForm(current => ({ ...current, imageUrl: result.url }))
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "فشل رفع الصورة")
+    } finally {
+      setUploading(false)
     }
   }
 
@@ -116,13 +139,30 @@ export default function AdminSlides() {
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-1 block">رابط الصورة *</label>
-              <Input
-                value={form.imageUrl}
-                onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-                placeholder="https://..."
-                dir="ltr"
-              />
+              <label className="text-sm font-medium text-gray-700 mb-1 block">صورة الخلفية *</label>
+              <div className="flex gap-2">
+                <Input
+                  value={form.imageUrl}
+                  onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
+                  placeholder="رابط الصورة أو ارفع ملفاً"
+                  dir="ltr"
+                />
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) void handleImageUpload(file)
+                    e.currentTarget.value = ""
+                  }}
+                />
+                <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="shrink-0">
+                  {uploading ? "جاري الضغط..." : "رفع صورة"}
+                </Button>
+              </div>
+              <p className="mt-1 text-xs text-gray-500">سيتم ضغط الصورة وتحويلها تلقائياً إلى WebP مع الحفاظ على الجودة.</p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>

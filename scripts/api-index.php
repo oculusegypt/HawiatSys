@@ -271,6 +271,29 @@ try {
         return $admin;
     }
 
+    function compressUploadedImage(string $source, string $target): bool {
+        if (!function_exists('imagecreatefromstring') || !function_exists('imagewebp')) return false;
+        $contents = @file_get_contents($source);
+        if ($contents === false || strlen($contents) > 8 * 1024 * 1024) return false;
+        $image = @imagecreatefromstring($contents);
+        if ($image === false) return false;
+        $width = imagesx($image);
+        $height = imagesy($image);
+        $scale = min(1, 2400 / max($width, $height));
+        $newWidth = max(1, (int)round($width * $scale));
+        $newHeight = max(1, (int)round($height * $scale));
+        $canvas = imagecreatetruecolor($newWidth, $newHeight);
+        imagealphablending($canvas, false);
+        imagesavealpha($canvas, true);
+        $transparent = imagecolorallocatealpha($canvas, 0, 0, 0, 127);
+        imagefill($canvas, 0, 0, $transparent);
+        imagecopyresampled($canvas, $image, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+        $ok = @imagewebp($canvas, $target, 86);
+        imagedestroy($canvas);
+        imagedestroy($image);
+        return $ok && is_file($target) && filesize($target) > 0;
+    }
+
     function derToP1363(string $der): string {
         $pos = 2;
         if (ord($der[1]) & 0x80) {
@@ -658,7 +681,7 @@ try {
     }
 
     // 1. Upload File: POST /api/admin/uploads or /api/uploads
-    if (($path === '/admin/uploads' || $path === '/uploads') && $method === 'POST') {
+    if (($path === '/admin/uploads' || $path === '/admin/slides/upload' || $path === '/uploads') && $method === 'POST') {
         if (empty($_FILES['file'])) {
             http_response_code(400);
             echo json_encode(['error' => 'لم يتم إرسال أي ملف'], JSON_UNESCAPED_UNICODE);
@@ -670,20 +693,20 @@ try {
             @mkdir($uploadDir, 0755, true);
         }
 
-        $origName = $_FILES['file']['name'];
-        $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
-        $newName = (int)(microtime(true) * 1000) . '-' . substr(bin2hex(random_bytes(6)), 0, 12) . ($ext ? '.' . $ext : '');
+        $tmpPath = (string)($_FILES['file']['tmp_name'] ?? '');
+        $newName = (int)(microtime(true) * 1000) . '-' . substr(bin2hex(random_bytes(6)), 0, 12) . '.webp';
         $targetPath = $uploadDir . '/' . $newName;
 
-        if (move_uploaded_file($_FILES['file']['tmp_name'], $targetPath)) {
+        if (is_uploaded_file($tmpPath) && compressUploadedImage($tmpPath, $targetPath)) {
             echo json_encode([
                 'url' => '/api/uploads/' . $newName,
                 'filename' => $newName
             ], JSON_UNESCAPED_UNICODE);
             exit;
         } else {
+            @unlink($targetPath);
             http_response_code(500);
-            echo json_encode(['error' => 'تعذر حفظ الملف على الخادم'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['error' => 'تعذر ضغط الصورة أو حفظها على الخادم'], JSON_UNESCAPED_UNICODE);
             exit;
         }
     }
