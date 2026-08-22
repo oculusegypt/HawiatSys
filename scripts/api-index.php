@@ -4173,6 +4173,141 @@ try {
         exit;
     }
 
+    // ── Blog AI generation: POST /api/admin/ai/generate-blog-* ────────────────
+    // These routes are required by the admin Blog page. Hostinger runs this
+    // PHP router directly, so they must not exist only in the Node API.
+    if (in_array($path, [
+        '/admin/ai/generate-blog-basics',
+        '/admin/ai/generate-blog-content',
+        '/admin/ai/generate-blog-seo',
+    ], true) && $method === 'POST') {
+        $authHeader = getAuthHeader();
+        if (!$authHeader || !preg_match('/^Bearer\s+(.+)$/i', $authHeader, $matches)) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Unauthorized'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        $tokenPayload = verifyToken($matches[1]);
+        if (!$tokenPayload || empty($tokenPayload['adminId'])) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Unauthorized'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        $adminStmt = $pdo->prepare("SELECT id, role, is_active FROM admins WHERE id = :id LIMIT 1");
+        $adminStmt->execute([':id' => (int)$tokenPayload['adminId']]);
+        $blogAdmin = $adminStmt->fetch();
+        if (!$blogAdmin || (isset($blogAdmin['is_active']) && (int)$blogAdmin['is_active'] === 0)) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Unauthorized'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        if ((string)($blogAdmin['role'] ?? '') === 'driver') {
+            http_response_code(403);
+            echo json_encode(['error' => 'ليس لديك صلاحية لتوليد محتوى المدونة'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        $settingStmt = $pdo->query("SELECT key, value FROM site_settings WHERE key IN ('company_name', 'ai_gemini_key', 'ai_qwen_key', 'ai_qwen_host', 'ai_qwen_model', 'ai_zhipu_key', 'ai_provider_order')");
+        $blogSettings = $settingStmt->fetchAll(PDO::FETCH_KEY_PAIR);
+        $siteName = trim((string)($blogSettings['company_name'] ?? '')) ?: 'الشركة';
+        $topic = trim((string)($input['topic'] ?? ''));
+        $title = trim((string)($input['title'] ?? ''));
+        $excerpt = trim((string)($input['excerpt'] ?? ''));
+        $category = trim((string)($input['category'] ?? ''));
+        $tags = $input['tags'] ?? [];
+        if (is_string($tags)) $tags = json_decode($tags, true) ?: [];
+        if (!is_array($tags)) $tags = [];
+
+        if ($path === '/admin/ai/generate-blog-basics' && $topic === '') {
+            http_response_code(400);
+            echo json_encode(['error' => 'يرجى إدخال موضوع المقالة أولاً'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        if ($path !== '/admin/ai/generate-blog-basics' && $title === '') {
+            http_response_code(400);
+            echo json_encode(['error' => $path === '/admin/ai/generate-blog-seo' ? 'العنوان مطلوب لتوليد بيانات SEO' : 'العنوان مطلوب لتوليد المحتوى'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        if ($path === '/admin/ai/generate-blog-basics') {
+            $prompt = "أنت كاتب محتوى محترف متخصص في السوق السعودي. أنشئ معلومات أساسية لمقالة عربية عن الموضوع التالي: {$topic}\n";
+            $prompt .= "اجعلها مرتبطة بتأجير حاويات الأنقاض ونقل المخلفات في الرياض والسعودية. أجب JSON صالحاً فقط بهذا الشكل:\n";
+            $prompt .= '{"title":"عنوان جذاب بين 50 و70 حرفاً","excerpt":"ملخص تشويقي بين 100 و160 حرفاً","category":"تصنيف مناسب","tags":["وسم 1","وسم 2","وسم 3"],"readTime":5,"author":"' . $siteName . '"}';
+            $maxTokens = 700;
+        } elseif ($path === '/admin/ai/generate-blog-content') {
+            $prompt = "اكتب مقالة HTML عربية أصلية ومحسنة لمحركات البحث عن: {$title}\nالملخص: {$excerpt}\nالتصنيف: {$category}\nالوسوم: " . implode('، ', array_map('strval', $tags)) . "\n";
+            $prompt .= "اكتب 600-900 كلمة، مقدمة، 3-4 عناوين h2، قوائم عند الحاجة، وخاتمة فيها دعوة للتواصل مع {$siteName}. استخدم فقط h2,h3,p,ul,ol,li,strong,em,br. أجب JSON صالحاً فقط: {\"content\":\"...\"}";
+            $maxTokens = 2500;
+        } else {
+            $prompt = "أنت خبير SEO في السوق السعودي. أنشئ بيانات SEO لمقالة عربية.\nالعنوان: {$title}\nالملخص: {$excerpt}\nالتصنيف: {$category}\nالوسوم: " . implode('، ', array_map('strval', $tags)) . "\n";
+            $prompt .= "أجب JSON صالحاً فقط: {\"seoTitle\":\"عنوان 50-60 حرفاً يتضمن الكلمة المفتاحية و| {$siteName}\",\"seoDescription\":\"وصف 120-160 حرفاً مع دعوة للتصرف\",\"seoKeywords\":\"كلمات مفتاحية مفصولة بفاصلة عربية\",\"seoSlug\":\"رابط عربي بشرطات فقط\",\"canonicalUrl\":\"\"}";
+            $maxTokens = 700;
+        }
+
+        $extractBlogJson = static function (string $text): ?array {
+            $clean = trim(preg_replace('/<think>[\s\S]*?<\/think>/i', '', $text) ?? $text);
+            $clean = preg_replace('/^```(?:json)?\s*/i', '', $clean) ?? $clean;
+            $clean = preg_replace('/\s*```$/', '', $clean) ?? $clean;
+            $start = strpos($clean, '{'); $end = strrpos($clean, '}');
+            if ($start === false || $end === false || $end <= $start) return null;
+            $decoded = json_decode(substr($clean, $start, $end - $start + 1), true);
+            return is_array($decoded) ? $decoded : null;
+        };
+        $blogPostJson = static function (string $url, array $headers, array $body): ?array {
+            $context = stream_context_create(['http' => [
+                'method' => 'POST',
+                'header' => implode("\r\n", $headers),
+                'content' => json_encode($body, JSON_UNESCAPED_UNICODE),
+                'timeout' => 45,
+                'ignore_errors' => true,
+            ]]);
+            $response = @file_get_contents($url, false, $context);
+            if ($response === false) return null;
+            $decoded = json_decode($response, true);
+            return is_array($decoded) ? $decoded : null;
+        };
+        $providerOrder = ['qwen', 'zhipu', 'gemini'];
+        $decodedOrder = json_decode((string)($blogSettings['ai_provider_order'] ?? ''), true);
+        if (is_array($decodedOrder)) $providerOrder = array_values(array_filter($decodedOrder, 'is_string'));
+        $attempts = [];
+        foreach ($providerOrder as $provider) {
+            try {
+                $raw = '';
+                if ($provider === 'gemini' && !empty($blogSettings['ai_gemini_key'])) {
+                    $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' . urlencode((string)$blogSettings['ai_gemini_key']);
+                    $response = $blogPostJson($url, ['Content-Type: application/json'], ['contents' => [['parts' => [['text' => $prompt]]]], 'generationConfig' => ['temperature' => 0.7, 'maxOutputTokens' => $maxTokens]]);
+                    $raw = (string)($response['candidates'][0]['content']['parts'][0]['text'] ?? '');
+                } elseif ($provider === 'qwen' && !empty($blogSettings['ai_qwen_key'])) {
+                    $host = trim((string)($blogSettings['ai_qwen_host'] ?? ''));
+                    $base = $host === '' ? 'https://dashscope-intl.aliyuncs.com/v1' : (str_starts_with($host, 'http') ? rtrim($host, '/') : 'https://' . $host . '/v1');
+                    $response = $blogPostJson($base . '/chat/completions', ['Content-Type: application/json', 'Authorization: Bearer ' . $blogSettings['ai_qwen_key']], ['model' => trim((string)($blogSettings['ai_qwen_model'] ?? '')) ?: 'qwen3-max', 'messages' => [['role' => 'user', 'content' => $prompt]], 'temperature' => 0.7, 'max_tokens' => $maxTokens]);
+                    $raw = (string)($response['choices'][0]['message']['content'] ?? '');
+                } elseif ($provider === 'zhipu' && !empty($blogSettings['ai_zhipu_key'])) {
+                    $response = $blogPostJson('https://open.bigmodel.cn/api/paas/v4/chat/completions', ['Content-Type: application/json', 'Authorization: Bearer ' . $blogSettings['ai_zhipu_key']], ['model' => 'glm-4-flash', 'messages' => [['role' => 'user', 'content' => $prompt]], 'temperature' => 0.7, 'max_tokens' => $maxTokens]);
+                    $raw = (string)($response['choices'][0]['message']['content'] ?? '');
+                } else {
+                    $attempts[] = $provider . ': مفتاح غير مُعيَّن';
+                    continue;
+                }
+                $result = $extractBlogJson($raw);
+                if (!$result) { $attempts[] = $provider . ': استجابة JSON غير صالحة'; continue; }
+                if (isset($result['tags']) && is_string($result['tags'])) $result['tags'] = json_decode($result['tags'], true) ?: [$result['tags']];
+                if (isset($result['seoSlug'])) {
+                    $slug = preg_replace('/[\s_]+/u', '-', trim((string)$result['seoSlug'])) ?? '';
+                    $result['seoSlug'] = trim(preg_replace('/-+/u', '-', preg_replace('/[^\x{0600}-\x{06FF}0-9-]/u', '', $slug) ?? '') ?? '', '-');
+                }
+                if ($path === '/admin/ai/generate-blog-content' && empty($result['content'])) $result = ['content' => $raw];
+                echo json_encode($result, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+                exit;
+            } catch (Throwable $error) {
+                $attempts[] = $provider . ': ' . $error->getMessage();
+            }
+        }
+        http_response_code(503);
+        echo json_encode(['error' => 'فشل توليد محتوى المدونة. تحقق من إعدادات الذكاء الاصطناعي. ' . implode(' | ', $attempts)], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
     // ── AI SEO generation: POST /api/admin/ai/generate-seo ─────────────────────
     // Keep this endpoint in the PHP production API as well as the Express API.
     // Hostinger serves this script directly and has no Node.js process.
