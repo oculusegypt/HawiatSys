@@ -235,7 +235,7 @@ function ContainerStatusImage({
         loading="lazy"
       />
       <span
-        className="pointer-events-none absolute left-[63%] top-[21%] flex h-[16%] w-[24%] items-center justify-center overflow-hidden px-1 text-[clamp(6px,1.2vw,13px)] font-black leading-none text-white [text-shadow:0_1px_2px_rgba(0,0,0,.85)]"
+        className="pointer-events-none absolute left-[63%] top-[36%] flex h-[22%] w-[24%] items-center justify-center overflow-hidden whitespace-nowrap px-1 text-[clamp(9px,2vw,18px)] font-black leading-none tracking-tight text-white [text-shadow:0_1px_2px_rgba(0,0,0,.9)]"
         dir="ltr"
         aria-hidden="true"
       >
