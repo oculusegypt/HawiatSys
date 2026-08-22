@@ -21,7 +21,7 @@
  */
 
 import { execSync }                  from "child_process";
-import { existsSync, mkdirSync, copyFileSync, rmSync, cpSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, copyFileSync, rmSync, cpSync, writeFileSync, readdirSync } from "fs";
 import { join, dirname }             from "path";
 import { fileURLToPath }             from "url";
 
@@ -61,6 +61,25 @@ cpSync(
   join(STAGING, "assets"),
   { recursive: true }
 );
+// Keep the exact asset URLs from the previous deployment available while
+// caches expire. The new HTML still uses the freshly generated canonical names.
+const compatibilityAliases = [
+  ["index-ChILh_On.js", /^index-[^/]+\.js$/],
+  ["index-DVBBl5cX.css", /^index-[^/]+\.css$/],
+  ["index-BRF6LCBA.js", /^index-[^/]+\.js$/],
+  ["index-80cL6Fpf.css", /^index-[^/]+\.css$/],
+  ["index-XKmgbX4P.js", /^index-[^/]+\.js$/],
+  ["index-CwjPgsoo.js", /^index-[^/]+\.js$/],
+  ["index-DjNEGUy7.css", /^index-[^/]+\.css$/],
+];
+const stagedAssets = join(STAGING, "assets");
+const currentAssets = readdirSync(stagedAssets);
+for (const [legacyName, pattern] of compatibilityAliases) {
+  const currentName = currentAssets.find((name) => pattern.test(name));
+  if (currentName && currentName !== legacyName) {
+    copyFileSync(join(stagedAssets, currentName), join(stagedAssets, legacyName));
+  }
+}
 copyFileSync(
   join(ROOT, "artifacts/sabaik-almasa/dist/public/index.html"),
   join(STAGING, "index.html")

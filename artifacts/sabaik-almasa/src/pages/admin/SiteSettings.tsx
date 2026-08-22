@@ -4,13 +4,15 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
+import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Lock, LockOpen, Headphones, Bot, CheckCircle, AlertCircle, Clock,
   Building2, Phone, MessageCircle, Plus, Trash2, PhoneCall, BarChart2,
   Image as ImageIcon, Star, Users, Pencil, Eye, EyeOff, X, Check, GripVertical,
   ExternalLink, SlidersHorizontal, RotateCcw, LayoutGrid, Upload, RefreshCw, Megaphone,
-  Palette, Sparkles, Server,
+  Palette, Sparkles, Server, CheckCircle2, Circle, Loader2,
 } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { THEME_PRESETS, applyThemePreset, type ThemePreset } from "@/lib/themePresets"
@@ -1650,6 +1652,8 @@ function HostingerTab() {
   const [testing, setTesting] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [deployStage, setDeployStage] = useState<"idle" | "preparing" | "uploading" | "verifying" | "complete" | "error">("idle")
+  const [deployMessage, setDeployMessage] = useState("")
 
   useEffect(() => {
     fetch(`${API_BASE}/api/admin/hostinger`, {
@@ -1712,9 +1716,13 @@ function HostingerTab() {
       return
     }
     setUploading(true)
+    setDeployStage("preparing")
+    setDeployMessage("يتم تجهيز ملف التحديث وفحصه قبل الإرسال")
     try {
       const body = new FormData()
       body.append("patch", selectedFile)
+      setDeployStage("uploading")
+      setDeployMessage("يتم رفع الملفات إلى Hostinger، لا تغلق الصفحة")
       const r = await fetch(`${API_BASE}/api/admin/hostinger/deploy`, {
         method: "POST",
         headers: { Authorization: `Bearer ${localStorage.getItem("admin_token")}` },
@@ -1722,9 +1730,16 @@ function HostingerTab() {
       })
       const data = await r.json()
       if (!r.ok) throw new Error(data.error || "فشل رفع الباتش")
+      setDeployStage("verifying")
+      setDeployMessage(`تم إرسال ${data.uploaded || 0} ملفاً، ويتم الآن تأكيد وصولها`)
+      await new Promise(resolve => setTimeout(resolve, 350))
+      setDeployStage("complete")
+      setDeployMessage(`تم التحقق من ${data.verified || data.uploaded || 0} ملفاً بنجاح`)
       toast({ title: "تم رفع الباتش بنجاح", description: `تم تحديث ${data.uploaded} ملفاً داخل ${data.remotePath}` })
       setSelectedFile(null)
     } catch (error) {
+      setDeployStage("error")
+      setDeployMessage(error instanceof Error ? error.message : "تعذر رفع الملفات")
       toast({ title: "فشل تحديث Hostinger", description: error instanceof Error ? error.message : "تعذر رفع الملفات", variant: "destructive" })
     } finally {
       setUploading(false)
@@ -1762,6 +1777,39 @@ function HostingerTab() {
           {selectedFile && <p className="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-600" dir="ltr">{selectedFile.name} — {(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>}
           <Button onClick={deploy} disabled={uploading || !selectedFile || !hasPassword} className="gap-2"><Upload size={15} />{uploading ? "جاري رفع التحديث..." : "رفع وتحديث Hostinger"}</Button>
           {!hasPassword && <p className="text-xs text-amber-700">احفظ بيانات الاتصال وكلمة المرور أولاً لتفعيل الرفع.</p>}
+          {deployStage !== "idle" && (
+            <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4" dir="rtl" aria-live="polite">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div>
+                  <p className="font-bold text-slate-800">حالة عملية التحديث</p>
+                  <p className="mt-1 text-xs text-slate-500">{deployMessage}</p>
+                </div>
+                <Badge variant={deployStage === "error" ? "destructive" : deployStage === "complete" ? "secondary" : "default"}>
+                  {deployStage === "error" ? "فشل" : deployStage === "complete" ? "مكتمل" : "جاري العمل"}
+                </Badge>
+              </div>
+              <Progress value={deployStage === "preparing" ? 20 : deployStage === "uploading" ? 55 : deployStage === "verifying" ? 85 : deployStage === "complete" ? 100 : 0} className="mb-4 h-2.5" />
+              <div className="grid gap-2 sm:grid-cols-4">
+                {([
+                  ["preparing", "تجهيز وفحص"],
+                  ["uploading", "رفع الملفات"],
+                  ["verifying", "التحقق"],
+                  ["complete", "اكتمل"],
+                ] as const).map(([stage, label], index) => {
+                  const order = { idle: 0, preparing: 1, uploading: 2, verifying: 3, complete: 4, error: 0 }[deployStage]
+                  const done = order > index + 1 || deployStage === "complete"
+                  const active = deployStage === stage
+                  return (
+                    <div key={stage} className={`flex items-center gap-2 rounded-lg px-2 py-2 text-xs ${active ? "bg-white font-bold text-primary shadow-sm" : done ? "text-emerald-700" : "text-slate-400"}`}>
+                      {done ? <CheckCircle2 size={15} /> : active ? <Loader2 size={15} className="animate-spin" /> : <Circle size={15} />}
+                      <span>{index + 1}. {label}</span>
+                    </div>
+                  )
+                })}
+              </div>
+              {deployStage === "complete" && <p className="mt-3 text-xs text-emerald-700">يمكنك فتح الموقع بعد التحديث. إذا ظهرت نسخة قديمة، حدّث الصفحة تحديثاً قسرياً مرة واحدة.</p>}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
