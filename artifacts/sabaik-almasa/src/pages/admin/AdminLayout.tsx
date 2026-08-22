@@ -105,7 +105,7 @@ function SidebarContent({ permissions = [], onNavClick, onLogout, userName, user
   return (
     <div className="flex min-h-0 flex-col h-full">
       <div className="p-5 border-b border-white/10 shrink-0">
-         {isLoaded && logoUrl ? <img src={logoUrl} alt={`شعار ${companyName}`} className="h-9 w-auto object-contain pl-[59px] pr-[59px] pt-[0px] pb-[0px] mt-[0px] mb-[20px]" /> : <div className="h-9 mb-2" aria-hidden="true" />}
+         {isLoaded && logoUrl ? <img src={logoUrl} alt={`شعار ${companyName}`} className="h-14 max-w-full w-auto object-contain mt-0 mb-3" /> : <div className="h-14 mb-3" aria-hidden="true" />}
         <h2 className="text-lg font-bold text-white leading-tight">لوحة الإدارة</h2>
          <p className="text-white/40 text-xs mt-0.5">{companyName}</p>
       </div>
