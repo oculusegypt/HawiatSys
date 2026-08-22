@@ -242,6 +242,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   useEffect(() => {
     const token = localStorage.getItem("admin_token")
     if (!token) return
+    // Driver accounts use the dedicated work-orders surface and do not have
+    // access to management sidebar counters.
+    if (localStorage.getItem("admin_role") === "driver") return
 
     // Request desktop notifications permission if not decided
     if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
