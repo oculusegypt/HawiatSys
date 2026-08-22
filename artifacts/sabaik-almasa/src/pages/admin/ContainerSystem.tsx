@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { Link, useLocation } from "wouter"
 import {
@@ -584,6 +584,8 @@ function ContainerSearchPanel({ records, loading, onDetails, onEdit }: { records
 export default function ContainerSystem() {
   const queryClient = useQueryClient()
   const { toast } = useToast()
+  const [location] = useLocation()
+  const requestedView = new URLSearchParams(location.split("?")[1] ?? "").get("view") as ViewKey | null
   const [view, setView] = useState<ViewKey>("overview")
   const [search, setSearch] = useState("")
   const [dialog, setDialog] = useState<{ open: boolean; kind: RecordKind; record?: ContainerSystemRecord | null }>({ open: false, kind: "customer" })
@@ -593,6 +595,11 @@ export default function ContainerSystem() {
   const [detailRecord, setDetailRecord] = useState<ContainerSystemRecord | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [reportId, setReportId] = useState<ReportId | null>(null)
+  useEffect(() => {
+    if (!requestedView) return
+    setView(requestedView)
+    if (requestedView === "contract") setContractWizardOpen(true)
+  }, [requestedView])
   const collectionKind = viewKind[view] ?? (allKinds.includes(view as RecordKind) ? view as RecordKind : undefined)
   const isCollection = Boolean(collectionKind)
   const filterParams = useMemo(() => ({ kind: collectionKind, search: search.trim() || undefined }), [collectionKind, search])
