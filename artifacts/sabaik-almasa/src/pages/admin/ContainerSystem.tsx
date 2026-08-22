@@ -683,7 +683,7 @@ export default function ContainerSystem() {
             },
           },
         }, {
-          onSuccess: () => createMutation.mutate({
+          onSuccess: createdAssignment => createMutation.mutate({
             data: {
             kind: "appointment",
             status: "scheduled",
@@ -735,9 +735,22 @@ export default function ContainerSystem() {
               toast({ title: error instanceof Error ? `تم إصدار العقد والموعد، لكن تعذر إنشاء أمر العمل: ${error.message}` : "تم إصدار العقد والموعد، لكن تعذر إنشاء أمر العمل", variant: "destructive" })
             })
           },
-          onError: error => { invalidate(); setContractWizardOpen(false); setContractFlowBusy(false); toast({ title: error instanceof Error ? `تم إصدار العقد والتخصيص، لكن تعذر إنشاء الموعد: ${error.message}` : "تم إصدار العقد والتخصيص، لكن تعذر إنشاء الموعد", variant: "destructive" }) },
+          onError: error => {
+            archiveMutation.mutate({ id: createdAssignment.id })
+            archiveMutation.mutate({ id: createdContract.id })
+            invalidate()
+            setContractWizardOpen(false)
+            setContractFlowBusy(false)
+            toast({ title: error instanceof Error ? `تعذر إنشاء الموعد وتم تنظيف العقد والتخصيص: ${error.message}` : "تعذر إنشاء الموعد وتم تنظيف العقد والتخصيص", variant: "destructive" })
+          },
           }),
-          onError: error => { invalidate(); setContractWizardOpen(false); setContractFlowBusy(false); toast({ title: error instanceof Error ? `تم إصدار العقد، لكن تعذر تخصيص الأصل: ${error.message}` : "تم إصدار العقد، لكن تعذر تخصيص الأصل", variant: "destructive" }) },
+          onError: error => {
+            archiveMutation.mutate({ id: createdContract.id })
+            invalidate()
+            setContractWizardOpen(false)
+            setContractFlowBusy(false)
+            toast({ title: error instanceof Error ? `تعذر تخصيص الأصل وتم تنظيف العقد الجزئي: ${error.message}` : "تعذر تخصيص الأصل وتم تنظيف العقد الجزئي", variant: "destructive" })
+          },
         })
       },
       onError: error => { setContractFlowBusy(false); toast({ title: error instanceof Error ? error.message : "تعذر إصدار العقد", variant: "destructive" }) },
