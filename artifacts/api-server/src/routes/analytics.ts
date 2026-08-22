@@ -284,6 +284,18 @@ router.get("/admin/analytics", requireAdmin, async (req, res) => {
       completed: selectedRequests.filter(request => request.status === "completed").length,
       cancelled: selectedRequests.filter(request => request.status === "cancelled").length,
     };
+    const servicePerformance = Object.values(selectedRequests.reduce((acc, request) => {
+      const key = request.serviceType || "غير محدد";
+      const row = acc[key] ?? { service: key, total: 0, completed: 0, inProgress: 0, cancelled: 0 };
+      row.total += 1;
+      if (request.status === "completed") row.completed += 1;
+      if (request.status === "in_progress") row.inProgress += 1;
+      if (request.status === "cancelled") row.cancelled += 1;
+      acc[key] = row;
+      return acc;
+    }, {} as Record<string, { service: string; total: number; completed: number; inProgress: number; cancelled: number }>))
+      .sort((a, b) => b.total - a.total)
+      .map(row => ({ ...row, completionRate: row.total > 0 ? Number(((row.completed / row.total) * 100).toFixed(1)) : 0 }));
     const selectedUnique = new Set(selectedRows.map(row => row.sessionId)).size;
     const comparisonUnique = new Set(comparisonRows.map(row => row.sessionId)).size;
     const selectedConversion = selectedUnique > 0 ? Number(((selectedRequests.length / selectedUnique) * 100).toFixed(1)) : 0;
@@ -320,6 +332,7 @@ router.get("/admin/analytics", requireAdmin, async (req, res) => {
         orders: comparisonRequests.length,
         conversionRate: comparisonConversion,
       } : null,
+      servicePerformance,
       conversionSources,
       countries: locationRows("country"),
       cities: locationRows("city"),

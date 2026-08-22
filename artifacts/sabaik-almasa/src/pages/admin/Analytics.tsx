@@ -32,6 +32,7 @@ import {
   Lightbulb,
   Zap,
   ArrowDownRight,
+  BriefcaseBusiness,
 } from "lucide-react"
 
 const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
@@ -72,6 +73,14 @@ interface AnalyticsData {
     orders: number
     conversionRate: number
   } | null
+  servicePerformance: {
+    service: string
+    total: number
+    completed: number
+    inProgress: number
+    cancelled: number
+    completionRate: number
+  }[]
   conversionSources: { source: string; views: number; orders: number; rate: number }[]
   countries: { country: string; count: number }[]
   cities: { city: string; count: number }[]
@@ -133,6 +142,7 @@ function normalizeAnalytics(raw: Partial<AnalyticsData>): AnalyticsData {
       statuses: { pending: 0, inProgress: 0, completed: 0, cancelled: 0 },
     },
     comparison: raw.comparison ?? null,
+    servicePerformance: raw.servicePerformance ?? [],
     conversionSources: raw.conversionSources ?? [],
     countries: raw.countries ?? [],
     cities: raw.cities ?? [],
@@ -553,6 +563,38 @@ function ConversionSourcesTable({ rows }: { rows: AnalyticsData["conversionSourc
   )
 }
 
+function ServicePerformanceTable({ rows }: { rows: AnalyticsData["servicePerformance"] }) {
+  if (!rows.length) return <EmptyState message="ستظهر مقارنة أداء الخدمات بعد تسجيل أول طلب." />
+  return (
+    <div className="overflow-x-auto rounded-xl border border-slate-100">
+      <table className="w-full min-w-[680px] text-right text-sm">
+        <thead className="bg-slate-50 text-xs font-bold text-slate-500">
+          <tr>
+            <th className="px-4 py-3">الخدمة</th>
+            <th className="px-4 py-3">الطلبات</th>
+            <th className="px-4 py-3">مكتملة</th>
+            <th className="px-4 py-3">قيد التنفيذ</th>
+            <th className="px-4 py-3">ملغاة</th>
+            <th className="px-4 py-3">نسبة الإتمام</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+          {rows.map(row => (
+            <tr key={row.service} className="transition-colors hover:bg-slate-50/80">
+              <td className="max-w-[220px] truncate px-4 py-3 font-bold text-[#193b63]">{row.service}</td>
+              <td className="px-4 py-3 font-extrabold text-[#193b63]">{formatNumber(row.total)}</td>
+              <td className="px-4 py-3 font-bold text-[#408a70]">{formatNumber(row.completed)}</td>
+              <td className="px-4 py-3 text-amber-700">{formatNumber(row.inProgress)}</td>
+              <td className="px-4 py-3 text-red-600">{formatNumber(row.cancelled)}</td>
+              <td className="px-4 py-3"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${row.completionRate >= 70 ? "bg-[#e5f3ed] text-[#2b7359]" : "bg-amber-50 text-amber-700"}`}>{row.completionRate.toLocaleString("ar-SA", { maximumFractionDigits: 1 })}٪</span></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 export default function Analytics() {
   const [data, setData] = useState<AnalyticsData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -761,6 +803,7 @@ export default function Analytics() {
               <TabsTrigger value="overview" className="min-w-max gap-2 px-4 py-2.5 text-xs text-slate-500 data-[state=active]:bg-white data-[state=active]:text-[#193b63] data-[state=active]:shadow-sm sm:text-sm"><BarChart3 size={15} />النظرة العامة</TabsTrigger>
               <TabsTrigger value="sources" className="min-w-max gap-2 px-4 py-2.5 text-xs text-slate-500 data-[state=active]:bg-white data-[state=active]:text-[#193b63] data-[state=active]:shadow-sm sm:text-sm"><MousePointer2 size={15} />مصادر الزيارات</TabsTrigger>
               <TabsTrigger value="conversions" className="min-w-max gap-2 px-4 py-2.5 text-xs text-slate-500 data-[state=active]:bg-white data-[state=active]:text-[#193b63] data-[state=active]:shadow-sm sm:text-sm"><ShoppingCart size={15} />الطلبات والتحويلات</TabsTrigger>
+              <TabsTrigger value="services" className="min-w-max gap-2 px-4 py-2.5 text-xs text-slate-500 data-[state=active]:bg-white data-[state=active]:text-[#193b63] data-[state=active]:shadow-sm sm:text-sm"><BriefcaseBusiness size={15} />أداء الخدمات</TabsTrigger>
               <TabsTrigger value="geo" className="min-w-max gap-2 px-4 py-2.5 text-xs text-slate-500 data-[state=active]:bg-white data-[state=active]:text-[#193b63] data-[state=active]:shadow-sm sm:text-sm"><Globe2 size={15} />الموقع الجغرافي</TabsTrigger>
               <TabsTrigger value="pages-devices" className="min-w-max gap-2 px-4 py-2.5 text-xs text-slate-500 data-[state=active]:bg-white data-[state=active]:text-[#193b63] data-[state=active]:shadow-sm sm:text-sm"><Laptop size={15} />الصفحات والأجهزة</TabsTrigger>
             </TabsList>
@@ -858,6 +901,14 @@ export default function Analytics() {
                   </CardContent>
                 </Card>
               </div>
+            </TabsContent>
+
+            <TabsContent value="services" className="space-y-4">
+              <Card className="border-slate-200/80 shadow-[0_8px_24px_rgba(25,59,99,0.04)]">
+                <CardHeader><SectionHeading icon={BriefcaseBusiness} title="أداء الخدمات" description="تعرف على الخدمات الأكثر طلبًا ونسبة إتمامها والإلغاءات ضمن الفترة المختارة." /></CardHeader>
+                <CardContent><ServicePerformanceTable rows={data.servicePerformance} /></CardContent>
+              </Card>
+              <div className="flex items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-5 text-slate-500"><AlertCircle size={15} className="mt-0.5 shrink-0 text-[#c89b3c]" />نسبة الإتمام تقيس الطلبات المكتملة مقارنة بإجمالي طلبات كل خدمة، وليست تقييمًا لجودة الخدمة.</div>
             </TabsContent>
 
             <TabsContent value="geo" className="space-y-4">
