@@ -16,6 +16,7 @@ const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
 const ALL_NAV = [
   { href: "/admin",                icon: LayoutDashboard,   label: "لوحة القيادة",    group: "main",    section: "dashboard" },
   { href: "/admin/requests",       icon: Inbox,             label: "الطلبات",          group: "main",    section: "requests" },
+  { href: "/admin/container-system",  icon: Truck,             label: "عمليات الحاويات", group: "main",    section: "container_system" },
   { href: "/admin/work-orders",    icon: Truck,             label: "مهام السائقين",      group: "main",    section: "work_orders" },
   { href: "/admin/conversations",  icon: MessageSquare,     label: "المحادثات",        group: "main",    section: "conversations" },
   { href: "/admin/whatsapp",       icon: MessageCircle,     label: "واتساب",           group: "main",    section: "whatsapp" },
@@ -27,7 +28,6 @@ const ALL_NAV = [
   { href: "/admin/services",       icon: Settings,          label: "الخدمات",          group: "content", section: "services" },
   { href: "/admin/reviews",        icon: Star,              label: "تقييمات الخدمات",  group: "content", section: "reviews" },
   { href: "/admin/packages",          icon: Box,               label: "كتالوج الباقات", group: "content", section: "packages" },
-  { href: "/admin/container-system",  icon: Truck,             label: "عمليات الحاويات", group: "main",    section: "container_system" },
   { href: "/admin/settings",       icon: SlidersHorizontal, label: "إعدادات الموقع",   group: "config",  section: "settings" },
   { href: "/admin/seo",            icon: Search,            label: "SEO",              group: "config",  section: "seo" },
   { href: "/admin/employees",      icon: Users,             label: "الموظفون",         group: "config",  section: "employees" },

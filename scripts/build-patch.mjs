@@ -46,6 +46,10 @@ if (existsSync(assetsSrc)) {
     ["vendor-motion-Cd1BIfVU.js", /^vendor-motion-[^/]+\.js$/],
     ["index-DjNEGUy7.css", /^index-[^/]+\.css$/],
     ["index-CwjPgsoo.js", /^index-[^/]+\.js$/],
+    ["index-ChILh_On.js", /^index-[^/]+\.js$/],
+    ["index-DVBBl5cX.css", /^index-[^/]+\.css$/],
+    ["index-BRF6LCBA.js", /^index-[^/]+\.js$/],
+    ["index-80cL6Fpf.css", /^index-[^/]+\.css$/],
     ["FaqPage-R3henCVg.js", /^FaqPage-[^/]+\.js$/],
     ["Requests-C30AogZw.js", /^Requests-[^/]+\.js$/],
   ];
