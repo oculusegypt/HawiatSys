@@ -672,6 +672,7 @@ export function RecordDialog({
   kind,
   record,
   records = [],
+  initialPayload,
   busy,
   onOpenChange,
   onSubmit,
@@ -680,6 +681,7 @@ export function RecordDialog({
   kind: RecordKind
   record?: ContainerSystemRecord | null
   records?: ContainerSystemRecord[]
+  initialPayload?: Record<string, string>
   busy?: boolean
   onOpenChange: (open: boolean) => void
   onSubmit: (payload: Record<string, unknown>, status: string) => void
@@ -690,10 +692,11 @@ export function RecordDialog({
   useEffect(() => {
     if (!open) return
     const initial = emptyPayload(kind)
+    Object.entries(initialPayload ?? {}).forEach(([key, value]) => { initial[key] = value })
     Object.entries(record?.payload ?? {}).forEach(([key, value]) => { initial[key] = String(value ?? "") })
     setPayload(initial)
     setStatus(record?.status || "active")
-  }, [open, kind, record])
+  }, [initialPayload, open, kind, record])
 
   const setValue = (key: string, value: string) => setPayload(current => ({ ...current, [key]: value }))
   const fields = FIELD_CONFIG[kind]

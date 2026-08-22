@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import type { ContainerSystemRecord } from "@workspace/api-client-react"
 import { ArrowLeft, ArrowRight, CheckCircle2, FileCheck2, ShieldCheck } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 type ContractWizardProps = {
   open: boolean
   records: ContainerSystemRecord[]
+  initialCustomerId?: number | null
   busy?: boolean
   onClose: () => void
   onSubmit: (payload: Record<string, unknown>) => void
@@ -54,10 +55,17 @@ function labelOf(record: ContainerSystemRecord) {
   return String(payload.name ?? payload.customerName ?? payload.assetCode ?? record.reference ?? `#${record.id}`)
 }
 
-export function ContractWizard({ open, records, busy = false, onClose, onSubmit }: ContractWizardProps) {
+export function ContractWizard({ open, records, initialCustomerId = null, busy = false, onClose, onSubmit }: ContractWizardProps) {
   const [step, setStep] = useState(0)
   const [form, setForm] = useState<FormState>(initialForm)
   const [error, setError] = useState("")
+
+  useEffect(() => {
+    if (!open) return
+    setStep(0)
+    setError("")
+    setForm(current => ({ ...initialForm, customerRecordId: initialCustomerId ? String(initialCustomerId) : current.customerRecordId }))
+  }, [initialCustomerId, open])
 
   const customers = useMemo(
     () => records.filter(record => record.kind === "customer" && record.status !== "archived"),
