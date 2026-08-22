@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "hello": "tsx ./src/hello.ts",
+    "validate:operational": "node ./validate-operational-invariants.mjs",
     "generate-sitemap": "node ./generate-sitemap.mjs",
     "seed-seo-articles": "node ./seed-seo-articles.mjs",
     "seed-seo-pages": "node ./seed-seo-pages.mjs",

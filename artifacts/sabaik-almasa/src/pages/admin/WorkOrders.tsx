@@ -36,6 +36,39 @@ import {
 } from "lucide-react";
 
 const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || "";
+const OFFLINE_QUEUE_KEY = "cleanflow-driver-status-queue";
+const COMPLETION_DRAFT_KEY = "cleanflow-driver-completion-draft";
+
+type QueuedStatusUpdate = {
+  id: number;
+  data: {
+    status: DriverWorkOrderStatus;
+    notes?: string | null;
+    operationKey: string;
+  };
+};
+
+function readStatusQueue(): QueuedStatusUpdate[] {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY) ?? "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeStatusQueue(queue: QueuedStatusUpdate[]) {
+  localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
+}
+
+function readCompletionDraft() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(COMPLETION_DRAFT_KEY) ?? "{}");
+    return parsed && typeof parsed === "object" ? parsed as { receiverName?: string; locationLat?: string; locationLng?: string; signatureData?: string } : {};
+  } catch {
+    return {};
+  }
+}
 
 const STATUS: Record<string, { label: string; tone: string; dot: string }> = {
   assigned: {
@@ -379,6 +412,17 @@ function CompletionEvidenceDialog({
   const [signatureData, setSignatureData] = useState("");
   const [locationMessage, setLocationMessage] = useState("");
   const [fileMessage, setFileMessage] = useState("");
+  useEffect(() => {
+    const draft = readCompletionDraft();
+    setReceiverName(draft.receiverName ?? "");
+    setLocationLat(draft.locationLat ?? "");
+    setLocationLng(draft.locationLng ?? "");
+    setSignatureData(draft.signatureData ?? "");
+  }, [open]);
+  useEffect(() => {
+    if (!open) return;
+    localStorage.setItem(COMPLETION_DRAFT_KEY, JSON.stringify({ receiverName, locationLat, locationLng, signatureData }));
+  }, [locationLat, locationLng, open, receiverName, signatureData]);
   function captureLocation() {
     if (!navigator.geolocation) {
       setLocationMessage(
@@ -761,6 +805,8 @@ export default function WorkOrders() {
   const operationKeys = useRef(new Map<string, string>());
   const [drivers, setDrivers] = useState<{ id: number; name: string }[]>([]);
   const [driversLoading, setDriversLoading] = useState(isManager);
+  const [isOnline, setIsOnline] = useState(() => navigator.onLine);
+  const [queuedUpdates, setQueuedUpdates] = useState(() => readStatusQueue().length);
 
   useEffect(() => {
     if (!isManager) return;
@@ -788,6 +834,30 @@ export default function WorkOrders() {
       .catch(() => setDrivers([]))
       .finally(() => setDriversLoading(false));
   }, [isManager]);
+
+  useEffect(() => {
+    const online = () => setIsOnline(true);
+    const offline = () => setIsOnline(false);
+    window.addEventListener("online", online);
+    window.addEventListener("offline", offline);
+    return () => {
+      window.removeEventListener("online", online);
+      window.removeEventListener("offline", offline);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isOnline || !readStatusQueue().length) return;
+    const queue = readStatusQueue();
+    queue.forEach(item => updateOrder(item, {
+      onSuccess: () => {
+        const remaining = readStatusQueue().filter(candidate => candidate.data.operationKey !== item.data.operationKey);
+        writeStatusQueue(remaining);
+        setQueuedUpdates(remaining.length);
+        activeQuery.refetch();
+      },
+    }));
+  }, [activeQuery, isOnline, updateOrder]);
 
   const counts = useMemo(
     () => ({
@@ -870,6 +940,14 @@ export default function WorkOrders() {
         ? crypto.randomUUID()
         : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
     operationKeys.current.set(operationKeyId, operationKey);
+    if (!navigator.onLine) {
+      const queue = readStatusQueue().filter(item => item.data.operationKey !== operationKey);
+      queue.push({ id: order.id, data: { status, notes: notes ?? null, operationKey } });
+      writeStatusQueue(queue);
+      setQueuedUpdates(queue.length);
+      toast({ title: "تم حفظ الإجراء للمزامنة لاحقًا", description: "سيُرسل تلقائيًا عند عودة الاتصال." });
+      return;
+    }
     updateOrder(
       {
         id: order.id,
@@ -925,6 +1003,10 @@ export default function WorkOrders() {
     signatureData: string;
   }) {
     if (!completionTarget) return;
+    if (!navigator.onLine) {
+      toast({ variant: "destructive", title: "الاتصال مطلوب لحفظ إثبات التنفيذ", description: "تم الاحتفاظ بالبيانات كمسودة داخل النموذج؛ أعد الإرسال بعد عودة الاتصال." });
+      return;
+    }
     const operationKeyId = `${completionTarget.id}:${DriverWorkOrderStatus.completed}`;
     const existingKey = operationKeys.current.get(operationKeyId);
     const operationKey =
@@ -946,6 +1028,7 @@ export default function WorkOrders() {
       {
         onSuccess: () => {
           toast({ title: "تم إكمال المهمة وحفظ إثبات التسليم" });
+          localStorage.removeItem(COMPLETION_DRAFT_KEY);
           setCompletionTarget(null);
           activeQuery.refetch();
         },
@@ -979,6 +1062,12 @@ export default function WorkOrders() {
           <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-xs text-white/75">
             <span className="h-2 w-2 rounded-full bg-emerald-300" /> لوحة تشغيل
             مباشرة
+          </div>
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <span className={`rounded-full px-3 py-1 font-bold ${isOnline ? "bg-emerald-400/20 text-emerald-100" : "bg-rose-400/20 text-rose-100"}`}>
+              {isOnline ? "متصل" : "دون اتصال"}
+            </span>
+            {queuedUpdates > 0 && <span className="rounded-full bg-amber-400/20 px-3 py-1 font-bold text-amber-100">إجراءات بانتظار المزامنة: {queuedUpdates}</span>}
           </div>
         </div>
       </header>

@@ -44,6 +44,7 @@ pnpm --filter @workspace/cleanflow-platform run dev
 pnpm run typecheck
 pnpm --filter @workspace/cleanflow-services run typecheck
 pnpm --filter @workspace/api-server run typecheck
+pnpm --filter @workspace/scripts run validate:operational
 pnpm --filter @workspace/db run push
 pnpm --filter @workspace/db run seed
 node scripts/build-hostinger.mjs

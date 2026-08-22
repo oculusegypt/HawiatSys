@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react"
-import { useGetAdminStats } from "@workspace/api-client-react"
+import { getGetAdminWorkOrdersQueryKey, useGetAdminStats, useGetAdminWorkOrders, useGetContainerSystem } from "@workspace/api-client-react"
 import { Link } from "wouter"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -204,6 +204,65 @@ function ChartTooltip({ active, payload, label }: {
   )
 }
 
+function OperationsExceptions() {
+  const workOrdersQuery = useGetAdminWorkOrders({
+    query: { queryKey: getGetAdminWorkOrdersQueryKey(), staleTime: 30_000 },
+  })
+  const containerQuery = useGetContainerSystem({
+    query: { queryKey: ["/api/admin/container-system"], staleTime: 30_000 },
+  })
+  const orders = workOrdersQuery.data ?? []
+  const records = containerQuery.data?.records ?? []
+  const now = Date.now()
+  const overdue = orders.filter(order =>
+    order.scheduledAt &&
+    !["completed", "rejected"].includes(order.driverStatus ?? "") &&
+    Number.isFinite(Date.parse(order.scheduledAt)) &&
+    Date.parse(order.scheduledAt) < now,
+  )
+  const unassigned = orders.filter(order =>
+    !order.assignedDriverId &&
+    !["completed", "rejected"].includes(order.driverStatus ?? ""),
+  )
+  const expiredContracts = records.filter(record => {
+    if (record.kind !== "contract" || ["archived", "returned"].includes(record.status)) return false
+    try {
+      const payload = (record.payload ?? {}) as unknown as { endDate?: string }
+      return Boolean(payload.endDate && Date.parse(payload.endDate) < now)
+    } catch {
+      return false
+    }
+  })
+  const items = [
+    { label: "أوامر عمل متأخرة", value: overdue.length, href: "/admin/work-orders", tone: "border-rose-200 bg-rose-50 text-rose-700", icon: AlertTriangle },
+    { label: "أوامر غير مسندة", value: unassigned.length, href: "/admin/work-orders", tone: "border-amber-200 bg-amber-50 text-amber-700", icon: Users },
+    { label: "عقود منتهية", value: expiredContracts.length, href: "/admin/container-system", tone: "border-indigo-200 bg-indigo-50 text-indigo-700", icon: CalendarClock },
+  ]
+  const loading = workOrdersQuery.isLoading || containerQuery.isLoading
+  return (
+    <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm" aria-label="استثناءات التشغيل">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h3 className="flex items-center gap-2 font-bold text-gray-800"><AlertTriangle size={16} className="text-amber-500" /> مركز الاستثناءات</h3>
+          <p className="mt-1 text-xs text-gray-400">نقاط تحتاج إجراءً قبل أن تؤثر على التشغيل.</p>
+        </div>
+        <Link href="/admin/work-orders" className="text-xs font-bold text-primary hover:underline">فتح التشغيل</Link>
+      </div>
+      {loading ? <div className="h-16 animate-pulse rounded-xl bg-gray-50" /> : (
+        <div className="grid gap-3 sm:grid-cols-3">
+          {items.map(item => {
+            const Icon = item.icon
+            return <Link key={item.label} href={item.href} className={`flex items-center gap-3 rounded-xl border p-3 transition-transform hover:-translate-y-0.5 ${item.tone}`}>
+              <Icon size={18} />
+              <span className="min-w-0"><span className="block truncate text-xs font-bold">{item.label}</span><strong className="mt-1 block text-2xl leading-none">{item.value}</strong></span>
+            </Link>
+          })}
+        </div>
+      )}
+    </section>
+  )
+}
+
 // ─── System Status Card ──────────────────────────────────────────────────────
 
 function SystemStatus() {
@@ -362,6 +421,8 @@ export default function AdminDashboard() {
         <KpiCard icon={CalendarClock} label="مواعيد مسبقة"     value={stats.scheduledRequests ?? 0} color="purple" delay={0.3} />
         <KpiCard icon={Bell}          label="إشعارات غير مقروءة" value={stats.unreadNotifications} color="rose"  delay={0.35} href="/admin/notifications" />
       </div>
+
+      <OperationsExceptions />
 
       {/* ── Main Charts Row ─────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
