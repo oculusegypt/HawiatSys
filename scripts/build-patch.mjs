@@ -35,6 +35,11 @@ if (existsSync(assetsSrc)) {
   // browsers/CDNs can keep old lazy-import URLs after index.html changes;
   // keep the current chunks available at the exact URLs reported by Hostinger.
   const compatibilityAliases = [
+    // Names observed on the currently published Hostinger build. Keep these
+    // aliases so a stale HTML document or CDN cache can still load the
+    // corrected workflow code after the patch is uploaded.
+    ["index-XKmgbX4P.js", /^index-[^/]+\.js$/],
+    ["ContainerSystem-CLh5-87j.js", /^ContainerSystem-[^/]+\.js$/],
     ["vendor-react-cjBsqQw7.js", /^vendor-react-[^/]+\.js$/],
     ["vendor-radix-DY7cewM8.js", /^vendor-radix-[^/]+\.js$/],
     ["vendor-leaflet-B2P7CRh1.js", /^vendor-leaflet-[^/]+\.js$/],

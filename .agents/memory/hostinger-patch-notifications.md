@@ -9,6 +9,12 @@ Hostinger patch archives must preserve the historical root layout and include th
 
 **How to apply:** Build the patch from the current `scripts/api-index.php` and `data/sabaik.db`, include `sw.js` and `notification-icon.webp`, use portable archive paths, and implement Web Push with explicit HKDF-Extract/HKDF-Expand rather than passing salts to PHP's boolean `hash_hkdf` parameter.
 
+For container workflows, distinguish the record lifecycle status from the asset availability stored in the payload; production validation must use the payload availability so assets shown as available can be assigned.
+
+**Why:** Container records commonly remain `active` while their operational availability is `available`, and checking only the row status causes valid contract workflows to return 422.
+
+**How to apply:** In both Node and PHP workflow handlers, normalize the payload status with the row status as fallback before validating assignment availability.
+
 Treat SQLite as a deployable snapshot: checkpoint WAL before copying, use DELETE journal mode in the Hostinger copy, and run an integrity check before packaging. If only ephemeral presence rows are duplicated, repair that table and vacuum the database without rebuilding business data.
 
 **Why:** Shared hosting does not receive SQLite WAL sidecars, and a damaged presence index can make otherwise valid requests and conversations appear offline or break badge queries.
