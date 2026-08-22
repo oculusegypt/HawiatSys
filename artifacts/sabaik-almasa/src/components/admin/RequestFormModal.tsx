@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -15,10 +15,12 @@ import {
   useSubmitServiceRequest,
   useUpdateServiceRequest,
   useGetContainers,
+  useGetContainerSystemRecords,
+  useCreateContainerSystemRecord,
 } from "@workspace/api-client-react"
 import type { ServiceRequestUpdateStatus } from "@workspace/api-client-react"
 import {
-  Box, Truck, Layers, Sparkles, Wrench, Factory, Package, CheckCircle,
+  Box, Truck, Layers, Sparkles, Wrench, Factory, Package, CheckCircle, UserPlus, Loader2,
   type LucideIcon,
 } from "lucide-react"
 
@@ -85,8 +87,15 @@ interface Props {
 // ─── component ────────────────────────────────────────────────────────────────
 export default function RequestFormModal({ open, onClose, request, onSuccess }: Props) {
   const isEdit = !!request
-
+  const [showNewCustomer, setShowNewCustomer] = useState(false)
+  const [newCustomerName, setNewCustomerName] = useState("")
+  const [newCustomerPhone, setNewCustomerPhone] = useState("")
+  const [newCustomerEmail, setNewCustomerEmail] = useState("")
+  const [customerMessage, setCustomerMessage] = useState("")
   const { data: containers = [] } = useGetContainers()
+  const { data: customerRecords = [], isLoading: customersLoading } =
+    useGetContainerSystemRecords({ kind: "customer" })
+  const createCustomer = useCreateContainerSystemRecord()
 
   const { register, handleSubmit, setValue, watch, reset, formState: { isSubmitting } } = useForm<FormValues>({
     defaultValues: {
@@ -127,6 +136,7 @@ export default function RequestFormModal({ open, onClose, request, onSuccess }: 
   const serviceType     = watch("serviceType")
   const containerSize   = watch("containerSize")
   const appointmentType = watch("appointmentType")
+  const clientName = watch("clientName")
 
   const selectedService = ADMIN_SERVICE_OPTIONS.find((service) => service.title === serviceType)
   const showContainerPicker = !!selectedService?.category
@@ -137,6 +147,52 @@ export default function RequestFormModal({ open, onClose, request, onSuccess }: 
   const serviceContainers = selectedService?.category
     ? activeContainers.filter((container) => container.category === selectedService.category)
     : []
+
+  const selectedCustomer = customerRecords.find(record => {
+    const payload = record.payload as Record<string, unknown>
+    return String(payload.name ?? payload.customerName ?? "") === clientName
+  })
+
+  function selectCustomer(value: string) {
+    if (value === "manual") {
+      setValue("clientName", "")
+      setValue("phone", "")
+      setValue("email", "")
+      return
+    }
+    const customer = customerRecords.find(record => String(record.id) === value)
+    if (!customer) return
+    const payload = customer.payload as Record<string, unknown>
+    setValue("clientName", String(payload.name ?? payload.customerName ?? ""), { shouldValidate: true })
+    setValue("phone", String(payload.phone ?? payload.mobile ?? ""), { shouldValidate: true })
+    setValue("email", String(payload.email ?? ""))
+    setCustomerMessage("تمت تعبئة بيانات العميل من السجل.")
+  }
+
+  function addCustomer() {
+    const name = newCustomerName.trim()
+    const phone = newCustomerPhone.trim()
+    if (!name || !phone) {
+      setCustomerMessage("أدخل اسم العميل ورقم الهاتف أولاً.")
+      return
+    }
+    createCustomer.mutate(
+      { data: { kind: "customer", status: "active", payload: { name, phone, email: newCustomerEmail.trim() } } },
+      {
+        onSuccess: () => {
+          setValue("clientName", name, { shouldValidate: true })
+          setValue("phone", phone, { shouldValidate: true })
+          setValue("email", newCustomerEmail.trim())
+          setShowNewCustomer(false)
+          setNewCustomerName("")
+          setNewCustomerPhone("")
+          setNewCustomerEmail("")
+          setCustomerMessage(`تمت إضافة ${name} واختياره للطلب.`)
+        },
+        onError: () => setCustomerMessage("تعذر إضافة العميل، حاول مرة أخرى."),
+      },
+    )
+  }
 
   const onSubmit = (values: FormValues) => {
     const shared = {
@@ -280,13 +336,45 @@ export default function RequestFormModal({ open, onClose, request, onSuccess }: 
           </AnimatePresence>
 
           {/* ══ 3. CLIENT INFO ══════════════════════════════════════════════════ */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="اسم العميل *">
-              <Input {...register("clientName", { required: true })} placeholder="محمد عبدالله" />
-            </Field>
-            <Field label="رقم الهاتف *">
-              <Input {...register("phone", { required: true })} placeholder="05XXXXXXXX" dir="ltr" />
-            </Field>
+          <div className="space-y-3">
+            <div className="flex items-end gap-2">
+              <Field label="اختيار العميل من السجل">
+                <Select value={selectedCustomer ? String(selectedCustomer.id) : "manual"} onValueChange={selectCustomer}>
+                  <SelectTrigger disabled={customersLoading}><SelectValue placeholder={customersLoading ? "جارٍ تحميل العملاء..." : "اختر عميلاً مسجلاً"} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="manual">إدخال عميل غير مسجل</SelectItem>
+                    {customerRecords.map(record => {
+                      const payload = record.payload as Record<string, unknown>
+                      const name = String(payload.name ?? payload.customerName ?? `عميل #${record.id}`)
+                      return <SelectItem key={record.id} value={String(record.id)}>{name}{payload.phone ? ` · ${String(payload.phone)}` : ""}</SelectItem>
+                    })}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Button type="button" variant="outline" onClick={() => setShowNewCustomer(value => !value)} className="mb-0 h-10 shrink-0 gap-1 border-cyan-200 text-cyan-800 hover:bg-cyan-50"><UserPlus size={15} /> إضافة عميل</Button>
+            </div>
+            {showNewCustomer && (
+              <div className="rounded-xl border border-cyan-100 bg-cyan-50/60 p-3">
+                <p className="mb-2 text-xs font-bold text-cyan-900">إضافة عميل جديد وسيتم اختياره تلقائياً</p>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <Input value={newCustomerName} onChange={event => setNewCustomerName(event.target.value)} placeholder="اسم العميل *" />
+                  <Input value={newCustomerPhone} onChange={event => setNewCustomerPhone(event.target.value)} placeholder="رقم الهاتف *" dir="ltr" />
+                  <Input value={newCustomerEmail} onChange={event => setNewCustomerEmail(event.target.value)} placeholder="البريد الإلكتروني" dir="ltr" />
+                </div>
+                <Button type="button" onClick={addCustomer} disabled={createCustomer.isPending} className="mt-2 h-9 gap-1 bg-cyan-800 hover:bg-cyan-900">
+                  {createCustomer.isPending ? <Loader2 size={14} className="animate-spin" /> : <UserPlus size={14} />} حفظ العميل
+                </Button>
+              </div>
+            )}
+            {customerMessage && <p className="text-xs font-semibold text-cyan-700">{customerMessage}</p>}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="اسم العميل *">
+                <Input {...register("clientName", { required: true })} placeholder="محمد عبدالله" />
+              </Field>
+              <Field label="رقم الهاتف *">
+                <Input {...register("phone", { required: true })} placeholder="05XXXXXXXX" dir="ltr" />
+              </Field>
+            </div>
           </div>
 
           <Field label="البريد الإلكتروني">

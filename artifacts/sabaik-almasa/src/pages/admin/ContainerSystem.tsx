@@ -216,6 +216,94 @@ function numericSummary(summary: Record<string, unknown> | undefined, keys: stri
   return fallback
 }
 
+function ContainerAvailabilityBoard({
+  records,
+  onOpen,
+}: {
+  records: ContainerSystemRecord[]
+  onOpen: (record: ContainerSystemRecord) => void
+}) {
+  const [filter, setFilter] = useState<"all" | "available" | "rented" | "maintenance" | "other">("all")
+  const containers = records.filter(record =>
+    ["container", "container_asset"].includes(record.kind) && record.status !== "archived",
+  )
+  const classify = (record: ContainerSystemRecord) => {
+    const status = String(record.payload.status ?? record.status).toLowerCase()
+    if (["available", "متاحة", "متاح", "ready", "جاهزة"].includes(status)) return "available"
+    if (["maintenance", "صيانة", "inspection", "تحت الفحص"].includes(status)) return "maintenance"
+    if (["rented", "with_customer", "مؤجرة", "لدى العميل", "reserved", "محجوزة"].includes(status)) return "rented"
+    return "other"
+  }
+  const labels = {
+    available: { label: "متاحة", tone: "border-emerald-200 bg-emerald-50 text-emerald-800", dot: "bg-emerald-500" },
+    rented: { label: "مؤجرة / غير متاحة", tone: "border-rose-200 bg-rose-50 text-rose-800", dot: "bg-rose-500" },
+    maintenance: { label: "في الصيانة", tone: "border-amber-200 bg-amber-50 text-amber-800", dot: "bg-amber-500" },
+    other: { label: "حالة تحتاج مراجعة", tone: "border-slate-200 bg-slate-100 text-slate-700", dot: "bg-slate-500" },
+  } as const
+  const visible = filter === "all" ? containers : containers.filter(record => classify(record) === filter)
+  const daysRemaining = (record: ContainerSystemRecord) => {
+    const value = record.payload.rentalEndDate ?? record.payload.endDate ?? record.payload.returnDate ?? record.payload.emptyingDate
+    if (!value) return null
+    const time = new Date(String(value)).getTime()
+    if (!Number.isFinite(time)) return null
+    return Math.ceil((time - Date.now()) / 86400000)
+  }
+  const counts = {
+    available: containers.filter(record => classify(record) === "available").length,
+    rented: containers.filter(record => classify(record) === "rented").length,
+    maintenance: containers.filter(record => classify(record) === "maintenance").length,
+    other: containers.filter(record => classify(record) === "other").length,
+  }
+  return (
+    <Card className="border-slate-200/80 shadow-[0_8px_28px_rgba(15,44,58,.05)]">
+      <CardHeader className="border-b border-slate-100 px-5 py-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-base text-slate-900"><Box size={18} className="text-cyan-700" /> حالة الحاويات الآن</CardTitle>
+            <p className="mt-1 text-xs text-slate-500">رؤية سريعة للأصول المتاحة والإيجارات والصيانة</p>
+          </div>
+          <div className="flex flex-wrap gap-1.5 text-[11px] font-bold">
+            {(["all", "available", "rented", "maintenance", "other"] as const).map(key => (
+              <button key={key} type="button" onClick={() => setFilter(key)} className={`rounded-full border px-3 py-1.5 transition ${filter === key ? "border-cyan-700 bg-cyan-800 text-white" : "border-slate-200 bg-white text-slate-600 hover:border-cyan-300"}`}>
+                {key === "all" ? `الكل (${containers.length})` : `${labels[key].label} (${counts[key]})`}
+              </button>
+            ))}
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="p-4">
+        {visible.length === 0 ? <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-500">لا توجد حاويات ضمن هذا التصنيف.</div> : (
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {visible.map(record => {
+              const state = labels[classify(record)]
+              const payload = record.payload as Record<string, unknown>
+              const code = String(payload.assetCode ?? payload.code ?? record.reference ?? `#${record.id}`)
+              const remaining = daysRemaining(record)
+              const urgent = remaining !== null && remaining <= 3
+              return (
+                <button type="button" key={record.id} onClick={() => onOpen(record)} className="group text-right" data-testid={`card-container-availability-${record.id}`}>
+                  <div className={`rounded-2xl border p-3 transition group-hover:-translate-y-0.5 group-hover:shadow-md ${state.tone}`}>
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/80 shadow-sm"><Box size={24} /></span>
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-white/75 px-2 py-1 text-[10px] font-black"><span className={`h-1.5 w-1.5 rounded-full ${state.dot}`} />{state.label}</span>
+                    </div>
+                    <p className="mt-3 truncate font-black text-slate-900">{String(payload.typeName ?? payload.containerType ?? "حاوية تشغيلية")}</p>
+                    <p className="mt-1 font-mono text-xs font-bold text-slate-500" dir="ltr">{code}</p>
+                    <div className="mt-3 flex items-center justify-between gap-2 border-t border-current/10 pt-2 text-[11px]">
+                      <span>{String(payload.size ?? payload.capacity ?? "الحجم غير محدد")}</span>
+                      {remaining !== null && <span className={`font-black ${urgent ? "text-rose-700" : ""}`}>{remaining < 0 ? `منتهية منذ ${Math.abs(remaining)} يوم` : remaining === 0 ? "تنتهي اليوم" : `متبقي ${remaining} يوم`}</span>}
+                    </div>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
 function SkeletonLine({ className = "" }: { className?: string }) {
   return <div className={`animate-pulse rounded-lg bg-slate-100 ${className}`} aria-hidden="true" />
 }
@@ -319,7 +407,7 @@ function ContainerPOS({ records, onDetails, onEdit, onAdd }: { records: Containe
   )
 }
 
-function Overview({ snapshot, records, onAdd }: { snapshot?: any; records: ContainerSystemRecord[]; onAdd: (kind: RecordKind) => void }) {
+function Overview({ snapshot, records, onAdd, onOpen }: { snapshot?: any; records: ContainerSystemRecord[]; onAdd: (kind: RecordKind) => void; onOpen: (record: ContainerSystemRecord) => void }) {
   const summary = snapshot?.summary as Record<string, unknown> | undefined
   const count = (kind: RecordKind) => records.filter(record => record.kind === kind && record.status !== "archived").length
   const today = new Date()
@@ -371,6 +459,7 @@ function Overview({ snapshot, records, onAdd }: { snapshot?: any; records: Conta
           </Card>
         ))}
       </div>
+      <ContainerAvailabilityBoard records={records} onOpen={onOpen} />
       <div className="grid gap-5 xl:grid-cols-[1.35fr_.65fr]">
         <Card className="border-slate-200/80 shadow-[0_8px_28px_rgba(15,44,58,.05)]">
           <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 px-5 py-4"><div><CardTitle className="text-base text-slate-900">آخر حركة تشغيلية</CardTitle><p className="mt-1 text-xs text-slate-500">سجل زمني مختصر لأحدث التغييرات</p></div><ShieldCheck size={19} className="text-emerald-600" /></CardHeader>
@@ -823,7 +912,7 @@ export default function ContainerSystem() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-bold text-cyan-700">نظام الحاويات الكامل / {viewLabel(view)}</p><h2 className="mt-1 text-xl font-black text-slate-900">{viewLabel(view)}</h2></div>{(isCollection || view === "container_search") && <div className="relative w-full sm:w-80"><Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" /><Input value={search} onChange={event => setSearch(event.target.value)} placeholder="رقم الحاوية أو اسم العميل أو الجوال" className="h-10 border-slate-200 bg-white pr-9" data-testid="input-search-container-records" />{search && <button type="button" onClick={() => setSearch("")} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700" data-testid="button-clear-container-search"><X size={15} /></button>}</div>}</div>
           {notice && <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800" role="status" data-testid="status-container-success"><CheckCircle2 size={17} /> {notice}</div>}
           {error ? <Card className="border-rose-200 bg-rose-50/50"><CardContent className="flex flex-col items-center gap-3 p-12 text-center"><AlertCircle size={27} className="text-rose-500" /><h3 className="font-bold text-rose-900">تعذر تحميل بيانات النظام</h3><p className="text-sm text-rose-700">تحقق من الاتصال ثم حاول مرة أخرى.</p><Button onClick={() => { snapshotQuery.refetch(); recordsQuery.refetch() }} variant="outline" className="gap-2 border-rose-200 bg-white text-rose-800" data-testid="button-retry-container-system"><RefreshCw size={15} /> إعادة المحاولة</Button></CardContent></Card>
-            : view === "overview" ? <Overview snapshot={snapshot} records={records} onAdd={openCreate} />
+            : view === "overview" ? <Overview snapshot={snapshot} records={records} onAdd={openCreate} onOpen={setDetailRecord} />
               : view === "reports" ? reportId ? <ReportPage reportId={reportId} records={snapshot?.records ?? records} onBack={() => setReportId(null)} /> : <ReportsHub onOpen={setReportId} />
               : view === "settlements" ? <ContractSettlementWorkspace records={snapshot?.records ?? records} initialCustomerId={requestedCustomerId} />
               : view === "system_settings" ? <SettingsPage records={snapshot?.records ?? records} organization={organization} onSave={saveSettings} />
