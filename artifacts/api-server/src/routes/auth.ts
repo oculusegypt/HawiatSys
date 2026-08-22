@@ -7,7 +7,10 @@ import bcrypt from "bcryptjs";
 
 const router = Router();
 
-const TOKEN_SECRET = process.env.SESSION_SECRET ?? "sabaik_token_secret_change_me";
+const TOKEN_SECRET: string = process.env.SESSION_SECRET ?? "";
+if (!TOKEN_SECRET) {
+  throw new Error("SESSION_SECRET is required for API authentication");
+}
 const TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
 
 // ── Password helpers ──────────────────────────────────────────────────────────
@@ -21,11 +24,9 @@ export async function hashPasswordBcrypt(password: string): Promise<string> {
 
 async function verifyPassword(password: string, stored: string): Promise<boolean> {
   if (stored.startsWith("$2")) return bcrypt.compare(password, stored);
-  const legacyMatch = crypto.timingSafeEqual(
-    Buffer.from(hashPassword(password), "hex"),
-    Buffer.from(stored, "hex"),
-  );
-  return legacyMatch;
+  const expected = Buffer.from(hashPassword(password), "hex");
+  const actual = Buffer.from(stored, "hex");
+  return actual.length === expected.length && crypto.timingSafeEqual(expected, actual);
 }
 
 // ── Token helpers (HMAC-signed) ───────────────────────────────────────────────
@@ -41,7 +42,10 @@ export function verifyToken(token: string): { adminId: number; ts: number } | nu
     const [b64, sig] = token.split(".");
     if (!b64 || !sig) return null;
     const expected = crypto.createHmac("sha256", TOKEN_SECRET).update(b64).digest("base64url");
-    if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null;
+    const actualSignature = Buffer.from(sig);
+    const expectedSignature = Buffer.from(expected);
+    if (actualSignature.length !== expectedSignature.length ||
+        !crypto.timingSafeEqual(actualSignature, expectedSignature)) return null;
     const payload = JSON.parse(Buffer.from(b64, "base64url").toString()) as { adminId?: unknown; ts?: unknown };
     if (!Number.isInteger(payload.adminId) || !Number.isFinite(payload.ts)) return null;
     if (Date.now() - Number(payload.ts) > TOKEN_TTL_MS || Date.now() - Number(payload.ts) < -60_000) return null;

@@ -3,10 +3,12 @@ import { getSetting } from "./settings";
 import { writeFile } from "fs/promises";
 import { resolve, join, dirname } from "path";
 import { fileURLToPath } from "url";
+import { requireAdmin, requireSectionPermission } from "../middleware/adminAuth";
 
 const __dirnameAiSeo = dirname(fileURLToPath(import.meta.url));
 
 const router = Router();
+router.use("/admin", requireAdmin, requireSectionPermission("seo"));
 
 // ── Saudi-market SEO prompt ────────────────────────────────────────────────────
 const buildPrompt = (title: string, description: string) => `

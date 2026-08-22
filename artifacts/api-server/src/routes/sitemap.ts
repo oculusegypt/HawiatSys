@@ -4,6 +4,7 @@ import { asc, and, eq, desc } from "drizzle-orm";
 import fs from "fs";
 import path from "path";
 import { getSetting } from "./settings";
+import { requireAdmin, requireSectionPermission } from "../middleware/adminAuth";
 
 const router = Router();
 
@@ -357,7 +358,11 @@ async function buildXml(baseUrl: string): Promise<{ xml: string; totalUrls: numb
 
 // ── POST /api/admin/sitemap/save ──────────────────────────────────────────────
 // Generate sitemap and write it directly to the frontend public folder
-router.post("/admin/sitemap/save", async (req: Request, res: Response): Promise<void> => {
+router.post(
+  "/admin/sitemap/save",
+  requireAdmin,
+  requireSectionPermission("seo"),
+  async (req: Request, res: Response): Promise<void> => {
   try {
     const baseUrl = getBaseUrl(req);
     const { xml, totalUrls, staticPages, areaPages, servicePages, containerPages, blogPages, seoPages } = await buildXml(baseUrl);
@@ -380,7 +385,8 @@ router.post("/admin/sitemap/save", async (req: Request, res: Response): Promise<
   } catch (err: any) {
     res.status(500).json({ error: err?.message || "فشل حفظ الخريطة" });
   }
-});
+  },
+);
 
 // ── GET /api/sitemap/generate ─────────────────────────────────────────────────
 // Preview only — returns the XML string (used by the panel preview section)

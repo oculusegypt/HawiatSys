@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db, reviewsTable, servicesTable } from "@workspace/db";
 import { eq, desc, and } from "drizzle-orm";
+import { requireAdmin, requireSectionPermission } from "../middleware/adminAuth";
 
 const router = Router();
 
@@ -77,7 +78,7 @@ router.post("/services/:serviceId/reviews", async (req, res) => {
 });
 
 // Admin: Get all reviews (with optional status / service filters)
-router.get("/admin/reviews", async (req, res) => {
+router.get("/admin/reviews", requireAdmin, requireSectionPermission("reviews"), async (req, res) => {
   const { status, serviceId, search } = req.query;
 
   let query = db.select().from(reviewsTable).orderBy(desc(reviewsTable.createdAt));
@@ -108,7 +109,7 @@ router.get("/admin/reviews", async (req, res) => {
 });
 
 // Admin: Update review status (approve, reject) or edit review content
-router.patch("/admin/reviews/:id", async (req, res) => {
+router.patch("/admin/reviews/:id", requireAdmin, requireSectionPermission("reviews"), async (req, res) => {
   const id = parseInt(String(req.params.id), 10);
   const { status, customerName, customerCity, rating, comment } = req.body;
 
@@ -137,7 +138,7 @@ router.patch("/admin/reviews/:id", async (req, res) => {
 });
 
 // Admin: Delete a review
-router.delete("/admin/reviews/:id", async (req, res) => {
+router.delete("/admin/reviews/:id", requireAdmin, requireSectionPermission("reviews"), async (req, res) => {
   const id = parseInt(String(req.params.id), 10);
   await db.delete(reviewsTable).where(eq(reviewsTable.id, id));
   return res.status(204).send();
