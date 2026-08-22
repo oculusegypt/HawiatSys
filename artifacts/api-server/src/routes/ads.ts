@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { adsTable } from "@workspace/db";
 import { eq, asc, and } from "drizzle-orm";
+import { requireAdmin, requireSectionPermission } from "../middleware/adminAuth";
 
 const router = Router();
 
@@ -23,7 +24,7 @@ router.get("/ads", async (req, res) => {
 // ── Admin ─────────────────────────────────────────────────────────────────────
 
 // GET /api/admin/ads → all ads (admin)
-router.get("/admin/ads", async (_req, res) => {
+router.get("/admin/ads", requireAdmin, requireSectionPermission("ads"), async (_req, res) => {
   try {
     const rows = await db.select().from(adsTable).orderBy(asc(adsTable.order));
     return res.json(rows);
@@ -33,7 +34,7 @@ router.get("/admin/ads", async (_req, res) => {
 });
 
 // POST /api/admin/ads → create
-router.post("/admin/ads", async (req, res) => {
+router.post("/admin/ads", requireAdmin, requireSectionPermission("ads"), async (req, res) => {
   try {
     const { title, content, imageUrl, linkUrl, buttonText, position, type, bgColor, isActive, order } = req.body;
     const [row] = await db.insert(adsTable).values({
@@ -55,9 +56,9 @@ router.post("/admin/ads", async (req, res) => {
 });
 
 // PATCH /api/admin/ads/:id → update
-router.patch("/admin/ads/:id", async (req, res) => {
+router.patch("/admin/ads/:id", requireAdmin, requireSectionPermission("ads"), async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseInt(String(req.params.id), 10);
     const { title, content, imageUrl, linkUrl, buttonText, position, type, bgColor, isActive, order } = req.body;
     const [row] = await db.update(adsTable).set({
       ...(title !== undefined && { title }),
@@ -79,9 +80,9 @@ router.patch("/admin/ads/:id", async (req, res) => {
 });
 
 // DELETE /api/admin/ads/:id
-router.delete("/admin/ads/:id", async (req, res) => {
+router.delete("/admin/ads/:id", requireAdmin, requireSectionPermission("ads"), async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseInt(String(req.params.id), 10);
     await db.delete(adsTable).where(eq(adsTable.id, id));
     return res.status(204).send();
   } catch (e) {

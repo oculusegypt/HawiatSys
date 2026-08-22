@@ -4,6 +4,7 @@ import { postsTable } from "@workspace/db";
 import { eq, asc, desc, and, like } from "drizzle-orm";
 import { getSetting } from "./settings";
 import { replaceLegacyCompanyName } from "../lib/companyName";
+import { requireAdmin, requireSectionPermission } from "../middleware/adminAuth";
 
 const router = Router();
 
@@ -173,7 +174,7 @@ router.get("/posts/categories", async (_req, res) => {
 // ── Admin routes ──────────────────────────────────────────────────────────────
 
 // GET /admin/posts
-router.get("/admin/posts", async (_req, res) => {
+router.get("/admin/posts", requireAdmin, requireSectionPermission("blog"), async (_req, res) => {
   try {
     const rows = await db.select().from(postsTable).orderBy(desc(postsTable.createdAt));
     const companyName = await getSetting("company_name");
@@ -184,7 +185,7 @@ router.get("/admin/posts", async (_req, res) => {
 });
 
 // POST /admin/posts
-router.post("/admin/posts", async (req, res) => {
+router.post("/admin/posts", requireAdmin, requireSectionPermission("blog"), async (req, res) => {
   try {
     const {
       title, content, excerpt, coverImage, author, category, tags, status,
@@ -226,9 +227,9 @@ router.post("/admin/posts", async (req, res) => {
 });
 
 // PATCH /admin/posts/:id
-router.patch("/admin/posts/:id", async (req, res) => {
+router.patch("/admin/posts/:id", requireAdmin, requireSectionPermission("blog"), async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseInt(String(req.params.id), 10);
     const {
       title, content, excerpt, coverImage, author, category, tags, status,
       publishedAt, readTime, isActive, order,
@@ -274,9 +275,9 @@ router.patch("/admin/posts/:id", async (req, res) => {
 });
 
 // DELETE /admin/posts/:id
-router.delete("/admin/posts/:id", async (req, res) => {
+router.delete("/admin/posts/:id", requireAdmin, requireSectionPermission("blog"), async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseInt(String(req.params.id), 10);
     await db.delete(postsTable).where(eq(postsTable.id, id));
     return res.status(204).send();
   } catch (e) {

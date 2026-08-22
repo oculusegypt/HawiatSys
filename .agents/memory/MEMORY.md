@@ -12,4 +12,5 @@
 - [Financial idempotency boundary](financial-idempotency-client-boundary.md) — generated clients need operation keys in the body as well as headers for reliable retry protection.
 - [Public tracking privacy](public-tracking-privacy.md) — unauthenticated order tracking must return a reduced customer-facing projection, never operational evidence or live driver data.
 - [Container route authorization](container-route-authorization.md) — enforce container-system permissions at the API boundary, not through hidden admin navigation.
+- [Node/PHP authorization parity](node-php-authorization-parity.md) — security fixes must be mirrored in the Hostinger PHP router, not only the development API.
 - [Documentation roadmap](documentation-roadmap.md) — root README and dated audit are the shared reference for product scope and UX priorities.

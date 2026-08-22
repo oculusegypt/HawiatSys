@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { siteSettingsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { type AdminRequest } from "../middleware/adminAuth";
+import { requireAdmin, requireSectionPermission, type AdminRequest } from "../middleware/adminAuth";
 
 const router = Router();
 
@@ -134,7 +134,7 @@ router.get("/settings", async (_req, res) => {
 });
 
 // GET /api/admin/settings — admin only, returns full unredacted settings
-router.get("/admin/settings", async (_req, res) => {
+router.get("/admin/settings", requireAdmin, requireSectionPermission("settings"), async (_req, res) => {
   try {
     const rows = await db.select().from(siteSettingsTable);
     const map: Record<string, string> = { ...DEFAULTS };
@@ -147,7 +147,7 @@ router.get("/admin/settings", async (_req, res) => {
 
 // PUT /api/admin/settings — protected (admin only)
 // Accepts: requests_locked, requests_locked_message, support_status, seo_* keys
-router.put("/admin/settings", async (req, res) => {
+router.put("/admin/settings", requireAdmin, requireSectionPermission("settings"), async (req, res) => {
   try {
     const body: Record<string, unknown> = req.body;
     const adminRequest = req as AdminRequest;

@@ -214,6 +214,59 @@ try {
         ];
     }
 
+    /**
+     * Shared-hosting equivalent of the Node admin middleware.
+     * Keep authorization at the API boundary so hidden admin navigation is
+     * never treated as a security control.
+     */
+    function requireAdminAccess(PDO $pdo, ?string $section = null, bool $adminOnly = false, bool $managerOrAdmin = false, bool $nonDriver = false): array {
+        $header = getAuthHeader();
+        if (!$header || !preg_match('#^Bearer\s+(.+)#i', $header, $matches)) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Unauthorized'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        $payload = verifyToken($matches[1]);
+        if (!$payload || empty($payload['adminId'])) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Invalid or expired token'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        $stmt = $pdo->prepare("SELECT * FROM admins WHERE id = :id LIMIT 1");
+        $stmt->execute([':id' => (int)$payload['adminId']]);
+        $admin = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$admin || (isset($admin['is_active']) && (int)$admin['is_active'] === 0)) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Unauthorized'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        $role = (string)($admin['role'] ?? '');
+        if ($nonDriver && $role === 'driver') {
+            http_response_code(403);
+            echo json_encode(['error' => 'مسار الإدارة غير متاح لحساب السائق'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        if ($adminOnly && $role !== 'admin') {
+            http_response_code(403);
+            echo json_encode(['error' => 'هذه العملية متاحة لمدير النظام فقط'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        if ($managerOrAdmin && !in_array($role, ['admin', 'manager'], true)) {
+            http_response_code(403);
+            echo json_encode(['error' => 'ليس لديك صلاحية للوصول إلى هذا المورد'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        if ($section !== null && $role !== 'admin' && $role !== 'manager') {
+            $permissions = json_decode((string)($admin['permissions'] ?? '[]'), true);
+            if (!is_array($permissions) || !in_array($section, $permissions, true)) {
+                http_response_code(403);
+                echo json_encode(['error' => 'ليس لديك صلاحية للوصول إلى هذا القسم'], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+        }
+        return $admin;
+    }
+
     function derToP1363(string $der): string {
         $pos = 2;
         if (ord($der[1]) & 0x80) {
@@ -541,6 +594,59 @@ try {
     hostingerContainerSystemRoute($pdo, (string)$path, (string)$method, $input);
 
     // ── ROUTING ─────────────────────────────────────────────────────────────
+
+    // Mirror the Node API authorization boundary for the Hostinger archive.
+    // Public content reads and public order tracking remain outside this guard.
+    if (str_starts_with((string)$path, '/admin/')) {
+        if (str_starts_with((string)$path, '/admin/employees')) {
+            requireAdminAccess($pdo, 'employees', false, true);
+        } elseif (str_starts_with((string)$path, '/admin/database')) {
+            requireAdminAccess($pdo, 'database', false, true);
+        } elseif ($path === '/admin/stats') {
+            requireAdminAccess($pdo, 'dashboard', false, false, true);
+        } elseif (str_starts_with((string)$path, '/admin/analytics')) {
+            requireAdminAccess($pdo, 'analytics', $method !== 'GET');
+        } elseif (str_starts_with((string)$path, '/admin/work-orders')) {
+            requireAdminAccess($pdo, 'work_orders', false, true);
+        } elseif (str_starts_with((string)$path, '/admin/notifications')) {
+            requireAdminAccess($pdo, 'notifications', false, false, true);
+        } elseif ($path === '/admin/uploads') {
+            requireAdminAccess($pdo, 'settings', false, false, true);
+        } else {
+            $contentSections = [
+                '/admin/posts' => 'blog',
+                '/admin/seo-pages' => 'seo_pages',
+                '/admin/services' => 'services',
+                '/admin/containers' => 'packages',
+                '/admin/packages' => 'packages',
+                '/admin/slides' => 'slides',
+                '/admin/ads' => 'ads',
+                '/admin/testimonials' => 'testimonials',
+                '/admin/partners' => 'partners',
+                '/admin/values' => 'settings',
+                '/admin/settings' => 'settings',
+                '/admin/whatsapp' => 'whatsapp',
+            ];
+            $section = null;
+            foreach ($contentSections as $prefix => $candidate) {
+                if (str_starts_with((string)$path, $prefix)) {
+                    $section = $candidate;
+                    break;
+                }
+            }
+            requireAdminAccess($pdo, $section, false, false, true);
+        }
+    } elseif (($path === '/service-requests' || preg_match('#^/service-requests/\d+(?:/assignment)?$#', (string)$path)) && $method !== 'POST') {
+        if ($method === 'GET' && $path === '/service-requests') {
+            requireAdminAccess($pdo, 'requests', false, false, true);
+        } elseif ($method === 'PATCH' && str_ends_with((string)$path, '/assignment')) {
+            requireAdminAccess($pdo, 'work_orders', false, false, true);
+        } elseif ($method === 'PATCH') {
+            requireAdminAccess($pdo, 'requests', false, false, true);
+        } elseif ($method === 'DELETE') {
+            requireAdminAccess($pdo, 'requests', true, false, true);
+        }
+    }
 
     // 1. Upload File: POST /api/admin/uploads or /api/uploads
     if (($path === '/admin/uploads' || $path === '/uploads') && $method === 'POST') {
@@ -1092,11 +1198,12 @@ try {
             'clientName' => $row['client_name'],
             'phone' => $row['phone'],
             'serviceType' => $row['service_type'],
-            'location' => $row['location'],
+            'containerSize' => $row['container_size'] ?? '',
             'status' => $row['status'],
-            'driverStatus' => $row['driver_status'] ?? null,
+            'appointmentType' => $row['appointment_type'] ?? 'immediate',
             'scheduledAt' => $row['scheduled_at'] ?? null,
-            'createdAt' => $row['created_at']
+            'createdAt' => $row['created_at'],
+            'updatedAt' => $row['updated_at'] ?? $row['created_at']
         ], JSON_UNESCAPED_UNICODE);
         exit;
     }

@@ -4,7 +4,7 @@ import { pageViewsTable, activeVisitorsTable } from "@workspace/db";
 import { eq, gte, sql } from "drizzle-orm";
 import crypto from "crypto";
 import { getSetting } from "./settings";
-import { requireAdmin } from "../middleware/adminAuth";
+import { requireAdmin, requireSectionPermission } from "../middleware/adminAuth";
 import { serviceRequestsTable } from "@workspace/db";
 import { SOURCE_LABELS, sourceForRow } from "../lib/attribution";
 
@@ -206,7 +206,7 @@ router.post("/visitor/heartbeat", async (req, res) => {
   }
 });
 
-router.get("/admin/analytics", requireAdmin, async (req, res) => {
+router.get("/admin/analytics", requireAdmin, requireSectionPermission("analytics"), async (req, res) => {
   try {
     res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
     res.set("Pragma", "no-cache");
@@ -372,7 +372,7 @@ async function clearAnalytics(res: Response) {
   }
 }
 
-router.delete("/admin/analytics", requireAdmin, async (_req, res) => {
+router.delete("/admin/analytics", requireAdmin, requireSectionPermission("analytics", { adminOnly: true }), async (_req, res) => {
   res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
   res.set("Pragma", "no-cache");
   return clearAnalytics(res);
@@ -380,7 +380,7 @@ router.delete("/admin/analytics", requireAdmin, async (_req, res) => {
 
 // POST is kept as the primary compatibility path for shared hosting setups
 // that restrict or rewrite DELETE requests before PHP receives them.
-router.post("/admin/analytics/clear", requireAdmin, async (_req, res) => {
+router.post("/admin/analytics/clear", requireAdmin, requireSectionPermission("analytics", { adminOnly: true }), async (_req, res) => {
   res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
   res.set("Pragma", "no-cache");
   return clearAnalytics(res);

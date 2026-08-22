@@ -3,7 +3,7 @@ import { db } from "@workspace/db";
 import { waMessagesTable } from "@workspace/db";
 import { desc, eq } from "drizzle-orm";
 import { getSetting, setSetting } from "./settings";
-import { requireAdmin } from "../middleware/adminAuth";
+import { requireAdmin, requireSectionPermission } from "../middleware/adminAuth";
 import { createNotification } from "../lib/pushNotifications";
 
 const router = Router();
@@ -15,7 +15,7 @@ type WhatsAppApiResponse = {
 };
 
 // All /admin/whatsapp/* routes require auth
-router.use("/admin/whatsapp", requireAdmin);
+router.use("/admin/whatsapp", requireAdmin, requireSectionPermission("whatsapp"));
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 

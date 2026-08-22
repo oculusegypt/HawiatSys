@@ -5,7 +5,7 @@
 import { type Request, type Response, type NextFunction } from "express";
 import { verifyToken } from "../routes/auth";
 import { db } from "@workspace/db";
-import { adminsTable, resolvePermissions, type AdminSection } from "@workspace/db";
+import { adminsTable, resolvePermissions, type AdminSection, ALL_SECTIONS } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
 export interface AdminRequest extends Request {
@@ -88,4 +88,31 @@ export function requireDriver(req: Request, res: Response, next: NextFunction): 
     return;
   }
   next();
+}
+
+/** Enforce the same section permissions used by the admin navigation at the API boundary. */
+export function requireSectionPermission(section: AdminSection, options?: { adminOnly?: boolean }) {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const r = req as AdminRequest;
+    if (options?.adminOnly && r.adminRole !== "admin") {
+      res.status(403).json({ error: "هذه العملية متاحة لمدير النظام فقط" });
+      return;
+    }
+    if (r.adminRole !== "admin" && !r.adminPermissions.includes(section)) {
+      res.status(403).json({ error: "ليس لديك صلاحية للوصول إلى هذا القسم" });
+      return;
+    }
+    next();
+  };
+}
+
+export function requireAnySectionPermission(...sections: AdminSection[]) {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const r = req as AdminRequest;
+    if (r.adminRole !== "admin" && !sections.some(section => r.adminPermissions.includes(section))) {
+      res.status(403).json({ error: "ليس لديك صلاحية للوصول إلى هذا القسم" });
+      return;
+    }
+    next();
+  };
 }

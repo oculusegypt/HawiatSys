@@ -775,7 +775,7 @@ function matchContractForSettlement(row: typeof containerSystemRecordsTable.$inf
 
 router.post("/admin/container-system/contracts/:id/lifecycle", requireContainerPermission("contract"), async (req, res) => {
   const adminReq = req as unknown as AdminRequest;
-  const contractId = Number(req.params.id);
+  const contractId = Number(String(req.params.id));
   const action = String(req.body?.action ?? "").trim().toLowerCase();
   if (!Number.isInteger(contractId) || contractId <= 0) {
     return res.status(400).json({ error: "رقم العقد غير صحيح" });
@@ -1149,7 +1149,7 @@ router.post("/admin/container-system/records", async (req, res) => {
 
 router.patch("/admin/container-system/records/:id", async (req, res) => {
   const adminReq = req as unknown as AdminRequest;
-  const id = Number(req.params.id);
+  const id = Number(String(req.params.id));
   const current = await db.select().from(containerSystemRecordsTable).where(eq(containerSystemRecordsTable.id, id)).get();
   if (!current) return res.status(404).json({ error: "السجل غير موجود" });
   if (!canManage(adminReq, current.kind)) return res.status(403).json({ error: "ليس لديك صلاحية لهذه العملية" });
@@ -1223,7 +1223,7 @@ router.patch("/admin/container-system/records/:id", async (req, res) => {
 
 router.delete("/admin/container-system/records/:id", async (req, res) => {
   const adminReq = req as unknown as AdminRequest;
-  const id = Number(req.params.id);
+  const id = Number(String(req.params.id));
   const current = await db.select().from(containerSystemRecordsTable).where(eq(containerSystemRecordsTable.id, id)).get();
   if (!current) return res.status(404).json({ error: "السجل غير موجود" });
   if (adminReq.adminRole !== "admin" && adminReq.adminRole !== "manager") {

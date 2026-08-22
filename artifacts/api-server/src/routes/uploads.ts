@@ -3,7 +3,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import crypto from "crypto";
-import { requireAdmin, requireDriver } from "../middleware/adminAuth";
+import { requireAdmin, requireDriver, requireSectionPermission } from "../middleware/adminAuth";
 
 const router = Router();
 
@@ -82,7 +82,7 @@ function rejectUnsafeFileName(req: Request, res: Response, next: NextFunction): 
 }
 
 // ── POST /api/admin/uploads ────────────────────────────────────────────────────
-router.post("/admin/uploads", requireAdmin, safeUpload, rejectUnsafeFileName, (req: Request, res: Response): void => {
+router.post("/admin/uploads", requireAdmin, requireSectionPermission("settings"), safeUpload, rejectUnsafeFileName, (req: Request, res: Response): void => {
   if (!req.file) { res.status(400).json({ error: "لم يُرفَق ملف" }); return; }
   const url = `/api/uploads/${req.file.filename}`;
   res.json({ url, filename: req.file.filename, size: req.file.size });
@@ -106,7 +106,7 @@ router.post("/uploads", safeUpload, rejectUnsafeFileName, (req: Request, res: Re
 });
 
 // ── DELETE /api/admin/uploads/:filename ───────────────────────────────────────
-router.delete("/admin/uploads/:filename", requireAdmin, (req: Request, res: Response): void => {
+router.delete("/admin/uploads/:filename", requireAdmin, requireSectionPermission("settings"), (req: Request, res: Response): void => {
   const filename = path.basename(String(req.params["filename"] ?? "")); // prevent path traversal
   if (filename !== req.params["filename"] || !/^[a-zA-Z0-9._-]+$/.test(filename)) {
     res.status(400).json({ error: "اسم الملف غير صالح" });

@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
+import { requireAdmin, requireSectionPermission } from "../middleware/adminAuth";
 import { companyValuesTable } from "@workspace/db";
 import { eq, asc } from "drizzle-orm";
 
@@ -10,7 +11,7 @@ router.get("/values", async (_req, res) => {
   return res.json(values);
 });
 
-router.post("/values", async (req, res) => {
+router.post("/values", requireAdmin, requireSectionPermission("settings"), async (req, res) => {
   const { title, description, icon, order } = req.body;
   const [value] = await db.insert(companyValuesTable).values({
     title, description, icon, order: order ?? 0,
@@ -18,8 +19,8 @@ router.post("/values", async (req, res) => {
   return res.status(201).json(value);
 });
 
-router.patch("/values/:id", async (req, res) => {
-  const id = parseInt(req.params.id);
+router.patch("/values/:id", requireAdmin, requireSectionPermission("settings"), async (req, res) => {
+  const id = parseInt(String(req.params.id), 10);
   const { title, description, icon, order } = req.body;
   const [value] = await db.update(companyValuesTable)
     .set({ title, description, icon, order })
@@ -29,8 +30,8 @@ router.patch("/values/:id", async (req, res) => {
   return res.json(value);
 });
 
-router.delete("/values/:id", async (req, res) => {
-  const id = parseInt(req.params.id);
+router.delete("/values/:id", requireAdmin, requireSectionPermission("settings"), async (req, res) => {
+  const id = parseInt(String(req.params.id), 10);
   await db.delete(companyValuesTable).where(eq(companyValuesTable.id, id));
   return res.status(204).send();
 });

@@ -3,6 +3,7 @@ import { db, seoPagesTable } from "@workspace/db";
 import { and, desc, eq } from "drizzle-orm";
 import { getSetting } from "./settings";
 import { replaceLegacyCompanyName } from "../lib/companyName";
+import { requireAdmin, requireSectionPermission } from "../middleware/adminAuth";
 
 const router = Router();
 
@@ -81,7 +82,7 @@ router.get("/pages/:slug", async (req, res) => {
 });
 
 // Admin list includes drafts and unpublished keyword pages.
-router.get("/admin/seo-pages", async (_req, res) => {
+router.get("/admin/seo-pages", requireAdmin, requireSectionPermission("seo_pages"), async (_req, res) => {
   try {
     const rows = await db.select().from(seoPagesTable).orderBy(desc(seoPagesTable.createdAt));
     const companyName = await getSetting("company_name");
@@ -91,7 +92,7 @@ router.get("/admin/seo-pages", async (_req, res) => {
   }
 });
 
-router.post("/admin/seo-pages", async (req, res) => {
+router.post("/admin/seo-pages", requireAdmin, requireSectionPermission("seo_pages"), async (req, res) => {
   try {
     const body = req.body as Record<string, any>;
     const now = new Date().toISOString();
@@ -126,9 +127,9 @@ router.post("/admin/seo-pages", async (req, res) => {
   }
 });
 
-router.patch("/admin/seo-pages/:id", async (req, res) => {
+router.patch("/admin/seo-pages/:id", requireAdmin, requireSectionPermission("seo_pages"), async (req, res) => {
   try {
-    const id = Number.parseInt(req.params.id, 10);
+    const id = Number.parseInt(String(req.params.id), 10);
     const body = req.body as Record<string, any>;
     const now = new Date().toISOString();
     const companyName = await getSetting("company_name");
@@ -167,9 +168,9 @@ router.patch("/admin/seo-pages/:id", async (req, res) => {
   }
 });
 
-router.delete("/admin/seo-pages/:id", async (req, res) => {
+router.delete("/admin/seo-pages/:id", requireAdmin, requireSectionPermission("seo_pages"), async (req, res) => {
   try {
-    const id = Number.parseInt(req.params.id, 10);
+    const id = Number.parseInt(String(req.params.id), 10);
     await db.delete(seoPagesTable).where(eq(seoPagesTable.id, id));
     return res.status(204).send();
   } catch (error) {

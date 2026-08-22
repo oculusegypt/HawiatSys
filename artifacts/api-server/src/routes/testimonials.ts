@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
+import { requireAdmin, requireSectionPermission } from "../middleware/adminAuth";
 import { testimonialsTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
 
@@ -10,7 +11,7 @@ router.get("/testimonials", async (_req, res) => {
   return res.json(testimonials);
 });
 
-router.post("/testimonials", async (req, res) => {
+router.post("/testimonials", requireAdmin, requireSectionPermission("testimonials"), async (req, res) => {
   const { clientName, company, content, rating, avatarUrl, isActive } = req.body;
   const parsedRating = Number(rating);
   if (
@@ -35,8 +36,8 @@ router.post("/testimonials", async (req, res) => {
   return res.status(201).json(t);
 });
 
-router.patch("/testimonials/:id", async (req, res) => {
-  const id = parseInt(req.params.id);
+router.patch("/testimonials/:id", requireAdmin, requireSectionPermission("testimonials"), async (req, res) => {
+  const id = parseInt(String(req.params.id), 10);
   const { clientName, company, content, rating, avatarUrl, isActive } = req.body;
   const [t] = await db.update(testimonialsTable)
     .set({ clientName, company, content, rating, avatarUrl, isActive })
@@ -46,8 +47,8 @@ router.patch("/testimonials/:id", async (req, res) => {
   return res.json(t);
 });
 
-router.delete("/testimonials/:id", async (req, res) => {
-  const id = parseInt(req.params.id);
+router.delete("/testimonials/:id", requireAdmin, requireSectionPermission("testimonials"), async (req, res) => {
+  const id = parseInt(String(req.params.id), 10);
   await db.delete(testimonialsTable).where(eq(testimonialsTable.id, id));
   return res.status(204).send();
 });

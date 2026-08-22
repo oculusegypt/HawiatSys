@@ -6,7 +6,7 @@ const router = Router();
 
 // Public: Get approved reviews and stats for a specific service
 router.get("/services/:serviceId/reviews", async (req, res) => {
-  const serviceId = parseInt(req.params.serviceId);
+  const serviceId = parseInt(String(req.params.serviceId), 10);
   if (isNaN(serviceId)) {
     return res.status(400).json({ error: "معرّف الخدمة غير صالح" });
   }
@@ -40,7 +40,7 @@ router.get("/services/:serviceId/reviews", async (req, res) => {
 
 // Public: Submit a new review for a service (Status defaults to 'pending')
 router.post("/services/:serviceId/reviews", async (req, res) => {
-  const serviceId = parseInt(req.params.serviceId);
+  const serviceId = parseInt(String(req.params.serviceId), 10);
   const { customerName, customerCity, rating, comment } = req.body;
   const parsedRating = Number(rating);
 
@@ -109,7 +109,7 @@ router.get("/admin/reviews", async (req, res) => {
 
 // Admin: Update review status (approve, reject) or edit review content
 router.patch("/admin/reviews/:id", async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(String(req.params.id), 10);
   const { status, customerName, customerCity, rating, comment } = req.body;
 
   const updateData: Partial<typeof reviewsTable.$inferInsert> = {};
@@ -138,7 +138,7 @@ router.patch("/admin/reviews/:id", async (req, res) => {
 
 // Admin: Delete a review
 router.delete("/admin/reviews/:id", async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(String(req.params.id), 10);
   await db.delete(reviewsTable).where(eq(reviewsTable.id, id));
   return res.status(204).send();
 });

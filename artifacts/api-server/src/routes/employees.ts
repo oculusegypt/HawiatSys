@@ -8,7 +8,7 @@ import { adminsTable, ADMIN_ROLES, ALL_SECTIONS, ROLE_LABELS } from "@workspace/
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { hashPasswordBcrypt } from "./auth";
-import { requireManagerOrAdmin, type AdminRequest } from "../middleware/adminAuth";
+import { requireAdmin, requireManagerOrAdmin, requireSectionPermission, type AdminRequest } from "../middleware/adminAuth";
 
 const router = Router();
 
@@ -25,7 +25,7 @@ function validateRoleAndPermissions(role: unknown, permissions: unknown) {
 }
 
 // ── GET /api/admin/employees ─── list all employees ──────────────────────────
-router.get("/admin/employees", requireManagerOrAdmin, async (req, res) => {
+router.get("/admin/employees", requireAdmin, requireSectionPermission("employees"), requireManagerOrAdmin, async (req, res) => {
   const r = req as AdminRequest;
   const rows = await db.select({
     id:        adminsTable.id,
@@ -52,7 +52,7 @@ router.get("/admin/employees", requireManagerOrAdmin, async (req, res) => {
 });
 
 // ── POST /api/admin/employees ─── create new employee ────────────────────────
-router.post("/admin/employees", requireManagerOrAdmin, async (req, res) => {
+router.post("/admin/employees", requireAdmin, requireSectionPermission("employees"), requireManagerOrAdmin, async (req, res) => {
   const r = req as AdminRequest;
   const { username, name, password, email, role, permissions } = req.body as {
     username: string; name: string; password: string;
@@ -94,7 +94,7 @@ router.post("/admin/employees", requireManagerOrAdmin, async (req, res) => {
 });
 
 // ── PUT /api/admin/employees/:id ─── update employee ─────────────────────────
-router.put("/admin/employees/:id", requireManagerOrAdmin, async (req, res) => {
+router.put("/admin/employees/:id", requireAdmin, requireSectionPermission("employees"), requireManagerOrAdmin, async (req, res) => {
   const r = req as AdminRequest;
   const targetId = parseInt(String(req.params.id), 10);
   const { name, email, role, permissions, isActive, password } = req.body as {
@@ -138,7 +138,7 @@ router.put("/admin/employees/:id", requireManagerOrAdmin, async (req, res) => {
 });
 
 // ── DELETE /api/admin/employees/:id ─── delete employee ──────────────────────
-router.delete("/admin/employees/:id", requireManagerOrAdmin, async (req, res) => {
+router.delete("/admin/employees/:id", requireAdmin, requireSectionPermission("employees"), requireManagerOrAdmin, async (req, res) => {
   const r = req as AdminRequest;
   const targetId = parseInt(String(req.params.id), 10);
 
@@ -169,7 +169,7 @@ router.delete("/admin/employees/:id", requireManagerOrAdmin, async (req, res) =>
 });
 
 // ── PUT /api/admin/employees/me/profile ─── update own profile ───────────────
-router.put("/admin/employees/me/profile", async (req, res) => {
+router.put("/admin/employees/me/profile", requireAdmin, async (req, res) => {
   const r = req as AdminRequest;
   const { name, email, currentPassword, newPassword } = req.body as {
     name?: string; email?: string; currentPassword?: string; newPassword?: string;

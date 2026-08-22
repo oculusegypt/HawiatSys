@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { containersTable } from "@workspace/db";
 import { eq, asc } from "drizzle-orm";
+import { requireAdmin, requireSectionPermission } from "../middleware/adminAuth";
 
 const router = Router();
 
@@ -21,7 +22,7 @@ router.get(["/containers", "/packages", "/cleaning-packages"], async (_req, res)
   return res.json(containers);
 });
 
-router.post("/containers", async (req, res) => {
+router.post("/containers", requireAdmin, requireSectionPermission("packages"), async (req, res) => {
   const {
     name, category, size, capacity, description, features,
     suitableFor, priceText, priceNote, rentalPeriod,
@@ -55,8 +56,8 @@ router.post("/containers", async (req, res) => {
   return res.status(201).json(container);
 });
 
-router.patch("/containers/:id", async (req, res) => {
-  const id = parseInt(req.params.id);
+router.patch("/containers/:id", requireAdmin, requireSectionPermission("packages"), async (req, res) => {
+  const id = parseInt(String(req.params.id), 10);
   const {
     name, category, size, capacity, description, features,
     suitableFor, priceText, priceNote, rentalPeriod,
@@ -83,8 +84,8 @@ router.patch("/containers/:id", async (req, res) => {
   return res.json(container);
 });
 
-router.delete("/containers/:id", async (req, res) => {
-  const id = parseInt(req.params.id);
+router.delete("/containers/:id", requireAdmin, requireSectionPermission("packages"), async (req, res) => {
+  const id = parseInt(String(req.params.id), 10);
   await db.delete(containersTable).where(eq(containersTable.id, id));
   return res.status(204).send();
 });

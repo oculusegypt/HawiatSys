@@ -6,13 +6,13 @@ import {
   notificationsTable,
 } from "@workspace/db";
 import { eq, count, desc, gte, sql } from "drizzle-orm";
-import { requireAdmin, requireNonDriver } from "../middleware/adminAuth";
+import { requireAdmin, requireNonDriver, requireSectionPermission } from "../middleware/adminAuth";
 
 const router = Router();
 
 // Lightweight counters used by the admin shell. Keep this separate from the
 // heavier dashboard stats endpoint so the sidebar can poll frequently.
-router.get("/admin/sidebar-counts", requireAdmin, requireNonDriver, async (_req, res) => {
+router.get("/admin/sidebar-counts", requireAdmin, requireNonDriver, requireSectionPermission("dashboard"), async (_req, res) => {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
   const [conversationCount] = await db
     .select({
@@ -46,7 +46,7 @@ router.get("/admin/sidebar-counts", requireAdmin, requireNonDriver, async (_req,
   });
 });
 
-router.get("/admin/stats", async (_req, res) => {
+router.get("/admin/stats", requireAdmin, requireNonDriver, requireSectionPermission("dashboard"), async (_req, res) => {
   // ── Core counts ──────────────────────────────────────────
   const [totalReq]       = await db.select({ count: count() }).from(serviceRequestsTable);
   const [pendingReq]     = await db.select({ count: count() }).from(serviceRequestsTable).where(eq(serviceRequestsTable.status, "pending"));

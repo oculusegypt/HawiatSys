@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
+import { requireAdmin, requireSectionPermission } from "../middleware/adminAuth";
 import { heroSlidesTable } from "@workspace/db";
 import { eq, asc } from "drizzle-orm";
 
@@ -10,7 +11,7 @@ router.get("/slides", async (_req, res) => {
   return res.json(slides);
 });
 
-router.post("/slides", async (req, res) => {
+router.post("/slides", requireAdmin, requireSectionPermission("slides"), async (req, res) => {
   const { title, subtitle, imageUrl, ctaText, order, isActive } = req.body;
   const [slide] = await db.insert(heroSlidesTable).values({
     title, subtitle, imageUrl, ctaText, order: order ?? 0, isActive: isActive ?? true,
@@ -18,8 +19,8 @@ router.post("/slides", async (req, res) => {
   return res.status(201).json(slide);
 });
 
-router.patch("/slides/:id", async (req, res) => {
-  const id = parseInt(req.params.id);
+router.patch("/slides/:id", requireAdmin, requireSectionPermission("slides"), async (req, res) => {
+  const id = parseInt(String(req.params.id), 10);
   const { title, subtitle, imageUrl, ctaText, order, isActive } = req.body;
   const [slide] = await db.update(heroSlidesTable)
     .set({ title, subtitle, imageUrl, ctaText, order, isActive })
@@ -29,8 +30,8 @@ router.patch("/slides/:id", async (req, res) => {
   return res.json(slide);
 });
 
-router.delete("/slides/:id", async (req, res) => {
-  const id = parseInt(req.params.id);
+router.delete("/slides/:id", requireAdmin, requireSectionPermission("slides"), async (req, res) => {
+  const id = parseInt(String(req.params.id), 10);
   await db.delete(heroSlidesTable).where(eq(heroSlidesTable.id, id));
   return res.status(204).send();
 });

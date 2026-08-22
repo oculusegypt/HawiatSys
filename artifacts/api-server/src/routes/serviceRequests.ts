@@ -3,7 +3,7 @@ import { db, adminsTable, serviceRequestsTable, conversationsTable, messagesTabl
 import { eq, desc, and, inArray, sql } from "drizzle-orm";
 import { getSetting } from "./settings";
 import { createNotification } from "../lib/pushNotifications";
-import { requireAdmin, requireAdminOnly, requireDriver, requireRequestAssignment, requireManagerOrAdmin, type AdminRequest } from "../middleware/adminAuth";
+import { requireAdmin, requireAdminOnly, requireDriver, requireRequestAssignment, requireManagerOrAdmin, requireAnySectionPermission, requireSectionPermission, type AdminRequest } from "../middleware/adminAuth";
 import { sourceForRow } from "../lib/attribution";
 
 const router = Router();
@@ -206,7 +206,7 @@ async function addPresenceToRequests<T extends typeof serviceRequestsTable.$infe
   });
 }
 
-router.get("/service-requests", requireAdmin, async (req, res) => {
+router.get("/service-requests", requireAdmin, requireSectionPermission("requests"), async (req, res) => {
   const adminRequest = req as AdminRequest;
   const { status } = req.query;
   if (adminRequest.adminRole === "driver") {
@@ -222,7 +222,7 @@ router.get("/service-requests", requireAdmin, async (req, res) => {
   return res.json(await addPresenceToRequests(requests));
 });
 
-router.post("/admin/service-requests/from-contract", requireAdmin, async (req, res) => {
+router.post("/admin/service-requests/from-contract", requireAdmin, requireAnySectionPermission("requests", "container_system"), async (req, res) => {
   const {
     clientName,
     phone,
@@ -451,7 +451,7 @@ router.get("/service-requests/:id", async (req, res) => {
   });
 });
 
-router.patch("/service-requests/:id", requireAdmin, async (req, res) => {
+router.patch("/service-requests/:id", requireAdmin, requireSectionPermission("requests"), async (req, res) => {
   const adminRequest = req as AdminRequest;
   if (adminRequest.adminRole === "driver") {
     return res.status(403).json({ error: "لا يملك السائق صلاحية تعديل الطلب مباشرة" });
@@ -489,7 +489,7 @@ router.patch("/service-requests/:id", requireAdmin, async (req, res) => {
   return res.json(request);
 });
 
-router.patch("/service-requests/:id/assignment", requireAdmin, requireRequestAssignment, async (req, res) => {
+router.patch("/service-requests/:id/assignment", requireAdmin, requireSectionPermission("work_orders"), requireRequestAssignment, async (req, res) => {
   const id = parseInt(String(req.params.id), 10);
   const driverId = req.body?.driverId === null || req.body?.driverId === undefined
     ? null
@@ -600,7 +600,7 @@ router.get("/driver/work-orders", requireAdmin, requireDriver, async (req, res) 
   return res.json(requests);
 });
 
-router.get("/admin/work-orders", requireAdmin, requireManagerOrAdmin, async (_req, res) => {
+router.get("/admin/work-orders", requireAdmin, requireSectionPermission("work_orders"), requireManagerOrAdmin, async (_req, res) => {
   const requests = await db.select().from(serviceRequestsTable)
     .where(and(
       inArray(serviceRequestsTable.driverStatus, ["unassigned", "assigned", "accepted", "started", "en_route", "arrived"]),
@@ -766,7 +766,7 @@ router.patch("/driver/work-orders/:id", requireAdmin, requireDriver, async (req,
   return res.json(updated);
 });
 
-router.delete("/service-requests/:id", requireAdmin, requireAdminOnly, async (req, res) => {
+router.delete("/service-requests/:id", requireAdmin, requireSectionPermission("requests", { adminOnly: true }), requireAdminOnly, async (req, res) => {
   const id = parseInt(String(req.params.id), 10);
   const [deleted] = await db.delete(serviceRequestsTable)
     .where(eq(serviceRequestsTable.id, id))

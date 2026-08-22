@@ -5,12 +5,12 @@
  */
 import { Router } from "express";
 import { sqlite } from "@workspace/db";
-import { requireManagerOrAdmin } from "../middleware/adminAuth";
+import { requireAdmin, requireManagerOrAdmin, requireSectionPermission } from "../middleware/adminAuth";
 
 const router = Router();
 
 // Apply manager-or-admin guard to all routes in this file
-router.use("/admin/database", requireManagerOrAdmin);
+router.use("/admin/database", requireAdmin, requireSectionPermission("database"), requireManagerOrAdmin);
 
 // ── Blocked tables (never expose / allow delete) ────────────────────────────
 const BLOCKED_TABLES = new Set(["admins"]);

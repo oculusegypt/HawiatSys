@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { servicesTable } from "@workspace/db";
 import { eq, asc } from "drizzle-orm";
+import { requireAdmin, requireSectionPermission } from "../middleware/adminAuth";
 
 // ── DB migration: add new columns to existing DB ───────────────────────────────
 try {
@@ -55,7 +56,7 @@ router.get("/services", async (_req, res) => {
   return res.json(rows.map(castRow));
 });
 
-router.post("/services", async (req, res) => {
+router.post("/services", requireAdmin, requireSectionPermission("services"), async (req, res) => {
   const { title, description, icon, imageUrl, images, order, isActive,
           seoEnabled, seoTitle, seoDescription, seoKeywords, seoSlug } = req.body;
   const [service] = await db.insert(servicesTable).values({
@@ -73,8 +74,8 @@ router.post("/services", async (req, res) => {
   return res.status(201).json(castRow(service));
 });
 
-router.patch("/services/:id", async (req, res) => {
-  const id = parseInt(req.params.id);
+router.patch("/services/:id", requireAdmin, requireSectionPermission("services"), async (req, res) => {
+  const id = parseInt(String(req.params.id), 10);
   const { title, description, icon, imageUrl, images, order, isActive,
           seoEnabled, seoTitle, seoDescription, seoKeywords, seoSlug } = req.body;
   const updateData: Record<string, any> = {};
@@ -99,8 +100,8 @@ router.patch("/services/:id", async (req, res) => {
   return res.json(castRow(service));
 });
 
-router.delete("/services/:id", async (req, res) => {
-  const id = parseInt(req.params.id);
+router.delete("/services/:id", requireAdmin, requireSectionPermission("services"), async (req, res) => {
+  const id = parseInt(String(req.params.id), 10);
   await db.delete(servicesTable).where(eq(servicesTable.id, id));
   return res.status(204).send();
 });
