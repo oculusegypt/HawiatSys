@@ -235,7 +235,7 @@ function ContainerStatusImage({
         loading="lazy"
       />
       <span
-        className="pointer-events-none absolute left-[36.5%] top-[21%] flex h-[16%] w-[15%] items-center justify-center overflow-hidden px-1 text-[clamp(6px,1.2vw,13px)] font-black leading-none text-slate-950"
+        className="pointer-events-none absolute left-[63%] top-[21%] flex h-[16%] w-[24%] items-center justify-center overflow-hidden px-1 text-[clamp(6px,1.2vw,13px)] font-black leading-none text-white [text-shadow:0_1px_2px_rgba(0,0,0,.85)]"
         dir="ltr"
         aria-hidden="true"
       >
@@ -312,12 +312,11 @@ function ContainerAvailabilityBoard({
                       <ContainerStatusImage
                         status={record.payload.status ?? record.status}
                         code={code}
-                        className="h-36 w-full max-w-[18rem]"
+                        className="aspect-[2/1] w-full max-w-[18rem]"
                       />
                       <span className="absolute right-2 top-2 inline-flex items-center gap-1.5 rounded-full bg-white/85 px-2 py-1 text-[10px] font-black shadow-sm"><span className={`h-1.5 w-1.5 rounded-full ${state.dot}`} />{state.label}</span>
                     </div>
                     <p className="mt-3 truncate font-black text-slate-900">{String(payload.typeName ?? payload.containerType ?? "حاوية تشغيلية")}</p>
-                    <p className="mt-1 font-mono text-xs font-bold text-slate-500" dir="ltr">{code}</p>
                     <div className="mt-3 flex items-center justify-between gap-2 border-t border-current/10 pt-2 text-[11px]">
                       <span>{String(payload.size ?? payload.capacity ?? "الحجم غير محدد")}</span>
                       {remaining !== null && <span className={`font-black ${urgent ? "text-rose-700" : ""}`}>{remaining < 0 ? `منتهية منذ ${Math.abs(remaining)} يوم` : remaining === 0 ? "تنتهي اليوم" : `متبقي ${remaining} يوم`}</span>}
