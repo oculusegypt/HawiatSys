@@ -14,6 +14,7 @@
  */
 
 import { execSync } from "child_process";
+import { randomBytes } from "crypto";
 import { createRequire } from "module";
 import { existsSync, mkdirSync, copyFileSync, rmSync, cpSync, writeFileSync, readFileSync, readdirSync, statSync } from "fs";
 import { join, dirname } from "path";
@@ -153,6 +154,19 @@ for (const hub of ["blog", "areas"]) {
 mkdirSync(join(ROOT, "build_php/api"), { recursive: true });
 copyFileSync(join(ROOT, "scripts/api-index.php"), join(ROOT, "build_php/api/index.php"));
 copyFileSync(join(ROOT, "scripts/container-system.php"), join(ROOT, "build_php/api/container-system.php"));
+// Hostinger has no environment-variable manager in the deployed PHP process.
+// Give each archive its own signing secret instead of shipping the historical
+// public fallback secret in the production API.
+{
+  const phpApiPath = join(ROOT, "build_php/api/index.php");
+  const phpApi = readFileSync(phpApiPath, "utf8");
+  const hostingerSecret = randomBytes(32).toString("hex");
+  writeFileSync(
+    phpApiPath,
+    phpApi.replaceAll("__HOSTINGER_TOKEN_SECRET__", hostingerSecret),
+    "utf8",
+  );
+}
 console.log("  ✅ تم تجهيز طبقة PHP لنظام الحاويات والمالية والتدقيق");
 console.log("  ✅ تم تجهيز ملف PHP API في build_php/api/index.php لبيئة Hostinger");
 

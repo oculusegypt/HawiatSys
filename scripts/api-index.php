@@ -149,7 +149,7 @@ try {
     }
 
     function generateToken(int $adminId): string {
-        $tokenSecret = "sabaik_token_secret_change_me";
+        $tokenSecret = getenv('SESSION_SECRET') ?: '__HOSTINGER_TOKEN_SECRET__';
         $payload = json_encode(['adminId' => $adminId, 'ts' => (int)(microtime(true) * 1000)]);
         $b64 = base64url_encode((string)$payload);
         $sig = base64url_encode(hash_hmac('sha256', $b64, $tokenSecret, true));
@@ -161,11 +161,15 @@ try {
             $parts = explode('.', $token);
             if (count($parts) !== 2) return null;
             [$b64, $sig] = $parts;
-            $tokenSecret = "sabaik_token_secret_change_me";
+            $tokenSecret = getenv('SESSION_SECRET') ?: '__HOSTINGER_TOKEN_SECRET__';
             $expectedSig = base64url_encode(hash_hmac('sha256', $b64, $tokenSecret, true));
             if (!hash_equals($sig, $expectedSig)) return null;
             $payload = json_decode(base64url_decode($b64), true);
-            return is_array($payload) ? $payload : null;
+            if (!is_array($payload) || !isset($payload['adminId'], $payload['ts']) ||
+                !is_numeric($payload['adminId']) || !is_numeric($payload['ts'])) return null;
+            $ageMs = (microtime(true) * 1000) - (float)$payload['ts'];
+            if ($ageMs > 24 * 60 * 60 * 1000 || $ageMs < -60 * 1000) return null;
+            return $payload;
         } catch (\Exception $e) {
             return null;
         }
@@ -626,6 +630,11 @@ try {
                 '/admin/values' => 'settings',
                 '/admin/settings' => 'settings',
                 '/admin/whatsapp' => 'whatsapp',
+                '/admin/reviews' => 'reviews',
+                '/admin/sitemap' => 'seo',
+                '/admin/ai' => 'seo',
+                '/admin/shorten-url' => 'seo',
+                '/admin/llms-txt' => 'seo',
             ];
             $section = null;
             foreach ($contentSections as $prefix => $candidate) {
