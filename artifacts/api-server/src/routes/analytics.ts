@@ -70,6 +70,17 @@ function getPeriod(req: Request) {
   return { key: "monthly", from: isoAgo(30 * 24 * 60 * 60 * 1000), to: undefined };
 }
 
+function getComparisonPeriod(period: ReturnType<typeof getPeriod>) {
+  if (!period.from) return null;
+  const from = new Date(period.from);
+  const to = period.to ? new Date(period.to) : new Date();
+  const duration = Math.max(to.getTime() - from.getTime(), 24 * 60 * 60 * 1000);
+  return {
+    from: new Date(from.getTime() - duration).toISOString(),
+    to: new Date(from.getTime() - 1).toISOString(),
+  };
+}
+
 function viewWeight(row: Parameters<typeof sourceForRow>[0], googleOrganicWeightEnabled: boolean): number {
   return googleOrganicWeightEnabled && sourceForRow(row) === SOURCE_LABELS.googleOrganic
     ? 8
@@ -221,6 +232,11 @@ router.get("/admin/analytics", requireAdmin, async (req, res) => {
     const selectedRequests = allRequests.filter(request =>
       (!period.from || request.createdAt >= period.from) && (!period.to || request.createdAt <= period.to),
     );
+    const comparisonPeriod = getComparisonPeriod(period);
+    const comparisonRows = comparisonPeriod ? rowsIn(comparisonPeriod.from, comparisonPeriod.to) : [];
+    const comparisonRequests = comparisonPeriod
+      ? allRequests.filter(request => request.createdAt >= comparisonPeriod.from && request.createdAt <= comparisonPeriod.to)
+      : [];
     const todayRows = rowsIn(todayIso);
     const weekRows = rowsIn(weekIso);
     const monthRows = rowsIn(monthIso);
@@ -268,6 +284,10 @@ router.get("/admin/analytics", requireAdmin, async (req, res) => {
       completed: selectedRequests.filter(request => request.status === "completed").length,
       cancelled: selectedRequests.filter(request => request.status === "cancelled").length,
     };
+    const selectedUnique = new Set(selectedRows.map(row => row.sessionId)).size;
+    const comparisonUnique = new Set(comparisonRows.map(row => row.sessionId)).size;
+    const selectedConversion = selectedUnique > 0 ? Number(((selectedRequests.length / selectedUnique) * 100).toFixed(1)) : 0;
+    const comparisonConversion = comparisonUnique > 0 ? Number(((comparisonRequests.length / comparisonUnique) * 100).toFixed(1)) : 0;
 
     return res.json({
       activeCount: activeRows.length,
@@ -277,7 +297,7 @@ router.get("/admin/analytics", requireAdmin, async (req, res) => {
         from: period.from ?? null,
         to: period.to ?? null,
         views: weightedViews(selectedRows, weight),
-        unique: new Set(selectedRows.map(row => row.sessionId)).size,
+        unique: selectedUnique,
       },
       today: { views: weightedViews(todayRows, weight), unique: new Set(todayRows.map(row => row.sessionId)).size },
       week: { views: weightedViews(weekRows, weight), unique: new Set(weekRows.map(row => row.sessionId)).size },
@@ -289,11 +309,17 @@ router.get("/admin/analytics", requireAdmin, async (req, res) => {
       orders: {
         total: selectedRequests.length,
         completed: orderStatuses.completed,
-        conversionRate: selectedRows.length > 0
-          ? Number(((selectedRequests.length / new Set(selectedRows.map(row => row.sessionId)).size) * 100).toFixed(1))
-          : 0,
+        conversionRate: selectedConversion,
         statuses: orderStatuses,
       },
+      comparison: comparisonPeriod ? {
+        from: comparisonPeriod.from,
+        to: comparisonPeriod.to,
+        views: weightedViews(comparisonRows, weight),
+        unique: comparisonUnique,
+        orders: comparisonRequests.length,
+        conversionRate: comparisonConversion,
+      } : null,
       conversionSources,
       countries: locationRows("country"),
       cities: locationRows("city"),

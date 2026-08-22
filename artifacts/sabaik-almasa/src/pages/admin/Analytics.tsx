@@ -64,6 +64,14 @@ interface AnalyticsData {
     conversionRate: number
     statuses: { pending: number; inProgress: number; completed: number; cancelled: number }
   }
+  comparison: {
+    from: string
+    to: string
+    views: number
+    unique: number
+    orders: number
+    conversionRate: number
+  } | null
   conversionSources: { source: string; views: number; orders: number; rate: number }[]
   countries: { country: string; count: number }[]
   cities: { city: string; count: number }[]
@@ -124,6 +132,7 @@ function normalizeAnalytics(raw: Partial<AnalyticsData>): AnalyticsData {
       conversionRate: 0,
       statuses: { pending: 0, inProgress: 0, completed: 0, cancelled: 0 },
     },
+    comparison: raw.comparison ?? null,
     conversionSources: raw.conversionSources ?? [],
     countries: raw.countries ?? [],
     cities: raw.cities ?? [],
@@ -298,6 +307,21 @@ function DecisionBrief({ data, periodLabelValue }: { data: AnalyticsData; period
   const peakHour = data.hourly.reduce((best, value, index) => value > best.value ? { value, index } : best, { value: 0, index: 0 })
   const completionRate = data.orders.total > 0 ? Math.round((data.orders.completed / data.orders.total) * 100) : 0
   const hasSignals = Boolean(topSource || topPage || peakHour.value > 0 || data.orders.total > 0)
+  const change = (current: number, previous: number) => {
+    if (!previous) return current > 0 ? 100 : 0
+    return Math.round(((current - previous) / previous) * 100)
+  }
+  const periodChange = data.comparison ? {
+    views: change(data.period.views, data.comparison.views),
+    unique: change(data.period.unique, data.comparison.unique),
+    orders: change(data.orders.total, data.comparison.orders),
+    conversion: Number((data.orders.conversionRate - data.comparison.conversionRate).toFixed(1)),
+  } : null
+  const alerts = periodChange ? [
+    periodChange.views <= -20 ? "الزيارات انخفضت بأكثر من 20٪؛ راجع الحملات والمصادر الأعلى تأثيرًا." : "",
+    periodChange.orders <= -20 ? "الطلبات انخفضت بأكثر من 20٪؛ راجع سرعة التواصل وتجربة نموذج الطلب." : "",
+    periodChange.conversion <= -1 ? "معدل التحويل تراجع؛ قارن الصفحة الأكثر زيارة بالطلبات القادمة منها." : "",
+  ].filter(Boolean) : []
 
   return (
     <Card className="overflow-hidden border-[#b9d9d1] bg-gradient-to-br from-[#f2fbf8] via-white to-[#fffaf0] shadow-[0_12px_32px_rgba(25,59,99,0.07)]">
@@ -326,7 +350,43 @@ function DecisionBrief({ data, periodLabelValue }: { data: AnalyticsData; period
             لا توجد إشارات كافية بعد. اترك التتبع يعمل حتى تظهر أولى التوصيات هنا.
           </div>
         ) : (
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <>
+          {periodChange && (
+            <div className="mt-5 rounded-2xl border border-slate-100 bg-white/80 p-4">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs font-bold text-slate-500">مقارنة بالفترة السابقة</p>
+                <span className="text-[10px] text-slate-400">نفس المدة الزمنية</span>
+              </div>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {[
+                  ["المشاهدات", periodChange.views, "%"],
+                  ["الزوار", periodChange.unique, "%"],
+                  ["الطلبات", periodChange.orders, "%"],
+                  ["التحويل", periodChange.conversion, "نقطة"],
+                ].map(([label, value, suffix]) => {
+                  const numericValue = Number(value)
+                  const positive = numericValue >= 0
+                  return (
+                    <div key={String(label)} className="rounded-xl bg-slate-50 p-3">
+                      <p className="text-[11px] font-medium text-slate-400">{label}</p>
+                      <p className={`mt-1 text-base font-extrabold ${positive ? "text-[#408a70]" : "text-[#c05c43]"}`}>
+                        {positive ? "+" : ""}{numericValue}{suffix}
+                      </p>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+          {alerts.length > 0 && (
+            <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50/80 p-4">
+              <div className="mb-2 flex items-center gap-2 text-sm font-extrabold text-amber-900"><AlertTriangle size={16} /> تنبيهات تحتاج انتباه</div>
+              <ul className="space-y-1.5 text-xs leading-5 text-amber-800">
+                {alerts.map(alert => <li key={alert} className="flex items-start gap-2"><span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />{alert}</li>)}
+              </ul>
+            </div>
+          )}
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-2xl border border-white bg-white/80 p-4 shadow-sm">
               <div className="mb-2 flex items-center justify-between text-xs font-bold text-slate-400"><span>القناة الأقوى</span><MousePointer2 size={15} className="text-[#408a70]" /></div>
               <p className="truncate text-lg font-extrabold text-[#193b63]">{topSource?.source || "—"}</p>
@@ -348,6 +408,7 @@ function DecisionBrief({ data, periodLabelValue }: { data: AnalyticsData; period
               <p className="mt-1 text-xs text-slate-500">{formatNumber(data.orders.completed)} مكتمل · {formatNumber(completionRate)}٪ إتمام</p>
             </div>
           </div>
+          </>
         )}
       </CardContent>
     </Card>
