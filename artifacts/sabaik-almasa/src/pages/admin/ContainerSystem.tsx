@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { Link, useLocation } from "wouter"
 import {
   AlertCircle, Archive, ArrowDownLeft, ArrowLeftRight, ArrowUpRight, BellRing, BookOpenCheck, Box, CalendarDays, CarFront, CheckCircle2,
-  ChevronDown, ChevronLeft, ClipboardList, Coins, FileCheck2, FileDown, FilePenLine, FileText, FolderSearch, Gauge, HandCoins, Landmark, LayoutDashboard, ReceiptText, Truck,
+  ChevronDown, ChevronLeft, ClipboardList, Coins, FileCheck2, FileDown, FilePenLine, FileText, FolderSearch, Gauge, HandCoins, Landmark, LayoutDashboard, ReceiptText, Trash2, Truck,
   Link2, Loader2, MapPin, Plus, RefreshCw, Search, Settings2, ShieldCheck, SlidersHorizontal, UserCog, UserRound, Users, Wrench, X,
 } from "lucide-react"
 import {
@@ -259,7 +259,7 @@ function ContainerAvailabilityBoard({
       <CardHeader className="border-b border-slate-100 px-5 py-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <CardTitle className="flex items-center gap-2 text-base text-slate-900"><Box size={18} className="text-cyan-700" /> حالة الحاويات الآن</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-base text-slate-900"><Trash2 size={18} className="text-cyan-700" /> حالة الحاويات الآن</CardTitle>
             <p className="mt-1 text-xs text-slate-500">رؤية سريعة للأصول المتاحة والإيجارات والصيانة</p>
           </div>
           <div className="flex flex-wrap gap-1.5 text-[11px] font-bold">
@@ -284,7 +284,7 @@ function ContainerAvailabilityBoard({
                 <button type="button" key={record.id} onClick={() => onOpen(record)} className="group text-right" data-testid={`card-container-availability-${record.id}`}>
                   <div className={`rounded-2xl border p-3 transition group-hover:-translate-y-0.5 group-hover:shadow-md ${state.tone}`}>
                     <div className="flex items-start justify-between gap-2">
-                      <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/80 shadow-sm"><Box size={24} /></span>
+                      <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/80 shadow-sm"><Trash2 size={24} /></span>
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-white/75 px-2 py-1 text-[10px] font-black"><span className={`h-1.5 w-1.5 rounded-full ${state.dot}`} />{state.label}</span>
                     </div>
                     <p className="mt-3 truncate font-black text-slate-900">{String(payload.typeName ?? payload.containerType ?? "حاوية تشغيلية")}</p>
