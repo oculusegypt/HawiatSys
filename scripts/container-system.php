@@ -108,7 +108,7 @@ function hsCanManage(array $admin, string $kind): bool {
 
 function hsSupportedKinds(): array {
     return [
-        'customer', 'container_type', 'container', 'container_asset', 'vehicle', 'driver',
+        'customer', 'customer_site', 'container_type', 'container', 'container_asset', 'container_assignment', 'vehicle', 'driver',
         'contract', 'contract_line', 'container_movement', 'ledger_entry', 'receipt', 'payment',
         'expense', 'deposit', 'bank_deposit', 'maintenance', 'alert', 'setting', 'branch',
         'employee', 'permit', 'appointment', 'warehouse', 'treasury', 'transfer', 'invoice',
@@ -123,7 +123,7 @@ function hsReference(string $kind, array $payload, int $id): string {
     $prefix = [
         'customer' => 'CUS', 'container' => 'CONT', 'container_asset' => 'CONT',
         'container_type' => 'CT', 'vehicle' => 'CAR', 'driver' => 'DRV',
-        'contract' => 'RNT', 'contract_line' => 'LINE', 'invoice' => 'INV',
+        'contract' => 'RNT', 'contract_line' => 'LINE', 'customer_site' => 'SITE', 'container_assignment' => 'ASN', 'invoice' => 'INV',
         'receipt' => 'RCV', 'payment' => 'PAY', 'expense' => 'EXP',
         'maintenance' => 'MNT', 'bank_deposit' => 'DEP', 'appointment' => 'APT',
     ][$kind] ?? 'REC';
