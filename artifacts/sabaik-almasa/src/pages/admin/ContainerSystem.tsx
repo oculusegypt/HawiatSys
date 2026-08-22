@@ -25,7 +25,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
-import { getContainerStatusImage, getContainerVisualStatus } from "@/lib/containerStatusVisuals"
+import { getContainerVisualStatus } from "@/lib/containerStatusVisuals"
+import { ContainerStatusImage } from "@/components/admin/ContainerStatusImage"
 import {
   FIELD_CONFIG, KIND_ICONS, KIND_LABELS, RecordDialog, RecordKind, RecordStatus, amountOf, formatAuditAction, formatRecordDate, formatStatus,
 } from "./ContainerSystemComponents"
@@ -217,34 +218,6 @@ function numericSummary(summary: Record<string, unknown> | undefined, keys: stri
   return fallback
 }
 
-function ContainerStatusImage({
-  status,
-  code,
-  className = "",
-}: {
-  status: unknown
-  code: string
-  className?: string
-}) {
-  return (
-    <span className={`relative inline-flex overflow-hidden ${className}`} style={{ containerType: "inline-size" }}>
-      <img
-        src={getContainerStatusImage(status)}
-        alt={`حاوية ${code}`}
-        className="h-full w-full object-contain"
-        loading="lazy"
-      />
-      <span
-        className="pointer-events-none absolute left-[64%] top-[41%] flex h-[18%] w-[23%] items-center justify-center overflow-hidden whitespace-nowrap px-1 text-[clamp(8px,4.4cqw,14px)] font-black leading-none tracking-tight text-white [text-shadow:0_1px_2px_rgba(0,0,0,.9)] [transform:rotate(-1.5deg)_skewX(-6deg)]"
-        dir="ltr"
-        aria-hidden="true"
-      >
-        {code}
-      </span>
-    </span>
-  )
-}
-
 function ContainerAvailabilityBoard({
   records,
   onOpen,
@@ -371,8 +344,20 @@ function RecordRow({ record, kind, onDetails, onEdit, onArchive }: { record: Con
   const primary = String(record.payload[fields[0]?.key] ?? record.reference ?? `#${record.id}`)
   return (
     <div className="group grid grid-cols-[minmax(0,1.4fr)_minmax(0,2fr)_auto] items-center gap-4 border-b border-slate-100 px-4 py-4 last:border-0 hover:bg-cyan-50/30 sm:grid-cols-[minmax(0,1.2fr)_minmax(0,2fr)_minmax(0,1fr)_auto]" data-testid={`row-record-${record.id}`}>
-      <div className="min-w-0">
-        <p className="truncate font-bold text-slate-800" data-testid={`text-record-primary-${record.id}`}>{primary}</p>
+       <div className="min-w-0">
+         {["container", "container_asset"].includes(record.kind) ? (
+           <div className="flex items-center gap-3">
+             <ContainerStatusImage
+               status={record.payload.status ?? record.status}
+               code={primary}
+               className="h-12 w-24 shrink-0"
+             />
+             <div className="min-w-0">
+               <p className="truncate font-bold text-slate-800" data-testid={`text-record-primary-${record.id}`}>{primary}</p>
+               <p className="mt-0.5 truncate text-[11px] text-slate-500">{String(record.payload.typeName ?? record.payload.containerType ?? "أصل حاوية")}</p>
+             </div>
+           </div>
+         ) : <p className="truncate font-bold text-slate-800" data-testid={`text-record-primary-${record.id}`}>{primary}</p>}
         <p className="mt-0.5 text-[11px] font-mono text-slate-400" dir="ltr">{record.reference || `#${record.id}`}</p>
       </div>
       <div className="hidden min-w-0 gap-2 sm:grid sm:grid-cols-2">
@@ -646,7 +631,7 @@ function RecordDetails({ record, allRecords, open, onOpenChange, onContractActio
           </div>
         </DialogHeader>
         <div className="grid gap-3 sm:grid-cols-2">
-          <div className="rounded-xl bg-slate-50 p-3"><p className="text-[11px] text-slate-500">الحالة</p><div className="mt-1"><RecordStatus status={record.status} /></div></div>
+            <div className="rounded-xl bg-slate-50 p-3"><p className="text-[11px] text-slate-500">الحالة</p><div className="mt-1"><RecordStatus status={String(record.payload.status ?? record.status)} /></div></div>
           {entries.map(([key, value]) => <div key={key} className="rounded-xl border border-slate-100 bg-white p-3"><p className="text-[11px] text-slate-500">{FIELD_CONFIG[record.kind as RecordKind]?.find(field => field.key === key)?.label ?? key}</p><p className="mt-1 break-words text-sm font-bold text-slate-800">{String(value)}</p></div>)}
         </div>
           {record.kind === "customer" && <div className="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4"><h4 className="mb-3 text-sm font-black text-emerald-950">ملف العميل وكشف الحساب</h4><div className="grid grid-cols-2 gap-2 sm:grid-cols-5"><div className="rounded-xl bg-white p-3"><p className="text-[10px] text-slate-500">العقود</p><p className="mt-1 text-lg font-black text-slate-900">{customerContracts.length}</p></div><div className="rounded-xl bg-white p-3"><p className="text-[10px] text-slate-500">إجمالي المطالبات</p><p className="mt-1 text-lg font-black text-slate-900">{customerCharges.toLocaleString("ar-SA")} ر.س</p></div><div className="rounded-xl bg-white p-3"><p className="text-[10px] text-slate-500">المدفوع</p><p className="mt-1 text-lg font-black text-emerald-700">{customerPayments.toLocaleString("ar-SA")} ر.س</p></div><div className="rounded-xl bg-white p-3"><p className="text-[10px] text-slate-500">تكلفة التشغيل</p><p className="mt-1 text-lg font-black text-amber-700">{customerExpenses.toLocaleString("ar-SA")} ر.س</p></div><div className="rounded-xl bg-white p-3"><p className="text-[10px] text-slate-500">ربحية العملية</p><p className={`mt-1 text-lg font-black ${customerProfit >= 0 ? "text-emerald-700" : "text-rose-700"}`}>{customerProfit.toLocaleString("ar-SA")} ر.س</p></div></div><div className="mt-3 rounded-xl bg-white px-3 py-2 text-sm font-black text-rose-700">الرصيد المستحق: {Math.max(customerCharges - customerPayments, 0).toLocaleString("ar-SA")} ر.س</div></div>}
