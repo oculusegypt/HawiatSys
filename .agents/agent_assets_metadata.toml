@@ -21,14 +21,14 @@ logical_id = "dd2f77f0-5f7e-42ad-893d-b823952e1890"
 id = "e7Hwi4c_9VUpSkVoGq2Ul"
 uri = "file://cleanflow-services-hostinger.zip"
 type = "unspecified"
-title = "حزمة Hostinger الجاهزة"
-description = "أرشيف كامل لرفع الموقع على Hostinger بدون Node.js، ويحتوي على الواجهة المبنية، PHP API، قاعدة SQLite، الملفات الثابتة، وملفات .htaccess."
+title = "CleanFlow Services — Hostinger جاهز للرفع"
+description = "أرشيف كامل يعمل على Hostinger بدون Node.js: PHP + SQLite + الواجهة الثابتة + لوحة CleanFlow Platform + الصور والملفات المرفوعة."
 logical_id = "c612380d-19d8-4641-8c29-e5ac4a484245"
-content_hash = "sha256:4904350834cb4a3eebc6c196f835e5e5a6a36ef4c94197e175594dfd01be0895"
-size = 15170083
-mtime_ms = 1787347484288
-storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:f46a3ffa-8dd7-4a6c-8bf0-cd2fe3dfe3e3/c612380d-19d8-4641-8c29-e5ac4a484245/be4fbea8-3c24-4abf-ad7b-7d4f4629cae8"
-storage_version_token = "1787347497158286"
+content_hash = "sha256:71a6671f9ccb25aed66a580a939162837c49acba86ae7bf4a408698c285ea38e"
+size = 25465305
+mtime_ms = 1787373965605
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:584416fd-4c65-4fb6-b60e-22a5165eacba/c612380d-19d8-4641-8c29-e5ac4a484245/d4854dde-fcaa-4025-a5d5-bc4d33fd733f"
+storage_version_token = "1787373973305742"
 content_type = "application/octet-stream"
 
 [[outputs]]
