@@ -21,14 +21,14 @@ logical_id = "dd2f77f0-5f7e-42ad-893d-b823952e1890"
 id = "e7Hwi4c_9VUpSkVoGq2Ul"
 uri = "file://cleanflow-services-hostinger.zip"
 type = "unspecified"
-title = "أرشيف Hostinger بعد إصلاح المصادقة"
-description = "نسخة PHP + SQLite محدثة، تشمل إصلاح مسار الملف الشخصي وإيقاف تكرار طلبات 401 بعد انتهاء الجلسة."
+title = "أرشيف Hostinger — إصلاح مسارات النظام المالي والعقود"
+description = "نسخة محدثة تشمل مسارات دورة العقد وكشوف العقود المالية في PHP، وإصلاح خطأ تصفح جدول page_views الذي كان يسبب 500."
 logical_id = "c612380d-19d8-4641-8c29-e5ac4a484245"
-content_hash = "sha256:9e19d8623b89fc5c6352f2fd3d7bbfc5de8e6a9012c5b5373e97e693d663b651"
-size = 20916170
-mtime_ms = 1787382939115
-storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:574976c8-a826-4c41-a9dd-899f215b73c0/c612380d-19d8-4641-8c29-e5ac4a484245/dc496ecc-5a08-47dd-b097-c1d58a77b5a4"
-storage_version_token = "1787382951729391"
+content_hash = "sha256:f192dfcf7f5d46f0d7a209edba8b86d1b471f006d30d0572176ef0f5fe0ce39e"
+size = 20920026
+mtime_ms = 1787430509646
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:574976c8-a826-4c41-a9dd-899f215b73c0/c612380d-19d8-4641-8c29-e5ac4a484245/aef5448f-717e-46c7-9bd6-09509b5cfb55"
+storage_version_token = "1787430521991847"
 content_type = "application/octet-stream"
 
 [[outputs]]

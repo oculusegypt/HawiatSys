@@ -3465,7 +3465,7 @@ try {
         try {
             $page = max(1, (int)($_GET['page'] ?? 1));
             $limit = min(100, max(10, (int)($_GET['limit'] ?? 50)));
-            $offset = ($page - 1) * limit;
+            $offset = ($page - 1) * $limit;
 
             $colsStmt = $pdo->query("PRAGMA table_info(\"{$table}\")");
             $columns = array_map(function($c) {
