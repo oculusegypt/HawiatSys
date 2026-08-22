@@ -11,6 +11,7 @@ import {
   CalendarDays,
   Check,
   Clock3,
+  Download,
   Eye,
   Globe2,
   Laptop,
@@ -24,6 +25,7 @@ import {
   Target,
   Trash2,
   AlertTriangle,
+  Printer,
   Users,
   Wifi,
 } from "lucide-react"
@@ -362,6 +364,35 @@ function cleanReferrer(referrer: string) {
   }
 }
 
+function downloadAnalyticsCsv(data: AnalyticsData, periodLabelValue: string) {
+  const rows: (string | number)[][] = [
+    ["تقرير تحليلات الموقع", periodLabelValue],
+    [],
+    ["المؤشر", "القيمة"],
+    ["إجمالي المشاهدات", data.period.views],
+    ["الزوار الفريدون", data.period.unique],
+    ["الطلبات", data.orders.total],
+    ["الطلبات المكتملة", data.orders.completed],
+    ["معدل التحويل", `${data.orders.conversionRate}%`],
+    [],
+    ["مصدر الزيارة", "الزيارات", "الطلبات", "معدل التحويل"],
+    ...data.conversionSources.map(row => [row.source, row.views, row.orders, `${row.rate}%`]),
+    [],
+    ["الصفحة", "المشاهدات"],
+    ...data.topPages.map(row => [row.page, row.count]),
+  ]
+  const csv = rows.map(row => row.map(value => `"${String(value ?? "").replaceAll('"', '""')}"`).join(",")).join("\n")
+  const blob = new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement("a")
+  link.href = url
+  link.download = `تحليلات-${new Date().toISOString().slice(0, 10)}.csv`
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
+}
+
 function ConversionSourcesTable({ rows }: { rows: AnalyticsData["conversionSources"] }) {
   if (!rows.length) return <EmptyState message="ستظهر مقارنة المصادر بالطلبات بعد تسجيل أول طلب." />
 
@@ -537,8 +568,14 @@ export default function Analytics() {
           <h2 className="text-2xl font-extrabold tracking-tight text-[#193b63] sm:text-3xl">تحليلات الموقع</h2>
           <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">افهم حركة الزوار ومصادرهم ومواقعهم الجغرافية من لوحة واحدة منظمة.</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <span className="hidden text-xs text-slate-400 sm:inline">آخر تحديث: {lastRefresh.toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" })}</span>
+           {data && <Button variant="outline" onClick={() => downloadAnalyticsCsv(data, selectedPeriodLabel)} className="gap-2 border-slate-200 bg-white text-[#193b63] shadow-sm hover:bg-[#eef3f8]">
+             <Download size={15} /> تصدير CSV
+           </Button>}
+           <Button variant="outline" onClick={() => window.print()} className="hidden gap-2 border-slate-200 bg-white text-[#193b63] shadow-sm hover:bg-[#eef3f8] sm:inline-flex">
+             <Printer size={15} /> طباعة
+           </Button>
           <Button variant="outline" onClick={() => void load()} disabled={loading} className="gap-2 border-slate-200 bg-white text-[#193b63] shadow-sm hover:bg-[#eef3f8]">
             <RefreshCw size={15} className={loading ? "animate-spin" : ""} /> تحديث البيانات
           </Button>

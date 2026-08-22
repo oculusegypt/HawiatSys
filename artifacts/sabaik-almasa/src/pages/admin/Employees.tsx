@@ -501,6 +501,8 @@ export default function Employees() {
   const [employees, setEmployees] = useState<Employee[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
+  const [roleFilter, setRoleFilter] = useState("all")
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all")
   const [modal, setModal] = useState<"add" | Employee | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null)
 
@@ -539,7 +541,9 @@ export default function Employees() {
   }
 
   const filtered = employees.filter(e =>
-    e.name.includes(search) || e.username.includes(search) || e.roleLabel.includes(search)
+    (e.name.includes(search) || e.username.includes(search) || e.roleLabel.includes(search) || (e.email ?? "").includes(search)) &&
+    (roleFilter === "all" || e.role === roleFilter) &&
+    (statusFilter === "all" || (statusFilter === "active" ? e.isActive === 1 : e.isActive !== 1))
   )
 
   const roleGroups = ROLES_ADMIN.map(r => ({
@@ -578,11 +582,32 @@ export default function Employees() {
         })}
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-        <Input value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="بحث عن موظف..." className="h-10 pr-10" />
+       {/* Search + filters */}
+       <div className="flex flex-col gap-2 sm:flex-row">
+         <div className="relative flex-1">
+           <Search size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+           <Input value={search} onChange={e => setSearch(e.target.value)}
+             placeholder="بحث بالاسم أو المستخدم أو البريد..." className="h-10 pr-10" />
+         </div>
+         <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)}
+           aria-label="تصفية حسب الدور"
+           className="h-10 rounded-md border border-input bg-background px-3 text-sm text-gray-700 outline-none focus:ring-2 focus:ring-primary/20">
+           <option value="all">كل الأدوار</option>
+           {ROLES_ADMIN.map(role => <option key={role.value} value={role.value}>{role.label}</option>)}
+         </select>
+         <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as typeof statusFilter)}
+           aria-label="تصفية حسب الحالة"
+           className="h-10 rounded-md border border-input bg-background px-3 text-sm text-gray-700 outline-none focus:ring-2 focus:ring-primary/20">
+           <option value="all">كل الحالات</option>
+           <option value="active">نشطون فقط</option>
+           <option value="inactive">موقوفون فقط</option>
+         </select>
+         {(search || roleFilter !== "all" || statusFilter !== "all") && (
+           <Button type="button" variant="outline" onClick={() => { setSearch(""); setRoleFilter("all"); setStatusFilter("all") }}
+             className="h-10 shrink-0 gap-2">
+             <X size={14} /> مسح
+           </Button>
+         )}
       </div>
 
       {/* Table */}
@@ -594,7 +619,7 @@ export default function Employees() {
         ) : filtered.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
             <Users size={40} className="mx-auto mb-3 opacity-30" />
-            <p className="font-medium">{search ? "لا نتائج للبحث" : "لا يوجد موظفون بعد"}</p>
+             <p className="font-medium">{search || roleFilter !== "all" || statusFilter !== "all" ? "لا توجد نتائج بهذه التصفية" : "لا يوجد موظفون بعد"}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
