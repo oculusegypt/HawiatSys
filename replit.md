@@ -62,6 +62,7 @@ src/
 - **الأدوار**: `admin`, `manager`, `customer_service`, `requests_officer`, `driver`
 - **الخدمات المتاحة**: متابعة الطلبات، تعيين أوامر العمل، إدارة المقالات والخدمات والباقات، الإشعارات، والتحليلات.
 - **توثيق الحركات التشغيلية**: قواعد الإدخال، الحالات المسموحة، والتصحيح في `docs/container-system-movements.md`.
+- **توثيق الأمان والتشغيل**: الصلاحيات، دورة العقد، وبيانات التتبع العامة في `docs/container-system-security-and-operations.md`.
 
 ## النشر على Hostinger
 

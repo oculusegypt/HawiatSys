@@ -128,7 +128,7 @@ router.put("/admin/employees/:id", requireManagerOrAdmin, async (req, res) => {
     updates.permissions = Array.isArray(permissions) && permissions.length
       ? JSON.stringify(permissions) : null;
   }
-  if (isActive !== undefined) updates.is_active = isActive;
+  if (isActive !== undefined && (isActive === 0 || isActive === 1)) updates.isActive = isActive;
   if (password?.trim() && password.length >= 6) {
     updates.password_hash = await hashPasswordBcrypt(password);
   }
