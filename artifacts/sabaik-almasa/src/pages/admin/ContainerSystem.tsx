@@ -25,6 +25,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
+import { getContainerStatusImage, getContainerVisualStatus } from "@/lib/containerStatusVisuals"
 import {
   FIELD_CONFIG, KIND_ICONS, KIND_LABELS, RecordDialog, RecordKind, RecordStatus, amountOf, formatAuditAction, formatRecordDate, formatStatus,
 } from "./ContainerSystemComponents"
@@ -216,6 +217,34 @@ function numericSummary(summary: Record<string, unknown> | undefined, keys: stri
   return fallback
 }
 
+function ContainerStatusImage({
+  status,
+  code,
+  className = "",
+}: {
+  status: unknown
+  code: string
+  className?: string
+}) {
+  return (
+    <span className={`relative inline-flex overflow-hidden ${className}`}>
+      <img
+        src={getContainerStatusImage(status)}
+        alt={`حاوية ${code}`}
+        className="h-full w-full object-contain"
+        loading="lazy"
+      />
+      <span
+        className="pointer-events-none absolute left-[36.5%] top-[21%] flex h-[16%] w-[15%] items-center justify-center overflow-hidden px-1 text-[clamp(6px,1.2vw,13px)] font-black leading-none text-slate-950"
+        dir="ltr"
+        aria-hidden="true"
+      >
+        {code}
+      </span>
+    </span>
+  )
+}
+
 function ContainerAvailabilityBoard({
   records,
   onOpen,
@@ -228,11 +257,7 @@ function ContainerAvailabilityBoard({
     ["container", "container_asset"].includes(record.kind) && record.status !== "archived",
   )
   const classify = (record: ContainerSystemRecord) => {
-    const status = String(record.payload.status ?? record.status).toLowerCase()
-    if (["available", "متاحة", "متاح", "ready", "جاهزة"].includes(status)) return "available"
-    if (["maintenance", "صيانة", "inspection", "تحت الفحص"].includes(status)) return "maintenance"
-    if (["rented", "with_customer", "مؤجرة", "لدى العميل", "reserved", "محجوزة"].includes(status)) return "rented"
-    return "other"
+    return getContainerVisualStatus(record.payload.status ?? record.status)
   }
   const labels = {
     available: { label: "متاحة", tone: "border-emerald-200 bg-emerald-50 text-emerald-800", dot: "bg-emerald-500" },
@@ -283,9 +308,13 @@ function ContainerAvailabilityBoard({
               return (
                 <button type="button" key={record.id} onClick={() => onOpen(record)} className="group text-right" data-testid={`card-container-availability-${record.id}`}>
                   <div className={`rounded-2xl border p-3 transition group-hover:-translate-y-0.5 group-hover:shadow-md ${state.tone}`}>
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/80 shadow-sm"><Trash2 size={24} /></span>
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-white/75 px-2 py-1 text-[10px] font-black"><span className={`h-1.5 w-1.5 rounded-full ${state.dot}`} />{state.label}</span>
+                    <div className="relative flex min-h-40 items-center justify-center rounded-xl bg-white/35 px-1">
+                      <ContainerStatusImage
+                        status={record.payload.status ?? record.status}
+                        code={code}
+                        className="h-36 w-full max-w-[18rem]"
+                      />
+                      <span className="absolute right-2 top-2 inline-flex items-center gap-1.5 rounded-full bg-white/85 px-2 py-1 text-[10px] font-black shadow-sm"><span className={`h-1.5 w-1.5 rounded-full ${state.dot}`} />{state.label}</span>
                     </div>
                     <p className="mt-3 truncate font-black text-slate-900">{String(payload.typeName ?? payload.containerType ?? "حاوية تشغيلية")}</p>
                     <p className="mt-1 font-mono text-xs font-bold text-slate-500" dir="ltr">{code}</p>
@@ -382,7 +411,6 @@ function RecordsPanel({ kind, records, loading, onAdd, onDetails, onEdit, onArch
 }
 
 function ContainerPOS({ records, onDetails, onEdit, onAdd }: { records: ContainerSystemRecord[]; onDetails: (record: ContainerSystemRecord) => void; onEdit: (record: ContainerSystemRecord) => void; onAdd: () => void }) {
-  const imageFor = (record: ContainerSystemRecord, index: number) => String(record.payload.imageUrl ?? record.payload.image ?? `/uploads/container-${(index % 4) + 1}.jpeg`)
   return (
     <Card className="border-slate-200/80 shadow-[0_8px_28px_rgba(15,44,58,.05)]">
       <CardHeader className="border-b border-slate-100 px-4 py-4 sm:px-5">
@@ -397,7 +425,10 @@ function ContainerPOS({ records, onDetails, onEdit, onAdd }: { records: Containe
             const location = String(payload.location ?? "الموقع غير محدد")
             const nextEmptying = String(payload.emptyingDate ?? payload.nextEmptyingDate ?? payload.endDate ?? "")
             return <div key={record.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md" data-testid={`pos-container-${record.id}`}>
-              <div className="relative h-36 bg-slate-100"><img src={imageFor(record, index)} alt={`صورة ${code}`} className="h-full w-full object-cover" onError={event => { event.currentTarget.src = "/uploads/container-1.webp" }} /><div className="absolute right-3 top-3"><RecordStatus status={record.status} /></div><div className="absolute bottom-3 left-3 rounded-lg bg-slate-950/70 px-2 py-1 text-xs font-bold text-white" dir="ltr">{code}</div></div>
+              <div className="relative flex aspect-[2/1] items-center justify-center overflow-hidden bg-slate-950/5">
+                <ContainerStatusImage status={record.payload.status ?? record.status} code={code} className="h-full w-full object-contain" />
+                <div className="absolute right-3 top-3"><RecordStatus status={record.status} /></div>
+              </div>
               <div className="space-y-3 p-4"><div><p className="font-black text-slate-900">{String(payload.typeName ?? payload.containerType ?? "حاوية تشغيلية")}</p><p className="mt-1 text-xs text-slate-500">{String(payload.size ?? payload.capacity ?? "الحجم غير محدد")}</p></div><div className="grid grid-cols-2 gap-2 text-xs"><div className="rounded-xl bg-slate-50 p-2"><span className="block text-[10px] text-slate-400">الموقع</span><span className="mt-1 block truncate font-bold text-slate-700">{location}</span></div><div className="rounded-xl bg-slate-50 p-2"><span className="block text-[10px] text-slate-400">العميل / التفريغ</span><span className="mt-1 block truncate font-bold text-slate-700">{nextEmptying || customer}</span></div></div><div className="flex gap-2"><Button variant="outline" size="sm" onClick={() => onDetails(record)} className="flex-1 gap-1 text-xs text-cyan-800"><FileText size={14} /> التفاصيل</Button><Button variant="outline" size="sm" onClick={() => onEdit(record)} className="gap-1 text-xs"><FilePenLine size={14} /> تعديل</Button></div></div>
             </div>
           })}
