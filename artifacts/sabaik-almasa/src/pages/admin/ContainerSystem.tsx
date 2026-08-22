@@ -227,7 +227,7 @@ function ContainerStatusImage({
   className?: string
 }) {
   return (
-    <span className={`relative inline-flex overflow-hidden ${className}`}>
+    <span className={`relative inline-flex overflow-hidden ${className}`} style={{ containerType: "inline-size" }}>
       <img
         src={getContainerStatusImage(status)}
         alt={`حاوية ${code}`}
@@ -235,7 +235,7 @@ function ContainerStatusImage({
         loading="lazy"
       />
       <span
-        className="pointer-events-none absolute left-[63%] top-[36%] flex h-[22%] w-[24%] items-center justify-center overflow-hidden whitespace-nowrap px-1 text-[clamp(9px,2vw,18px)] font-black leading-none tracking-tight text-white [text-shadow:0_1px_2px_rgba(0,0,0,.9)]"
+        className="pointer-events-none absolute left-[64%] top-[39%] flex h-[18%] w-[23%] items-center justify-center overflow-hidden whitespace-nowrap px-1 text-[clamp(7px,4cqw,12px)] font-black leading-none tracking-tight text-white [text-shadow:0_1px_2px_rgba(0,0,0,.9)] [transform:rotate(-1.5deg)_skewX(-4deg)]"
         dir="ltr"
         aria-hidden="true"
       >
@@ -312,7 +312,7 @@ function ContainerAvailabilityBoard({
                       <ContainerStatusImage
                         status={record.payload.status ?? record.status}
                         code={code}
-                        className="aspect-[2/1] w-full max-w-[18rem]"
+                        className="aspect-[2/1] w-full"
                       />
                       <span className="absolute right-2 top-2 inline-flex items-center gap-1.5 rounded-full bg-white/85 px-2 py-1 text-[10px] font-black shadow-sm"><span className={`h-1.5 w-1.5 rounded-full ${state.dot}`} />{state.label}</span>
                     </div>
