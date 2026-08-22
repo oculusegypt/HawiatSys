@@ -348,7 +348,6 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
             hsJson(['error' => 'مفتاح العملية غير صالح'], 422);
         }
         if ($operationKey !== '') $contract['operationKey'] = $operationKey;
-        hsValidateRecord($pdo, 'contract', $contract);
         $find = static function (PDO $pdo, int $id): ?array {
             $stmt = $pdo->prepare("SELECT * FROM container_system_records WHERE id = :id LIMIT 1");
             $stmt->execute([':id' => $id]);
@@ -367,6 +366,13 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
         $assetPayload = hsPayload($asset['payload']);
         $assetAvailability = hsCanonicalAssetStatus((string)($assetPayload['status'] ?? $asset['status']), (string)$asset['status']);
         if (!in_array($assetAvailability, ['available', 'reserved', 'active'], true)) hsJson(['error' => 'الحاوية ليست متاحة للتخصيص'], 422);
+        // The wizard selects the asset by record id. Older bundles sometimes
+        // omit containerCode, so derive it from the authoritative asset row
+        // before validating the contract instead of rejecting a valid request.
+        if (trim((string)($contract['containerCode'] ?? '')) === '') {
+            $contract['containerCode'] = hsAssetCode($assetPayload);
+        }
+        hsValidateRecord($pdo, 'contract', $contract);
         $now = date('c');
         try {
             $pdo->beginTransaction();

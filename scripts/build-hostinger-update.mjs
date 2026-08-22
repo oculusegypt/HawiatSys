@@ -93,7 +93,12 @@ copyFileSync(
   join(ROOT, "scripts/api-index.php"),
   join(STAGING, "api/index.php")
 );
+copyFileSync(
+  join(ROOT, "scripts/container-system.php"),
+  join(STAGING, "api/container-system.php")
+);
 console.log("  ✅ api/index.php");
+console.log("  ✅ api/container-system.php");
 
 // ملفات Apache الضرورية لمسارات API وتمرير Authorization في Hostinger
 for (const htaccess of [
@@ -117,7 +122,7 @@ writeFileSync(join(STAGING, "UPLOAD_INSTRUCTIONS.txt"), [
   "  • assets/       ← مجلد كامل",
   "  • index.html    ← ملف واحد",
   "  • sw.js و notification-icon.webp ← ملفات إشعارات الهاتف",
-  "  • api/index.php و api/.htaccess ← ملفات API",
+  "  • api/index.php و api/container-system.php و api/.htaccess ← ملفات API",
   "  • .htaccess ← ملف التوجيه الرئيسي (استبدله إن كان لديك الإصدار القديم)",
   "",
   "⚠️  لا تلمس:",
@@ -142,6 +147,6 @@ const sizeKb = Math.round(
 );
 console.log(`\n${"═".repeat(60)}`);
 console.log(`✅ جاهز: sabaik-update.zip (${sizeKb} KB)`);
-console.log(`   يحتوي على: assets/ + index.html + sw.js + notification-icon.webp + api/index.php + .htaccess`);
+console.log(`   يحتوي على: assets/ + index.html + sw.js + notification-icon.webp + api/index.php + api/container-system.php + .htaccess`);
 console.log(`   لا يحتوي على: uploads/ ولا data/ (بياناتك بأمان ✔)`);
 console.log(`${"═".repeat(60)}\n`);

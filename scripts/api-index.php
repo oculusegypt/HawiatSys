@@ -144,7 +144,11 @@ try {
             'bg_color' => "TEXT NOT NULL DEFAULT '#eff6ff'",
             'is_active' => "INTEGER NOT NULL DEFAULT 1",
             'ad_order' => "INTEGER NOT NULL DEFAULT 0",
-            'created_at' => "TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP",
+            // SQLite rejects ALTER TABLE ... ADD COLUMN when the new column
+            // uses a non-constant default such as CURRENT_TIMESTAMP. Use a
+            // constant for portable upgrades; new rows do not depend on this
+            // legacy column for API behavior.
+            'created_at' => "TEXT NOT NULL DEFAULT ''",
         ];
         foreach ($adMigrations as $column => $definition) {
             if (!isset($adColumnNames[$column])) {
