@@ -204,6 +204,7 @@ function GeneralTab() {
   const [statsItems, setStatsItems] = useState<StatItem[]>(DEFAULT_STATS)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [confirmLock, setConfirmLock] = useState(false)
   const [logoUploading, setLogoUploading] = useState(false)
   const token = typeof window !== "undefined" ? localStorage.getItem("admin_token") : ""
   const [currentRole, setCurrentRole] = useState(
@@ -274,7 +275,13 @@ function GeneralTab() {
     finally { setSaving(false) }
   }
 
-  function toggleLock() { save({ requests_locked: settings.requests_locked !== "true" ? "true" : "false" }) }
+  function toggleLock() {
+    if (settings.requests_locked !== "true") {
+      setConfirmLock(true)
+      return
+    }
+    save({ requests_locked: "false" })
+  }
   function toggleOrderTracking() {
     save({ order_tracking_enabled: settings.order_tracking_enabled === "true" ? "false" : "true" })
   }
@@ -394,6 +401,16 @@ function GeneralTab() {
                 <span className={`h-1.5 w-1.5 rounded-full ${isLocked ? "bg-red-300" : "bg-emerald-300"}`} />
                 {isLocked ? "الحالة مغلقة مؤقتًا" : "الخدمة تستقبل الطلبات"}
               </div>
+              {confirmLock && (
+                <div className="mt-4 rounded-xl border border-red-200/20 bg-red-500/10 p-3">
+                  <p className="text-xs font-bold text-red-100">هل تريد إيقاف استقبال الطلبات الآن؟</p>
+                  <p className="mt-1 text-[11px] leading-5 text-white/55">لن يتمكن العملاء من إرسال طلبات جديدة حتى تعيد فتح الخدمة.</p>
+                  <div className="mt-3 flex gap-2">
+                    <Button size="sm" onClick={() => { setConfirmLock(false); save({ requests_locked: "true" }) }} disabled={saving} className="h-8 bg-red-500 text-xs text-white hover:bg-red-600">تأكيد الإيقاف</Button>
+                    <Button size="sm" variant="outline" onClick={() => setConfirmLock(false)} disabled={saving} className="h-8 border-white/20 bg-transparent text-xs text-white hover:bg-white/10">إلغاء</Button>
+                  </div>
+                </div>
+              )}
               <div className="mt-4 flex items-start justify-between gap-4 border-t border-white/10 pt-4">
                 <div className="flex items-start gap-3">
                   <div className="rounded-xl bg-blue-400/20 p-2.5 text-blue-200"><Eye size={20} /></div>
