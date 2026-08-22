@@ -8,6 +8,7 @@ import bcrypt from "bcryptjs";
 const router = Router();
 
 const TOKEN_SECRET = process.env.SESSION_SECRET ?? "sabaik_token_secret_change_me";
+const TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
 
 // ── Password helpers ──────────────────────────────────────────────────────────
 export function hashPassword(password: string): string {
@@ -41,7 +42,10 @@ export function verifyToken(token: string): { adminId: number; ts: number } | nu
     if (!b64 || !sig) return null;
     const expected = crypto.createHmac("sha256", TOKEN_SECRET).update(b64).digest("base64url");
     if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null;
-    return JSON.parse(Buffer.from(b64, "base64url").toString());
+    const payload = JSON.parse(Buffer.from(b64, "base64url").toString()) as { adminId?: unknown; ts?: unknown };
+    if (!Number.isInteger(payload.adminId) || !Number.isFinite(payload.ts)) return null;
+    if (Date.now() - Number(payload.ts) > TOKEN_TTL_MS || Date.now() - Number(payload.ts) < -60_000) return null;
+    return { adminId: Number(payload.adminId), ts: Number(payload.ts) };
   } catch {
     return null;
   }
@@ -88,7 +92,7 @@ router.get("/auth/me", async (req, res) => {
   if (!payload) return res.status(401).json({ error: "Unauthorized" });
 
   const [admin] = await db.select().from(adminsTable).where(eq(adminsTable.id, payload.adminId));
-  if (!admin) return res.status(401).json({ error: "Unauthorized" });
+   if (!admin || admin.isActive === 0) return res.status(401).json({ error: "Unauthorized" });
 
   return res.json(formatUser(admin));
 });

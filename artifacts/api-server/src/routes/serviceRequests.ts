@@ -3,7 +3,7 @@ import { db, adminsTable, serviceRequestsTable, conversationsTable, messagesTabl
 import { eq, desc, and, inArray, sql } from "drizzle-orm";
 import { getSetting } from "./settings";
 import { createNotification } from "../lib/pushNotifications";
-import { requireAdmin, requireDriver, requireRequestAssignment, requireManagerOrAdmin, type AdminRequest } from "../middleware/adminAuth";
+import { requireAdmin, requireAdminOnly, requireDriver, requireRequestAssignment, requireManagerOrAdmin, type AdminRequest } from "../middleware/adminAuth";
 import { sourceForRow } from "../lib/attribution";
 
 const router = Router();
@@ -421,7 +421,16 @@ router.get("/service-requests/:id", async (req, res) => {
   const [request] = await db.select().from(serviceRequestsTable).where(eq(serviceRequestsTable.id, id));
   if (!request) return res.status(404).json({ error: "Not found" });
   const [decoratedRequest] = await addPresenceToRequests([request]);
-  return res.json(decoratedRequest);
+  // Public tracking needs enough information to identify an order, never its
+  // operational evidence, private notes, or live driver location.
+  const {
+    id: requestId, clientName, phone, serviceType, containerSize, status,
+    appointmentType, scheduledAt, createdAt, updatedAt,
+  } = decoratedRequest;
+  return res.json({
+    id: requestId, clientName, phone, serviceType, containerSize, status,
+    appointmentType, scheduledAt, createdAt, updatedAt,
+  });
 });
 
 router.patch("/service-requests/:id", requireAdmin, async (req, res) => {
@@ -728,7 +737,7 @@ router.patch("/driver/work-orders/:id", requireAdmin, requireDriver, async (req,
   return res.json(updated);
 });
 
-router.delete("/service-requests/:id", requireAdmin, async (req, res) => {
+router.delete("/service-requests/:id", requireAdmin, requireAdminOnly, async (req, res) => {
   const id = parseInt(String(req.params.id), 10);
   const [deleted] = await db.delete(serviceRequestsTable)
     .where(eq(serviceRequestsTable.id, id))

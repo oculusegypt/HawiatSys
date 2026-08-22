@@ -122,7 +122,7 @@ export default function AdminRequests() {
   const [drivers, setDrivers] = useState<{ id: number; name: string; role: string; isActive: number }[]>([])
   const [driversLoading, setDriversLoading] = useState(true)
 
-  const { data: requests, refetch } = useGetServiceRequests(
+  const { data: requests, isLoading, isError, refetch } = useGetServiceRequests(
     filter !== "all" ? { status: filter as GetServiceRequestsParams["status"] } : {}
   )
 
@@ -188,7 +188,10 @@ export default function AdminRequests() {
   const handleStatusChange = (id: number, newStatus: string) => {
     updateReq(
       { id, data: { status: newStatus as ServiceRequestUpdateStatus } },
-      { onSuccess: () => refetch() }
+       {
+         onSuccess: () => refetch(),
+         onError: () => toast({ variant: "destructive", title: "تعذر تحديث حالة الطلب" }),
+       }
     )
   }
 
@@ -196,6 +199,7 @@ export default function AdminRequests() {
     if (!deleteTarget) return
     deleteReq({ id: deleteTarget.id }, {
       onSuccess: () => { refetch(); setDeleteTarget(null) },
+      onError: () => toast({ variant: "destructive", title: "تعذر حذف الطلب", description: "تحقق من صلاحيات الحساب وحاول مرة أخرى." }),
     })
   }
 
@@ -429,7 +433,18 @@ export default function AdminRequests() {
                 </tr>
               </thead>
               <tbody>
-                {requestRows.map(req => {
+                {isLoading ? (
+                  <tr><td colSpan={8} className="p-10 text-center text-gray-500">جارٍ تحميل الطلبات…</td></tr>
+                ) : isError ? (
+                  <tr><td colSpan={8} className="p-8 text-center">
+                    <p className="text-red-600 mb-3">تعذر تحميل الطلبات حالياً.</p>
+                    <Button variant="outline" size="sm" onClick={() => refetch()}>إعادة المحاولة</Button>
+                  </td></tr>
+                ) : requestRows.length === 0 ? (
+                  <tr><td colSpan={8} className="p-8 text-center text-gray-500">
+                    لا توجد طلبات {filter !== "all" ? "بهذه الحالة" : "للعرض"}
+                  </td></tr>
+                ) : requestRows.map(req => {
                   const st = getStatus(req.status)
                   return (
                     <tr
@@ -554,13 +569,6 @@ export default function AdminRequests() {
                     </tr>
                   )
                 })}
-                  {requestRows.length === 0 && (
-                  <tr>
-                     <td colSpan={8} className="p-8 text-center text-gray-500">
-                      لا توجد طلبات لعرضها
-                    </td>
-                  </tr>
-                )}
               </tbody>
             </table>
           </div>
