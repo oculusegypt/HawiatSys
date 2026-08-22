@@ -36,6 +36,7 @@ function findProfileRecord(records: ContainerSystemRecord[], mode: ProfileMode, 
 }
 
 function CustomerProfile({ record, records }: { record: ContainerSystemRecord; records: ContainerSystemRecord[] }) {
+  const [, navigate] = useLocation()
   const p = payloadOf(record)
   const name = text(p.name ?? p.customerName)
   const related = records.filter(item => {
@@ -43,10 +44,34 @@ function CustomerProfile({ record, records }: { record: ContainerSystemRecord; r
     return text(payload.customerName, "") === name || text(payload.customerRecordId, "") === String(record.id)
   })
   const contracts = related.filter(item => item.kind === "contract")
+  const contractIds = new Set(contracts.map(item => item.id))
+  const sites = records.filter(item => item.kind === "customer_site" && String(payloadOf(item).customerRecordId) === String(record.id))
+  const assignments = related.filter(item => item.kind === "container_assignment" || contractIds.has(Number(payloadOf(item).contractRecordId)))
+  const appointments = related.filter(item => item.kind === "appointment" || contractIds.has(Number(payloadOf(item).contractRecordId)))
+  const containers = records.filter(item => ["container", "container_asset"].includes(item.kind) && (
+    assignments.some(assignment => String(payloadOf(assignment).containerRecordId) === String(item.id)) ||
+    assignments.some(assignment => text(payloadOf(assignment).containerCode, "") === text(payloadOf(item).assetCode ?? payloadOf(item).code, ""))
+  ))
   const payments = related.filter(item => ["payment", "receipt", "payment_return"].includes(item.kind))
   const charges = contracts.reduce((sum, item) => sum + Number(payloadOf(item).total ?? payloadOf(item).amount ?? 0), 0)
   const paid = payments.reduce((sum, item) => sum + amountOf(item) * (item.kind === "payment_return" ? -1 : 1), 0)
-  return <><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><Stat label="إجمالي العقود" value={contracts.length} /><Stat label="إجمالي المطالبات" value={money(charges)} /><Stat label="المدفوع" value={money(paid)} tone="text-emerald-700" /><Stat label="الرصيد المستحق" value={money(Math.max(charges - paid, 0))} tone="text-rose-700" /></div><div className="grid gap-5 xl:grid-cols-[1.1fr_.9fr]"><RelatedRows title="العقود والإيجارات" records={related.filter(item => ["contract", "contract_line"].includes(item.kind))} /><RelatedRows title="التحصيلات والحركات المالية" records={payments} /></div></>
+  const workOrdersQuery = useGetServiceRequests(undefined, { query: { queryKey: getGetServiceRequestsQueryKey(), staleTime: 30_000 } })
+  const workOrders = (workOrdersQuery.data ?? []).filter(item => {
+    const linked = item as typeof item & { customerRecordId?: number | null; contractRecordId?: number | null }
+    return linked.customerRecordId === record.id || (linked.contractRecordId != null && contractIds.has(linked.contractRecordId))
+  })
+  const upcomingAppointments = appointments.filter(item => String(payloadOf(item).appointmentDate ?? "") >= new Date().toISOString().slice(0, 10))
+  return <div className="space-y-5">
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-cyan-100 bg-cyan-50/60 p-4">
+      <div><p className="text-sm font-black text-cyan-950">إجراءات العميل</p><p className="mt-1 text-xs text-cyan-800/70">كل العمليات تبدأ من ملف العميل وتبقى مرتبطة بسجله.</p></div>
+      <div className="flex flex-wrap gap-2"><Button size="sm" onClick={() => navigate("/admin/container-system?view=contract")} className="bg-cyan-800 hover:bg-cyan-900">إنشاء عقد</Button><Button size="sm" variant="outline" onClick={() => navigate("/admin/container-system?view=customer_site")} className="border-cyan-200 text-cyan-800">إضافة موقع</Button><Button size="sm" variant="outline" onClick={() => navigate("/admin/container-system?view=customer_payments")} className="border-emerald-200 text-emerald-800">تسجيل دفعة</Button></div>
+    </div>
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><Stat label="إجمالي العقود" value={contracts.length} /><Stat label="المواقع" value={sites.length} /><Stat label="الحاويات الحالية" value={containers.length} /><Stat label="المواعيد القادمة" value={upcomingAppointments.length} /></div>
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><Stat label="إجمالي المطالبات" value={money(charges)} /><Stat label="المدفوع" value={money(paid)} tone="text-emerald-700" /><Stat label="الرصيد المستحق" value={money(Math.max(charges - paid, 0))} tone="text-rose-700" /><Stat label="أوامر العمل" value={workOrders.length} tone="text-amber-700" /></div>
+    <div className="grid gap-5 xl:grid-cols-2"><RelatedRows title="مواقع العميل" records={sites} empty="لم تتم إضافة موقع لهذا العميل بعد" /><RelatedRows title="الحاويات المخصصة" records={containers} empty="لا توجد حاويات مخصصة حاليًا" /></div>
+    <div className="grid gap-5 xl:grid-cols-2"><RelatedRows title="العقود والإيجارات" records={related.filter(item => ["contract", "contract_line"].includes(item.kind))} /><RelatedRows title="المواعيد وأوامر العمل" records={[...appointments, ...workOrders.map(item => ({ id: item.id, kind: "appointment", status: item.driverStatus ?? "pending", reference: `WO-${item.id}`, payload: { name: item.serviceType, customerName: item.clientName, scheduledAt: item.scheduledAt ?? "" }, createdAt: item.createdAt, updatedAt: item.updatedAt ?? item.createdAt }))]} empty="لا توجد مواعيد أو أوامر عمل" /></div>
+    <RelatedRows title="التحصيلات والحركات المالية" records={payments} />
+  </div>
 }
 
 function EmployeeProfile({ record, records }: { record: ContainerSystemRecord; records: ContainerSystemRecord[] }) {
