@@ -15,7 +15,7 @@ console.log("🚀 [Hawiat Micro Patch] تجهيز حزمة تحديث خفيفة
 
 // 1. Rebuild frontend
 console.log("▶ بناء ملفات الواجهة الأمامية المحدثة...");
-execSync("pnpm --filter @workspace/cleanflow-services run build", { cwd: ROOT, stdio: "inherit" });
+execSync("VITE_HOSTINGER_TARGET=1 pnpm --filter @workspace/cleanflow-services run build", { cwd: ROOT, stdio: "inherit" });
 console.log("▶ إعادة توليد صفحات HTML الثابتة بنفس أصول البناء...");
 execSync("node scripts/prerender.mjs", { cwd: ROOT, stdio: "inherit" });
 
