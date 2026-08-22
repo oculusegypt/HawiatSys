@@ -397,7 +397,7 @@ function ChatInterface({ conversationId, clientName, phone, packageName, isSound
       await fetch(`${API_BASE}/api/conversations/${conversationId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: "أرسل صورة", senderType: "client", attachmentUrl: uploaded.url, attachmentType: file.type }),
+        body: JSON.stringify({ content: "أرسل صورة", senderType: "client", attachmentUrl: uploaded.url, attachmentType: uploaded.contentType || "image/webp" }),
       })
       await loadMessages()
     } finally {

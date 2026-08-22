@@ -123,13 +123,13 @@ function rejectUnsafeFileName(req: Request, res: Response, next: NextFunction): 
 router.post("/admin/uploads", requireAdmin, requireSectionPermission("settings"), safeUpload, rejectUnsafeFileName, (req: Request, res: Response): void => {
   if (!req.file) { res.status(400).json({ error: "لم يُرفَق ملف" }); return; }
   const url = `/api/uploads/${req.file.filename}`;
-  res.json({ url, filename: req.file.filename, size: req.file.size });
+  res.json({ url, filename: req.file.filename, size: req.file.size, contentType: req.file.mimetype });
 });
 
 router.post("/admin/slides/upload", requireAdmin, requireSectionPermission("slides"), safeUpload, rejectUnsafeFileName, (req: Request, res: Response): void => {
   if (!req.file) { res.status(400).json({ error: "لم يُرفَق ملف" }); return; }
   const url = `/api/uploads/${req.file.filename}`;
-  res.json({ url, filename: req.file.filename, size: req.file.size });
+  res.json({ url, filename: req.file.filename, size: req.file.size, contentType: req.file.mimetype });
 });
 
 // Driver completion evidence uses a dedicated protected route because the
@@ -137,7 +137,7 @@ router.post("/admin/slides/upload", requireAdmin, requireSectionPermission("slid
 router.post("/driver/uploads", requireAdmin, requireDriver, safeUpload, rejectUnsafeFileName, (req: Request, res: Response): void => {
   if (!req.file) { res.status(400).json({ error: "لم يُرفَق ملف" }); return; }
   const url = `/api/uploads/${req.file.filename}`;
-  res.json({ url, filename: req.file.filename, size: req.file.size });
+  res.json({ url, filename: req.file.filename, size: req.file.size, contentType: req.file.mimetype });
 });
 
 // Public conversation attachments. Files are still limited to safe image types
@@ -146,7 +146,7 @@ router.post("/driver/uploads", requireAdmin, requireDriver, safeUpload, rejectUn
 router.post("/uploads", safeUpload, rejectUnsafeFileName, (req: Request, res: Response): void => {
   if (!req.file) { res.status(400).json({ error: "لم يُرفَق ملف" }); return; }
   const url = `/api/uploads/${req.file.filename}`;
-  res.json({ url, filename: req.file.filename, size: req.file.size });
+  res.json({ url, filename: req.file.filename, size: req.file.size, contentType: req.file.mimetype });
 });
 
 // ── DELETE /api/admin/uploads/:filename ───────────────────────────────────────

@@ -123,7 +123,7 @@ export default function Chat() {
         content: "أرسل صورة",
         senderType: MessageInputSenderType.client,
         attachmentUrl: uploaded.url,
-        attachmentType: file.type,
+         attachmentType: uploaded.contentType || "image/webp",
       } }, { onSuccess: () => refetch() })
     } finally {
       setUploading(false)

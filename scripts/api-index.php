@@ -700,7 +700,9 @@ try {
         if (is_uploaded_file($tmpPath) && compressUploadedImage($tmpPath, $targetPath)) {
             echo json_encode([
                 'url' => '/api/uploads/' . $newName,
-                'filename' => $newName
+                'filename' => $newName,
+                'contentType' => 'image/webp',
+                'size' => (int)filesize($targetPath)
             ], JSON_UNESCAPED_UNICODE);
             exit;
         } else {
