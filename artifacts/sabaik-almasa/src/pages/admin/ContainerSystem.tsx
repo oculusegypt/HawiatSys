@@ -862,7 +862,7 @@ export default function ContainerSystem() {
           {error ? <Card className="border-rose-200 bg-rose-50/50"><CardContent className="flex flex-col items-center gap-3 p-12 text-center"><AlertCircle size={27} className="text-rose-500" /><h3 className="font-bold text-rose-900">تعذر تحميل بيانات النظام</h3><p className="text-sm text-rose-700">تحقق من الاتصال ثم حاول مرة أخرى.</p><Button onClick={() => { snapshotQuery.refetch(); recordsQuery.refetch() }} variant="outline" className="gap-2 border-rose-200 bg-white text-rose-800" data-testid="button-retry-container-system"><RefreshCw size={15} /> إعادة المحاولة</Button></CardContent></Card>
             : view === "overview" ? <Overview snapshot={snapshot} records={records} onAdd={openCreate} />
               : view === "reports" ? reportId ? <ReportPage reportId={reportId} records={snapshot?.records ?? records} onBack={() => setReportId(null)} /> : <ReportsHub onOpen={setReportId} />
-              : view === "settlements" ? <ContractSettlementWorkspace records={snapshot?.records ?? records} />
+              : view === "settlements" ? <ContractSettlementWorkspace records={snapshot?.records ?? records} initialCustomerId={requestedCustomerId} />
               : view === "system_settings" ? <SettingsPage records={snapshot?.records ?? records} organization={organization} onSave={saveSettings} />
              : view === "audit" ? <AuditLog audits={auditQuery.data ?? []} loading={auditQuery.isLoading} />
               : view === "container_search" ? <ContainerSearchPanel records={records} loading={loading} onDetails={record => setDetailRecord(record)} onEdit={openEdit} />

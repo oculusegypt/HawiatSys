@@ -88,7 +88,7 @@ export function ReportPage({ reportId, records, onBack }: { reportId: ReportId; 
   </div>
 }
 
-export function ContractSettlementWorkspace({ records }: { records: ContainerSystemRecord[] }) {
+export function ContractSettlementWorkspace({ records, initialCustomerId = null }: { records: ContainerSystemRecord[]; initialCustomerId?: number | null }) {
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const ledgerQuery = useGetContainerContractLedgers(undefined, { query: { queryKey: getGetContainerContractLedgersQueryKey(), staleTime: 15_000 } })
@@ -98,15 +98,18 @@ export function ContractSettlementWorkspace({ records }: { records: ContainerSys
   const [paymentMethod, setPaymentMethod] = useState("نقدي")
   const [depositId, setDepositId] = useState("")
   const [notes, setNotes] = useState("")
-  const ledgers = ledgerQuery.data?.ledgers ?? []
+  const ledgers = useMemo(() => (ledgerQuery.data?.ledgers ?? []).filter(row => {
+    if (!initialCustomerId) return true
+    return Number((row.contract.payload as Record<string, unknown>).customerRecordId ?? 0) === initialCustomerId
+  }), [initialCustomerId, ledgerQuery.data?.ledgers])
   const selected = ledgers.find(row => row.contract.id === selectedId) ?? ledgers[0]
   const deposits = records.filter(record => (record.kind === "deposit" || record.kind === "bank_deposit") && record.status !== "archived")
   useEffect(() => {
-    if (!selectedId && selected) {
+    if (selected) {
       setSelectedId(selected.contract.id)
       setAmount(String(Math.max(selected.remaining, 0)))
     }
-  }, [selected, selectedId])
+  }, [selected])
   useEffect(() => {
     if (selected) setAmount(String(Math.max(selected.remaining, 0)))
   }, [selected?.contract.id])
@@ -131,8 +134,8 @@ export function ContractSettlementWorkspace({ records }: { records: ContainerSys
     })
   }
   return <div className="space-y-5" data-testid="contract-settlement-workspace">
-    <Card className="border-cyan-200 bg-gradient-to-br from-cyan-50 to-white">
-      <CardHeader><CardTitle className="flex items-center gap-2 text-base text-cyan-950"><Coins size={18} /> كشف العقود والتحصيل والتسوية</CardTitle><p className="text-xs leading-6 text-slate-600">كل دفعة تُسجل مرة واحدة، وتظهر فوراً في كشف العقد والقيود والإيداع المرتبط.</p></CardHeader>
+      <Card className="border-cyan-200 bg-gradient-to-br from-cyan-50 to-white">
+      <CardHeader><CardTitle className="flex items-center gap-2 text-base text-cyan-950"><Coins size={18} /> كشف العقود والتحصيل والتسوية</CardTitle><p className="text-xs leading-6 text-slate-600">{initialCustomerId ? "يعرض هذا الكشف عقود العميل المحدد فقط. كل دفعة تُسجل مرة واحدة وتظهر فوراً في كشف العقد والقيود والإيداع المرتبط." : "كل دفعة تُسجل مرة واحدة، وتظهر فوراً في كشف العقد والقيود والإيداع المرتبط."}</p></CardHeader>
       <CardContent className="grid gap-3 sm:grid-cols-4">
         {[
           ["قيمة العقود", ledgerQuery.data?.totals.contractValue ?? 0],
