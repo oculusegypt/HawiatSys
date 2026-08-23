@@ -8,6 +8,7 @@ export const containerSystemRecordsTable = sqliteTable("container_system_records
   status: text("status").notNull().default("active"),
   reference: text("reference").notNull().default(""),
   payload: text("payload").notNull().default("{}"),
+  operationKey: text("operation_key"),
   createdBy: integer("created_by"),
   createdAt: text("created_at").$defaultFn(() => new Date().toISOString()).notNull(),
   updatedAt: text("updated_at").$defaultFn(() => new Date().toISOString()).notNull(),

@@ -134,6 +134,7 @@ function generatedDocumentNumber(kind: "contract" | "invoice", id: number) {
 
 function normalizeContractPayload(payload: Record<string, unknown>) {
   const next = { ...payload };
+  next.currency = String(next.currency ?? "SAR").toUpperCase();
   const amount = Number(next.amount ?? 0);
   const taxRate = Number(next.taxRate ?? 15);
   if (Number.isFinite(amount) && Number.isFinite(taxRate)) {
@@ -151,6 +152,7 @@ function normalizeContractPayload(payload: Record<string, unknown>) {
 
 function normalizeInvoicePayload(payload: Record<string, unknown>) {
   const next = { ...payload };
+  next.currency = String(next.currency ?? "SAR").toUpperCase();
   const enteredAmount = Number(next.amount ?? next.subtotal ?? 0);
   const quantity = Number(next.quantity ?? 1);
   const unitPrice = Number(next.unitPrice ?? 0);
@@ -778,7 +780,7 @@ router.post("/admin/container-system/contracts/workflow", requireContainerPermis
       const now = new Date().toISOString();
       const contract = tx.insert(containerSystemRecordsTable).values({
         kind: "contract", status: "active", reference: referenceFor("contract", contractPayload, Date.now()),
-        payload: JSON.stringify(contractPayload), createdBy: adminReq.adminId,
+        payload: JSON.stringify(contractPayload), operationKey: operationKey || null, createdBy: adminReq.adminId,
       }).returning().get();
       const contractNumber = String(contractPayload.contractNumber ?? generatedDocumentNumber("contract", contract.id));
       const finalizedContract = tx.update(containerSystemRecordsTable).set({
@@ -1006,7 +1008,7 @@ router.post("/admin/container-system/financial/settle", requireContainerPermissi
       };
       const payment = tx.insert(containerSystemRecordsTable).values({
         kind: "payment", status: "posted", reference: `PAY-${String(Date.now()).slice(-8)}`,
-        payload: JSON.stringify(paymentPayload), createdBy: adminReq.adminId,
+        payload: JSON.stringify(paymentPayload), operationKey, createdBy: adminReq.adminId,
       }).returning().get();
       const ledger = tx.insert(containerSystemRecordsTable).values({
         kind: "ledger_entry", status: "posted", reference: `LED-${payment.id}`,
@@ -1039,6 +1041,19 @@ router.post("/admin/container-system/financial/settle", requireContainerPermissi
     });
     return res.status(201).json({ payment: formatRecord(result.payment), ledgerEntry: formatRecord(result.ledger), idempotent: false });
   } catch (error) {
+    if (operationKey && error instanceof Error && error.message.includes("UNIQUE constraint failed")) {
+      const raced = await findByOperationKey("payment", operationKey);
+      if (raced) {
+        const racedPayload = parsePayload(raced.payload);
+        if (JSON.stringify(racedPayload.allocations ?? []) !== JSON.stringify(allocations) || Number(racedPayload.amount ?? 0) !== amount) {
+          return res.status(409).json({ error: "مفتاح العملية مستخدم لحمولة مالية مختلفة" });
+        }
+        const racedLedger = (await db.select().from(containerSystemRecordsTable)).find(row =>
+          row.kind === "ledger_entry" && String(parsePayload(row.payload).sourceId ?? "") === String(raced.id),
+        );
+        return res.json({ payment: formatRecord(raced), ledgerEntry: racedLedger ? formatRecord(racedLedger) : null, idempotent: true });
+      }
+    }
     return res.status(422).json({ error: error instanceof Error ? error.message : "تعذر تسجيل التسوية المالية" });
   }
 });
@@ -1344,6 +1359,7 @@ router.post("/admin/container-system/records", async (req, res) => {
         status: normalizedStatus,
         reference: referenceFor(kind, payload, Date.now()),
         payload: JSON.stringify(payload),
+        operationKey: idempotentKinds.has(kind) && requestOperationKey ? requestOperationKey : null,
         createdBy: adminReq.adminId,
       }).returning().get();
       let current = inserted;

@@ -223,6 +223,21 @@ sqlite.exec(`
     ON container_system_audit(created_at);
 `);
 
+try { sqlite.exec("ALTER TABLE container_system_records ADD COLUMN operation_key TEXT"); } catch { /* already exists */ }
+try {
+  sqlite.exec(`
+    UPDATE container_system_records
+    SET operation_key = json_extract(payload, '$.operationKey')
+    WHERE operation_key IS NULL
+      AND json_extract(payload, '$.operationKey') IS NOT NULL
+  `);
+} catch { /* older SQLite builds may not expose json_extract */ }
+sqlite.exec(`
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_container_system_records_operation_key
+    ON container_system_records(kind, operation_key)
+    WHERE operation_key IS NOT NULL AND operation_key <> '' AND status <> 'archived'
+`);
+
 export const db = drizzle(sqlite, { schema });
 export { sqlite };
 export * from "./schema";

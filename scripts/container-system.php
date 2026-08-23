@@ -83,6 +83,11 @@ function hsEnsureSchema(PDO $pdo): void {
         actor_id INTEGER,
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )");
+    try { $pdo->exec("ALTER TABLE container_system_records ADD COLUMN operation_key TEXT"); } catch (Throwable) { /* already exists */ }
+    try {
+        $pdo->exec("UPDATE container_system_records SET operation_key = json_extract(payload, '$.operationKey') WHERE operation_key IS NULL AND json_extract(payload, '$.operationKey') IS NOT NULL");
+    } catch (Throwable) { /* legacy SQLite without JSON1 */ }
+    $pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_container_system_records_operation_key ON container_system_records(kind, operation_key) WHERE operation_key IS NOT NULL AND operation_key <> '' AND status <> 'archived'");
     $columns = $pdo->query("PRAGMA table_info(service_requests)")->fetchAll(PDO::FETCH_ASSOC);
     $known = array_fill_keys(array_map(static fn(array $column): string => (string)$column['name'], $columns), true);
     $migrations = [
@@ -343,6 +348,7 @@ function hsFindAsset(PDO $pdo, string $code): ?array {
 }
 
 function hsNormalizeFinancial(string $kind, array $payload): array {
+    $payload['currency'] = strtoupper(trim((string)($payload['currency'] ?? 'SAR'))) ?: 'SAR';
     $amount = (float)($payload['amount'] ?? $payload['subtotal'] ?? 0);
     $taxRate = (float)($payload['taxRate'] ?? 15);
     if ($kind === 'invoice' || $kind === 'contract') {
@@ -356,6 +362,7 @@ function hsNormalizeFinancial(string $kind, array $payload): array {
             $payload['taxAmount'] = round($amount * $taxRate / 100, 2);
             $payload['total'] = round($amount + $payload['taxAmount'], 2);
         }
+        $payload['subtotal'] = $payload['amount'];
     }
     return $payload;
 }
@@ -734,8 +741,8 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
             }
             $pdo->beginTransaction();
         try {
-            $insert = $pdo->prepare("INSERT INTO container_system_records (kind,status,reference,payload,created_by,created_at,updated_at) VALUES ('payment','posted',:reference,:payload,:created_by,:created_at,:updated_at)");
-            $insert->execute([':reference' => 'PAY-' . time(), ':payload' => json_encode($paymentPayload, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE), ':created_by' => $actorId, ':created_at' => $now, ':updated_at' => $now]);
+            $insert = $pdo->prepare("INSERT INTO container_system_records (kind,status,reference,payload,operation_key,created_by,created_at,updated_at) VALUES ('payment','posted',:reference,:payload,:operation_key,:created_by,:created_at,:updated_at)");
+            $insert->execute([':reference' => 'PAY-' . time(), ':payload' => json_encode($paymentPayload, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE), ':operation_key' => $operationKey, ':created_by' => $actorId, ':created_at' => $now, ':updated_at' => $now]);
             $paymentId = (int)$pdo->lastInsertId();
             $ledgerPayload = ['sourceKind' => 'payment', 'sourceId' => $paymentId, 'contractId' => $first['contract']['id'], 'contractNumber' => $first['number'], 'amount' => $amount, 'direction' => 'credit', 'date' => $paymentPayload['date'], 'allocations' => $allocations];
             $ledgerInsert = $pdo->prepare("INSERT INTO container_system_records (kind,status,reference,payload,created_by,created_at,updated_at) VALUES ('ledger_entry','posted',:reference,:payload,:created_by,:created_at,:updated_at)");
