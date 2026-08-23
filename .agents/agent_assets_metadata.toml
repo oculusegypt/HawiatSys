@@ -41,14 +41,14 @@ content_type = "application/octet-stream"
 id = "RTo70OttJokFRCRKOlWig"
 uri = "file://hawiat-update-patch.zip"
 type = "unspecified"
-title = "hawiat-update-patch.zip"
-description = "باتش Hostinger كامل بأحدث تحديثات CleanFlow، شامل الواجهة والأصول وصفحات HTML وPHP API وقاعدة البيانات وملفات Web Push. ارفع محتويات الأرشيف إلى public_html مع أخذ نسخة احتياطية من قاعدة البيانات أولاً."
+title = "حزمة تحديث Hawiat لـ Hostinger"
+description = "حزمة تحديث جاهزة للرفع إلى public_html، تتضمن الواجهة المجمّعة، صفحات HTML المسبقة، API PHP، قاعدة SQLite، وملفات Web Push. تم التحقق من سلامة الأرشيف قبل التسليم."
 logical_id = "da5e0650-6b63-4e98-9652-3d02a75fa1ad"
-content_hash = "sha256:718292d321b44c5817a19079bf8cfcd2cd512ea0855f2a0bb6c6bff9f505b3bc"
-size = 2847434
-mtime_ms = 1787471131566
-storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:db0f836d-33be-4c38-ae5c-8d50c7b4e07f/da5e0650-6b63-4e98-9652-3d02a75fa1ad/27cd7cba-0e24-40a2-bd2b-d402e7e10391"
-storage_version_token = "1787471141205606"
+content_hash = "sha256:bb9c9a20970f60274f2592fa82f7050a1ecc9d83723af66ac0fcd26c7432ffa8"
+size = 2777918
+mtime_ms = 1787498653706
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:7055ccd9-6733-426a-8e0d-4f7c69c87337/da5e0650-6b63-4e98-9652-3d02a75fa1ad/ba5a7547-15bd-432f-b32a-52f343fa992b"
+storage_version_token = "1787498666617995"
 content_type = "application/octet-stream"
 
 [[outputs]]
