@@ -125,8 +125,9 @@ function hsPostFinancialCore(PDO $pdo, string $kind, int $sourceId, array $paylo
     $periodStmt->execute([$period]);
     $periodStatus = $periodStmt->fetchColumn();
     if ($periodStatus === 'closed') throw new RuntimeException("الفترة المالية {$period} مغلقة");
+    $periodEnd = date('Y-m-t', strtotime("{$period}-01"));
     $pdo->prepare("INSERT OR IGNORE INTO financial_periods (period_key,starts_on,ends_on,status) VALUES (?,?,?,'open')")
-        ->execute([$period, "{$period}-01", "{$period}-31"]);
+        ->execute([$period, "{$period}-01", $periodEnd]);
     $exists = $pdo->prepare("SELECT id FROM financial_transactions WHERE source_kind = ? AND source_id = ?");
     $exists->execute([$kind, $sourceId]);
     if ($exists->fetchColumn()) return;
@@ -142,6 +143,7 @@ function hsPostFinancialCore(PDO $pdo, string $kind, int $sourceId, array $paylo
     elseif ($kind === 'other_revenue') [$debit,$credit] = ['CASH-001','REV-OTHER'];
     elseif ($kind === 'maintenance') [$debit,$credit] = ['EXP-MAINT','CASH-001'];
     elseif ($kind === 'commission') [$debit,$credit] = ['COMM-001','AP-001'];
+    elseif ($kind === 'bank_fee') [$debit,$credit] = ['BANK-FEE','BANK-001'];
     elseif ($kind === 'transfer') [$debit,$credit] = ['BANK-001','CASH-001'];
     $pdo->prepare("INSERT INTO financial_transactions (transaction_number,transaction_type,source_kind,source_id,reference,transaction_date,amount,status,operation_key,created_by,posted_at) VALUES (?,?,?,?,?,?,?,'posted',?,?,?)")
         ->execute(["FT-{$sourceId}",$kind,$kind,$sourceId,$reference,$date,$amount,(string)($payload['operationKey'] ?? '') ?: null,$actorId,date('c')]);
@@ -172,9 +174,10 @@ function hsReverseFinancialCore(PDO $pdo, string $kind, int $sourceId, float $am
     $periodStmt = $pdo->prepare("SELECT status FROM financial_periods WHERE period_key = ?");
     $periodStmt->execute([$period]);
     if ($periodStmt->fetchColumn() === 'closed') throw new RuntimeException("الفترة المالية {$period} مغلقة");
+    $periodEnd = date('Y-m-t', strtotime("{$period}-01"));
     $pdo->prepare("INSERT OR IGNORE INTO financial_periods (period_key,starts_on,ends_on,status) VALUES (?,?,?,'open')")
-        ->execute([$period, "{$period}-01", "{$period}-31"]);
-    $pdo->prepare("INSERT INTO financial_transactions (transaction_number,transaction_type,source_kind,source_id,reference,transaction_date,amount,status,operation_key,created_by,posted_at,cancellation_reason) VALUES (?,?,?,?,?,?,?,'posted',?,?,?,?,?)")
+        ->execute([$period, "{$period}-01", $periodEnd]);
+    $pdo->prepare("INSERT INTO financial_transactions (transaction_number,transaction_type,source_kind,source_id,reference,transaction_date,amount,status,operation_key,created_by,posted_at,cancellation_reason) VALUES (?,?,?,?,?,?,?,'posted',?,?,?,?)")
         ->execute(["FT-REV-{$sourceId}", 'reversal', 'reversal', $sourceId, "REV-{$sourceId}", $date, $amount, "reversal:{$kind}:{$sourceId}", $actorId, date('c'), $reason]);
     $reversalId = (int)$pdo->lastInsertId();
     $originalJournal = $pdo->prepare("SELECT id FROM financial_journal_entries WHERE transaction_id = ? LIMIT 1");
@@ -443,7 +446,7 @@ function hsSupportedKinds(): array {
 function hsFinancialLifecycleKinds(): array {
     return ['receipt', 'payment', 'expense', 'deposit', 'bank_deposit', 'invoice', 'invoice_return',
         'payment_return', 'transfer', 'purchase', 'purchase_return', 'commission', 'salary_advance',
-        'salary_payment', 'fuel_expense', 'daily_expense'];
+        'salary_payment', 'fuel_expense', 'daily_expense', 'other_revenue'];
 }
 
 function hsValidateFinancialLifecycle(array $admin, string $kind, string $current, string $next, array $payload): void {
@@ -816,6 +819,67 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
             hsJson(['error' => 'نطاق التاريخ المالي غير صالح'], 422);
         }
         hsJson(hsFinancialTruth($pdo, $from, $to));
+    }
+    if ($path === '/admin/container-system/financial/periods' && $method === 'GET') {
+        hsFinancialTables($pdo);
+        $periods = $pdo->query("SELECT * FROM financial_periods ORDER BY period_key DESC")->fetchAll(PDO::FETCH_ASSOC);
+        hsJson($periods);
+    }
+    if (preg_match('#^/admin/container-system/financial/periods/(\d{4}-\d{2})/close$#', $path, $matches) && $method === 'POST') {
+        hsFinancialTables($pdo);
+        $periodKey = $matches[1];
+        $periodStmt = $pdo->prepare("SELECT status FROM financial_periods WHERE period_key = ?");
+        $periodStmt->execute([$periodKey]);
+        if ($periodStmt->fetchColumn() === false) {
+            $pdo->prepare("INSERT INTO financial_periods (period_key,starts_on,ends_on,status) VALUES (?,?,?,'open')")
+                ->execute([$periodKey, "{$periodKey}-01", date('Y-m-t', strtotime("{$periodKey}-01"))]);
+        }
+        $pdo->prepare("UPDATE financial_periods SET status='closed', closed_by=?, closed_at=? WHERE period_key=?")
+            ->execute([(int)$admin['id'], date('c'), $periodKey]);
+        hsJson(['success' => true, 'periodKey' => $periodKey, 'status' => 'closed']);
+    }
+    if ($path === '/admin/container-system/financial/reconciliation' && $method === 'GET') {
+        hsFinancialTables($pdo);
+        $rows = $pdo->query("SELECT br.*, ft.transaction_number, ft.transaction_type
+            FROM bank_reconciliations br
+            LEFT JOIN financial_transactions ft ON ft.id = br.linked_transaction_id
+            ORDER BY br.deposit_date DESC, br.id DESC")->fetchAll(PDO::FETCH_ASSOC);
+        hsJson($rows);
+    }
+    if (preg_match('#^/admin/container-system/financial/reconciliation/(\d+)$#', $path, $matches) && $method === 'PATCH') {
+        hsFinancialTables($pdo);
+        $id = (int)$matches[1];
+        $status = trim((string)($input['status'] ?? ''));
+        $allowed = ['matched', 'partial', 'difference', 'unmatched', 'bank_fee', 'pending', 'approved', 'rejected', 'reversed'];
+        if (!in_array($status, $allowed, true)) hsJson(['error' => 'حالة المطابقة البنكية غير مدعومة'], 422);
+        $currentStmt = $pdo->prepare("SELECT * FROM bank_reconciliations WHERE id = ?");
+        $currentStmt->execute([$id]);
+        $current = $currentStmt->fetch(PDO::FETCH_ASSOC);
+        if (!$current) hsJson(['error' => 'سجل المطابقة غير موجود'], 404);
+        $reason = trim((string)($input['reason'] ?? ''));
+        if (in_array($status, ['difference', 'bank_fee', 'rejected', 'reversed'], true) && strlen($reason) < 3) {
+            hsJson(['error' => 'سبب الفرق أو الرفض مطلوب'], 422);
+        }
+        $trail = json_decode((string)($current['audit_trail'] ?? '[]'), true);
+        if (!is_array($trail)) $trail = [];
+        $trail[] = ['at' => date('c'), 'actorId' => (int)$admin['id'], 'from' => $current['status'], 'to' => $status, 'reason' => $reason];
+        $pdo->prepare("UPDATE bank_reconciliations
+            SET status=?, difference_reason=CASE WHEN ? <> '' THEN ? ELSE difference_reason END,
+                rejection_reason=CASE WHEN ?='rejected' THEN ? ELSE rejection_reason END,
+                reviewed_by=?, reviewed_at=?, audit_trail=? WHERE id=?")
+            ->execute([$status, $reason, $reason, $status, $reason, (int)$admin['id'], date('c'), json_encode($trail, JSON_UNESCAPED_UNICODE), $id]);
+        $bankFee = (float)($current['bank_fee'] ?? 0);
+        if ($status === 'bank_fee' && $bankFee > 0) {
+            hsPostFinancialCore($pdo, 'bank_fee', $id, [
+                'amount' => $bankFee,
+                'date' => date('Y-m-d'),
+                'paymentMethod' => 'بنكي',
+                'operationKey' => "bank-fee-reconciliation-{$id}",
+            ], "BANK-FEE-{$id}", (int)$admin['id']);
+        }
+        $updatedStmt = $pdo->prepare("SELECT * FROM bank_reconciliations WHERE id = ?");
+        $updatedStmt->execute([$id]);
+        hsJson($updatedStmt->fetch(PDO::FETCH_ASSOC));
     }
     if ($path === '/admin/container-system/contracts/workflow' && $method === 'POST') {
         if (!hsCanManage($admin, 'contract')) hsJson(['error' => 'ليس لديك صلاحية لهذه العملية'], 403);
@@ -1297,9 +1361,18 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
             $pdo->prepare("UPDATE container_system_records SET reference = :reference WHERE id = :id")->execute([':reference' => $reference, ':id' => $id]);
             hsAudit($pdo, $id, $kind, 'create', null, json_encode($payload, JSON_UNESCAPED_UNICODE), $actorId);
             if ($kind === 'container_movement') hsSyncMovement($pdo, $payload, $actorId);
-            if (in_array($kind, ['payment', 'receipt', 'expense', 'deposit', 'bank_deposit', 'invoice', 'invoice_return', 'payment_return', 'transfer', 'purchase', 'purchase_return'], true)
+            if (in_array($kind, ['payment', 'receipt', 'expense', 'deposit', 'bank_deposit', 'invoice', 'invoice_return', 'payment_return', 'transfer', 'purchase', 'purchase_return', 'other_revenue'], true)
                 && $status === 'posted') {
                 hsPostFinancialCore($pdo, $kind, $id, $payload, $reference, $actorId);
+                if (in_array($kind, ['deposit', 'bank_deposit'], true)) {
+                    $financialPayment = $pdo->prepare("SELECT id FROM financial_transactions WHERE source_kind = ? AND source_id = ? LIMIT 1");
+                    $financialPayment->execute([$kind, $id]);
+                    $financialTransactionId = (int)$financialPayment->fetchColumn();
+                    $depositAmount = (float)($payload['amount'] ?? $payload['total'] ?? 0);
+                    $depositDate = (string)($payload['date'] ?? date('Y-m-d'));
+                    $pdo->prepare("INSERT OR IGNORE INTO bank_reconciliations (deposit_record_id,deposit_reference,deposit_date,amount,linked_transaction_id,difference,status) VALUES (?,?,?,?,?,?,?)")
+                        ->execute([$id, (string)($payload['reference'] ?? $reference), $depositDate, $depositAmount, $financialTransactionId, 0, 'matched']);
+                }
                 $ledger = [
                     'sourceKind' => $kind,
                     'sourceId' => $id,

@@ -19,11 +19,12 @@ type RecordKind = typeof supportedKinds[number];
 const idempotentKinds = new Set([
   "container_movement", "receipt", "payment", "expense", "deposit", "bank_deposit",
   "invoice", "invoice_return", "payment_return", "transfer", "purchase", "purchase_return", "contract",
+  "other_revenue",
 ]);
 const financialLifecycleKinds = new Set([
   "receipt", "payment", "expense", "deposit", "bank_deposit", "invoice",
   "invoice_return", "payment_return", "transfer", "purchase", "purchase_return",
-  "commission", "salary_advance", "salary_payment", "fuel_expense", "daily_expense",
+  "commission", "salary_advance", "salary_payment", "fuel_expense", "daily_expense", "other_revenue",
 ]);
 const financialLifecycleStatuses = new Set(["draft", "pending_approval", "approved", "posted", "rejected", "cancelled"]);
 const isPosted = (row: { status: string }) => row.status === "posted";
@@ -330,7 +331,7 @@ async function validateContractPayload(payload: Record<string, unknown>, ignored
 }
 
 async function validateFinancialPayload(kind: string, payload: Record<string, unknown>) {
-  if (["payment", "receipt", "expense", "deposit", "bank_deposit", "invoice", "invoice_return", "payment_return", "transfer", "purchase", "purchase_return"].includes(kind)) {
+  if (["payment", "receipt", "expense", "deposit", "bank_deposit", "invoice", "invoice_return", "payment_return", "transfer", "purchase", "purchase_return", "other_revenue"].includes(kind)) {
     const amount = Number(payload.amount ?? payload.total ?? 0);
     if (!Number.isFinite(amount) || amount <= 0) throw new Error("القيمة المالية يجب أن تكون أكبر من صفر");
   }
@@ -1518,7 +1519,7 @@ router.post("/admin/container-system/records", async (req, res) => {
       return res.status(422).json({ error: error instanceof Error ? error.message : "تعذر ربط العقد بالطلب" });
     }
   }
-   if (["payment", "receipt", "expense", "deposit", "bank_deposit", "invoice", "invoice_return", "payment_return", "transfer", "purchase", "purchase_return"].includes(kind) && normalizedStatus === "posted") {
+   if (["payment", "receipt", "expense", "deposit", "bank_deposit", "invoice", "invoice_return", "payment_return", "transfer", "purchase", "purchase_return", "other_revenue"].includes(kind) && normalizedStatus === "posted") {
     await db.insert(containerSystemRecordsTable).values({
       kind: "ledger_entry",
       status: "posted",
@@ -1539,7 +1540,7 @@ router.post("/admin/container-system/records", async (req, res) => {
       createdBy: adminReq.adminId,
     });
      try {
-       postToFinancialCore({
+       const financialPosting = postToFinancialCore({
          sourceKind: kind,
          sourceId: created.id,
          reference: created.reference,
@@ -1555,6 +1556,17 @@ router.post("/admin/container-system/records", async (req, res) => {
            amount: Number(item.amount),
          })) : undefined,
        });
+       if (["deposit", "bank_deposit"].includes(kind)) {
+         const { sqlite } = await import("@workspace/db");
+         const depositAmount = Number(payload.amount ?? payload.total ?? 0);
+         const depositDate = String(payload.date ?? new Date().toISOString().slice(0, 10));
+         const difference = depositAmount - depositAmount;
+         sqlite.prepare(`
+           INSERT OR IGNORE INTO bank_reconciliations
+             (deposit_record_id, deposit_reference, deposit_date, amount, linked_transaction_id, difference, status)
+           VALUES (?, ?, ?, ?, ?, ?, 'matched')
+         `).run(created.id, String(payload.reference ?? created.reference ?? ""), depositDate, depositAmount, financialPosting.id, difference);
+       }
      } catch (error) {
        await db.update(containerSystemRecordsTable).set({ status: "archived", updatedAt: new Date().toISOString() }).where(eq(containerSystemRecordsTable.id, created.id));
        return res.status(422).json({ error: error instanceof Error ? error.message : "تعذر ترحيل الحركة إلى النواة المالية" });

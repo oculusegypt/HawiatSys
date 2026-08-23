@@ -1,0 +1,412 @@
+PHASE 3 — CONTINUE FROM LAST VERIFIED STATE
+
+أنت Agent جديد وتستلم مهمة متوقفة بسبب انتهاء رصيد الـAgent السابق.
+
+ممنوع إعادة تنفيذ العمل من الصفر.
+
+الـAgent السابق نفّذ بالفعل الإصلاحات التالية:
+
+الإصلاحات التي تم تنفيذها
+إصلاح خطأ عكس المصروف المرحّل:
+13 values for 12 columns
+
+داخل financial_transactions.
+
+إضافة other_revenue إلى دورة الترحيل المالي في:
+Node
+PHP
+إضافة/توحيد مسارات:
+financial/periods
+financial/reconciliation
+
+في نسخة PHP/Hostinger.
+
+تحديث منطق المطابقة البنكية.
+تم تعديل Node أيضاً، بما في ذلك إصلاح منطق تاريخ إغلاق الفترة.
+تم تشغيل:
+PHP lint
+TypeScript
+Financial tests
+Operational validation
+
+وكانت النتائج ناجحة حسب آخر حالة للـAgent السابق.
+
+تم بناء:
+cleanflow-services-hostinger.zip
+وتم تشغيل:
+scripts/verify-build-output.mjs
+
+لكن انتهى رصيد الـAgent قبل ظهور النتيجة النهائية الكاملة.
+
+مهم جداً
+
+لا تعدّل الكود مرة أخرى قبل فحص الحالة الحالية.
+
+ابدأ أولاً بـ:
+
+git status
+git diff
+
+ثم افحص الملفات التي عدلها الـAgent السابق.
+
+حدد بالضبط:
+
+What changed
+What passed
+What remains unverified
+
+ولا تفترض أن أي اختبار نجح لمجرد أن الـAgent السابق قال إنه نجح؛ تحقق منه فقط إذا كان من الضروري إكمال الشهادة.
+
+المرحلة الأولى — تحقق من الإصلاحات الثلاثة محلياً
+1. Expense Reversal
+
+تحقق من الإصلاح الذي تم تطبيقه على:
+
+financial_transactions
+
+ثم شغّل اختباراً فعلياً:
+
+Posted Expense
+→ Financial Transaction
+→ Journal Entry
+→ Reverse
+
+يجب إثبات:
+
+HTTP/API success
+Original transaction preserved
+Reversal transaction created
+Reversal journal created
+Debit/Credit inverted
+Debit = Credit
+Reason preserved
+Original reference preserved
+No duplicate reversal
+
+ثم أعد نفس reversal مرة أخرى.
+
+المطلوب:
+
+NO DUPLICATE REVERSAL
+2. Financial Periods
+
+تحقق من:
+
+GET /api/admin/container-system/financial/periods
+
+ومن مسار الإغلاق الموجود حالياً.
+
+اختبر:
+
+Open/Create Period
+        ↓
+Post Transaction
+        ↓
+Close Period
+        ↓
+Attempt New Posting
+
+المطلوب:
+
+Posting before close = PASS
+Closing = PASS
+Posting after close = REJECTED
+No financial mutation after rejection
+
+تحقق أيضاً أن تاريخ نهاية الشهر صحيح ولا يستخدم تاريخاً مصطنعاً أو غير صالح.
+
+3. Bank Reconciliation
+
+اختبر المسار الفعلي:
+
+Deposit
+↓
+Bank Reconciliation
+↓
+Matched
+
+ثم:
+
+Difference
+
+ويجب أن تحفظ المطابقة:
+
+deposit
+deposit reference
+date
+amount
+linked payment
+difference
+status
+review/audit information
+
+ولا يكفي HTTP 200.
+
+تحقق من أن البيانات تصل فعلياً إلى Financial Core.
+
+4. Other Revenue
+
+هذا كان Blocker مؤكداً في الإنتاج.
+
+اختبر:
+
+Create Other Revenue
+↓
+Required approval/status
+↓
+Post
+↓
+Financial Transaction
+↓
+Journal Entry
+
+ثم تحقق من Financial Core.
+
+يجب أن يظهر:
+
+Other Revenue
+Financial Transaction
+Journal Entry
+Debit
+Credit
+Revenue totals
+Financial Truth
+Reports
+
+مع:
+
+Debit = Credit
+
+ولا تستخدم أي حسابات مباشرة من:
+
+container_system_records
+
+لتزييف النتيجة.
+
+المطلوب هو Financial Core posting حقيقي.
+
+المرحلة الثانية — Regression
+
+بعد التأكد من الإصلاحات، شغّل:
+
+pnpm run typecheck
+
+ثم:
+
+Financial Core assertions
+Financial Certification assertions
+Golden Dataset
+Cross-report consistency
+Order → Contract
+
+ثم:
+
+PHP lint
+Operational Validation
+
+وتأكد تحديداً من عدم كسر:
+
+Invoice → Financial Core
+Payment
+Payment Idempotency
+Receipt
+Deposit
+Expense
+Purchase
+Inventory
+Commission
+Transfer
+Refund
+Reversal
+Period Lock
+Bank Reconciliation
+Other Revenue
+المرحلة الثالثة — تحقق من Build الحالي
+
+لا تبنِ مرة أخرى إذا كان الأرشيف الحالي صالحاً بالفعل.
+
+أولاً افحص:
+
+cleanflow-services-hostinger.zip
+
+ثم:
+
+scripts/verify-build-output.mjs
+
+إذا كان الأرشيف سليماً ويحتوي الإصلاحات الحالية:
+
+DO NOT REBUILD
+
+إذا كان غير صالح أو لا يحتوي آخر تعديلات:
+
+REBUILD ONCE
+
+ولا تقم بأي تعديل إضافي غير ضروري.
+
+فحص الحزمة
+
+تأكد من عدم وجود:
+
+.env
+credentials
+passwords
+temporary database
+debug files
+node_modules
+test artifacts
+logs
+development-only files
+
+وتأكد من وجود:
+
+PHP API
+SQLite
+Frontend
+CleanFlow Platform
+required API files
+required data directories
+🚨 لا ترفع إلى Hostinger
+
+هذه المرحلة:
+
+LOCAL VERIFY
+→ BUILD VERIFY
+→ STOP
+
+لا تستخدم FTP.
+
+لا ترفع أي ملف إلى Hostinger.
+
+لا تحذف بيانات الاختبار الحالية.
+
+لا تعدّل Production.
+
+أنا سأقوم برفع:
+
+cleanflow-services-hostinger.zip
+
+بعد أن تؤكد أن الحزمة تحتوي الإصلاحات.
+
+إذا نجحت كل الاختبارات
+
+أعطني تقريراً بهذا الشكل فقط:
+
+========================================
+PHASE 3 — FINAL FIX VERIFICATION
+========================================
+
+Expense Reversal:
+PASS
+
+Financial Periods:
+PASS
+
+Period Lock:
+PASS
+
+Bank Reconciliation:
+PASS
+
+Other Revenue:
+PASS
+
+Financial Core:
+PASS
+
+Double Entry:
+PASS
+
+Idempotency:
+PASS
+
+Golden Dataset:
+PASS
+
+Cross-Report:
+PASS
+
+Order → Contract:
+PASS
+
+TypeScript:
+PASS
+
+PHP:
+PASS
+
+Operational Validation:
+PASS
+
+Build:
+PASS
+
+Archive Integrity:
+PASS
+
+Secrets Scan:
+PASS
+
+Hostinger Deployment:
+NOT PERFORMED
+
+Production Changes:
+NONE
+
+ثم أضف:
+
+Files Changed:
+...
+
+Root Cause:
+...
+
+Fix Applied:
+...
+
+Tests Executed:
+...
+
+Build Artifact:
+cleanflow-services-hostinger.zip
+
+Ready for Hostinger Deployment:
+YES / NO
+شرط مهم جداً
+
+إذا اكتشفت أن أحد الإصلاحات السابقة غير مكتمل أو غير صحيح:
+
+لا تعمل workaround.
+
+حدد:
+
+Root Cause
+Minimal Fix
+Regression Test
+
+وأصلحه في المصدر الحقيقي فقط.
+
+ولا تلمس أي جزء من النظام يعمل حالياً.
+
+الهدف النهائي لهذه المرحلة
+
+نريد الوصول إلى:
+
+ALL 3 HOSTINGER BLOCKERS FIXED
+        ↓
+LOCAL REGRESSION PASS
+        ↓
+HOSTINGER ZIP VERIFIED
+        ↓
+STOP
+
+بعد ذلك سأرفع الحزمة إلى:
+
+https://hawiat.aiservx.com
+
+ثم تبدأ المرحلة التالية:
+
+HOSTINGER LIVE RETEST
+
+ولا تعلن 10/10 أو Production Certified قبل نجاح الاختبار الحي.
+
+ابدأ من الحالة الحالية فقط، ولا تعيد بناء أو إعادة تصميم ما تم إنجازه.

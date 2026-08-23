@@ -68,11 +68,14 @@ const accountFor = (kind: string, paymentMethod = ""): [string, string] => {
 
 function assertOpenPeriod(date: string) {
   const periodKey = date.slice(0, 7);
+  const periodEnd = new Date(Date.UTC(Number(periodKey.slice(0, 4)), Number(periodKey.slice(5, 7)), 0))
+    .toISOString()
+    .slice(0, 10);
   const existing = sqlite.prepare("SELECT status FROM financial_periods WHERE period_key = ?").get(periodKey) as { status: string } | undefined;
   if (existing?.status === "closed") throw new Error(`الفترة المالية ${periodKey} مغلقة؛ سجّل تسوية رسمية في فترة مفتوحة`);
   if (!existing) {
     sqlite.prepare("INSERT OR IGNORE INTO financial_periods (period_key, starts_on, ends_on, status) VALUES (?, ?, ?, 'open')")
-      .run(periodKey, `${periodKey}-01`, `${periodKey}-31`);
+      .run(periodKey, `${periodKey}-01`, periodEnd);
   }
 }
 

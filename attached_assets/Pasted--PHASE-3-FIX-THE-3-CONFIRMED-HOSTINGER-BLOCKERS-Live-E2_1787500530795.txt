@@ -1,0 +1,400 @@
+🔴 PHASE 3 — FIX THE 3 CONFIRMED HOSTINGER BLOCKERS
+
+نتيجة الـLive E2E الأخيرة على:
+
+https://hawiat.aiservx.com
+
+أثبتت أن معظم النظام يعمل فعلياً في الإنتاج.
+
+لا تعيد اختبار كل شيء من الصفر الآن، ولا تعيد تصميم النظام.
+
+المطلوب حالياً هو إصلاح 3 مشاكل مؤكدة فقط، ثم Regression كامل، ثم Build جديد لـHostinger.
+
+الحالة التي يجب الحفاظ عليها
+
+هذه الاختبارات أصبحت PASS على Hostinger، ولا يجوز كسرها:
+
+DNS / HTTPS / SSL
+PHP / SQLite
+Health
+Admin Authentication
+Website → Customer
+Website → Order
+Customer Reuse
+Order → Contract
+Contract Idempotency
+Invoice Lifecycle
+Invoice → Financial Core
+Payment
+Payment Idempotency
+Payment Allocation
+Receipt
+Deposit
+Expense
+Purchase
+Inventory
+Commission
+Transfer
+Refund
+Double Entry
+Financial Core
+
+أي Regression في واحدة منها = توقف وإصلاح الـRegression قبل بناء الحزمة.
+
+BLOCKER 1 — Reversal of Posted Expense
+الخطأ المؤكد
+
+عند عكس مصروف مرحّل:
+
+HTTP 500
+13 values for 12 columns
+
+والخطأ يحدث داخل:
+
+financial_transactions
+
+أثناء إنشاء reversal transaction.
+
+المطلوب
+
+حدد الـSQL/INSERT الفعلي الذي يرسل:
+
+13 values
+
+إلى:
+
+12 columns
+
+ولا تعمل workaround على مستوى الواجهة.
+
+صحح المصدر الحقيقي للمشكلة بحيث يكون عدد الأعمدة والقيم متطابقاً تماماً مع schema الحالي.
+
+ثم أثبت أن:
+
+Original Expense
+        ↓
+Original Financial Transaction
+        ↓
+Original Journal
+        ↓
+Reversal
+        ↓
+Reversal Financial Transaction
+        ↓
+Reversal Journal
+
+ويجب أن يكون reversal:
+
+Original Debit → Reversal Credit
+Original Credit → Reversal Debit
+
+مع الحفاظ على القيد الأصلي وعدم حذفه.
+
+اختبارات إلزامية
+
+نفذ:
+
+Post Expense
+→ Reverse Expense
+
+ثم تحقق من:
+
+HTTP 200
+Reversal Created
+Original Preserved
+Reversal Transaction Exists
+Reversal Journal Exists
+Debit = Credit
+
+ثم أعد نفس عملية reversal مرة ثانية.
+
+المطلوب:
+
+NO SECOND REVERSAL
+
+ولا يجب إنشاء reversal مكرر.
+
+BLOCKER 2 — Financial Periods + Bank Reconciliation 404
+
+الـLive E2E أثبت أن:
+
+/api/admin/container-system/financial/periods
+→ 404
+
+/api/admin/container-system/financial/reconciliation
+→ 404
+لا تفترض أن المشكلة Routing فقط
+
+تحقق من:
+
+PHP routes
+Node routes
+Hostinger deployment
+HTTP method
+Authentication
+Path prefix
+Frontend API calls
+
+قارن المسارات الموجودة في Node مع PHP/Hostinger.
+
+لدينا بالفعل Financial Core يدعم:
+
+Financial Periods
+Bank Reconciliation
+
+لذلك لا تنشئ نظاماً جديداً.
+
+المطلوب هو جعل الـHostinger implementation يصل فعلياً إلى الـFinancial Core الموجود.
+
+Periods المطلوب إثباتها
+
+اختبر:
+
+GET periods
+
+ثم:
+
+Create/Open period if required
+
+ثم:
+
+Post transaction
+→ PASS
+
+ثم:
+
+Close period
+→ PASS
+
+ثم حاول:
+
+Post transaction into closed period
+→ MUST BE REJECTED
+
+ويجب ألا تتغير قاعدة البيانات نتيجة محاولة الترحيل المرفوضة.
+
+Bank Reconciliation المطلوب
+
+اختبر المسار الحقيقي:
+
+Deposit
+↓
+Bank Reconciliation
+↓
+Matched
+
+ثم حالة:
+
+Difference
+
+وتأكد من وجود:
+
+Difference Amount
+Reason
+Review/Audit Information
+Status
+
+ولا تكتفِ بأن endpoint يعيد HTTP 200؛ يجب إثبات أن البيانات تصل فعلياً إلى Financial Core.
+
+BLOCKER 3 — Other Revenue لا يصل إلى Financial Core
+
+الاختبار الحي أثبت:
+
+other_revenue
+→ record created
+→ remains draft
+→ NO Financial Transaction
+→ NO Journal Entry
+→ NOT included in Financial Core
+المطلوب
+
+حدد Lifecycle الخاص بـ:
+
+other_revenue
+
+واجعله متوافقاً مع بقية الحركات المالية.
+
+عند وصوله للحالة المالية التي تعني الترحيل:
+
+Other Revenue
+↓
+Financial Transaction
+↓
+Journal Entry
+↓
+Debit
+↓
+Credit
+
+ويجب أن يظهر في:
+
+Financial Core
+Financial Truth
+Reports
+
+مع الحفاظ على:
+
+Debit = Credit
+⚠️ لا تفعل هذا
+
+لا تجعل:
+
+Financial Core
+
+يقرأ other_revenue مباشرة من السجلات القديمة فقط لإظهار الرقم.
+
+المطلوب ترحيل فعلي إلى Financial Core، مثل بقية الحركات.
+
+بعد إصلاح الثلاثة
+
+شغّل Regression محلياً:
+
+pnpm run typecheck
+
+ثم:
+
+Financial Core assertions
+Financial Certification
+Golden Dataset
+Cross-report consistency
+Order → Contract
+
+ثم:
+
+PHP lint
+Operational Validation
+Targeted Build
+
+وأعد اختبار خصوصاً:
+
+Invoice → Financial Core
+Payment
+Payment Idempotency
+Refund
+Reversal
+Period Lock
+Bank Reconciliation
+Other Revenue
+🔴 مهم جداً — لا ترفع التحديث
+
+بعد الإصلاح:
+
+لا تستخدم FTP.
+
+لا تعدّل Hostinger.
+
+لا تحذف بيانات الإنتاج أو بيانات E2E الحالية.
+
+ابنِ حزمة جديدة فقط:
+
+cleanflow-services-hostinger.zip
+
+ثم افحص:
+
+Archive Integrity
+PHP files
+SQLite
+API
+Frontend
+No .env
+No credentials
+No temporary DB
+No debug files
+No test artifacts
+المطلوب في نهاية هذه المرحلة
+
+أريد تقريراً مختصراً ودقيقاً:
+
+========================================
+PHASE 3 — BLOCKER FIX REPORT
+========================================
+
+1. Expense Reversal
+Root Cause:
+Fix:
+Test:
+PASS / FAIL
+
+2. Financial Periods
+Root Cause:
+Fix:
+Test:
+PASS / FAIL
+
+3. Bank Reconciliation
+Root Cause:
+Fix:
+Test:
+PASS / FAIL
+
+4. Other Revenue
+Root Cause:
+Fix:
+Test:
+PASS / FAIL
+
+Regression:
+PASS / FAIL
+
+TypeScript:
+PASS / FAIL
+
+PHP:
+PASS / FAIL
+
+Financial Core:
+PASS / FAIL
+
+Golden Dataset:
+PASS / FAIL
+
+Cross-Report:
+PASS / FAIL
+
+Build:
+PASS / FAIL
+
+Archive Integrity:
+PASS / FAIL
+
+Production Deployment:
+NOT PERFORMED
+
+ثم:
+
+Files Changed:
+...
+
+Root Cause Summary:
+...
+
+Minimal Fix Summary:
+...
+
+Build Artifact:
+cleanflow-services-hostinger.zip
+قاعدة صارمة
+
+لا تقل إن المشكلة حُلّت لمجرد أن الاختبار المحلي نجح.
+
+المطلوب الآن:
+
+FIX
+↓
+LOCAL REGRESSION
+↓
+BUILD
+↓
+STOP
+
+بعد أن أرفع أنا الحزمة الجديدة إلى:
+
+https://hawiat.aiservx.com
+
+سأعطيك:
+
+HOSTINGER UPDATE DEPLOYED
+
+وعندها فقط تبدأ Live Retest للنقاط الثلاث أولاً، ثم Final Certification.
+
+لا تلمس أي جزء آخر من النظام إلا إذا كان ضرورياً مباشرة لإصلاح أحد الـ3 Blockers.
