@@ -801,10 +801,28 @@ export function RecordDialog({
     const contractPayload = item.payload as Record<string, unknown>
     const number = String(contractPayload.contractNumber ?? item.reference ?? `#${item.id}`)
     return {
-      value: number,
+      value: String(item.id),
+      number,
       label: `${number} · ${String(contractPayload.customerName ?? selectedPaymentCustomer?.payload.name ?? "عميل")}`,
     }
   })
+  const storedPaymentContractIds = (() => {
+    try {
+      const parsed = JSON.parse(String(payload.contractRecordIds ?? ""))
+      return Array.isArray(parsed) ? parsed.map(String) : []
+    } catch {
+      return []
+    }
+  })()
+  const legacyPaymentContractId = String(
+    payload.contractRecordId ??
+      paymentContractOptions.find(option => option.number === String(payload.contractNumber ?? ""))?.value ??
+      "",
+  )
+  const selectedPaymentContractIds = Array.from(new Set(
+    (storedPaymentContractIds.length ? storedPaymentContractIds : [legacyPaymentContractId])
+      .filter(id => paymentContractOptions.some(option => option.value === id)),
+  ))
   const optionsFor = (key: string) => {
     if (kind === "container" && key === "status") return CONTAINER_STATUS_OPTIONS
     if (kind === "invoice" && key === "invoiceType") return INVOICE_TYPE_OPTIONS
@@ -913,6 +931,8 @@ export function RecordDialog({
                         customerName: String(customer?.payload.name ?? ""),
                         contractNumber: "",
                         contractRecordId: "",
+                        contractRecordIds: "",
+                        contractNumbers: "",
                       }))
                     }}
                     required
@@ -927,16 +947,23 @@ export function RecordDialog({
                   <Label htmlFor="record-payment-contract" className="mb-1.5 block text-xs font-bold text-slate-600">العقد</Label>
                   <select
                     id="record-payment-contract"
-                    value={payload.contractNumber ?? ""}
+                    multiple
+                    value={selectedPaymentContractIds}
                     onChange={event => {
-                      const contract = openContractsForPayment.find(item => {
-                        const contractPayload = item.payload as Record<string, unknown>
-                        return String(contractPayload.contractNumber ?? item.reference ?? "") === event.target.value
-                      })
+                      const selectedIds = Array.from(event.target.selectedOptions, option => option.value)
+                      const selectedContracts = openContractsForPayment.filter(item => selectedIds.includes(String(item.id)))
+                      const primaryContract = selectedContracts[0]
+                      const primaryPayload = primaryContract?.payload as Record<string, unknown> | undefined
+                      const contractNumbers = selectedContracts.map(item => {
+                        const itemPayload = item.payload as Record<string, unknown>
+                        return String(itemPayload.contractNumber ?? item.reference ?? "")
+                      }).filter(Boolean)
                       setPayload(current => ({
                         ...current,
-                        contractNumber: event.target.value,
-                        contractRecordId: contract?.id ? String(contract.id) : "",
+                        contractNumber: String(primaryPayload?.contractNumber ?? primaryContract?.reference ?? ""),
+                        contractRecordId: primaryContract?.id ? String(primaryContract.id) : "",
+                        contractRecordIds: JSON.stringify(selectedIds),
+                        contractNumbers: JSON.stringify(contractNumbers),
                       }))
                     }}
                     required
@@ -944,9 +971,14 @@ export function RecordDialog({
                     className="flex h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100 disabled:cursor-not-allowed disabled:bg-slate-100"
                     data-testid="select-payment-contract"
                   >
-                    <option value="">{customerIdForPayment ? "اختر العقد المفتوح" : "اختر العميل أولًا"}</option>
+                    <option value="" disabled>{customerIdForPayment ? "اختر عقداً أو أكثر (Ctrl/⌘ للتحديد المتعدد)" : "اختر العميل أولًا"}</option>
                     {paymentContractOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
                   </select>
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    {selectedPaymentContractIds.length > 1
+                      ? `تم اختيار ${selectedPaymentContractIds.length} عقود؛ سيُستخدم أول عقد كالعقد الأساسي ويُحفظ الباقي كعقود مرتبطة.`
+                      : "يمكن اختيار أكثر من عقد باستخدام Ctrl أو ⌘."}
+                  </p>
                   {customerIdForPayment && paymentContractOptions.length === 0 && (
                     <p className="mt-1 text-[11px] text-amber-700">لا توجد عقود مفتوحة لهذا العميل.</p>
                   )}
