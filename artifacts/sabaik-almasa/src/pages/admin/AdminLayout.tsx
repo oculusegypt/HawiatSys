@@ -110,7 +110,7 @@ function SidebarContent({ permissions = [], onNavClick, onLogout, userName, user
          <p className="text-white/40 text-xs mt-0.5">{companyName}</p>
       </div>
 
-      <nav className="min-h-0 flex-1 overflow-y-auto py-3">
+      <nav className="min-h-0 flex-1 overflow-y-auto py-3 overscroll-contain" aria-label="قائمة إدارة النظام">
         {GROUPS.map(group => {
           const items = visibleNav.filter(i => i.group === group.key)
           if (items.length === 0) return null
@@ -140,33 +140,42 @@ function SidebarContent({ permissions = [], onNavClick, onLogout, userName, user
             </div>
           )
         })}
-      </nav>
 
-      <div className="p-3 border-t border-white/10 space-y-1 shrink-0">
-        {/* Profile link */}
-        {!userRole || userRole !== "driver" ? (
-          <Link href="/admin/profile" onClick={onNavClick}
-            className="flex items-center gap-3 px-3 py-2.5 w-full text-right text-gray-300 hover:bg-white/10 hover:text-white rounded-xl transition-colors text-sm">
-            <UserCircle size={18} />
-            <div className="flex-1 min-w-0">
-              <p className="truncate font-medium text-white/90 text-xs">{userName || "حسابي"}</p>
-              <p className="text-white/40 text-[10px] flex items-center gap-1">
-                <RIcon size={9} /> {roleInfo.label}
-              </p>
-            </div>
-          </Link>
-        ) : null}
-        <Link href="/" target="_blank"
-          className="flex items-center gap-3 px-3 py-2.5 w-full text-right text-gray-400 hover:bg-white/10 hover:text-white rounded-xl transition-colors text-sm">
-          <ExternalLink size={18} />
-          <span>عرض الموقع</span>
-        </Link>
-        <button onClick={onLogout}
-          className="flex items-center gap-3 px-3 py-2.5 w-full text-right text-gray-400 hover:bg-red-500/20 hover:text-red-400 rounded-xl transition-colors text-sm">
-          <LogOut size={18} />
-          <span>تسجيل الخروج</span>
-        </button>
-      </div>
+        {/* Account actions stay inside the scrolling menu instead of being pinned to its bottom. */}
+        <div className="mt-3 border-t border-white/10 pt-3">
+          <p className="px-4 py-1.5 text-[10px] font-bold text-white/30 uppercase tracking-widest">الحساب</p>
+          <ul className="space-y-0.5 px-3">
+            {!userRole || userRole !== "driver" ? (
+              <li>
+                <Link href="/admin/profile" onClick={onNavClick}
+                  className="flex items-center gap-3 px-3 py-2.5 w-full text-right text-gray-300 hover:bg-white/10 hover:text-white rounded-xl transition-colors text-sm">
+                  <UserCircle size={18} className="shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="truncate font-medium text-white/90 text-xs">{userName || "حسابي"}</p>
+                    <p className="text-white/40 text-[10px] flex items-center gap-1">
+                      <RIcon size={9} /> {roleInfo.label}
+                    </p>
+                  </div>
+                </Link>
+              </li>
+            ) : null}
+            <li>
+              <Link href="/" target="_blank" onClick={onNavClick}
+                className="flex items-center gap-3 px-3 py-2.5 w-full text-right text-gray-400 hover:bg-white/10 hover:text-white rounded-xl transition-colors text-sm">
+                <ExternalLink size={18} className="shrink-0" />
+                <span>عرض الموقع</span>
+              </Link>
+            </li>
+            <li>
+              <button onClick={onLogout}
+                className="flex items-center gap-3 px-3 py-2.5 w-full text-right text-gray-400 hover:bg-red-500/20 hover:text-red-400 rounded-xl transition-colors text-sm">
+                <LogOut size={18} className="shrink-0" />
+                <span>تسجيل الخروج</span>
+              </button>
+            </li>
+          </ul>
+        </div>
+      </nav>
     </div>
   )
 }

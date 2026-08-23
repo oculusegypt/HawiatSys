@@ -111,6 +111,8 @@ node scripts/build-hostinger.mjs
 
 - [تقرير المراجعة الشاملة](docs/PROJECT_AUDIT_AND_UX_PLAN.md)
 - [المراجعة الحالية الشاملة وخطة الإصدارات](docs/COMPREHENSIVE_SYSTEM_REVIEW_2026-08-22.md)
+- [شهادة Hostinger Fresh Production E2E — 2026-08-23](docs/HOSTINGER_FRESH_PRODUCTION_E2E_CERTIFICATION_2026-08-23.md)
+- [التدقيق المالي التاريخي — 2026-08-23](docs/FINAL_FINANCIAL_AUDIT_2026-08-23.md) — مرجع سابق قبل شهادة الإنتاج الحية
 - [دليل تشغيل وأمان نظام الحاويات](docs/container-system-security-and-operations.md)
 - [خطة تطوير نظام الحاويات](docs/container-system-development-plan.md)
 - [خطة صيانة نظام الحاويات](docs/container-system-maintenance-plan.md)
@@ -138,4 +140,4 @@ node scripts/build-hostinger.mjs
 
 ## الحالة الحالية
 
-الوظائف الأساسية للموقع والإدارة والتشغيل والحاويات والعقود والسائقين والتحليلات موجودة ومتصلة بالبيانات. أما تحسينات تجربة المستخدم والتفكيك التدريجي للسجل العام والمالية المتقدمة والاختبارات الآلية فتتبع الأولويات الموضحة في تقرير المراجعة.
+تم اعتماد دورة إنتاج حية شاملة على Hostinger بتاريخ 23 أغسطس 2026 بنتيجة `PASS` ودرجة `10/10`، وتشمل Golden Dataset، التحصيل، القيود، المطابقة البنكية، المرتجعات، قفل الفترات، وفحوصات سلامة وأمان قاعدة الإنتاج. التفاصيل والحدود التشغيلية موثقة في [شهادة Hostinger Fresh Production E2E](docs/HOSTINGER_FRESH_PRODUCTION_E2E_CERTIFICATION_2026-08-23.md). أما تحسينات تجربة المستخدم والتفكيك التدريجي للسجل العام والمالية المتقدمة فتتبع خارطة الطريق.
