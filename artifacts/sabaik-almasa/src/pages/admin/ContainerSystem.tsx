@@ -939,7 +939,7 @@ export default function ContainerSystem() {
     setView(requestedView)
     if (requestedView === "contract") setContractWizardOpen(true)
     if (requestedView === "customer_site") setDialog({ open: true, kind: "customer_site", record: null })
-    if (requestedView === "invoice" && requestContext) {
+    if (requestedView === "invoice") {
       setDialog({ open: true, kind: "invoice", record: null })
     }
   }, [requestContext, requestedCustomerId, requestedView])

@@ -25,6 +25,7 @@ import RequestDetailModal from "@/components/admin/RequestDetailModal"
 import RequestFormModal from "@/components/admin/RequestFormModal"
 import { RequestsStatsGrid } from "@/components/admin/requests/RequestsStatsGrid"
 import { useToast } from "@/hooks/use-toast"
+import { useLocation } from "wouter"
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
   PieChart, Pie, Legend,
@@ -114,6 +115,7 @@ function CustomBarTooltip({ active, payload, label }: { active?: boolean; payloa
 // ─── Component ─────────────────────────────────────────────────────────────────
 export default function AdminRequests() {
   const { toast } = useToast()
+  const [, navigate] = useLocation()
   const [filter, setFilter]               = useState<string>("all")
   const [selectedRequest, setSelected]    = useState<ServiceRequest | null>(null)
   const [editRequest, setEdit]            = useState<ServiceRequest | null>(null)
@@ -585,11 +587,11 @@ export default function AdminRequests() {
         onAssign={driverId => selectedRequest && handleAssignment(selectedRequest, driverId ? String(driverId) : "unassigned")}
         onCreateContract={request => {
           window.sessionStorage.setItem("cleanflow_request_context", JSON.stringify(request))
-          window.location.assign(`/admin/container-system?view=contract&requestId=${request.id}`)
+          navigate(`/admin/container-system?view=contract&requestId=${request.id}`)
         }}
         onCreateInvoice={request => {
           window.sessionStorage.setItem("cleanflow_request_context", JSON.stringify(request))
-          window.location.assign(`/admin/container-system?view=invoice&requestId=${request.id}`)
+          navigate(`/admin/container-system?view=invoice&requestId=${request.id}`)
         }}
       />
       <RequestFormModal
