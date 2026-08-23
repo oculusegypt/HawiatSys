@@ -274,6 +274,22 @@ async function validateFinancialPayload(kind: string, payload: Record<string, un
     const amount = Number(payload.amount ?? payload.total ?? 0);
     if (!Number.isFinite(amount) || amount <= 0) throw new Error("القيمة المالية يجب أن تكون أكبر من صفر");
   }
+  const customerRecordId = Number(payload.customerRecordId);
+  if (customerRecordId) {
+    const customer = await db.select().from(containerSystemRecordsTable)
+      .where(eq(containerSystemRecordsTable.id, customerRecordId)).get();
+    if (!customer || customer.kind !== "customer" || customer.status === "archived") {
+      throw new Error("العميل الرسمي المرتبط بالمستند غير موجود");
+    }
+    const customerPayload = parsePayload(customer.payload);
+    payload.customerName = customerPayload.name ?? customerPayload.customerName ?? customer.reference;
+    if (kind === "invoice") {
+      payload.customerTaxNumber = payload.customerTaxNumber ?? customerPayload.taxNumber ?? customerPayload.vatNumber ?? "";
+      payload.customerAddress = payload.customerAddress ?? customerPayload.address ?? customerPayload.location ?? "";
+    }
+  } else if (kind === "invoice") {
+    throw new Error("اختيار العميل الرسمي مطلوب قبل إصدار الفاتورة");
+  }
   if (["payment", "receipt"].includes(kind)) {
     const contractNumber = String(payload.contractNumber ?? "").trim();
     const invoiceNumber = String(payload.invoiceNumber ?? "").trim();
@@ -288,6 +304,9 @@ async function validateFinancialPayload(kind: string, payload: Record<string, un
       String(parsePayload(record.payload).contractNumber ?? record.reference).trim() === contractNumber
     );
     if (!contract) throw new Error("العقد المرتبط بالمستند المالي غير موجود");
+    if (customerRecordId && Number(parsePayload(contract.payload).customerRecordId) !== customerRecordId) {
+      throw new Error("العقد لا يتبع العميل المحدد في المستند");
+    }
   }
   const invoiceNumber = String(payload.invoiceNumber ?? "").trim();
   if (invoiceNumber && ["payment", "receipt", "invoice_return"].includes(kind)) {
@@ -298,6 +317,9 @@ async function validateFinancialPayload(kind: string, payload: Record<string, un
       String(parsePayload(record.payload).invoiceNumber ?? record.reference).trim() === invoiceNumber
     );
     if (!invoice) throw new Error("الفاتورة المرتبطة بالمستند المالي غير موجودة");
+    if (customerRecordId && Number(parsePayload(invoice.payload).customerRecordId) !== customerRecordId) {
+      throw new Error("الفاتورة لا تتبع العميل المحدد في المستند");
+    }
     if (kind === "invoice_return") {
       const invoicePayload = parsePayload(invoice.payload);
       const invoiceTotal = Number(invoicePayload.total ?? invoicePayload.amount ?? 0);

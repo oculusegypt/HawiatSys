@@ -702,11 +702,22 @@ function RecordDetails({ record, allRecords, open, onOpenChange, onContractActio
   const containerMovements = relatedContainerRecords.filter(item => item.kind === "container_movement").length
   const containerContracts = relatedContainerRecords.filter(item => item.kind === "contract" || item.kind === "container_assignment").length
   const customerName = String(record.payload.name ?? record.payload.customerName ?? "")
+  const linkedCustomer = allRecords.find(item => {
+    if (item.kind !== "customer" || item.status === "archived") return false
+    const payload = item.payload as Record<string, unknown>
+    return (record.payload.customerRecordId && String(item.id) === String(record.payload.customerRecordId)) ||
+      (customerName && String(payload.name ?? payload.customerName ?? "").trim() === customerName.trim())
+  })
+  const linkedCustomerId = linkedCustomer?.id ?? (record.payload.customerRecordId ? Number(record.payload.customerRecordId) : null)
   const customerRecords = allRecords.filter(item => {
     const payload = item.payload as Record<string, unknown>
-    return String(payload.customerName ?? "") === customerName || String(payload.customerRecordId ?? "") === String(record.id)
+    return (linkedCustomerId && String(payload.customerRecordId ?? "") === String(linkedCustomerId)) ||
+      (customerName && String(payload.customerName ?? "").trim() === customerName.trim()) ||
+      String(payload.customerRecordId ?? "") === String(record.id)
   })
   const customerContracts = customerRecords.filter(item => item.kind === "contract")
+  const customerInvoices = customerRecords.filter(item => item.kind === "invoice")
+  const customerPaymentsRecords = customerRecords.filter(item => ["payment", "receipt"].includes(item.kind))
   const customerPayments = customerRecords.filter(item => ["payment", "receipt"].includes(item.kind)).reduce((sum, item) => sum + amountOf(item), 0)
   const customerCharges = customerContracts.reduce((sum, item) => sum + Number(item.payload.total ?? item.payload.amount ?? 0), 0)
   const customerExpenses = allRecords
@@ -736,6 +747,20 @@ function RecordDetails({ record, allRecords, open, onOpenChange, onContractActio
             </div>
           </div>
         </DialogHeader>
+        {["invoice", "payment", "receipt", "invoice_return", "payment_return", "ledger_entry", "contract"].includes(record.kind) && (
+          <div className="mb-4 rounded-2xl border border-cyan-100 bg-cyan-50/50 p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div><h4 className="text-sm font-black text-cyan-950">الروابط المالية وملف العميل</h4><p className="mt-1 text-[11px] text-slate-600">البيانات المرتبطة بالسجل الرسمي.</p></div>
+              {linkedCustomer && <Button size="sm" variant="outline" onClick={() => { onOpenChange(false); navigate(`/admin/container-system/profile/customer/${linkedCustomer.id}`) }} className="gap-1.5 border-cyan-200 bg-white text-cyan-800"><UserRound size={14} /> فتح ملف العميل</Button>}
+            </div>
+            {!linkedCustomer ? <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800">لا يوجد عميل رسمي مرتبط بهذا السجل. افتح التعديل واختر العميل من القائمة.</p> : <div className="mt-3 grid gap-2 sm:grid-cols-4">
+              <div className="rounded-xl bg-white p-3"><p className="text-[10px] text-slate-500">العميل</p><p className="mt-1 truncate text-sm font-black text-slate-800">{String(linkedCustomer.payload.name ?? linkedCustomer.reference)}</p></div>
+              <div className="rounded-xl bg-white p-3"><p className="text-[10px] text-slate-500">العقود</p><p className="mt-1 text-lg font-black text-cyan-800">{customerContracts.length}</p></div>
+              <div className="rounded-xl bg-white p-3"><p className="text-[10px] text-slate-500">الفواتير</p><p className="mt-1 text-lg font-black text-cyan-800">{customerInvoices.length}</p></div>
+              <div className="rounded-xl bg-white p-3"><p className="text-[10px] text-slate-500">المدفوعات</p><p className="mt-1 text-lg font-black text-emerald-700">{customerPaymentsRecords.length}</p></div>
+            </div>}
+          </div>
+        )}
         {isContainer && (
           <div className="rounded-2xl border border-cyan-100 bg-gradient-to-l from-cyan-50 to-white p-4 shadow-sm">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center">

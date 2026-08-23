@@ -782,6 +782,7 @@ export function RecordDialog({
   const fields = FIELD_CONFIG[kind]
   const isCustomerPayment = kind === "payment"
   const isInvoice = kind === "invoice"
+  const isCustomerLinkedFinancial = ["invoice", "receipt", "payment", "invoice_return", "payment_return", "ledger_entry"].includes(kind)
   const customers = records.filter(item => item.kind === "customer" && item.status !== "archived")
   const customerIdForPayment = String(
     payload.customerRecordId ??
@@ -876,7 +877,7 @@ export function RecordDialog({
       }).filter(option => option.value)
     }
     if (isInvoice && (key === "customerTaxNumber" || key === "customerAddress")) return []
-    if (isInvoice && key === "customerName") {
+    if (isCustomerLinkedFinancial && key === "customerName") {
       return customers.map(item => {
         const p = item.payload as Record<string, unknown>
         return { value: String(item.id), label: String(p.name ?? p.customerName ?? item.reference ?? `عميل #${item.id}`) }
@@ -950,9 +951,9 @@ export function RecordDialog({
                 {field.type === "textarea" ? (
                   <Textarea id={`record-${field.key}`} value={payload[field.key] ?? ""} onChange={event => setValue(field.key, event.target.value)} placeholder={field.placeholder} required={field.required} rows={3} className="min-h-20 resize-y border-slate-200 bg-white" data-testid={`textarea-record-${field.key}`} />
                 ) : optionsFor(field.key).length > 0 ? (
-                  <select id={`record-${field.key}`} value={isInvoice && field.key === "customerName" ? String(payload.customerRecordId ?? "") : payload[field.key] ?? ""} onChange={event => {
-                    if (isInvoice && field.key === "customerName") {
-                      const customer = customers.find(item => String(item.payload.name ?? "") === event.target.value)
+                  <select id={`record-${field.key}`} value={isCustomerLinkedFinancial && field.key === "customerName" ? String(payload.customerRecordId ?? "") : payload[field.key] ?? ""} onChange={event => {
+                    if (isCustomerLinkedFinancial && field.key === "customerName") {
+                      const customer = customers.find(item => String(item.id) === event.target.value)
                       const customerPayload = customer?.payload as Record<string, unknown> | undefined
                       setPayload(current => ({
                         ...current,
@@ -968,10 +969,42 @@ export function RecordDialog({
                         const contractPayload = item.payload as Record<string, unknown>
                         return String(contractPayload.contractNumber ?? item.reference ?? "") === event.target.value
                       })
+                      const contractPayload = contract?.payload as Record<string, unknown> | undefined
+                      const contractCustomer = customers.find(item =>
+                        (contractPayload?.customerRecordId && String(item.id) === String(contractPayload.customerRecordId)) ||
+                        (!contractPayload?.customerRecordId && String(item.payload.name ?? "").trim() === String(contractPayload?.customerName ?? "").trim()),
+                      )
+                      const contractCustomerPayload = contractCustomer?.payload as Record<string, unknown> | undefined
                       setPayload(current => ({
                         ...current,
                         contractNumber: event.target.value,
                         contractRecordId: contract?.id ? String(contract.id) : "",
+                        ...(contractCustomer ? {
+                          customerRecordId: String(contractCustomer.id),
+                          customerName: String(contractCustomerPayload?.name ?? contractPayload?.customerName ?? ""),
+                          customerTaxNumber: String(contractCustomerPayload?.taxNumber ?? contractCustomerPayload?.vatNumber ?? ""),
+                          customerAddress: String(contractCustomerPayload?.address ?? contractCustomerPayload?.location ?? ""),
+                        } : {}),
+                      }))
+                    } else if (isCustomerLinkedFinancial && field.key === "contractNumber") {
+                      const contract = records.find(item => {
+                        if (item.kind !== "contract" || item.status === "archived") return false
+                        const contractPayload = item.payload as Record<string, unknown>
+                        return String(contractPayload.contractNumber ?? item.reference ?? "") === event.target.value
+                      })
+                      const contractPayload = contract?.payload as Record<string, unknown> | undefined
+                      const contractCustomer = customers.find(item =>
+                        (contractPayload?.customerRecordId && String(item.id) === String(contractPayload.customerRecordId)) ||
+                        (!contractPayload?.customerRecordId && String(item.payload.name ?? "").trim() === String(contractPayload?.customerName ?? "").trim()),
+                      )
+                      setPayload(current => ({
+                        ...current,
+                        contractNumber: event.target.value,
+                        contractRecordId: contract?.id ? String(contract.id) : "",
+                        ...(contractCustomer ? {
+                          customerRecordId: String(contractCustomer.id),
+                          customerName: String(contractCustomer.payload.name ?? contractPayload?.customerName ?? ""),
+                        } : {}),
                       }))
                     } else {
                       setValue(field.key, event.target.value)
@@ -992,7 +1025,7 @@ export function RecordDialog({
                           ? invoiceCustomerAddress
                           : payload[field.key] ?? ""}
                       onChange={event => setValue(field.key, event.target.value)}
-                      readOnly={isInvoice && (field.key === "customerTaxNumber" || field.key === "customerAddress") && Boolean(invoiceCustomer)}
+                       readOnly={isCustomerLinkedFinancial && (field.key === "customerTaxNumber" || field.key === "customerAddress") && Boolean(invoiceCustomer)}
                       placeholder={field.placeholder}
                        required={field.required}
                       dir={field.key.toLowerCase().includes("phone") || field.type === "number" ? "ltr" : "rtl"}
@@ -1035,7 +1068,17 @@ export function RecordDialog({
                         return String(p.contractNumber ?? item.reference ?? "") === event.target.value
                       })
                       const p = contract?.payload as Record<string, unknown> | undefined
-                      setPayload(current => ({ ...current, contractNumber: event.target.value, contractRecordId: contract?.id ? String(contract.id) : "", description: String(p?.description ?? p?.rentType ?? current.description ?? "") }))
+                       const contractCustomer = customers.find(item =>
+                         (p?.customerRecordId && String(item.id) === String(p.customerRecordId)) ||
+                         (!p?.customerRecordId && String(item.payload.name ?? "").trim() === String(p?.customerName ?? "").trim()),
+                       )
+                       const contractCustomerPayload = contractCustomer?.payload as Record<string, unknown> | undefined
+                       setPayload(current => ({ ...current, contractNumber: event.target.value, contractRecordId: contract?.id ? String(contract.id) : "", description: String(p?.description ?? p?.rentType ?? current.description ?? ""), ...(contractCustomer ? {
+                         customerRecordId: String(contractCustomer.id),
+                         customerName: String(contractCustomerPayload?.name ?? p?.customerName ?? ""),
+                         customerTaxNumber: String(contractCustomerPayload?.taxNumber ?? contractCustomerPayload?.vatNumber ?? ""),
+                         customerAddress: String(contractCustomerPayload?.address ?? contractCustomerPayload?.location ?? ""),
+                       } : {}) }))
                     }} className="flex h-11 w-full rounded-lg border border-cyan-200 bg-white px-3 text-sm" data-testid="select-invoice-contract">
                       <option value="">بدون عقد مرتبط</option>
                       {invoiceContracts.filter(item => Number((item.payload as Record<string, unknown>).remaining ?? 1) > 0).map(item => {
@@ -1046,6 +1089,13 @@ export function RecordDialog({
                     </select>
                   </div>
                 </div>
+                {invoiceCustomer && (
+                  <div className="mt-3 grid gap-2 rounded-xl border border-cyan-100 bg-white p-3 text-xs sm:grid-cols-3">
+                    <div><p className="text-[10px] font-bold text-slate-400">العميل المحدد</p><p className="mt-1 font-black text-slate-800">{String(invoiceCustomerPayload?.name ?? payload.customerName)}</p></div>
+                    <div><p className="text-[10px] font-bold text-slate-400">الجوال</p><p className="mt-1 font-bold text-slate-700" dir="ltr">{String(invoiceCustomerPayload?.phone ?? invoiceCustomerPayload?.mobile ?? "—")}</p></div>
+                    <div><p className="text-[10px] font-bold text-slate-400">الرقم الرسمي</p><p className="mt-1 font-bold text-slate-700" dir="ltr">#{invoiceCustomer.id}</p></div>
+                  </div>
+                )}
                 <div className="mt-3 rounded-xl border border-cyan-100 bg-white px-3 py-2 text-xs font-bold text-slate-700">عنوان الخدمة: {String(payload.serviceAddress ?? invoiceCustomerAddress ?? "سيُجلب من بيانات الطلب أو العميل")}</div>
               </div>
             )}
