@@ -10,12 +10,14 @@ import {
   getGetContainerSystemAuditQueryKey,
   getGetContainerSystemQueryKey,
   getGetContainerSystemRecordsQueryKey,
+  getGetServiceRequestsQueryKey,
   useArchiveContainerSystemRecord,
   useCreateContainerSystemRecord,
   useCreateContainerContractWorkflow,
   useGetContainerSystem,
   useGetContainerSystemAudit,
   useGetContainerSystemRecords,
+  useGetServiceRequests,
   useUpdateContainerSystemRecord,
 } from "@workspace/api-client-react"
 import type { ContainerSystemRecord } from "@workspace/api-client-react"
@@ -730,6 +732,7 @@ function RecordDetails({ record, allRecords, open, onOpenChange, onContractActio
               {["employee", "driver"].includes(record.kind) && <Button size="sm" variant="outline" onClick={() => { onOpenChange(false); navigate(`/admin/container-system/profile/employee/${record.id}`) }} className="gap-1.5 border-cyan-200 text-cyan-800"><UserCog size={14} /> فتح ملف الموظف</Button>}
               {["container", "container_asset"].includes(record.kind) && <Button size="sm" variant="outline" onClick={() => { onOpenChange(false); navigate(`/admin/container-system/profile/container/${record.id}`) }} className="gap-1.5 border-cyan-200 text-cyan-800"><Box size={14} /> فتح ملف الحاوية</Button>}
               {record.kind === "contract" && <Button size="sm" onClick={() => { onOpenChange(false); navigate(`/admin/container-system/contract/${record.id}/print`) }} className="gap-1.5 bg-cyan-800 hover:bg-cyan-900"><FileText size={14} /> فتح العقد A4</Button>}
+              {record.kind === "invoice" && <Button size="sm" onClick={() => { onOpenChange(false); navigate(`/admin/container-system/invoice/${record.id}/print`) }} className="gap-1.5 bg-cyan-800 hover:bg-cyan-900"><FileText size={14} /> طباعة الفاتورة</Button>}
             </div>
           </div>
         </DialogHeader>
@@ -837,6 +840,7 @@ export default function ContainerSystem() {
   const filterParams = useMemo(() => ({ kind: collectionKind, search: search.trim() || undefined }), [collectionKind, search])
   const snapshotQuery = useGetContainerSystem()
   const recordsQuery = useGetContainerSystemRecords(filterParams)
+  const serviceRequestsQuery = useGetServiceRequests(undefined, { query: { staleTime: 30_000, queryKey: getGetServiceRequestsQueryKey() } })
   const auditQuery = useGetContainerSystemAudit({ query: { enabled: view === "audit", queryKey: getGetContainerSystemAuditQueryKey() } })
   const createMutation = useCreateContainerSystemRecord()
   const contractWorkflowMutation = useCreateContainerContractWorkflow()
@@ -1069,7 +1073,7 @@ export default function ContainerSystem() {
       <RecordDetails record={detailRecord} allRecords={snapshot?.records ?? records} open={Boolean(detailRecord)} onOpenChange={open => { if (!open) setDetailRecord(null) }} onContractAction={contractAction} />
       <ContractWizard open={contractWizardOpen} records={snapshot?.records ?? records} initialCustomerId={requestedCustomerId} busy={busy} onClose={() => { if (!contractFlowBusy) setContractWizardOpen(false) }} onSubmit={submitContract} />
       <ContainerAssignmentWizard open={assignmentWizardOpen} records={snapshot?.records ?? records} busy={createMutation.isPending} onClose={() => { if (!createMutation.isPending) setAssignmentWizardOpen(false) }} onSubmit={submitAssignment} />
-      <RecordDialog open={dialog.open} kind={dialog.kind} record={dialog.record} initialPayload={dialog.kind === "customer_site" && requestedCustomerId ? { customerRecordId: String(requestedCustomerId) } : undefined} records={snapshot?.records ?? records} busy={busy} onOpenChange={open => setDialog(current => ({ ...current, open }))} onSubmit={submitRecord} />
+      <RecordDialog open={dialog.open} kind={dialog.kind} record={dialog.record} serviceRequests={serviceRequestsQuery.data ?? []} initialPayload={dialog.kind === "customer_site" && requestedCustomerId ? { customerRecordId: String(requestedCustomerId) } : undefined} records={snapshot?.records ?? records} busy={busy} onOpenChange={open => setDialog(current => ({ ...current, open }))} onSubmit={submitRecord} />
       {archiveMutation.isPending && <div className="fixed bottom-5 left-5 z-50 flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-xs font-bold text-white shadow-xl" data-testid="status-archive-loading"><Loader2 size={14} className="animate-spin" /> جارٍ أرشفة السجل...</div>}
     </div>
   )

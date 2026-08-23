@@ -13,6 +13,7 @@ const AdminPackages = lazy(() => import("@/pages/admin/Packages"))
 const AdminContainerSystem = lazy(() => import("@/pages/admin/ContainerSystem"))
 const ContainerRecordProfile = lazy(() => import("@/pages/admin/ContainerRecordProfile").then(module => ({ default: module.ContainerRecordProfile })))
 const ContractPrintPage = lazy(() => import("@/pages/admin/ContainerRecordProfile").then(module => ({ default: module.ContractPrintPage })))
+const InvoicePrintPage = lazy(() => import("@/pages/admin/InvoicePrintPage"))
 const AdminTestimonials = lazy(() => import("@/pages/admin/Testimonials"))
 const AdminPartners = lazy(() => import("@/pages/admin/Partners"))
 const AdminSiteSettings = lazy(() => import("@/pages/admin/SiteSettings"))
@@ -51,6 +52,7 @@ export function AdminRoutes() {
           <Route path="/admin/container-system/profile/employee/:id" component={() => <ContainerRecordProfile mode="employee" />} />
           <Route path="/admin/container-system/profile/container/:id" component={() => <ContainerRecordProfile mode="container" />} />
           <Route path="/admin/container-system/contract/:id/print" component={ContractPrintPage} />
+          <Route path="/admin/container-system/invoice/:id/print" component={InvoicePrintPage} />
           <Route path="/admin/ads" component={AdminAds} />
           <Route path="/admin/analytics" component={AdminAnalytics} />
           <Route path="/admin/blog" component={AdminBlog} />

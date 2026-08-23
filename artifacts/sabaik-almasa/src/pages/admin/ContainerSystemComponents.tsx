@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react"
-import type { ContainerSystemRecord } from "@workspace/api-client-react"
+import { useEffect, useMemo, useRef, useState } from "react"
+import type { ContainerSystemRecord, ServiceRequest } from "@workspace/api-client-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -725,6 +725,7 @@ export function RecordDialog({
   kind,
   record,
   records = [],
+  serviceRequests = [],
   initialPayload,
   busy,
   onOpenChange,
@@ -734,6 +735,7 @@ export function RecordDialog({
   kind: RecordKind
   record?: ContainerSystemRecord | null
   records?: ContainerSystemRecord[]
+  serviceRequests?: ServiceRequest[]
   initialPayload?: Record<string, string>
   busy?: boolean
   onOpenChange: (open: boolean) => void
@@ -812,6 +814,14 @@ export function RecordDialog({
         String((item.payload as Record<string, unknown>).customerName ?? "").trim() === String(invoiceCustomer.payload.name ?? "").trim()
       ))
     : []
+  const invoiceRequests = useMemo(() => isInvoice && invoiceCustomer
+    ? serviceRequests.filter(request =>
+        request.status !== "cancelled" &&
+        request.status !== "completed" &&
+        (Number((request as ServiceRequest & { customerRecordId?: number }).customerRecordId) === Number(invoiceCustomer.id) ||
+          (!(request as ServiceRequest & { customerRecordId?: number }).customerRecordId && request.clientName.trim() === String(invoiceCustomerPayload?.name ?? "").trim())),
+      )
+    : [], [invoiceCustomer, invoiceCustomerPayload?.name, isInvoice, serviceRequests])
   const openContractsForPayment = records.filter(item => {
     if (item.kind !== "contract" || item.status === "archived") return false
     if (!customerIdForPayment) return false
@@ -866,6 +876,12 @@ export function RecordDialog({
       }).filter(option => option.value)
     }
     if (isInvoice && (key === "customerTaxNumber" || key === "customerAddress")) return []
+    if (isInvoice && key === "customerName") {
+      return customers.map(item => {
+        const p = item.payload as Record<string, unknown>
+        return { value: String(item.id), label: String(p.name ?? p.customerName ?? item.reference ?? `عميل #${item.id}`) }
+      })
+    }
     // Operational movements may be entered without a contract number, and
     // movementType intentionally remains free text so the operator can use
     // the exact operational wording used on the job.
@@ -934,7 +950,7 @@ export function RecordDialog({
                 {field.type === "textarea" ? (
                   <Textarea id={`record-${field.key}`} value={payload[field.key] ?? ""} onChange={event => setValue(field.key, event.target.value)} placeholder={field.placeholder} required={field.required} rows={3} className="min-h-20 resize-y border-slate-200 bg-white" data-testid={`textarea-record-${field.key}`} />
                 ) : optionsFor(field.key).length > 0 ? (
-                  <select id={`record-${field.key}`} value={payload[field.key] ?? ""} onChange={event => {
+                  <select id={`record-${field.key}`} value={isInvoice && field.key === "customerName" ? String(payload.customerRecordId ?? "") : payload[field.key] ?? ""} onChange={event => {
                     if (isInvoice && field.key === "customerName") {
                       const customer = customers.find(item => String(item.payload.name ?? "") === event.target.value)
                       const customerPayload = customer?.payload as Record<string, unknown> | undefined
@@ -993,6 +1009,46 @@ export function RecordDialog({
               </div>
               )
             ))}
+            {isInvoice && (
+              <div className="sm:col-span-2 rounded-2xl border border-cyan-200 bg-cyan-50/50 p-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div><p className="text-sm font-black text-slate-900">الخدمة والعقد المرتبطان</p><p className="mt-1 text-[11px] text-slate-500">تُجلب تلقائياً من طلبات العميل وعقوده التي عليها رصيد.</p></div>
+                  <Badge variant="outline" className="border-cyan-300 bg-white text-cyan-800">ربط تلقائي</Badge>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <Label htmlFor="invoice-service-request" className="mb-1.5 block text-xs font-bold text-slate-600">طلب الخدمة المفتوح</Label>
+                    <select id="invoice-service-request" value={String(payload.serviceRequestId ?? "")} onChange={event => {
+                      const request = invoiceRequests.find(item => String(item.id) === event.target.value)
+                      setPayload(current => ({ ...current, serviceRequestId: event.target.value, description: request?.serviceType ?? "", serviceAddress: request?.location ?? current.serviceAddress ?? "" }))
+                    }} className="flex h-11 w-full rounded-lg border border-cyan-200 bg-white px-3 text-sm" data-testid="select-invoice-service-request">
+                      <option value="">اختر الطلب المفتوح</option>
+                      {invoiceRequests.map(request => <option key={request.id} value={request.id}>{request.serviceType} · {request.location}</option>)}
+                    </select>
+                    {invoiceCustomer && invoiceRequests.length === 0 && <p className="mt-1 text-[11px] text-amber-700">لا توجد طلبات خدمة مفتوحة لهذا العميل.</p>}
+                  </div>
+                  <div>
+                    <Label htmlFor="invoice-linked-contract" className="mb-1.5 block text-xs font-bold text-slate-600">العقد المفتوح غير المسدد</Label>
+                    <select id="invoice-linked-contract" value={String(payload.contractNumber ?? "")} onChange={event => {
+                      const contract = invoiceContracts.find(item => {
+                        const p = item.payload as Record<string, unknown>
+                        return String(p.contractNumber ?? item.reference ?? "") === event.target.value
+                      })
+                      const p = contract?.payload as Record<string, unknown> | undefined
+                      setPayload(current => ({ ...current, contractNumber: event.target.value, contractRecordId: contract?.id ? String(contract.id) : "", description: String(p?.description ?? p?.rentType ?? current.description ?? "") }))
+                    }} className="flex h-11 w-full rounded-lg border border-cyan-200 bg-white px-3 text-sm" data-testid="select-invoice-contract">
+                      <option value="">بدون عقد مرتبط</option>
+                      {invoiceContracts.filter(item => Number((item.payload as Record<string, unknown>).remaining ?? 1) > 0).map(item => {
+                        const p = item.payload as Record<string, unknown>
+                        const number = String(p.contractNumber ?? item.reference ?? "")
+                        return <option key={item.id} value={number}>{number} · المتبقي {Number(p.remaining ?? p.total ?? p.amount ?? 0).toLocaleString("ar-SA")} ر.س</option>
+                      })}
+                    </select>
+                  </div>
+                </div>
+                <div className="mt-3 rounded-xl border border-cyan-100 bg-white px-3 py-2 text-xs font-bold text-slate-700">عنوان الخدمة: {String(payload.serviceAddress ?? invoiceCustomerAddress ?? "سيُجلب من بيانات الطلب أو العميل")}</div>
+              </div>
+            )}
             {isCustomerPayment && (
               <>
                 <div className="order-1 min-h-[82px] rounded-xl border border-cyan-100 bg-cyan-50/40 p-3">

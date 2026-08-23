@@ -1087,7 +1087,11 @@ router.post("/admin/container-system/records", async (req, res) => {
       if (documentNumberField) {
         const documentNumber = String(payload[documentNumberField] ?? "").trim() ||
           generatedDocumentNumber(kind as "contract" | "invoice", inserted.id);
-        const nextPayload = { ...parsePayload(inserted.payload), [documentNumberField]: documentNumber };
+        const nextPayload = {
+          ...parsePayload(inserted.payload),
+          [documentNumberField]: documentNumber,
+          ...(kind === "invoice" ? { qrCodeData: JSON.stringify({ invoiceNumber: documentNumber, recordId: inserted.id, total: Number(payload.total ?? payload.amount ?? 0), date: payload.date ?? new Date().toISOString().slice(0, 10) }) } : {}),
+        };
         current = tx.update(containerSystemRecordsTable).set({
           reference: documentNumber,
           payload: JSON.stringify(nextPayload),
