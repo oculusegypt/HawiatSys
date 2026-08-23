@@ -52,6 +52,39 @@ function parsePayload(payload: string): Record<string, unknown> {
   }
 }
 
+function ensureDepositReconciliation(
+  depositRecordId: number,
+  depositReference: string,
+  depositDate: string,
+  amount: number,
+  linkedTransactionId: number | null,
+  difference: number,
+  status: string,
+  auditTrail?: string,
+) {
+  // A reconciliation belongs to the deposit document, never to a payment
+  // that happens to be linked to it. The NOT EXISTS guard also protects
+  // portable Hostinger databases that predate a unique index.
+  sqlite.prepare(`
+    INSERT INTO bank_reconciliations
+      (deposit_record_id, deposit_reference, deposit_date, amount, linked_transaction_id, difference, status, audit_trail)
+    SELECT ?, ?, ?, ?, ?, ?, ?, ?
+    WHERE NOT EXISTS (
+      SELECT 1 FROM bank_reconciliations WHERE deposit_record_id = ?
+    )
+  `).run(
+    depositRecordId,
+    depositReference,
+    depositDate,
+    amount,
+    linkedTransactionId,
+    difference,
+    status,
+    auditTrail ?? "[]",
+    depositRecordId,
+  );
+}
+
 function operationKeyOf(payload: Record<string, unknown>) {
   const key = String(payload.operationKey ?? "").trim();
   return key.length >= 8 ? key.slice(0, 160) : "";
@@ -1109,18 +1142,8 @@ router.post("/admin/container-system/financial/settle", requireContainerPermissi
        paymentMethod,
        allocations: allocations.map(item => ({ contractId: item.contractId, invoiceId: item.invoiceId, amount: item.amount })),
      });
-     if (body.depositId) {
-       const depositPayload = parsePayload((await db.select().from(containerSystemRecordsTable).where(eq(containerSystemRecordsTable.id, Number(body.depositId))).get())?.payload ?? "{}");
-       const depositAmount = Number(depositPayload.amount ?? depositPayload.total ?? 0);
-       const difference = depositAmount - amount;
-       // The reconciliation row is the typed, auditable link for this deposit.
-       const { sqlite } = await import("@workspace/db");
-       sqlite.prepare(`
-         INSERT OR IGNORE INTO bank_reconciliations
-           (deposit_record_id, deposit_reference, deposit_date, amount, linked_transaction_id, difference, status)
-         VALUES (?, ?, ?, ?, (SELECT id FROM financial_transactions WHERE source_kind = 'payment' AND source_id = ?), ?, ?)
-       `).run(Number(body.depositId), String(depositPayload.reference ?? ""), String(depositPayload.date ?? paymentPayload.date), depositAmount || amount, result.payment.id, difference, Math.abs(difference) < 0.01 ? "matched" : "difference");
-     }
+      // Bank reconciliation is created only when the deposit itself is posted.
+      // Linking a payment to a deposit must not create a second reconciliation.
      return res.status(201).json({ payment: formatRecord(result.payment), ledgerEntry: formatRecord(result.ledger), idempotent: false });
   } catch (error) {
     if (operationKey && error instanceof Error && error.message.includes("UNIQUE constraint failed")) {
@@ -1557,15 +1580,18 @@ router.post("/admin/container-system/records", async (req, res) => {
          })) : undefined,
        });
        if (["deposit", "bank_deposit"].includes(kind)) {
-         const { sqlite } = await import("@workspace/db");
          const depositAmount = Number(payload.amount ?? payload.total ?? 0);
          const depositDate = String(payload.date ?? new Date().toISOString().slice(0, 10));
          const difference = depositAmount - depositAmount;
-         sqlite.prepare(`
-           INSERT OR IGNORE INTO bank_reconciliations
-             (deposit_record_id, deposit_reference, deposit_date, amount, linked_transaction_id, difference, status)
-           VALUES (?, ?, ?, ?, ?, ?, 'matched')
-         `).run(created.id, String(payload.reference ?? created.reference ?? ""), depositDate, depositAmount, financialPosting.id, difference);
+          ensureDepositReconciliation(
+            created.id,
+            String(payload.reference ?? created.reference ?? ""),
+            depositDate,
+            depositAmount,
+            financialPosting.id,
+            difference,
+            "matched",
+          );
        }
      } catch (error) {
        await db.update(containerSystemRecordsTable).set({ status: "archived", updatedAt: new Date().toISOString() }).where(eq(containerSystemRecordsTable.id, created.id));
@@ -1735,7 +1761,7 @@ router.patch("/admin/container-system/records/:id", async (req, res) => {
         }).run();
       }
       try {
-        postToFinancialCore({
+        const financialPosting = postToFinancialCore({
           sourceKind: current.kind,
           sourceId: id,
           reference: current.reference,
@@ -1753,18 +1779,14 @@ router.patch("/admin/container-system/records/:id", async (req, res) => {
           if (["deposit", "bank_deposit"].includes(current.kind)) {
             const depositAmount = Number(nextPayload.amount ?? nextPayload.total ?? 0);
             const depositDate = String(nextPayload.date ?? new Date().toISOString().slice(0, 10));
-            sqlite.prepare(`
-              INSERT OR IGNORE INTO bank_reconciliations
-                (deposit_record_id, deposit_reference, deposit_date, amount, linked_transaction_id, difference, status, audit_trail)
-              VALUES (?, ?, ?, ?, (SELECT id FROM financial_transactions WHERE source_kind = ? AND source_id = ?), ?, 'matched', ?)
-            `).run(
+            ensureDepositReconciliation(
               id,
               String(nextPayload.reference ?? current.reference ?? ""),
               depositDate,
               depositAmount,
-              current.kind,
-              id,
+              financialPosting.id,
               0,
+              "matched",
               JSON.stringify([{ at: new Date().toISOString(), action: "deposit_posted", sourceKind: current.kind, sourceId: id }]),
             );
           }

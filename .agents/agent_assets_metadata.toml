@@ -27,14 +27,14 @@ content_type = "application/octet-stream"
 id = "e7Hwi4c_9VUpSkVoGq2Ul"
 uri = "file://cleanflow-services-hostinger.zip"
 type = "unspecified"
-title = "أرشيف Hostinger بعد إصلاح المشاكل"
-description = "أرشيف كامل يحتوي على الواجهة، PHP API، قاعدة SQLite، الصور، وCleanFlow Platform. استخرج المحتويات مباشرة داخل public_html."
+title = "CleanFlow Hostinger update"
+description = "Production upload archive containing the duplicate bank reconciliation fix for Node/PHP parity."
 logical_id = "c612380d-19d8-4641-8c29-e5ac4a484245"
-content_hash = "sha256:0eb4abe2509072fb4ed7a3e2f7563f0afbce3ba681fe109bb6eccc7a5dff16a5"
-size = 20922287
-mtime_ms = 1787433907243
-storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/repl:c2496a12-4211-4080-bccb-0844b661b259/c612380d-19d8-4641-8c29-e5ac4a484245/3aea0fdf-6889-4c70-9981-c96be1a857cd"
-storage_version_token = "1787433944747176"
+content_hash = "sha256:4691a87c6c7d39afc1575a00a60cae4c6a49d4e6339db3d0b0623ba04110060a"
+size = 20631592
+mtime_ms = 1787502898097
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:eb2bdfd1-1d9c-46fb-aeaf-96e47d83351a/c612380d-19d8-4641-8c29-e5ac4a484245/44743eb8-21eb-4443-a02d-c3471e1dc203"
+storage_version_token = "1787502903524772"
 content_type = "application/octet-stream"
 
 [[outputs]]

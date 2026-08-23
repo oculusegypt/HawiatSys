@@ -169,11 +169,13 @@ function hsEnsureDepositReconciliation(PDO $pdo, int $depositRecordId, string $k
     $amount = (float)($payload['amount'] ?? $payload['total'] ?? 0);
     $date = (string)($payload['date'] ?? date('Y-m-d'));
     $depositReference = (string)($payload['reference'] ?? $reference);
-    $pdo->prepare("INSERT OR IGNORE INTO bank_reconciliations
+    $pdo->prepare("INSERT INTO bank_reconciliations
         (deposit_record_id,deposit_reference,deposit_date,amount,linked_transaction_id,difference,status,audit_trail)
-        VALUES (?,?,?,?,?,?,?,?)")
+        SELECT ?,?,?,?,?,?,?,?
+        WHERE NOT EXISTS (SELECT 1 FROM bank_reconciliations WHERE deposit_record_id = ?)")
         ->execute([$depositRecordId, $depositReference, $date, $amount, $financialTransactionId, 0, 'matched',
-            json_encode([['at' => date('c'), 'action' => 'deposit_posted', 'sourceKind' => $kind, 'sourceId' => $depositRecordId]], JSON_UNESCAPED_UNICODE)]);
+            json_encode([['at' => date('c'), 'action' => 'deposit_posted', 'sourceKind' => $kind, 'sourceId' => $depositRecordId]], JSON_UNESCAPED_UNICODE),
+            $depositRecordId]);
 }
 
 function hsReverseFinancialCore(PDO $pdo, string $kind, int $sourceId, float $amount, string $reason, ?int $actorId): void {
@@ -1178,18 +1180,8 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
             $insert->execute([':reference' => 'PAY-' . time(), ':payload' => json_encode($paymentPayload, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE), ':operation_key' => $operationKey, ':created_by' => $actorId, ':created_at' => $now, ':updated_at' => $now]);
             $paymentId = (int)$pdo->lastInsertId();
             hsPostFinancialCore($pdo, 'payment', $paymentId, $paymentPayload, 'PAY-' . $paymentId, $actorId);
-            if ($deposit) {
-                $financialPayment = $pdo->prepare("SELECT id FROM financial_transactions WHERE source_kind = 'payment' AND source_id = ? LIMIT 1");
-                $financialPayment->execute([$paymentId]);
-                $financialPaymentId = (int)$financialPayment->fetchColumn();
-                $depositPayloadForMatch = $deposit['payload'];
-                $depositAmountForMatch = (float)($depositPayloadForMatch['amount'] ?? $depositPayloadForMatch['total'] ?? 0);
-                $depositDateForMatch = (string)($depositPayloadForMatch['date'] ?? $paymentPayload['date']);
-                $depositReferenceForMatch = (string)($depositPayloadForMatch['reference'] ?? $deposit['reference'] ?? '');
-                $differenceForMatch = $depositAmountForMatch - $amount;
-                $pdo->prepare("INSERT OR IGNORE INTO bank_reconciliations (deposit_record_id,deposit_reference,deposit_date,amount,linked_transaction_id,difference,status) VALUES (?,?,?,?,?,?,?)")
-                    ->execute([(int)$deposit['id'], $depositReferenceForMatch, $depositDateForMatch, $depositAmountForMatch ?: $amount, $financialPaymentId, $differenceForMatch, abs($differenceForMatch) < 0.01 ? 'matched' : 'difference']);
-            }
+            // Bank reconciliation is created only when the deposit itself is
+            // posted; linking a payment must not create a second row.
             $ledgerPayload = ['sourceKind' => 'payment', 'sourceId' => $paymentId, 'contractId' => $first['contract']['id'], 'contractNumber' => $first['number'], 'amount' => $amount, 'direction' => 'credit', 'date' => $paymentPayload['date'], 'allocations' => $allocations];
             $ledgerInsert = $pdo->prepare("INSERT INTO container_system_records (kind,status,reference,payload,created_by,created_at,updated_at) VALUES ('ledger_entry','posted',:reference,:payload,:created_by,:created_at,:updated_at)");
             $ledgerInsert->execute([':reference' => 'LED-' . $paymentId, ':payload' => json_encode($ledgerPayload, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE), ':created_by' => $actorId, ':created_at' => $now, ':updated_at' => $now]);
