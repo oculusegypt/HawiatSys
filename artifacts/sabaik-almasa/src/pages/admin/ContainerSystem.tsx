@@ -51,13 +51,41 @@ function requestContextFromStorage(requestId: number | null): ServiceRequest | n
   return null
 }
 
-function invoicePayloadFromRequest(request: ServiceRequest | null): Record<string, string> | undefined {
+function invoicePayloadFromRequest(
+  request: ServiceRequest | null,
+  records: ContainerSystemRecord[] = [],
+): Record<string, string> | undefined {
   if (!request) return undefined
+  const customer = records.find(record => {
+    if (record.kind !== "customer" || record.status === "archived") return false
+    const payload = record.payload as Record<string, unknown>
+    const name = String(payload.name ?? payload.customerName ?? "").trim()
+    const phone = String(payload.phone ?? payload.mobile ?? "").replace(/\D/g, "")
+    return name === request.clientName.trim() ||
+      (phone && phone === request.phone.replace(/\D/g, ""))
+  })
+  const customerPayload = customer?.payload as Record<string, unknown> | undefined
+  const customerId = customer?.id ? String(customer.id) : ""
+  const customerName = String(customerPayload?.name ?? customerPayload?.customerName ?? request.clientName)
+  const customerAddress = String(customerPayload?.address ?? customerPayload?.location ?? request.location)
+  const relatedContract = customer
+    ? records.find(record => {
+        if (record.kind !== "contract" || record.status === "archived") return false
+        const payload = record.payload as Record<string, unknown>
+        return String(payload.customerRecordId ?? "") === customerId ||
+          (!payload.customerRecordId && String(payload.customerName ?? "").trim() === customerName.trim())
+      })
+    : undefined
+  const contractPayload = relatedContract?.payload as Record<string, unknown> | undefined
   return {
     serviceRequestId: String(request.id),
-    customerName: request.clientName,
+    customerRecordId: customerId,
+    customerName,
     customerPhone: request.phone,
     customerEmail: request.email ?? "",
+    customerAddress,
+    customerTaxNumber: String(customerPayload?.taxNumber ?? customerPayload?.vatNumber ?? customerPayload?.taxId ?? ""),
+    contractNumber: String(contractPayload?.contractNumber ?? ""),
     description: `${request.serviceType}${request.containerSize ? ` — ${request.containerSize}` : ""}`,
     serviceAddress: request.location,
     containerCode: request.containerSize,
@@ -1182,7 +1210,7 @@ export default function ContainerSystem() {
         serviceRequests={serviceRequestsQuery.data ?? []}
         initialPayload={
           dialog.kind === "invoice" && requestContext
-            ? invoicePayloadFromRequest(requestContext)
+            ? invoicePayloadFromRequest(requestContext, snapshot?.records ?? records)
             : dialog.kind === "customer_site" && requestedCustomerId
               ? { customerRecordId: String(requestedCustomerId) }
               : undefined
