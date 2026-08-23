@@ -223,6 +223,24 @@ sqlite.exec(`
     ON container_system_audit(created_at);
 `);
 
+// Normalize legacy fixture identifiers while preserving every relationship
+// that references a container code in another record's JSON payload.
+const legacyContainerRecords = sqlite.prepare(
+  "SELECT id, kind, reference, payload FROM container_system_records WHERE reference LIKE 'DEMO-CNT-%' OR payload LIKE '%DEMO-CNT-%'",
+).all() as Array<{ id: number; kind: string; reference: string; payload: string }>;
+const updateLegacyContainer = sqlite.prepare(
+  "UPDATE container_system_records SET reference = ?, payload = ?, updated_at = ? WHERE id = ?",
+);
+for (const record of legacyContainerRecords) {
+  const reference = record.kind === "container" || record.kind === "container_asset"
+    ? record.reference.replaceAll("DEMO-CNT-", "CNT-")
+    : record.reference;
+  const payload = record.payload.replaceAll("DEMO-CNT-", "CNT-");
+  if (reference !== record.reference || payload !== record.payload) {
+    updateLegacyContainer.run(reference, payload, new Date().toISOString(), record.id);
+  }
+}
+
 // Typed financial core. The legacy container record remains readable during
 // migration, but all newly posted financial sources receive a typed ledger
 // projection with database uniqueness constraints.
