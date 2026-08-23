@@ -170,7 +170,7 @@ const viewLabel = (view: ViewKey) =>
 
 function ContainerSidebar({ view, onSelect }: { view: ViewKey; onSelect: (view: ViewKey) => void }) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>(
-    Object.fromEntries(NAV_GROUPS.map(group => [group.label, group.label === "مركز التشغيل"])),
+    Object.fromEntries(NAV_GROUPS.map(group => [group.label, ["مركز التشغيل", "المالية والتحصيل"].includes(group.label)])),
   )
   return (
     <Card className="sticky top-20 border-slate-200/80 bg-white/90 shadow-sm">

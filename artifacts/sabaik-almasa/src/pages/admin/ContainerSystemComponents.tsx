@@ -746,15 +746,31 @@ export function RecordDialog({
     const initial = emptyPayload(kind)
     Object.entries(initialPayload ?? {}).forEach(([key, value]) => { initial[key] = value })
     Object.entries(record?.payload ?? {}).forEach(([key, value]) => { initial[key] = String(value ?? "") })
+    if (kind === "invoice") {
+      if (!initial.invoiceType) initial.invoiceType = "standard"
+      if (!initial.taxRate) initial.taxRate = "15"
+      if (!initial.quantity) initial.quantity = "1"
+      if (!initial.date) initial.date = new Date().toISOString().slice(0, 10)
+    }
     for (const field of FIELD_CONFIG[kind]) {
       if (field.type === "date") initial[field.key] = dateInputValue(initial[field.key])
     }
     if (kind === "container" && !initial.status) initial.status = record?.status || "available"
     setPayload(initial)
-    setStatus(record?.status || "active")
+    setStatus(record?.status || (kind === "invoice" ? "draft" : "active"))
   }, [initialPayload, open, kind, record])
 
-  const setValue = (key: string, value: string) => setPayload(current => ({ ...current, [key]: value }))
+  const setValue = (key: string, value: string) => setPayload(current => {
+    const next = { ...current, [key]: value }
+    if (kind === "invoice" && (key === "quantity" || key === "unitPrice")) {
+      const quantity = Number(key === "quantity" ? value : next.quantity)
+      const unitPrice = Number(key === "unitPrice" ? value : next.unitPrice)
+      if (Number.isFinite(quantity) && Number.isFinite(unitPrice) && quantity > 0 && unitPrice >= 0) {
+        next.amount = String(Math.round(quantity * unitPrice * 100) / 100)
+      }
+    }
+    return next
+  })
   const fields = FIELD_CONFIG[kind]
   const optionsFor = (key: string) => {
     if (kind === "container" && key === "status") return CONTAINER_STATUS_OPTIONS
@@ -810,9 +826,9 @@ export function RecordDialog({
               <div key={field.key} className={`min-h-[82px] rounded-xl border border-slate-100 bg-slate-50/45 p-3 ${field.wide ? "sm:col-span-2" : ""}`}>
                 <Label htmlFor={`record-${field.key}`} className="mb-1.5 block text-xs font-bold text-slate-600">{field.label}</Label>
                 {field.type === "textarea" ? (
-                  <Textarea id={`record-${field.key}`} value={payload[field.key] ?? ""} onChange={event => setValue(field.key, event.target.value)} placeholder={field.placeholder} rows={3} className="min-h-20 resize-y border-slate-200 bg-white" data-testid={`textarea-record-${field.key}`} />
+                  <Textarea id={`record-${field.key}`} value={payload[field.key] ?? ""} onChange={event => setValue(field.key, event.target.value)} placeholder={field.placeholder} required={field.required} rows={3} className="min-h-20 resize-y border-slate-200 bg-white" data-testid={`textarea-record-${field.key}`} />
                 ) : optionsFor(field.key).length > 0 ? (
-                  <select id={`record-${field.key}`} value={payload[field.key] ?? ""} onChange={event => setValue(field.key, event.target.value)} className="flex h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100" data-testid={`select-record-${field.key}`}>
+                  <select id={`record-${field.key}`} value={payload[field.key] ?? ""} onChange={event => setValue(field.key, event.target.value)} required={field.required} className="flex h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100" data-testid={`select-record-${field.key}`}>
                      <option value="">اختر {field.label}</option>
                      {optionsFor(field.key).map(option => <option key={`${field.key}-${option.value}`} value={option.value}>{option.label}</option>)}
                   </select>

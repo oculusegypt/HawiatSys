@@ -94,7 +94,14 @@ function normalizeContractPayload(payload: Record<string, unknown>) {
 
 function normalizeInvoicePayload(payload: Record<string, unknown>) {
   const next = { ...payload };
-  const amount = Number(next.amount ?? next.subtotal ?? 0);
+  const enteredAmount = Number(next.amount ?? next.subtotal ?? 0);
+  const quantity = Number(next.quantity ?? 1);
+  const unitPrice = Number(next.unitPrice ?? 0);
+  const amount = enteredAmount > 0
+    ? enteredAmount
+    : Number.isFinite(quantity) && Number.isFinite(unitPrice) && quantity > 0 && unitPrice >= 0
+      ? quantity * unitPrice
+      : 0;
   const taxRate = Number(next.taxRate ?? 15);
   if (Number.isFinite(amount) && Number.isFinite(taxRate)) {
     next.amount = amount;
