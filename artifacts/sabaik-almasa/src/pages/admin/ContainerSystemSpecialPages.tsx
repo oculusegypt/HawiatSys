@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
-import { ArrowLeft, ArrowRight, CalendarClock, ChevronLeft, ChevronRight, ClipboardList, Coins, FileDown, FileText, MapPin, Printer, Save, Search, Settings2, Truck, UserRound, AlertTriangle, ArrowDownRight, ArrowUpRight, Banknote, CheckCircle2, CircleDollarSign, FileCheck2, ReceiptText, Sparkles, WalletCards } from "lucide-react"
+import { ArrowLeft, ArrowRight, CalendarClock, ChevronLeft, ChevronRight, ClipboardList, Coins, FileDown, FileText, MapPin, Printer, Save, Search, Settings2, Truck, UserRound, AlertTriangle, ArrowDownRight, ArrowUpRight, Banknote, CheckCircle2, CircleDollarSign, FileCheck2, ReceiptText, Sparkles, WalletCards, RotateCcw, SlidersHorizontal } from "lucide-react"
 import { getGetAdminWorkOrdersQueryKey, getGetContainerContractLedgersQueryKey, useAssignServiceRequest, useGetAdminWorkOrders, useGetContainerContractLedgers, useSettleContainerContract, type ContainerSystemRecord, type ServiceRequest } from "@workspace/api-client-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -241,6 +241,19 @@ const REPORT_FILTER_FIELDS: Record<string, string[]> = {
   "الفرع": ["branchName", "branch"],
   "رقم السيارة": ["vehiclePlate", "plateNumber"],
   "الحاوية": ["containerCode", "assetCode"],
+  "المخزن": ["warehouseName", "warehouse", "warehouseId"],
+  "الصنف": ["itemName", "productName", "categoryName", "item", "category"],
+  "نوع المديونية": ["debtType", "contractType", "paymentType"],
+  "نوع العقد": ["contractType", "rentalType", "salesType"],
+  "نوع العميل": ["customerType", "clientType"],
+  "نوع التفريغ": ["unloadingType", "movementType"],
+  "حالة الإيجار": ["rentalStatus", "assignmentStatus", "status"],
+  "نوع المبيعات": ["salesType", "saleType", "paymentType"],
+  "نوع الإشعار": ["notificationType", "type"],
+  "رقم العملية": ["operationNumber", "movementNumber", "reference"],
+  "جهة الصرف": ["destination", "issuedTo", "department"],
+  "المستخدم": ["userName", "createdByName", "employeeName"],
+  "الشاحنة": ["vehiclePlate", "vehicleNumber", "containerCode"],
 }
 
 const FINANCIAL_REPORT_KINDS = new Set([
@@ -302,6 +315,11 @@ const valueFor = (reportId: ReportId, record: ContainerSystemRecord, label: stri
   const returned = returns.reduce((sum, item) => {
     return matchesReturn(item) ? sum + Number((item.payload as Record<string, unknown>).amount ?? (item.payload as Record<string, unknown>).total ?? 0) : sum
   }, 0)
+  const rawAmount = Number(p.amount ?? p.total ?? p.lineTotal ?? p.value ?? 0)
+  const quantity = Number(p.quantity ?? p.qty ?? p.count ?? 0)
+  const unitPrice = Number(p.unitPrice ?? p.price ?? p.rate ?? 0)
+  const isIncome = ["payment", "receipt", "invoice", "other_revenue"].includes(record.kind)
+  const isExpense = ["expense", "daily_expense", "fuel_expense", "salary_payment", "salary_advance", "purchase", "purchase_return"].includes(record.kind)
   if (label === "رقم العقد" || label === "العقد / الفاتورة") return String(directField(p, "contractNumber", "invoiceNumber", "receiptNumber", "reference"))
   if (label === "رقم الفاتورة" || label === "رقم الإيصال والفاتورة") return String(directField(p, "invoiceNumber", "receiptNumber", "reference"))
   if (label === "الفاتورة الأصلية") return String(directField(p, "originalInvoiceNumber", "invoiceNumber"))
@@ -312,6 +330,28 @@ const valueFor = (reportId: ReportId, record: ContainerSystemRecord, label: stri
   if (label === "الضريبة") return money(directField(p, "taxAmount"))
   if (label === "المرتجعات") return money(returned)
   if (label === "الصافي") return money(Number(p.total ?? p.amount ?? 0) - returned)
+  if (label === "المبيعات" || label === "الإيرادات") return money(isIncome ? rawAmount : 0)
+  if (label === "الإيجارات الآجلة") return money(record.kind === "contract" || record.kind === "contract_line" ? rawAmount : 0)
+  if (label === "التسديدات") return money(["payment", "receipt"].includes(record.kind) ? rawAmount : 0)
+  if (label === "المصروفات") return money(isExpense ? rawAmount : 0)
+  if (label === "صافي النتائج") return money((isIncome ? rawAmount : 0) - (isExpense ? rawAmount : 0))
+  if (label === "عدد الرحلات" || label === "العدد") return String(p.tripCount ?? p.trips ?? p.quantity ?? 1)
+  if (label === "الكمية" || label === "الكمية الحالية") return String(quantity || p.currentQuantity || p.stockQuantity || 0)
+  if (label === "السعر" || label === "سعر الوحدة") return money(unitPrice)
+  if (label === "السعر الإجمالي") return money(Number(p.totalPrice ?? p.lineTotal ?? (quantity * unitPrice || rawAmount)))
+  if (label === "المخزن") return String(directField(p, "warehouseName", "warehouse", "warehouseId"))
+  if (label === "الصنف") return String(directField(p, "itemName", "productName", "categoryName", "item", "category"))
+  if (label === "الإشعارات") return money(record.kind === "notification" ? rawAmount : 0)
+  if (label === "نوع العميل") return String(directField(p, "customerType", "clientType"))
+  if (label === "نوع المبيعات") return String(directField(p, "salesType", "saleType", "paymentType"))
+  if (label === "نوع العقد" || label === "نوع الإيجار") return String(directField(p, "contractType", "rentalType", "salesType"))
+  if (label === "نوع التفريغ") return String(directField(p, "unloadingType", "movementType"))
+  if (label === "حالة الإيجار") return String(directField(p, "rentalStatus", "assignmentStatus", "status"))
+  if (label === "نوع الإشعار") return String(directField(p, "notificationType", "type"))
+  if (label === "جهة الصرف") return String(directField(p, "destination", "issuedTo", "department"))
+  if (label === "المستخدم") return String(directField(p, "userName", "createdByName", "employeeName"))
+  if (label === "الشاحنة") return String(directField(p, "vehiclePlate", "vehicleNumber", "containerCode"))
+  if (label === "رقم العملية") return String(directField(p, "operationNumber", "movementNumber", "reference"))
   if (label === "التاريخ" || label === "تاريخ التسجيل") return String(directField(p, "date", "startDate", "createdAt") || record.createdAt).slice(0, 10)
   const explicitFields: Record<string, string[]> = {
     "طريقة الدفع": ["paymentMethod", "methodName"],
@@ -336,8 +376,34 @@ function exportRows(title: string, reportId: ReportId, columns: string[], record
 }
 
 export function ReportsHub({ onOpen }: { onOpen: (id: ReportId) => void }) {
+  const [query, setQuery] = useState("")
+  const [group, setGroup] = useState("all")
   const groups = [...new Set(REPORTS.map(report => report.group))]
-  return <div className="space-y-5">{groups.map(group => <section key={group}><h3 className="mb-3 text-base font-black text-slate-900">{group}</h3><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{REPORTS.filter(report => report.group === group).map(report => <button key={report.id} type="button" onClick={() => onOpen(report.id)} className="rounded-2xl border border-slate-200 bg-white p-4 text-right shadow-sm transition hover:-translate-y-0.5 hover:border-cyan-300 hover:shadow-md"><div className="flex items-start gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-50 text-cyan-800"><FileText size={18} /></span><span><b className="block text-sm text-slate-800">{report.title}</b><span className="mt-1 block text-xs leading-6 text-slate-500">{report.description}</span></span></div></button>)}</div></section>)}</div>
+  const visible = REPORTS.filter(report => {
+    const haystack = `${report.title} ${report.description} ${report.group}`.toLowerCase()
+    return (group === "all" || report.group === group) && (!query.trim() || haystack.includes(query.trim().toLowerCase()))
+  })
+  return <div className="space-y-5">
+    <Card className="overflow-hidden border-cyan-100 bg-gradient-to-l from-cyan-950 via-cyan-900 to-slate-900 text-white">
+      <CardContent className="p-5 sm:p-7">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div><div className="mb-2 flex items-center gap-2 text-xs font-bold text-cyan-200"><FileText size={15} /> نظام الحاويات الكامل</div><h3 className="text-2xl font-black">التقارير الشاملة</h3><p className="mt-2 max-w-2xl text-sm leading-7 text-cyan-50/75">كل تقرير يعرض البيانات المرحّلة المرتبطة بالحاويات والعقود والعملاء والمالية، مع بحث وفلاتر وتصدير مباشر.</p></div>
+          <div className="grid grid-cols-2 gap-2 text-center"><div className="rounded-xl bg-white/10 px-5 py-3"><b className="block text-xl">{REPORTS.length}</b><span className="text-[11px] text-cyan-100/70">تقرير متاح</span></div><div className="rounded-xl bg-white/10 px-5 py-3"><b className="block text-xl">{groups.length}</b><span className="text-[11px] text-cyan-100/70">أقسام رئيسية</span></div></div>
+        </div>
+      </CardContent>
+    </Card>
+    <Card><CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-end">
+      <div className="min-w-52 flex-1"><label className="mb-1 block text-xs font-bold text-slate-500">ابحث عن تقرير</label><div className="relative"><Search size={15} className="absolute right-3 top-2.5 text-slate-400" /><Input value={query} onChange={event => setQuery(event.target.value)} className="pr-9" placeholder="العقود، التحصيل، المخزون..." /></div></div>
+      <div><label className="mb-1 block text-xs font-bold text-slate-500">القسم</label><select value={group} onChange={event => setGroup(event.target.value)} className="h-10 min-w-56 rounded-md border border-slate-200 bg-white px-3 text-sm"><option value="all">كل الأقسام</option>{groups.map(item => <option key={item} value={item}>{item}</option>)}</select></div>
+      {(query || group !== "all") && <Button type="button" variant="ghost" onClick={() => { setQuery(""); setGroup("all") }} className="gap-2"><RotateCcw size={14} /> مسح</Button>}
+    </CardContent></Card>
+    {groups.filter(item => group === "all" || item === group).map(item => {
+      const reports = visible.filter(report => report.group === item)
+      if (!reports.length) return null
+      return <section key={item}><div className="mb-3 flex items-center justify-between"><h3 className="text-base font-black text-slate-900">{item}</h3><Badge variant="outline" className="border-cyan-200 bg-cyan-50 text-cyan-800">{reports.length} تقرير</Badge></div><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{reports.map(report => <button key={report.id} type="button" onClick={() => onOpen(report.id)} className="group rounded-2xl border border-slate-200 bg-white p-4 text-right shadow-sm transition hover:-translate-y-0.5 hover:border-cyan-300 hover:shadow-md"><div className="flex items-start gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-50 text-cyan-800 transition group-hover:bg-cyan-800 group-hover:text-white"><FileText size={18} /></span><span><b className="block text-sm text-slate-800">{report.title}</b><span className="mt-1 block text-xs leading-6 text-slate-500">{report.description}</span><span className="mt-3 block text-[10px] font-bold text-cyan-700">{report.columns.length} حقول · فتح التقرير ←</span></span></div></button>)}</div></section>
+    })}
+    {!visible.length && <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center text-sm text-slate-500"><SlidersHorizontal className="mx-auto mb-3 text-slate-400" size={24} />لا توجد تقارير مطابقة للبحث أو القسم المحدد.</div>}
+  </div>
 }
 
 export function ReportPage({ reportId, records, onBack }: { reportId: ReportId; records: ContainerSystemRecord[]; onBack: () => void }) {
@@ -375,10 +441,13 @@ export function ReportPage({ reportId, records, onBack }: { reportId: ReportId; 
         ? Number((record.payload as Record<string, unknown>).lineTotal ?? 0)
         : Number((record.payload as Record<string, unknown>).amount ?? (record.payload as Record<string, unknown>).value ?? 0)
   ), 0)
-   return <div className="space-y-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><Button variant="ghost" onClick={onBack} className="mb-2 gap-2 px-0 text-cyan-800"><ArrowRight size={16} /> كل التقارير</Button><h3 className="text-xl font-black text-slate-900">{report.title}</h3><p className="mt-1 text-xs leading-6 text-slate-500">{report.description}</p></div><div className="flex gap-2"><Button onClick={() => window.print()} variant="outline" className="gap-2"><Printer size={15} /> طباعة</Button><Button onClick={() => exportRows(report.title, report.id, report.columns, filtered, records)} variant="outline" className="gap-2 border-cyan-200 text-cyan-800"><FileDown size={15} /> Excel</Button></div></div>
-     <Card><CardContent className="flex flex-wrap items-end gap-3 p-4"><div className="min-w-52 flex-1"><label className="mb-1 block text-xs font-bold text-slate-500">بحث داخل التقرير</label><div className="relative"><Search size={15} className="absolute right-3 top-2.5 text-slate-400" /><Input value={query} onChange={event => setQuery(event.target.value)} className="pr-9" placeholder="اسم العميل أو الرقم أو الحاوية" /></div></div><div><label className="mb-1 block text-xs font-bold text-slate-500">فلتر تفصيلي</label><select value={fieldFilter} onChange={event => { setFieldFilter(event.target.value); setFieldValue("") }} className="h-10 min-w-44 rounded-md border border-slate-200 bg-white px-3 text-sm"><option value="">كل الحقول</option>{filterFields.map(filter => <option key={filter} value={filter}>{filter}</option>)}</select></div>{fieldFilter && <div><label className="mb-1 block text-xs font-bold text-slate-500">القيمة</label><select value={fieldValue} onChange={event => setFieldValue(event.target.value)} className="h-10 min-w-44 rounded-md border border-slate-200 bg-white px-3 text-sm"><option value="">كل القيم</option>{fieldOptions.map(option => <option key={option} value={option}>{option}</option>)}</select></div>}<div><label className="mb-1 block text-xs font-bold text-slate-500">من</label><Input type="date" value={from} onChange={event => setFrom(event.target.value)} /></div><div><label className="mb-1 block text-xs font-bold text-slate-500">إلى</label><Input type="date" value={to} onChange={event => setTo(event.target.value)} /></div>{report.filters.filter(filter => !REPORT_FILTER_FIELDS[filter]).map(filter => <Badge key={filter} variant="outline" className="mb-1 border-cyan-200 bg-cyan-50 text-cyan-800">{filter}</Badge>)}</CardContent></Card>
-    <div className="grid gap-3 sm:grid-cols-3"><Card><CardContent className="p-4"><p className="text-xs text-slate-500">عدد السجلات</p><b className="mt-1 block text-2xl">{filtered.length}</b></CardContent></Card><Card><CardContent className="p-4"><p className="text-xs text-slate-500">الإجمالي</p><b className="mt-1 block text-2xl text-cyan-800">{total.toLocaleString("ar-SA")} ر.س</b></CardContent></Card><Card><CardContent className="p-4"><p className="text-xs text-slate-500">أنواع السجلات المرتبطة</p><b className="mt-1 block text-sm">{report.kinds.map(kind => KIND_LABELS[kind as RecordKind] ?? kind).join("، ")}</b></CardContent></Card></div>
-     <Card className="overflow-hidden"><CardHeader className="border-b bg-slate-50/60"><CardTitle className="text-base">بيانات {report.title}</CardTitle></CardHeader><CardContent className="overflow-x-auto p-0"><table className="min-w-[900px] w-full text-right text-xs"><thead><tr className="border-b bg-slate-50 text-slate-500">{report.columns.map(column => <th key={column} className="whitespace-nowrap px-4 py-3 font-black">{column}</th>)}</tr></thead><tbody>{filtered.length === 0 ? <tr><td colSpan={report.columns.length} className="p-12 text-center text-slate-500">لا توجد بيانات مطابقة للفلاتر الحالية.</td></tr> : filtered.map(record => <tr key={record.id} className="border-b last:border-0 hover:bg-cyan-50/30">{report.columns.map(column => <td key={column} className="whitespace-nowrap px-4 py-3 text-slate-700">{valueFor(report.id, record, column, records)}</td>)}</tr>)}</tbody></table></CardContent></Card>
+    const clearFilters = () => { setQuery(""); setFrom(""); setTo(""); setFieldFilter(""); setFieldValue("") }
+    const hasFilters = Boolean(query || from || to || fieldFilter || fieldValue)
+    return <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3"><div><Button variant="ghost" onClick={onBack} className="mb-2 gap-2 px-0 text-cyan-800"><ArrowRight size={16} /> كل التقارير</Button><h3 className="text-xl font-black text-slate-900">{report.title}</h3><p className="mt-1 text-xs leading-6 text-slate-500">{report.description}</p></div><div className="flex flex-wrap gap-2"><Button onClick={() => window.print()} variant="outline" className="gap-2"><Printer size={15} /> طباعة التقرير</Button><Button onClick={() => exportRows(report.title, report.id, report.columns, filtered, records)} variant="outline" className="gap-2 border-cyan-200 text-cyan-800"><FileDown size={15} /> تصدير Excel/CSV</Button></div></div>
+      <Card><CardContent className="flex flex-wrap items-end gap-3 p-4"><div className="min-w-52 flex-1"><label className="mb-1 block text-xs font-bold text-slate-500">بحث داخل التقرير</label><div className="relative"><Search size={15} className="absolute right-3 top-2.5 text-slate-400" /><Input value={query} onChange={event => setQuery(event.target.value)} className="pr-9" placeholder="اسم العميل أو الرقم أو الحاوية" /></div></div><div><label className="mb-1 block text-xs font-bold text-slate-500">فلتر تفصيلي</label><select value={fieldFilter} onChange={event => { setFieldFilter(event.target.value); setFieldValue("") }} className="h-10 min-w-44 rounded-md border border-slate-200 bg-white px-3 text-sm"><option value="">كل الحقول</option>{filterFields.map(filter => <option key={filter} value={filter}>{filter}</option>)}</select></div>{fieldFilter && <div><label className="mb-1 block text-xs font-bold text-slate-500">القيمة</label><select value={fieldValue} onChange={event => setFieldValue(event.target.value)} className="h-10 min-w-44 rounded-md border border-slate-200 bg-white px-3 text-sm"><option value="">كل القيم</option>{fieldOptions.map(option => <option key={option} value={option}>{option}</option>)}</select></div>}<div><label className="mb-1 block text-xs font-bold text-slate-500">من</label><Input type="date" value={from} onChange={event => setFrom(event.target.value)} /></div><div><label className="mb-1 block text-xs font-bold text-slate-500">إلى</label><Input type="date" value={to} onChange={event => setTo(event.target.value)} /></div>{hasFilters && <Button type="button" variant="ghost" onClick={clearFilters} className="gap-2"><RotateCcw size={14} /> مسح الفلاتر</Button>}</CardContent></Card>
+      <div className="grid gap-3 sm:grid-cols-3"><Card><CardContent className="p-4"><p className="text-xs text-slate-500">عدد السجلات المطابقة</p><b className="mt-1 block text-2xl">{filtered.length}</b><span className="text-[11px] text-slate-400">من أصل {records.filter(record => report.kinds.includes(record.kind)).length}</span></CardContent></Card><Card><CardContent className="p-4"><p className="text-xs text-slate-500">إجمالي القيم</p><b className="mt-1 block text-2xl text-cyan-800">{total.toLocaleString("ar-SA")} ر.س</b><span className="text-[11px] text-slate-400">للحركات المرحّلة المطابقة</span></CardContent></Card><Card><CardContent className="p-4"><p className="text-xs text-slate-500">مصدر البيانات</p><b className="mt-1 block text-sm">{report.kinds.map(kind => KIND_LABELS[kind as RecordKind] ?? kind).join("، ")}</b><span className="text-[11px] text-slate-400">آخر تحديث من سجل النظام</span></CardContent></Card></div>
+      <Card className="overflow-hidden"><CardHeader className="flex-row items-center justify-between border-b bg-slate-50/60"><div><CardTitle className="text-base">بيانات {report.title}</CardTitle><p className="mt-1 text-xs text-slate-500">تُعرض السجلات المرحّلة فقط في التقارير المالية.</p></div><Badge variant="outline" className="border-cyan-200 bg-cyan-50 text-cyan-800">{filtered.length} سجل</Badge></CardHeader><CardContent className="overflow-x-auto p-0"><table className="min-w-[900px] w-full text-right text-xs"><thead><tr className="border-b bg-slate-50 text-slate-500">{report.columns.map(column => <th key={column} className="whitespace-nowrap px-4 py-3 font-black">{column}</th>)}</tr></thead><tbody>{filtered.length === 0 ? <tr><td colSpan={report.columns.length} className="p-12 text-center text-slate-500"><FileText className="mx-auto mb-3 text-slate-300" size={26} />لا توجد بيانات مطابقة للفلاتر الحالية.</td></tr> : filtered.map(record => <tr key={record.id} className="border-b last:border-0 hover:bg-cyan-50/30">{report.columns.map(column => <td key={column} className="whitespace-nowrap px-4 py-3 text-slate-700">{valueFor(report.id, record, column, records)}</td>)}</tr>)}</tbody></table></CardContent></Card>
   </div>
 }
 
