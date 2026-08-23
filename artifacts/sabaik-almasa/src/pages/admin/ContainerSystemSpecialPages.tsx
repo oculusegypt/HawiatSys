@@ -254,6 +254,15 @@ const REPORT_FILTER_FIELDS: Record<string, string[]> = {
   "جهة الصرف": ["destination", "issuedTo", "department"],
   "المستخدم": ["userName", "createdByName", "employeeName"],
   "الشاحنة": ["vehiclePlate", "vehicleNumber", "containerCode"],
+  "رقم الإيراد": ["revenueNumber", "incomeNumber", "reference"],
+  "رقم السند": ["receiptNumber", "voucherNumber", "reference"],
+  "رقم المصروف": ["expenseNumber", "voucherNumber", "reference"],
+  "نوع التاريخ": ["dateType", "documentDateType"],
+  "الوسيط": ["brokerName", "broker", "mediatorName"],
+  "التصنيف": ["categoryName", "category", "classification"],
+  "حالة التفريغ": ["unloadingStatus", "dumpingStatus", "status"],
+  "رقم هاتف العميل": ["phone", "customerPhone", "mobile"],
+  "عدد الإيجارات": ["rentalCount", "rentalsCount", "count"],
 }
 
 const FINANCIAL_REPORT_KINDS = new Set([
@@ -350,6 +359,17 @@ const valueFor = (reportId: ReportId, record: ContainerSystemRecord, label: stri
   if (label === "نوع الإشعار") return String(directField(p, "notificationType", "type"))
   if (label === "جهة الصرف") return String(directField(p, "destination", "issuedTo", "department"))
   if (label === "المستخدم") return String(directField(p, "userName", "createdByName", "employeeName"))
+  if (label === "رقم الإيراد") return String(directField(p, "revenueNumber", "incomeNumber", "reference"))
+  if (label === "رقم السند") return String(directField(p, "receiptNumber", "voucherNumber", "reference"))
+  if (label === "رقم المصروف") return String(directField(p, "expenseNumber", "voucherNumber", "reference"))
+  if (label === "نوع التاريخ") return String(directField(p, "dateType", "documentDateType"))
+  if (label === "الوسيط") return String(directField(p, "brokerName", "broker", "mediatorName"))
+  if (label === "التصنيف") return String(directField(p, "categoryName", "category", "classification"))
+  if (label === "حالة التفريغ") return String(directField(p, "unloadingStatus", "dumpingStatus", "status"))
+  if (label === "رقم هاتف العميل") return String(directField(p, "phone", "customerPhone", "mobile"))
+  if (label === "عدد الإيجارات") return String(directField(p, "rentalCount", "rentalsCount", "count"))
+  if (label === "تاريخ السداد") return String(directField(p, "paymentDate", "date", "createdAt")).slice(0, 10)
+  if (label === "تاريخ السحب") return String(directField(p, "withdrawalDate", "date", "createdAt")).slice(0, 10)
   if (label === "الشاحنة") return String(directField(p, "vehiclePlate", "vehicleNumber", "containerCode"))
   if (label === "رقم العملية") return String(directField(p, "operationNumber", "movementNumber", "reference"))
   if (label === "التاريخ" || label === "تاريخ التسجيل") return String(directField(p, "date", "startDate", "createdAt") || record.createdAt).slice(0, 10)
