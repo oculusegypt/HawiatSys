@@ -25,11 +25,30 @@ function financialPayload(record: ContainerSystemRecord) {
 
 function financialAmount(record: ContainerSystemRecord) {
   const payload = financialPayload(record)
-  const value = Number(payload.total ?? payload.amount ?? payload.lineTotal ?? payload.value ?? 0)
+  const source = record.kind === "invoice" || record.kind === "contract"
+    ? payload.total
+    : record.kind === "contract_line"
+      ? payload.lineTotal
+      : payload.amount ?? payload.value
+  const value = Number(source ?? 0)
   return Number.isFinite(value) ? value : 0
 }
 
-const financialMoney = (value: number) => `${Math.round(value).toLocaleString("ar-SA")} ر.س`
+const financialMoney = (value: number) => `${value.toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س`
+function postedCollections(records: ContainerSystemRecord[]) {
+  const posted = records.filter(record => record.status === "posted" && ["payment", "receipt"].includes(record.kind))
+  const payments = posted.filter(record => record.kind === "payment")
+  const keys = new Set(payments.map(record => {
+    const payload = financialPayload(record)
+    return [payload.customerRecordId ?? "", payload.contractRecordId ?? payload.contractNumber ?? "", payload.invoiceRecordId ?? payload.invoiceNumber ?? "", payload.amount ?? "", payload.date ?? ""].join("|")
+  }))
+  return [...payments, ...posted.filter(record => {
+    if (record.kind !== "receipt") return false
+    const payload = financialPayload(record)
+    const key = [payload.customerRecordId ?? "", payload.contractRecordId ?? payload.contractNumber ?? "", payload.invoiceRecordId ?? payload.invoiceNumber ?? "", payload.amount ?? "", payload.date ?? ""].join("|")
+    return !keys.has(key) && !payload.sourcePaymentId
+  })]
+}
 
 export function FinancialControlCenter({
   records,
@@ -55,10 +74,10 @@ export function FinancialControlCenter({
     return date === (period === "current" ? periodKey : previousPeriodKey)
   }
   const scoped = active.filter(inPeriod)
-  const invoices = scoped.filter(record => record.kind === "invoice")
-  const payments = scoped.filter(record => record.kind === "payment" || record.kind === "receipt")
-  const expenses = scoped.filter(record => ["expense", "daily_expense", "fuel_expense", "salary_payment", "salary_advance"].includes(record.kind))
-  const returns = scoped.filter(record => ["invoice_return", "payment_return"].includes(record.kind))
+  const invoices = scoped.filter(record => record.kind === "invoice" && record.status === "posted")
+  const payments = postedCollections(scoped)
+  const expenses = scoped.filter(record => ["expense", "daily_expense", "fuel_expense", "salary_payment", "salary_advance"].includes(record.kind) && record.status === "posted")
+  const returns = scoped.filter(record => ["invoice_return", "payment_return"].includes(record.kind) && record.status === "posted")
   const contracts = scoped.filter(record => record.kind === "contract")
   const invoiceTotal = invoices.reduce((sum, record) => sum + financialAmount(record), 0)
   const collected = payments.reduce((sum, record) => sum + financialAmount(record), 0)
@@ -191,12 +210,18 @@ const REPORT_FILTER_FIELDS: Record<string, string[]> = {
   "الحاوية": ["containerCode", "assetCode"],
 }
 
+const FINANCIAL_REPORT_KINDS = new Set([
+  "receipt", "payment", "expense", "daily_expense", "fuel_expense", "salary_payment", "salary_advance",
+  "invoice", "invoice_return", "payment_return", "deposit", "bank_deposit", "commission",
+  "purchase", "purchase_return", "transfer", "other_revenue",
+])
+
 const valueFor = (reportId: ReportId, record: ContainerSystemRecord, label: string, allRecords: ContainerSystemRecord[]) => {
   const p = record.payload as Record<string, unknown>
-  const money = (value: unknown) => `${Number(value ?? 0).toLocaleString("ar-SA")} ر.س`
+  const money = (value: unknown) => `${Number(value ?? 0).toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س`
   const active = allRecords.filter(item => item.status !== "archived")
-  const payments = active.filter(item => item.kind === "payment" || item.kind === "receipt")
-  const returns = active.filter(item => item.kind === "payment_return" || item.kind === "invoice_return")
+  const payments = postedCollections(active)
+  const returns = active.filter(item => (item.kind === "payment_return" || item.kind === "invoice_return") && item.status === "posted")
   const contractNumber = String(p.contractNumber ?? record.reference ?? "")
   const invoiceNumber = String(p.invoiceNumber ?? record.reference ?? "")
   const allocated = (payment: ContainerSystemRecord, key: "contractId" | "invoiceId", id: number) => {
@@ -290,6 +315,7 @@ export function ReportPage({ reportId, records, onBack }: { reportId: ReportId; 
   }, [fieldFilter, records, report.kinds])
   const filtered = useMemo(() => records.filter(record => {
     if (!report.kinds.includes(record.kind)) return false
+    if (FINANCIAL_REPORT_KINDS.has(record.kind) && record.status !== "posted") return false
     const date = String(record.payload.date ?? record.payload.startDate ?? record.createdAt).slice(0, 10)
     const haystack = JSON.stringify(record.payload).toLowerCase()
     const keys = REPORT_FILTER_FIELDS[fieldFilter] ?? []
@@ -298,7 +324,13 @@ export function ReportPage({ reportId, records, onBack }: { reportId: ReportId; 
       (!query || haystack.includes(query.toLowerCase())) &&
       (!fieldValue || selectedFieldValue === fieldValue)
   }), [fieldFilter, fieldValue, from, query, records, report.kinds, to])
-  const total = filtered.reduce((sum, record) => sum + amountOf(record), 0)
+  const total = filtered.reduce((sum, record) => sum + (
+    record.kind === "invoice" || record.kind === "contract"
+      ? Number((record.payload as Record<string, unknown>).total ?? 0)
+      : record.kind === "contract_line"
+        ? Number((record.payload as Record<string, unknown>).lineTotal ?? 0)
+        : Number((record.payload as Record<string, unknown>).amount ?? (record.payload as Record<string, unknown>).value ?? 0)
+  ), 0)
    return <div className="space-y-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><Button variant="ghost" onClick={onBack} className="mb-2 gap-2 px-0 text-cyan-800"><ArrowRight size={16} /> كل التقارير</Button><h3 className="text-xl font-black text-slate-900">{report.title}</h3><p className="mt-1 text-xs leading-6 text-slate-500">{report.description}</p></div><div className="flex gap-2"><Button onClick={() => window.print()} variant="outline" className="gap-2"><Printer size={15} /> طباعة</Button><Button onClick={() => exportRows(report.title, report.id, report.columns, filtered, records)} variant="outline" className="gap-2 border-cyan-200 text-cyan-800"><FileDown size={15} /> Excel</Button></div></div>
      <Card><CardContent className="flex flex-wrap items-end gap-3 p-4"><div className="min-w-52 flex-1"><label className="mb-1 block text-xs font-bold text-slate-500">بحث داخل التقرير</label><div className="relative"><Search size={15} className="absolute right-3 top-2.5 text-slate-400" /><Input value={query} onChange={event => setQuery(event.target.value)} className="pr-9" placeholder="اسم العميل أو الرقم أو الحاوية" /></div></div><div><label className="mb-1 block text-xs font-bold text-slate-500">فلتر تفصيلي</label><select value={fieldFilter} onChange={event => { setFieldFilter(event.target.value); setFieldValue("") }} className="h-10 min-w-44 rounded-md border border-slate-200 bg-white px-3 text-sm"><option value="">كل الحقول</option>{filterFields.map(filter => <option key={filter} value={filter}>{filter}</option>)}</select></div>{fieldFilter && <div><label className="mb-1 block text-xs font-bold text-slate-500">القيمة</label><select value={fieldValue} onChange={event => setFieldValue(event.target.value)} className="h-10 min-w-44 rounded-md border border-slate-200 bg-white px-3 text-sm"><option value="">كل القيم</option>{fieldOptions.map(option => <option key={option} value={option}>{option}</option>)}</select></div>}<div><label className="mb-1 block text-xs font-bold text-slate-500">من</label><Input type="date" value={from} onChange={event => setFrom(event.target.value)} /></div><div><label className="mb-1 block text-xs font-bold text-slate-500">إلى</label><Input type="date" value={to} onChange={event => setTo(event.target.value)} /></div>{report.filters.filter(filter => !REPORT_FILTER_FIELDS[filter]).map(filter => <Badge key={filter} variant="outline" className="mb-1 border-cyan-200 bg-cyan-50 text-cyan-800">{filter}</Badge>)}</CardContent></Card>
     <div className="grid gap-3 sm:grid-cols-3"><Card><CardContent className="p-4"><p className="text-xs text-slate-500">عدد السجلات</p><b className="mt-1 block text-2xl">{filtered.length}</b></CardContent></Card><Card><CardContent className="p-4"><p className="text-xs text-slate-500">الإجمالي</p><b className="mt-1 block text-2xl text-cyan-800">{total.toLocaleString("ar-SA")} ر.س</b></CardContent></Card><Card><CardContent className="p-4"><p className="text-xs text-slate-500">أنواع السجلات المرتبطة</p><b className="mt-1 block text-sm">{report.kinds.map(kind => KIND_LABELS[kind as RecordKind] ?? kind).join("، ")}</b></CardContent></Card></div>
@@ -324,7 +356,7 @@ export function ContractSettlementWorkspace({ records, initialCustomerId = null 
     return Number((row.contract.payload as Record<string, unknown>).customerRecordId ?? 0) === initialCustomerId
   }), [initialCustomerId, ledgerQuery.data?.ledgers])
   const selected = ledgers.find(row => row.contract.id === selectedId) ?? ledgers[0]
-  const deposits = records.filter(record => (record.kind === "deposit" || record.kind === "bank_deposit") && record.status !== "archived")
+  const deposits = records.filter(record => (record.kind === "deposit" || record.kind === "bank_deposit") && record.status === "posted")
   const selectedRows = ledgers.filter(row => selectedIds.includes(row.contract.id))
   const invoicesFor = (contractId: number, contractNumber: string) => records.filter(record => {
     if (record.kind !== "invoice" || record.status === "archived") return false

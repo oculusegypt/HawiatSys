@@ -16,3 +16,4 @@
 - [Node/PHP authorization parity](node-php-authorization-parity.md) — security fixes must be mirrored in the Hostinger PHP router, not only the development API.
 - [Documentation roadmap](documentation-roadmap.md) — root README and dated audit are the shared reference for product scope and UX priorities.
 - [Hostinger preflight headers](hostinger-preflight-headers.md) — PHP CORS headers must include every custom browser header used by financial/idempotent workflows.
+- [Financial posting boundary](financial-posting-boundary.md) — financial totals must use posted records only, with receipt/payment deduplication and explicit reversal entries for cancellations.

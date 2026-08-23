@@ -31,6 +31,37 @@ function hsRecord(array $row): array {
     return $row;
 }
 
+function hsPostedCollections(array $rows): array {
+    $posted = array_values(array_filter($rows, static fn(array $row): bool =>
+        $row['status'] === 'posted' && in_array($row['kind'], ['payment', 'receipt'], true)
+    ));
+    $payments = array_values(array_filter($posted, static fn(array $row): bool => $row['kind'] === 'payment'));
+    $keys = [];
+    foreach ($payments as $payment) {
+        $payload = $payment['payload'];
+        $keys[] = implode('|', [
+            (string)($payload['customerRecordId'] ?? ''),
+            (string)($payload['contractRecordId'] ?? $payload['contractNumber'] ?? ''),
+            (string)($payload['invoiceRecordId'] ?? $payload['invoiceNumber'] ?? ''),
+            (string)($payload['amount'] ?? ''),
+            (string)($payload['date'] ?? ''),
+        ]);
+    }
+    foreach ($posted as $row) {
+        if ($row['kind'] !== 'receipt') continue;
+        $payload = $row['payload'];
+        $key = implode('|', [
+            (string)($payload['customerRecordId'] ?? ''),
+            (string)($payload['contractRecordId'] ?? $payload['contractNumber'] ?? ''),
+            (string)($payload['invoiceRecordId'] ?? $payload['invoiceNumber'] ?? ''),
+            (string)($payload['amount'] ?? ''),
+            (string)($payload['date'] ?? ''),
+        ]);
+        if (!isset($payload['sourcePaymentId']) && !in_array($key, $keys, true)) $payments[] = $row;
+    }
+    return $payments;
+}
+
 function hsEnsureSchema(PDO $pdo): void {
     $pdo->exec("CREATE TABLE IF NOT EXISTS container_system_records (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -315,13 +346,13 @@ function hsNormalizeFinancial(string $kind, array $payload): array {
     $amount = (float)($payload['amount'] ?? $payload['subtotal'] ?? 0);
     $taxRate = (float)($payload['taxRate'] ?? 15);
     if ($kind === 'invoice' || $kind === 'contract') {
-        $payload['amount'] = $amount;
         $payload['taxRate'] = $taxRate;
         if (($payload['taxInclusive'] ?? false) === true || strtolower((string)($payload['taxInclusive'] ?? '')) === 'true') {
             $payload['total'] = round($amount, 2);
             $payload['taxAmount'] = round($amount - ($amount / (1 + $taxRate / 100)), 2);
             $payload['amount'] = round($amount - $payload['taxAmount'], 2);
         } else {
+            $payload['amount'] = round($amount, 2);
             $payload['taxAmount'] = round($amount * $taxRate / 100, 2);
             $payload['total'] = round($amount + $payload['taxAmount'], 2);
         }
@@ -598,9 +629,9 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
         $search = mb_strtolower(trim((string)($_GET['search'] ?? '')));
         $rows = array_map('hsRecord', hsFindRecords($pdo));
         $contracts = array_filter($rows, static fn(array $row): bool => $row['kind'] === 'contract' && (!$contractId || (int)$row['id'] === $contractId));
-        $payments = array_filter($rows, static fn(array $row): bool => in_array($row['kind'], ['payment', 'receipt'], true));
-        $returns = array_filter($rows, static fn(array $row): bool => $row['kind'] === 'payment_return');
-        $deposits = array_filter($rows, static fn(array $row): bool => in_array($row['kind'], ['deposit', 'bank_deposit'], true));
+        $payments = hsPostedCollections($rows);
+        $returns = array_filter($rows, static fn(array $row): bool => $row['kind'] === 'payment_return' && $row['status'] === 'posted');
+        $deposits = array_filter($rows, static fn(array $row): bool => in_array($row['kind'], ['deposit', 'bank_deposit'], true) && $row['status'] === 'posted');
         $ledgers = [];
         foreach ($contracts as $contract) {
             $payload = $contract['payload']; $number = (string)($payload['contractNumber'] ?? $contract['reference']);
@@ -664,7 +695,7 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
             if (!$contract) hsJson(['error' => 'أحد العقود غير موجود أو مؤرشف'], 422);
             $number = (string)($contract['payload']['contractNumber'] ?? $contract['reference']);
             $paid = 0.0;
-            foreach ($rows as $row) if (in_array($row['kind'], ['payment', 'receipt'], true)) {
+            foreach (hsPostedCollections($rows) as $row) {
                 foreach (($row['payload']['allocations'] ?? []) as $item) {
                     if ((int)($item['contractId'] ?? 0) === $allocation['contractId']) $paid += (float)($item['amount'] ?? 0);
                 }
@@ -674,7 +705,18 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
             if ($total > 0 && $paid + $allocation['amount'] > $total + 0.01) hsJson(['error' => 'قيمة التحصيل تتجاوز المتبقي في العقد'], 422);
             if ($allocation['invoiceId']) {
                 $invoice = null; foreach ($rows as $row) if ($row['kind'] === 'invoice' && (int)$row['id'] === $allocation['invoiceId']) $invoice = $row;
-                if (!$invoice || ((int)($invoice['payload']['contractRecordId'] ?? 0) !== $allocation['contractId'] && (string)($invoice['payload']['contractNumber'] ?? '') !== $number)) hsJson(['error' => 'الفاتورة لا تتبع العقد المحدد'], 422);
+                 if (!$invoice || $invoice['status'] !== 'posted' || ((int)($invoice['payload']['contractRecordId'] ?? 0) !== $allocation['contractId'] && (string)($invoice['payload']['contractNumber'] ?? '') !== $number)) hsJson(['error' => 'الفاتورة لا تتبع العقد المحدد أو غير مرحّلة'], 422);
+                 $invoiceTotal = (float)($invoice['payload']['total'] ?? $invoice['payload']['amount'] ?? 0);
+                 $invoicePaid = 0.0;
+                 foreach (hsPostedCollections($rows) as $payment) {
+                     foreach (($payment['payload']['allocations'] ?? []) as $item) {
+                         if ((int)($item['invoiceId'] ?? 0) === $allocation['invoiceId']) $invoicePaid += (float)($item['amount'] ?? 0);
+                     }
+                     if (!isset($payment['payload']['allocations']) && (int)($payment['payload']['invoiceRecordId'] ?? 0) === $allocation['invoiceId']) {
+                         $invoicePaid += (float)($payment['payload']['amount'] ?? 0);
+                     }
+                 }
+                 if ($invoiceTotal > 0 && $invoicePaid + $allocation['amount'] > $invoiceTotal + 0.01) hsJson(['error' => 'قيمة التحصيل تتجاوز المتبقي في الفاتورة'], 422);
             }
             $contractRows[] = ['contract' => $contract, 'number' => $number, 'paid' => $paid, 'total' => $total];
         }
@@ -792,6 +834,32 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
                         json_encode(['status' => $nextStatus, 'reason' => $payload['reason'] ?? $payload['cancellationReason'] ?? ''], JSON_UNESCAPED_UNICODE),
                         $actorId);
                 }
+                if (in_array((string)$current['kind'], hsFinancialLifecycleKinds(), true)
+                    && (string)$current['status'] === 'posted' && $nextStatus === 'cancelled') {
+                    $reversalExists = $pdo->prepare("SELECT id FROM container_system_records WHERE kind = 'ledger_entry' AND status = 'posted' AND json_extract(payload, '$.entryType') = 'reversal' AND json_extract(payload, '$.originalRecordId') = :id LIMIT 1");
+                    $reversalExists->execute([':id' => $id]);
+                    if (!$reversalExists->fetchColumn()) {
+                        $originalLedgerStmt = $pdo->prepare("SELECT payload, id FROM container_system_records WHERE kind = 'ledger_entry' AND status = 'posted' AND json_extract(payload, '$.sourceId') = :id LIMIT 1");
+                        $originalLedgerStmt->execute([':id' => $id]);
+                        $originalLedger = $originalLedgerStmt->fetch(PDO::FETCH_ASSOC);
+                        $originalLedgerPayload = hsPayload($originalLedger['payload'] ?? null);
+                        $originalAmount = (float)($originalLedgerPayload['amount'] ?? $payload['amount'] ?? $payload['total'] ?? 0);
+                        $reversalPayload = [
+                            'entryType' => 'reversal', 'sourceKind' => $current['kind'], 'sourceId' => $id,
+                            'originalRecordId' => $id, 'originalLedgerId' => $originalLedger ? (int)$originalLedger['id'] : null,
+                            'amount' => $originalAmount,
+                            'direction' => (($originalLedgerPayload['direction'] ?? '') === 'debit') ? 'credit' : 'debit',
+                            'reason' => $payload['reason'] ?? $payload['cancellationReason'] ?? 'إلغاء حركة مالية مرحّلة',
+                            'date' => date('Y-m-d'),
+                        ];
+                        $reversalInsert = $pdo->prepare("INSERT INTO container_system_records (kind, status, reference, payload, created_by, created_at, updated_at) VALUES ('ledger_entry', 'posted', :reference, :payload, :created_by, :created_at, :updated_at)");
+                        $reversalInsert->execute([
+                            ':reference' => 'REV-' . $id,
+                            ':payload' => json_encode($reversalPayload, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE),
+                            ':created_by' => $actorId, ':created_at' => $now, ':updated_at' => $now,
+                        ]);
+                    }
+                }
                 if (in_array((string)$current['kind'], hsFinancialLifecycleKinds(), true) && $nextStatus === 'posted' && $current['status'] !== 'posted') {
                     $ledger = [
                         'sourceKind' => $current['kind'], 'sourceId' => $id,
@@ -850,7 +918,7 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
                     'invoiceRecordId' => isset($payload['invoiceRecordId']) ? (int)$payload['invoiceRecordId'] : null,
                     'customerName' => $payload['customerName'] ?? '',
                     'customerRecordId' => isset($payload['customerRecordId']) ? (int)$payload['customerRecordId'] : null,
-                    'amount' => (float)($payload['amount'] ?? 0),
+                    'amount' => (float)($payload['amount'] ?? $payload['total'] ?? 0),
                     'direction' => in_array($kind, ['expense', 'payment_return', 'purchase', 'purchase_return'], true) ? 'debit' : 'credit',
                     'date' => $payload['date'] ?? date('Y-m-d'),
                 ];
