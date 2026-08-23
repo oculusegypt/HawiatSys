@@ -19,3 +19,4 @@
 - [Financial posting boundary](financial-posting-boundary.md) — financial totals must use posted records only, with receipt/payment deduplication and explicit reversal entries for cancellations.
 - [Financial final certification](financial-final-certification.md) — code checks alone cannot certify finance; require a full safe transaction cycle and cross-report reconciliation.
 - [Golden financial verification](golden-financial-verification.md) — derive regression expectations from posted journal behavior and keep Hostinger claims runtime-backed.
+- [Hostinger FTP verification](hostinger-ftp-verification.md) — HTTP health does not prove FTP access or source-to-live file parity.
