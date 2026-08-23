@@ -278,18 +278,29 @@ const valueFor = (reportId: ReportId, record: ContainerSystemRecord, label: stri
           (!Array.isArray(pp.allocations) && Number(pp.invoiceRecordId ?? 0) === record.id ? Number(pp.amount ?? 0) : 0)
       }, 0)
       : Number(p.paid ?? 0)
-  const returned = returns.reduce((sum, item) => {
+  const matchesReturn = (item: ContainerSystemRecord) => {
     const rp = item.payload as Record<string, unknown>
-    const matchesInvoice = record.kind === "invoice" && (
-      String(rp.originalInvoiceNumber ?? rp.invoiceNumber ?? "") === invoiceNumber ||
-      Number(rp.originalInvoiceId ?? 0) === record.id
-    )
-    const matchesContract = record.kind === "contract" && (
-      String(rp.contractNumber ?? "") === contractNumber ||
-      Number(rp.contractId ?? 0) === record.id
-    )
-    return matchesInvoice || matchesContract || String(rp.originalPaymentId ?? "") === String(record.id)
-      ? sum + Number(rp.amount ?? rp.total ?? 0) : sum
+    if (record.kind === "invoice") {
+      return String(rp.originalInvoiceNumber ?? rp.invoiceNumber ?? "") === invoiceNumber ||
+        Number(rp.originalInvoiceId ?? rp.invoiceRecordId ?? 0) === record.id
+    }
+    if (record.kind === "contract") {
+      if (String(rp.contractNumber ?? "") === contractNumber ||
+        Number(rp.contractRecordId ?? rp.contractId ?? 0) === record.id) return true
+      const originalPaymentId = Number(rp.originalPaymentId ?? 0)
+      if (originalPaymentId > 0) {
+        const originalPayment = payments.find(payment => payment.id === originalPaymentId)
+        if (originalPayment) {
+          const opp = originalPayment.payload as Record<string, unknown>
+          return String(opp.contractNumber ?? "") === contractNumber ||
+            allocated(originalPayment, "contractId", record.id) > 0
+        }
+      }
+    }
+    return String(rp.originalPaymentId ?? "") === String(record.id)
+  }
+  const returned = returns.reduce((sum, item) => {
+    return matchesReturn(item) ? sum + Number((item.payload as Record<string, unknown>).amount ?? (item.payload as Record<string, unknown>).total ?? 0) : sum
   }, 0)
   if (label === "رقم العقد" || label === "العقد / الفاتورة") return String(directField(p, "contractNumber", "invoiceNumber", "receiptNumber", "reference"))
   if (label === "رقم الفاتورة" || label === "رقم الإيصال والفاتورة") return String(directField(p, "invoiceNumber", "receiptNumber", "reference"))
