@@ -902,7 +902,7 @@ export function RecordDialog({
                 ) : optionsFor(field.key).length > 0 ? (
                   <select id={`record-${field.key}`} value={payload[field.key] ?? ""} onChange={event => setValue(field.key, event.target.value)} required={field.required} className="flex h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100" data-testid={`select-record-${field.key}`}>
                      <option value="">اختر {field.label}</option>
-                     {optionsFor(field.key).map(option => <option key={`${field.key}-${option.value}`} value={option.value}>{option.label}</option>)}
+                     {optionsFor(field.key).map((option, index) => <option key={`${field.key}-${option.value || index}`} value={option.value}>{option.label}</option>)}
                   </select>
                 ) : (
                   <>
