@@ -41,14 +41,14 @@ content_type = "application/octet-stream"
 id = "RTo70OttJokFRCRKOlWig"
 uri = "file://hawiat-update-patch.zip"
 type = "unspecified"
-title = "حزمة تحديث الفواتير النهائية"
-description = "باتش Hostinger محدث لتبسيط نموذج الفاتورة: اختيار العميل مرة واحدة، تعبئة بياناته تلقائياً، عقد اختياري ثابت، وإدخال رقم الفاتورة يدوياً عند الحاجة."
+title = "باتش تحديث موقع سبائك الماسة - أحدث نسخة"
+description = "أرشيف تحديث كامل جاهز للرفع إلى public_html، يتضمن الواجهة والصفحات الثابتة وPHP API وقاعدة البيانات وأصول الإشعارات وتعديلات التقارير الحالية."
 logical_id = "da5e0650-6b63-4e98-9652-3d02a75fa1ad"
-content_hash = "sha256:c1b61963e10759e2a88e4cd21deb3d45b4dee2b72e314e2c77d8a4df01a1cb0d"
-size = 2789936
-mtime_ms = 1787453941720
-storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:9549ba16-fad1-4002-8d2d-59af6a3bc923/da5e0650-6b63-4e98-9652-3d02a75fa1ad/eb5c10f4-e1ea-4410-8adc-85ec8aa5bf0c"
-storage_version_token = "1787453966665070"
+content_hash = "sha256:d9516d8aecbfc134c6b30bff0a21fd7744df89c56f8580f36cfd6b3693cc2a66"
+size = 2844697
+mtime_ms = 1787468281671
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:db0f836d-33be-4c38-ae5c-8d50c7b4e07f/da5e0650-6b63-4e98-9652-3d02a75fa1ad/509eb4e2-7319-47a7-9f90-77a9c763a1aa"
+storage_version_token = "1787468293731860"
 content_type = "application/octet-stream"
 
 [[outputs]]
