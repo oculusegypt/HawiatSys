@@ -1,0 +1,731 @@
+🚨 PHASE 7 — FINAL LIVE E2E EXECUTION — DO NOT STOP UNTIL COMPLETE
+
+أنت الآن مسؤول عن الاعتماد النهائي الحي لنظام Hawiat على Hostinger.
+
+ممنوع إعادة فتح مرحلة التحليل من الصفر.
+لدينا بالفعل أدلة محلية وحية سابقة تثبت أن معظم الإصلاحات نجحت. المطلوب الآن هو تنفيذ الاختبار الحي الكامل فعلياً على النسخة المنشورة، وليس إعادة كتابة تقرير BLOCKED بسبب عدم تنفيذ الاختبارات.
+
+1. البيئة الصحيحة — إلزامي
+
+الدومين الوحيد المسموح باختباره:
+
+https://hawiat.aiservx.com
+
+لا تستخدم:
+
+sabaik-almasa.com
+sabaik-almasa
+أي دومين آخر
+أي بيئة تجريبية أخرى
+بيانات دخول Admin للاختبار
+URL:
+https://hawiat.aiservx.com/admin
+
+Username:
+admin
+
+Password:
+taqi2020
+
+هذه بيانات بيئة اختبار، وسيتم تغييرها بعد الانتهاء.
+
+بيانات FTP
+FTP Host:
+92.113.19.25
+
+FTP Port:
+21
+
+FTP Username:
+u130428819.hawiat.aiservx.com
+
+FTP Password:
+3691475+*Hh@!
+
+Remote Directory:
+public_html
+
+استخدم هذه البيانات للاختبار والتحقق فقط.
+
+إذا كانت هناك قناة FTP/FTPS متاحة، استخدمها للتحقق من الملفات المنشورة وSHA-256.
+لا ترفع أو تحذف أو تستبدل أي ملف إلا إذا كان ذلك مطلوباً صراحةً في هذه المرحلة.
+
+2. أهم تعليمات هذه المرحلة
+لا تتوقف عند Authentication
+
+التقرير السابق قال:
+
+Authentication FAIL — تحقق جزئي فقط
+
+وهذا غير مقبول في هذه المرحلة.
+
+نفّذ فعلياً:
+
+POST /api/auth/login
+
+ببيانات الدخول الصحيحة أعلاه.
+
+احصل على:
+
+token/session
+
+ثم استخدمه في جميع اختبارات الإدارة.
+
+اختبر:
+
+/api/auth/me
+/api/admin/container-system/financial/core
+/api/admin/container-system/financial/periods
+/api/admin/container-system/financial/reconciliation
+3. أنشئ Dataset حي مستقل
+
+استخدم Prefix جديد وفريد:
+
+HOSTINGER-FINAL-CERT-E2E-2026
+
+لا تستخدم البيانات القديمة كأساس للنتيجة.
+
+أنشئ Dataset جديدة على Hostinger حتى نستطيع إثبات أن النظام يعمل حالياً.
+
+4. الاختبار الكامل المطلوب
+
+نفّذ الدورة التالية بالترتيب:
+
+Website Order
+    ↓
+Customer
+    ↓
+Customer Site
+    ↓
+Service Request
+    ↓
+Container
+    ↓
+Contract
+    ↓
+Contract Idempotency
+    ↓
+Invoice
+    ↓
+Invoice Posting
+    ↓
+Payment
+    ↓
+Payment Idempotency
+    ↓
+Payment Allocation
+    ↓
+Receipt
+    ↓
+Deposit
+    ↓
+Deposit Idempotency
+    ↓
+Bank Reconciliation
+    ↓
+Expense
+    ↓
+Expense Posting
+    ↓
+Expense Reversal
+    ↓
+Purchase
+    ↓
+Inventory
+    ↓
+Commission
+    ↓
+Bank Fee
+    ↓
+Other Revenue
+    ↓
+Other Revenue Idempotency
+    ↓
+Transfer
+    ↓
+Refund
+    ↓
+Reversal
+    ↓
+Financial Period
+    ↓
+Period Close
+    ↓
+Post-after-close rejection
+
+لا تكتفِ بفحص وجود الـendpoint.
+
+نفّذ العمليات فعلياً.
+
+5. Idempotency — اختبار إلزامي
+
+لكل عملية تدعم idempotency:
+
+المحاولة الأولى
+
+استخدم:
+
+Idempotency-Key:
+HOSTINGER-FINAL-CERT-E2E-2026-001
+
+سجّل:
+
+HTTP status
+record ID
+financial transaction ID
+journal ID
+response
+المحاولة الثانية
+
+أرسل نفس الطلب بنفس المفتاح.
+
+المطلوب:
+
+idempotent = true
+
+وأن يعاد نفس السجل.
+
+يجب ألا يتم إنشاء:
+
+سجل جديد
+Financial Transaction جديد
+Journal Entry جديد
+Reconciliation جديد
+
+اختبر ذلك على الأقل في:
+
+Contract
+Payment
+Deposit
+Other Revenue
+Reversal
+6. Order → Contract
+
+نفّذ اختباراً حقيقياً من الموقع العام.
+
+أنشئ Order جديد باستخدام Prefix:
+
+HOSTINGER-FINAL-CERT-E2E-2026
+
+ثم أثبت:
+
+Order → Customer
+Order → Service Request
+Service Request → Contract
+
+ثم أعد إنشاء العقد بنفس:
+
+requestId
+Idempotency-Key
+
+المطلوب:
+
+نفس Customer
+نفس Request
+نفس Contract
+idempotent=true
+
+ثم جرّب مفتاحاً مختلفاً.
+
+المطلوب رفض إنشاء عقد مكرر.
+
+7. Financial Core — لا تعتمد على HTTP فقط
+
+بعد إكمال Dataset اقرأ:
+
+/api/admin/container-system/financial/core
+
+وسجّل القيم الفعلية:
+
+Gross Revenue
+Refunds
+Net Revenue
+Gross Collections
+Returned Collections
+Net Collections
+Expenses
+Purchases
+Inventory
+Commissions
+Bank Fees
+Other Revenue
+Transfers
+Cash
+Bank
+Profit
+Total Debit
+Total Credit
+
+ويجب إثبات:
+
+Total Debit = Total Credit
+8. Bank Reconciliation — الاختبار الحرج
+
+أنشئ Deposit مستقل.
+
+نفّذ:
+
+Create Deposit
+→ Approve
+→ Post
+
+ثم اقرأ:
+
+/api/admin/container-system/financial/reconciliation
+
+المطلوب:
+
+Deposit = 1
+Reconciliation = 1
+Financial Transaction = 1
+
+ولا يجوز وجود:
+
+Reconciliation duplicate
+
+خصوصاً السيناريو الذي ظهر سابقاً:
+
+FT-437
+FT-439
+
+يجب ألا يؤدي الإيداع الواحد إلى سجلَي reconciliation.
+
+9. Other Revenue
+
+نفّذ:
+
+Create
+→ Approve
+→ Post
+
+ثم تحقق من:
+
+Financial Transaction
+Journal Entry
+Financial Core
+
+ثم أعد نفس العملية بنفس:
+
+Idempotency-Key
+
+المطلوب:
+
+idempotent=true
+
+ولا يوجد أي سجل مالي إضافي.
+
+10. Expense Reversal
+
+نفّذ:
+
+Expense
+→ Approve
+→ Post
+→ Reverse
+
+ثم أعد الـReverse مرة ثانية.
+
+المطلوب:
+
+First reversal = PASS
+Second reversal = HTTP 409
+No duplicate reversal
+No duplicate journal
+
+وتحقق من Financial Core بعد العكس.
+
+11. Financial Period Lock
+
+أنشئ/استخدم فترة اختبار جديدة.
+
+نفّذ:
+
+Create/Open Period
+→ Post transaction
+→ Close Period
+→ Attempt another financial posting
+
+المطلوب تحديداً:
+
+HTTP 422
+
+مع:
+
+{
+  "error": "FINANCIAL_PERIOD_CLOSED"
+}
+
+والأهم:
+
+يجب ألا يحدث أي financial mutation بعد الإغلاق.
+
+تحقق من:
+
+Financial Transactions count
+Journal Entries count
+Financial Core totals
+
+قبل وبعد محاولة الترحيل.
+
+12. التقارير — لا تقل NOT VERIFIED
+
+هذه المرة افتح فعلياً:
+
+Financial Control Center
+Financial Cycle Workspace
+ReportPage
+
+باستخدام جلسة Admin الصحيحة.
+
+استخرج القيم الرئيسية من كل شاشة وقارنها مع:
+
+Financial Core
+
+أنشئ جدولاً مثل:
+
+Metric	Financial Core	Control Center	Cycle Workspace	ReportPage	Result
+Revenue					
+Collections					
+Expenses					
+Purchases					
+Inventory					
+Commissions					
+Bank Fees					
+Other Revenue					
+Refunds					
+Profit					
+Debit					
+Credit					
+
+لا تعلن Cross-Report PASS إلا بعد استخراج الأرقام فعلياً.
+
+13. Database Integrity
+
+لدينا الآن إصلاح محلي للفهرس.
+
+إذا كان بإمكانك الوصول الآمن إلى قاعدة Hostinger:
+
+نفّذ:
+
+PRAGMA quick_check;
+PRAGMA integrity_check;
+
+ويجب أن تكون:
+
+ok
+ok
+
+ثم تحقق من:
+
+active_visitors
+duplicate session_id
+
+ولا تقم بأي إصلاح على قاعدة الإنتاج.
+
+قراءة فقط.
+
+14. Live SHA-256
+
+باستخدام FTP:
+
+تحقق من الملفات المنشورة:
+
+public_html/api/index.php
+public_html/api/container-system.php
+
+وقارن SHA-256 مع النسخة المنشورة/الأرشيف الحالي إن أمكن.
+
+المطلوب:
+
+SHA-256 = MATCH
+
+لا ترفع شيئاً.
+
+لا تحذف شيئاً.
+
+لا تستبدل شيئاً.
+
+15. Security
+
+تحقق من:
+
+/data/
+/data/sabaik.db
+/.env
+/api/.env
+
+المطلوب:
+
+403
+
+واختبر:
+
+/api/auth/me
+
+بدون token:
+
+401
+
+وبـtoken صحيح:
+
+200
+16. لا تتوقف عند أول FAIL
+
+هذه نقطة مهمة جداً.
+
+إذا فشل اختبار واحد:
+
+لا توقف المرحلة بالكامل.
+
+سجّل:
+
+FAIL
+
+ثم استمر في بقية الاختبارات المستقلة.
+
+لا نريد تقريراً من نوع:
+
+توقفت لأن Bank Reconciliation فشل.
+
+نريد:
+
+Bank Reconciliation: FAIL
+Other Revenue: PASS
+Expense Reversal: PASS
+Period Lock: PASS
+Order → Contract: PASS
+Reports: PASS
+...
+
+حتى نحصل على صورة كاملة للنظام.
+
+17. ممنوع تعديل الكود أثناء Certification
+
+هذه المرحلة Verification فقط.
+
+لا:
+
+Edit
+Patch
+Refactor
+Deploy
+Delete
+Migration
+Database Repair
+
+إذا وجدت Bug:
+
+STOP MODIFYING
+Record exact reproduction
+Record HTTP response
+Record affected records
+Continue independent tests
+18. البيانات الاختبارية
+
+لا تحذف بيانات الاختبار أثناء المرحلة.
+
+كل البيانات الجديدة يجب أن تحمل:
+
+HOSTINGER-FINAL-CERT-E2E-2026
+
+وفي النهاية أعطني قائمة كاملة بـ:
+
+Customer IDs
+Site IDs
+Request IDs
+Contract IDs
+Invoice IDs
+Payment IDs
+Receipt IDs
+Deposit IDs
+Reconciliation IDs
+Expense IDs
+Purchase IDs
+Inventory IDs
+Commission IDs
+Bank Fee IDs
+Other Revenue IDs
+Transfer IDs
+Refund IDs
+Reversal IDs
+Period ID
+
+حتى يمكن تنظيف Dataset لاحقاً بشكل آمن ومترابط.
+
+19. القرار النهائي
+
+لا تستخدم:
+
+8/10
+BLOCKED
+NOT VERIFIED
+
+لمجرد أنك لم تنفذ الاختبار.
+
+إذا لم تتمكن من تنفيذ شيء بسبب عائق تقني حقيقي، اكتب:
+
+BLOCKED
+Reason:
+Exact evidence:
+
+أما إذا كانت العملية قابلة للتنفيذ باستخدام بيانات الدخول الموجودة أعلاه، نفذها فعلياً.
+
+FINAL CERTIFICATION FORMAT
+
+في النهاية أخرج تقريراً بهذا الشكل:
+
+========================================
+HOSTINGER FINAL PRODUCTION CERTIFICATION
+========================================
+
+Deployment:
+PASS / FAIL
+
+Live SHA-256:
+PASS / FAIL
+
+DNS:
+PASS / FAIL
+
+HTTPS:
+PASS / FAIL
+
+PHP Runtime:
+PASS / FAIL
+
+Database:
+PASS / FAIL
+
+Authentication:
+PASS / FAIL
+
+Security:
+PASS / FAIL
+
+Database Integrity:
+PASS / FAIL
+
+Golden Dataset:
+PASS / FAIL
+
+Order → Customer:
+PASS / FAIL
+
+Order → Request:
+PASS / FAIL
+
+Request → Contract:
+PASS / FAIL
+
+Contract Idempotency:
+PASS / FAIL
+
+Invoice:
+PASS / FAIL
+
+Payment:
+PASS / FAIL
+
+Payment Idempotency:
+PASS / FAIL
+
+Receipt:
+PASS / FAIL
+
+Deposit:
+PASS / FAIL
+
+Deposit Idempotency:
+PASS / FAIL
+
+Bank Reconciliation:
+PASS / FAIL
+
+Expense:
+PASS / FAIL
+
+Expense Reversal:
+PASS / FAIL
+
+Purchase:
+PASS / FAIL
+
+Inventory:
+PASS / FAIL
+
+Commission:
+PASS / FAIL
+
+Bank Fee:
+PASS / FAIL
+
+Other Revenue:
+PASS / FAIL
+
+Other Revenue Idempotency:
+PASS / FAIL
+
+Transfer:
+PASS / FAIL
+
+Refund:
+PASS / FAIL
+
+Reversal:
+PASS / FAIL
+
+Financial Period:
+PASS / FAIL
+
+Period Lock:
+PASS / FAIL
+
+Financial Core:
+PASS / FAIL
+
+Double Entry:
+PASS / FAIL
+
+Financial Control Center:
+PASS / FAIL
+
+Financial Cycle Workspace:
+PASS / FAIL
+
+ReportPage:
+PASS / FAIL
+
+Cross-Report Consistency:
+PASS / FAIL
+
+Node/PHP/Hostinger Parity:
+PASS / FAIL
+
+Production Stability:
+PASS / FAIL
+
+========================================
+FINAL RESULT:
+10/10 ONLY IF EVERYTHING IS VERIFIED
+========================================
+قاعدة أخيرة
+
+أنت الآن تملك كل ما تحتاجه للوصول إلى الاعتماد النهائي:
+
+الدومين الصحيح.
+حساب Admin.
+بيانات FTP.
+مسار public_html.
+الإصلاحات السابقة.
+Dataset prefix جديد.
+قائمة الاختبارات المطلوبة.
+
+لا تعطني تقريراً عن إمكانية الاختبار. نفّذ الاختبار.
+
+لا تقل إن Authentication غير متاح قبل استخدام بيانات الدخول الصحيحة.
+
+لا تقل إن Golden Dataset غير منفذ لأنك لم تبدأه.
+
+ابدأ الآن من Login الصحيح، ثم نفّذ الـE2E بالكامل حتى النهاية.
+
+لا تعدّل أي كود ولا ترفع أي ملف أثناء هذه المرحلة.
