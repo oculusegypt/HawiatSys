@@ -41,14 +41,14 @@ content_type = "application/octet-stream"
 id = "RTo70OttJokFRCRKOlWig"
 uri = "file://hawiat-update-patch.zip"
 type = "unspecified"
-title = "باتش تحديث موقع سبائك الماسة - أحدث نسخة"
-description = "أرشيف تحديث كامل جاهز للرفع إلى public_html، يتضمن الواجهة والصفحات الثابتة وPHP API وقاعدة البيانات وأصول الإشعارات وتعديلات التقارير الحالية."
+title = "hawiat-update-patch.zip"
+description = "باتش Hostinger كامل بأحدث تحديثات CleanFlow، شامل الواجهة والأصول وصفحات HTML وPHP API وقاعدة البيانات وملفات Web Push. ارفع محتويات الأرشيف إلى public_html مع أخذ نسخة احتياطية من قاعدة البيانات أولاً."
 logical_id = "da5e0650-6b63-4e98-9652-3d02a75fa1ad"
-content_hash = "sha256:d9516d8aecbfc134c6b30bff0a21fd7744df89c56f8580f36cfd6b3693cc2a66"
-size = 2844697
-mtime_ms = 1787468281671
-storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:db0f836d-33be-4c38-ae5c-8d50c7b4e07f/da5e0650-6b63-4e98-9652-3d02a75fa1ad/509eb4e2-7319-47a7-9f90-77a9c763a1aa"
-storage_version_token = "1787468293731860"
+content_hash = "sha256:718292d321b44c5817a19079bf8cfcd2cd512ea0855f2a0bb6c6bff9f505b3bc"
+size = 2847434
+mtime_ms = 1787471131566
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:db0f836d-33be-4c38-ae5c-8d50c7b4e07f/da5e0650-6b63-4e98-9652-3d02a75fa1ad/27cd7cba-0e24-40a2-bd2b-d402e7e10391"
+storage_version_token = "1787471141205606"
 content_type = "application/octet-stream"
 
 [[outputs]]

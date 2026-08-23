@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react"
-import type { ContainerSystemRecord, ServiceRequest } from "@workspace/api-client-react"
+import { useCreateContainerSystemRecord, type ContainerSystemRecord, type ServiceRequest } from "@workspace/api-client-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { PenLine, RotateCcw, Save, X } from "lucide-react"
+
+const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
 
 export type RecordKind =
   | "customer"
@@ -766,6 +768,11 @@ export function RecordDialog({
   const [payload, setPayload] = useState<Record<string, string>>(emptyPayload(kind))
   const [status, setStatus] = useState("active")
   const [formError, setFormError] = useState("")
+  const [createdCustomers, setCreatedCustomers] = useState<ContainerSystemRecord[]>([])
+  const [newCustomerOpen, setNewCustomerOpen] = useState(false)
+  const [newCustomer, setNewCustomer] = useState({ name: "", phone: "", email: "" })
+  const [newCustomerError, setNewCustomerError] = useState("")
+  const createCustomerMutation = useCreateContainerSystemRecord()
 
   useEffect(() => {
     if (!open) return
@@ -785,6 +792,8 @@ export function RecordDialog({
     setPayload(initial)
     setStatus(record?.status || (kind === "invoice" ? "draft" : "active"))
     setFormError("")
+    setNewCustomerOpen(false)
+    setNewCustomerError("")
   }, [initialPayload, open, kind, record])
 
   const setValue = (key: string, value: string) => {
@@ -806,7 +815,7 @@ export function RecordDialog({
   const isInvoice = kind === "invoice"
   const isFinancialRecord = ["receipt", "payment", "expense", "deposit", "bank_deposit", "invoice", "invoice_return", "payment_return", "transfer", "purchase", "purchase_return", "commission", "salary_advance", "salary_payment"].includes(kind)
   const isCustomerLinkedFinancial = ["invoice", "receipt", "payment", "invoice_return", "payment_return", "ledger_entry"].includes(kind)
-  const customers = records.filter(item => item.kind === "customer" && item.status !== "archived")
+  const customers = [...records.filter(item => item.kind === "customer" && item.status !== "archived"), ...createdCustomers]
   const customerIdForPayment = String(
     payload.customerRecordId ??
       customers.find(item => String(item.payload.name ?? "") === String(payload.customerName ?? ""))?.id ??
@@ -909,6 +918,43 @@ export function RecordDialog({
     value: String(item.id),
     label: String(item.payload.name ?? item.payload.customerName ?? item.reference ?? `عميل #${item.id}`),
   }))
+  const selectCustomer = (customer: ContainerSystemRecord) => {
+    const customerPayload = customer.payload as Record<string, unknown>
+    setPayload(current => ({
+      ...current,
+      customerRecordId: String(customer.id),
+      customerName: String(customerPayload.name ?? customerPayload.customerName ?? ""),
+      customerPhone: String(customerPayload.phone ?? customerPayload.mobile ?? ""),
+      customerEmail: String(customerPayload.email ?? ""),
+      customerTaxNumber: String(customerPayload.taxNumber ?? customerPayload.vatNumber ?? customerPayload.taxId ?? ""),
+      customerAddress: String(customerPayload.address ?? customerPayload.location ?? ""),
+    }))
+    setFormError("")
+  }
+  const createCustomer = () => {
+    const name = newCustomer.name.trim()
+    const phone = newCustomer.phone.trim()
+    if (!name || !phone) {
+      setNewCustomerError("اسم العميل ورقم الجوال مطلوبان")
+      return
+    }
+    createCustomerMutation.mutate({
+      data: {
+        kind: "customer",
+        status: "active",
+        payload: { name, phone, email: newCustomer.email.trim(), city: "الرياض" },
+      },
+    }, {
+      onSuccess: customer => {
+        setCreatedCustomers(current => [...current, customer])
+        selectCustomer(customer)
+        setNewCustomer({ name: "", phone: "", email: "" })
+        setNewCustomerError("")
+        setNewCustomerOpen(false)
+      },
+      onError: error => setNewCustomerError(error instanceof Error ? error.message : "تعذر إضافة العميل"),
+    })
+  }
   const paymentContractOptions = openContractsForPayment.map(item => {
     const contractPayload = item.payload as Record<string, unknown>
     const number = String(contractPayload.contractNumber ?? item.reference ?? `#${item.id}`)
@@ -1002,6 +1048,7 @@ export function RecordDialog({
     })
   }
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent dir="rtl" className="max-h-[94vh] max-w-5xl overflow-y-auto border-cyan-100 p-0">
         <DialogHeader className="border-b border-slate-100 bg-slate-50/80 p-6 text-right">
@@ -1042,11 +1089,34 @@ export function RecordDialog({
               <Badge variant="outline" className="border-cyan-200 bg-cyan-50 text-cyan-800">{KIND_LABELS[kind]}</Badge>
             </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {fields.map(field => (
+             {fields.map(field => (
               isCustomerPayment && (field.key === "customerName" || field.key === "contractNumber") ? null : (
               <div key={field.key} className={`min-h-[82px] rounded-xl border border-slate-100 bg-slate-50/45 p-3 ${field.wide ? "sm:col-span-2" : ""} ${isCustomerPayment ? field.key === "invoiceNumber" ? "order-3" : field.key === "amount" ? "order-4" : field.key === "paymentMethod" ? "order-5" : field.key === "date" ? "order-6" : "" : ""}`}>
                 <Label htmlFor={`record-${field.key}`} className="mb-1.5 block text-xs font-bold text-slate-600">{field.label}</Label>
-                {field.type === "textarea" ? (
+                 {field.key === "customerName" ? (
+                   <div className="flex gap-2">
+                     <select
+                       id={`record-${field.key}`}
+                       value={String(payload.customerRecordId ?? "")}
+                       onChange={event => {
+                         const customer = customers.find(item => String(item.id) === event.target.value)
+                         if (customer) selectCustomer(customer)
+                       }}
+                       required={field.required}
+                       className="flex h-11 min-w-0 flex-1 rounded-lg border border-cyan-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
+                       data-testid={`select-record-${field.key}`}
+                     >
+                       <option value="">اختر العميل</option>
+                       {customers.map(customer => {
+                         const customerPayload = customer.payload as Record<string, unknown>
+                         return <option key={customer.id} value={customer.id}>{String(customerPayload.name ?? customerPayload.customerName ?? customer.reference ?? `عميل #${customer.id}`)}{customerPayload.phone ? ` · ${String(customerPayload.phone)}` : ""}</option>
+                       })}
+                     </select>
+                     <Button type="button" variant="outline" onClick={() => setNewCustomerOpen(true)} className="h-11 shrink-0 gap-1 border-cyan-200 px-3 text-xs text-cyan-800 hover:bg-cyan-50" data-testid="button-add-customer">
+                       <PlusIcon /> إضافة عميل
+                     </Button>
+                   </div>
+                 ) : field.type === "textarea" ? (
                   <Textarea id={`record-${field.key}`} value={payload[field.key] ?? ""} onChange={event => setValue(field.key, event.target.value)} placeholder={field.placeholder} required={field.required} rows={3} className="min-h-20 resize-y border-slate-200 bg-white" data-testid={`textarea-record-${field.key}`} />
                 ) : optionsFor(field.key).length > 0 ? (
                     <select id={`record-${field.key}`} value={isCustomerLinkedFinancial && field.key === "customerName" ? String(payload.customerRecordId ?? (isInvoice ? invoiceCustomerId : "")) : payload[field.key] ?? ""} onChange={event => {
@@ -1204,7 +1274,8 @@ export function RecordDialog({
               <>
                 <div className="order-1 min-h-[82px] rounded-xl border border-cyan-100 bg-cyan-50/40 p-3">
                   <Label htmlFor="record-payment-customer" className="mb-1.5 block text-xs font-bold text-slate-600">العميل</Label>
-                  <select
+                   <div className="flex gap-2">
+                   <select
                     id="record-payment-customer"
                     value={customerIdForPayment}
                     onChange={event => {
@@ -1226,6 +1297,8 @@ export function RecordDialog({
                     <option value="">اختر العميل</option>
                     {paymentCustomerOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
                   </select>
+                   <Button type="button" variant="outline" onClick={() => setNewCustomerOpen(true)} className="h-11 shrink-0 gap-1 border-cyan-200 px-3 text-xs text-cyan-800 hover:bg-cyan-50" data-testid="button-add-customer-payment"><PlusIcon /> إضافة عميل</Button>
+                   </div>
                 </div>
                 <div className="order-2 min-h-[82px] rounded-xl border border-cyan-100 bg-cyan-50/40 p-3">
                   <p className="mb-2 text-xs font-bold text-slate-600">العقود المرتبطة</p>
@@ -1357,7 +1430,30 @@ export function RecordDialog({
         </form>
       </DialogContent>
     </Dialog>
+      <Dialog open={newCustomerOpen} onOpenChange={setNewCustomerOpen}>
+        <DialogContent dir="rtl" className="max-w-md border-cyan-100">
+          <DialogHeader className="text-right">
+            <DialogTitle>إضافة عميل جديد</DialogTitle>
+            <DialogDescription>سيتم حفظ العميل ثم اختياره تلقائيًا في النموذج الحالي.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div><Label htmlFor="quick-customer-name">اسم العميل</Label><Input id="quick-customer-name" value={newCustomer.name} onChange={event => setNewCustomer(current => ({ ...current, name: event.target.value }))} className="mt-1.5" required /></div>
+            <div><Label htmlFor="quick-customer-phone">رقم الجوال</Label><Input id="quick-customer-phone" value={newCustomer.phone} onChange={event => setNewCustomer(current => ({ ...current, phone: event.target.value }))} className="mt-1.5" dir="ltr" required /></div>
+            <div><Label htmlFor="quick-customer-email">البريد الإلكتروني (اختياري)</Label><Input id="quick-customer-email" value={newCustomer.email} onChange={event => setNewCustomer(current => ({ ...current, email: event.target.value }))} className="mt-1.5" dir="ltr" /></div>
+            {newCustomerError && <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700">{newCustomerError}</p>}
+          </div>
+          <DialogFooter className="flex-row-reverse gap-2">
+            <Button type="button" variant="outline" onClick={() => setNewCustomerOpen(false)}>إلغاء</Button>
+            <Button type="button" onClick={createCustomer} disabled={createCustomerMutation.isPending} className="bg-cyan-800 hover:bg-cyan-900">{createCustomerMutation.isPending ? "جارٍ الحفظ..." : "حفظ واختيار العميل"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
+}
+
+function PlusIcon() {
+  return <span className="text-base leading-none">+</span>
 }
 
 export function RecordStatus({ status }: { status?: string }) {
