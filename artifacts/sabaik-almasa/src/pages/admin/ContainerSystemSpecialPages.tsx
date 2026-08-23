@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
-import { ArrowLeft, ArrowRight, CalendarClock, ChevronLeft, ChevronRight, ClipboardList, Coins, FileDown, FileText, MapPin, Printer, Save, Search, Settings2, Truck, UserRound } from "lucide-react"
+import { ArrowLeft, ArrowRight, CalendarClock, ChevronLeft, ChevronRight, ClipboardList, Coins, FileDown, FileText, MapPin, Printer, Save, Search, Settings2, Truck, UserRound, AlertTriangle, ArrowDownRight, ArrowUpRight, Banknote, CheckCircle2, CircleDollarSign, FileCheck2, ReceiptText, Sparkles, WalletCards } from "lucide-react"
 import { getGetAdminWorkOrdersQueryKey, getGetContainerContractLedgersQueryKey, useAssignServiceRequest, useGetAdminWorkOrders, useGetContainerContractLedgers, useSettleContainerContract, type ContainerSystemRecord, type ServiceRequest } from "@workspace/api-client-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -18,6 +18,64 @@ export type ReportId =
   | "cash_rental_returns" | "payment_returns" | "general_expenses" | "truck_expenses"
   | "inventory" | "stock_issue" | "stock_issue_returns" | "item_purchases"
   | "general_purchases" | "purchase_returns"
+
+function financialPayload(record: ContainerSystemRecord) {
+  return record.payload as Record<string, unknown>
+}
+
+function financialAmount(record: ContainerSystemRecord) {
+  const payload = financialPayload(record)
+  const value = Number(payload.total ?? payload.amount ?? payload.lineTotal ?? payload.value ?? 0)
+  return Number.isFinite(value) ? value : 0
+}
+
+const financialMoney = (value: number) => `${Math.round(value).toLocaleString("ar-SA")} ر.س`
+
+export function FinancialControlCenter({
+  records,
+  onNavigate,
+  onAdd,
+}: {
+  records: ContainerSystemRecord[]
+  onNavigate: (view: "invoice" | "payment" | "receipt" | "expense" | "settlements" | "reports") => void
+  onAdd: (kind: RecordKind) => void
+}) {
+  const active = records.filter(record => record.status !== "archived")
+  const invoices = active.filter(record => record.kind === "invoice")
+  const payments = active.filter(record => record.kind === "payment" || record.kind === "receipt")
+  const expenses = active.filter(record => ["expense", "daily_expense", "fuel_expense", "salary_payment", "salary_advance"].includes(record.kind))
+  const returns = active.filter(record => ["invoice_return", "payment_return"].includes(record.kind))
+  const contracts = active.filter(record => record.kind === "contract")
+  const invoiceTotal = invoices.reduce((sum, record) => sum + financialAmount(record), 0)
+  const collected = payments.reduce((sum, record) => sum + financialAmount(record), 0)
+  const expenseTotal = expenses.reduce((sum, record) => sum + financialAmount(record), 0)
+  const returnTotal = returns.reduce((sum, record) => sum + financialAmount(record), 0)
+  const receivables = contracts.reduce((sum, record) => {
+    const payload = financialPayload(record)
+    const total = Number(payload.total ?? payload.amount ?? 0)
+    const paid = Number(payload.paid ?? 0)
+    return sum + Math.max((Number.isFinite(total) ? total : 0) - (Number.isFinite(paid) ? paid : 0), 0)
+  }, 0)
+  const netCash = collected - expenseTotal - returnTotal
+  const recent = [...active].filter(record => ["invoice", "payment", "receipt", "expense", "invoice_return", "payment_return"].includes(record.kind)).sort((left, right) => String(right.updatedAt).localeCompare(String(left.updatedAt))).slice(0, 7)
+  const unmatched = payments.filter(record => {
+    const payload = financialPayload(record)
+    return !String(payload.customerRecordId ?? "").trim() || (!String(payload.contractNumber ?? "").trim() && !String(payload.invoiceNumber ?? "").trim())
+  })
+  const metrics = [
+    ["إجمالي الفواتير", invoiceTotal, "invoice", ReceiptText, "text-cyan-700", "bg-cyan-50", `${invoices.length} فاتورة`],
+    ["التحصيل الفعلي", collected, "payment", Banknote, "text-emerald-700", "bg-emerald-50", `${payments.length} حركة تحصيل`],
+    ["الذمم المتبقية", receivables, "settlements", CircleDollarSign, "text-amber-700", "bg-amber-50", `${contracts.length} عقداً مرتبطاً`],
+    ["صافي التدفق", netCash, "reports", WalletCards, netCash >= 0 ? "text-indigo-700" : "text-rose-700", netCash >= 0 ? "bg-indigo-50" : "bg-rose-50", `مصروفات ${financialMoney(expenseTotal)}`],
+  ] as const
+  return <div className="space-y-5" data-testid="financial-control-center">
+    <div className="relative overflow-hidden rounded-[1.5rem] bg-gradient-to-l from-[#103c4d] via-[#155467] to-[#0c7181] p-5 text-white shadow-lg sm:p-7"><div className="absolute -left-10 -top-16 h-48 w-48 rounded-full border border-white/10" /><div className="relative flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"><div><div className="mb-2 flex items-center gap-2 text-xs font-bold text-cyan-100"><Sparkles size={14} /> المركز المالي الذكي</div><h3 className="text-2xl font-black">الصورة المالية في لحظة</h3><p className="mt-2 max-w-2xl text-sm leading-7 text-cyan-50/75">لوحة موحدة تربط الفواتير والتحصيل والعقود والمصروفات والتسويات، وتكشف أي سجل يحتاج مراجعة قبل أن يصبح مشكلة.</p></div><div className="flex flex-wrap gap-2"><button type="button" onClick={() => onAdd("invoice")} className="rounded-xl bg-amber-300 px-4 py-2.5 text-xs font-black text-slate-900 transition hover:bg-amber-200">فاتورة جديدة</button><button type="button" onClick={() => onAdd("payment")} className="rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-xs font-black text-white transition hover:bg-white/20">تسجيل تحصيل</button></div></div></div>
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{metrics.map(([label, value, target, Icon, color, bg, caption]) => <button key={label} type="button" onClick={() => onNavigate(target)} className="rounded-2xl border border-slate-200 bg-white p-4 text-right shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"><div className="flex items-start justify-between"><span className={`flex h-10 w-10 items-center justify-center rounded-xl ${bg} ${color}`}><Icon size={19} /></span><ArrowUpRight size={15} className="text-slate-300" /></div><p className="mt-4 text-xs font-bold text-slate-500">{label}</p><b className={`mt-1 block text-2xl font-black ${color}`}>{financialMoney(value)}</b><span className="mt-1 block text-[11px] text-slate-400">{caption}</span></button>)}</div>
+    <div className="grid gap-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(18rem,.8fr)]"><Card><CardHeader className="border-b bg-slate-50/60"><CardTitle className="text-base">المطابقة والتنبيهات</CardTitle><p className="mt-1 text-xs text-slate-500">فحص مباشر للعمليات المالية غير المكتملة</p></CardHeader><CardContent className="space-y-3 p-4">{unmatched.length ? <div className="rounded-xl border border-amber-200 bg-amber-50 p-4"><div className="flex items-center gap-2 text-sm font-black text-amber-900"><AlertTriangle size={18} /> {unmatched.length} حركة تحصيل غير مكتملة الربط</div><p className="mt-2 text-xs leading-6 text-amber-800">اربط كل تحصيل بعميل رسمي وعقد أو فاتورة حتى يظهر في كشف الحساب ولا يتكرر عند المطابقة.</p><Button size="sm" variant="outline" onClick={() => onNavigate("payment")} className="mt-2 gap-2 border-amber-300 bg-white text-amber-900">مراجعة التحصيلات <ArrowLeft size={13} /></Button></div> : <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-800"><CheckCircle2 size={20} /> لا توجد حركات مالية غير مربوطة حالياً.</div>}<div className="grid gap-2 sm:grid-cols-2"><div className="rounded-xl bg-slate-50 p-3 text-xs"><span className="text-slate-500">المرتجعات</span><b className="mt-1 block text-rose-700">{financialMoney(returnTotal)}</b></div><div className="rounded-xl bg-slate-50 p-3 text-xs"><span className="text-slate-500">نسبة التحصيل من الفواتير</span><b className="mt-1 block text-indigo-700">{invoiceTotal ? `${Math.round(collected / invoiceTotal * 100)}%` : "—"}</b></div></div></CardContent></Card>
+    <Card><CardHeader className="border-b bg-slate-50/60"><CardTitle className="text-base">آخر الحركات المالية</CardTitle><p className="mt-1 text-xs text-slate-500">سجل سريع قابل للانتقال إلى القسم المختص</p></CardHeader><CardContent className="p-0">{recent.length ? recent.map(record => { const payload = financialPayload(record); const isIncome = ["payment", "receipt"].includes(record.kind); return <button key={record.id} type="button" onClick={() => onNavigate(record.kind === "invoice" ? "invoice" : isIncome ? "payment" : "expense")} className="flex w-full items-center gap-3 border-b px-4 py-3 text-right transition last:border-0 hover:bg-cyan-50/40"><span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${isIncome ? "bg-emerald-50 text-emerald-700" : record.kind === "invoice" ? "bg-cyan-50 text-cyan-700" : "bg-rose-50 text-rose-700"}`}>{isIncome ? <ArrowDownRight size={15} /> : record.kind === "invoice" ? <ReceiptText size={15} /> : <ArrowUpRight size={15} />}</span><span className="min-w-0 flex-1"><b className="block truncate text-xs text-slate-800">{String(payload.customerName ?? payload.description ?? payload.category ?? record.reference)}</b><span className="text-[10px] text-slate-400">{KIND_LABELS[record.kind as RecordKind] ?? record.kind}</span></span><b className={`text-xs ${isIncome ? "text-emerald-700" : "text-slate-700"}`}>{financialMoney(financialAmount(record))}</b></button> }) : <div className="p-8 text-center text-xs text-slate-500">لا توجد حركات مالية بعد.</div>}</CardContent></Card></div>
+    <div className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><span className="ml-2 self-center text-xs font-black text-slate-700">الوصول السريع</span><Button size="sm" variant="outline" onClick={() => onNavigate("reports")} className="gap-2"><FileText size={14} /> التقارير</Button><Button size="sm" variant="outline" onClick={() => onNavigate("receipt")} className="gap-2"><Banknote size={14} /> سندات القبض</Button><Button size="sm" variant="outline" onClick={() => onNavigate("expense")} className="gap-2"><ArrowDownRight size={14} /> المصروفات</Button><Button size="sm" variant="outline" onClick={() => onNavigate("settlements")} className="gap-2"><CircleDollarSign size={14} /> التسويات</Button></div>
+  </div>
+}
 
 export const REPORTS: { id: ReportId; title: string; group: string; description: string; kinds: string[]; filters: string[]; columns: string[] }[] = [
   { id: "general", title: "التقرير العام", group: "التقارير العامة والمالية", description: "ملخص الإيرادات الأخرى خلال فترة محددة مع السائق أو المشرف والعمولة والملاحظات والتاريخ.", kinds: ["other_revenue", "receipt"], filters: ["السائق / المشرف", "الفترة الزمنية"], columns: ["السائق / المشرف", "القيمة", "العمولة", "الملاحظات", "التاريخ"] },

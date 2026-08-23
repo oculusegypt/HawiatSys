@@ -4,7 +4,7 @@ import { Link, useLocation } from "wouter"
 import {
   AlertCircle, Archive, ArrowDownLeft, ArrowLeftRight, ArrowUpRight, BellRing, BookOpenCheck, Box, CalendarDays, CarFront, CheckCircle2,
   ChevronDown, ChevronLeft, ClipboardList, Coins, FileCheck2, FileDown, FilePenLine, FileText, FolderSearch, Gauge, HandCoins, Landmark, LayoutDashboard, ReceiptText, Trash2, Truck,
-  Link2, Loader2, MapPin, Plus, RefreshCw, Search, Settings2, ShieldCheck, SlidersHorizontal, UserCog, UserRound, Users, Wrench, X,
+  Link2, Loader2, MapPin, Plus, RefreshCw, Search, Settings2, ShieldCheck, SlidersHorizontal, UserCog, UserRound, Users, WalletCards, Wrench, X,
 } from "lucide-react"
 import {
   getGetContainerSystemAuditQueryKey,
@@ -32,14 +32,14 @@ import { ContainerStatusImage } from "@/components/admin/ContainerStatusImage"
 import {
   FIELD_CONFIG, KIND_ICONS, KIND_LABELS, RecordDialog, RecordKind, RecordStatus, amountOf, formatAuditAction, formatRecordDate, formatStatus,
 } from "./ContainerSystemComponents"
-import { ContractSettlementWorkspace, DispatchCalendar, ReportsHub, ReportPage, SettingsPage, REPORTS, ReportId } from "./ContainerSystemSpecialPages"
+import { ContractSettlementWorkspace, DispatchCalendar, FinancialControlCenter, ReportsHub, ReportPage, SettingsPage, REPORTS, ReportId } from "./ContainerSystemSpecialPages"
 import { ContractWizard } from "./ContractWizard"
 import { ContainerAssignmentWizard } from "./ContainerAssignmentWizard"
 
 const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
 
 type ViewKey =
-  | "overview" | RecordKind | "reports" | "audit" | "container_search"
+  | "overview" | "financial_center" | RecordKind | "reports" | "audit" | "container_search"
   | "rental" | "vouchers" | "operations" | "customer_payments" | "bookings"
   | "expenses" | "payroll" | "fleet" | "warehouses" | "system_settings" | "contracts_list"
   | "settlements"
@@ -88,6 +88,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: "المالية والتحصيل",
     items: [
+      { key: "financial_center" as ViewKey, label: "المركز المالي", icon: WalletCards },
       { key: "receipt" as ViewKey, label: "سندات القبض", icon: HandCoins },
       { key: "expense" as ViewKey, label: "سندات الصرف", icon: ArrowDownLeft },
       { key: "deposit" as ViewKey, label: "الإيداعات البنكية", icon: Landmark },
@@ -153,6 +154,7 @@ const viewKind: Partial<Record<ViewKey, RecordKind>> = {
 }
 const viewLabel = (view: ViewKey) =>
   view === "overview" ? "الرئيسية"
+  : view === "financial_center" ? "المركز المالي"
   : view === "container_search" ? "البحث عن حاوية"
   : view === "reports" ? "التقارير الشاملة"
   : view === "audit" ? "سجل التدقيق"
@@ -1082,6 +1084,7 @@ export default function ContainerSystem() {
           {notice && <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800" role="status" data-testid="status-container-success"><CheckCircle2 size={17} /> {notice}</div>}
           {error ? <Card className="border-rose-200 bg-rose-50/50"><CardContent className="flex flex-col items-center gap-3 p-12 text-center"><AlertCircle size={27} className="text-rose-500" /><h3 className="font-bold text-rose-900">تعذر تحميل بيانات النظام</h3><p className="text-sm text-rose-700">تحقق من الاتصال ثم حاول مرة أخرى.</p><Button onClick={() => { snapshotQuery.refetch(); recordsQuery.refetch() }} variant="outline" className="gap-2 border-rose-200 bg-white text-rose-800" data-testid="button-retry-container-system"><RefreshCw size={15} /> إعادة المحاولة</Button></CardContent></Card>
             : view === "overview" ? <Overview snapshot={snapshot} records={records} onAdd={openCreate} onOpen={setDetailRecord} />
+              : view === "financial_center" ? <FinancialControlCenter records={snapshot?.records ?? records} onAdd={kind => openCreate(kind)} onNavigate={nextView => { setView(nextView); setSearch(""); if (nextView !== "reports") setReportId(null) }} />
               : view === "reports" ? reportId ? <ReportPage reportId={reportId} records={snapshot?.records ?? records} onBack={() => setReportId(null)} /> : <ReportsHub onOpen={setReportId} />
               : view === "settlements" ? <ContractSettlementWorkspace records={snapshot?.records ?? records} initialCustomerId={requestedCustomerId} />
               : view === "system_settings" ? <SettingsPage records={snapshot?.records ?? records} organization={organization} onSave={saveSettings} />

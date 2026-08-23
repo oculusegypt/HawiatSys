@@ -765,6 +765,7 @@ router.post("/admin/container-system/financial/settle", requireContainerPermissi
       const now = new Date().toISOString();
       const paymentPayload = {
         operationKey, contractId, contractNumber, customerName: contractPayload.customerName ?? "",
+        customerRecordId: Number(contractPayload.customerRecordId) || null,
         amount, paymentMethod, depositId: body.depositId ?? null, date: body.date ?? now.slice(0, 10), notes: body.notes ?? "",
         source: "contract_settlement",
       };
@@ -776,7 +777,7 @@ router.post("/admin/container-system/financial/settle", requireContainerPermissi
         kind: "ledger_entry", status: "posted", reference: `LED-${payment.id}`,
         payload: JSON.stringify({
           sourceKind: "payment", sourceId: payment.id, contractId, contractNumber,
-          customerName: contractPayload.customerName ?? "", amount, direction: "credit",
+          customerName: contractPayload.customerName ?? "", customerRecordId: Number(contractPayload.customerRecordId) || null, amount, direction: "credit",
           date: paymentPayload.date, depositId: body.depositId ?? null,
         }), createdBy: adminReq.adminId,
       }).returning().get();
@@ -1182,6 +1183,7 @@ router.post("/admin/container-system/records", async (req, res) => {
         sourceId: created.id,
         contractNumber: payload.contractNumber ?? "",
         customerName: payload.customerName ?? "",
+        customerRecordId: Number(payload.customerRecordId) || null,
         amount: Number(payload.amount ?? 0),
         direction: kind === "expense" ? "debit" : "credit",
         date: payload.date ?? new Date().toISOString().slice(0, 10),
