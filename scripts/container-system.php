@@ -78,6 +78,95 @@ function hsEnsureSchema(PDO $pdo): void {
     }
 }
 
+function hsSyncRequestsToCustomers(PDO $pdo): void {
+    $requests = $pdo->query("SELECT id, client_name, phone, email, service_type, location, created_at, customer_record_id FROM service_requests ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
+    $findCustomer = $pdo->prepare("SELECT id, payload FROM container_system_records WHERE kind = 'customer' AND status != 'archived'");
+    $updateCustomer = $pdo->prepare("UPDATE container_system_records SET payload = :payload, updated_at = :updated_at WHERE id = :id");
+    $insertCustomer = $pdo->prepare("INSERT INTO container_system_records (kind, status, reference, payload, created_at, updated_at) VALUES ('customer', 'active', :reference, :payload, :now, :now)");
+    $findSite = $pdo->prepare("SELECT id, payload FROM container_system_records WHERE kind = 'customer_site' AND status != 'archived'");
+    $insertSite = $pdo->prepare("INSERT INTO container_system_records (kind, status, reference, payload, created_at, updated_at) VALUES ('customer_site', 'active', :reference, :payload, :now, :now)");
+    $linkRequest = $pdo->prepare("UPDATE service_requests SET customer_record_id = :customer_id WHERE id = :id");
+
+    foreach ($requests as $request) {
+        $phoneDigits = preg_replace('/\D+/', '', (string)($request['phone'] ?? ''));
+        if ($phoneDigits === '') continue;
+        $customer = null;
+        $findCustomer->execute();
+        foreach ($findCustomer->fetchAll(PDO::FETCH_ASSOC) as $candidate) {
+            $payload = hsPayload((string)($candidate['payload'] ?? ''));
+            if ($phoneDigits === preg_replace('/\D+/', '', (string)($payload['phone'] ?? ''))) {
+                $customer = ['id' => (int)$candidate['id'], 'payload' => $payload];
+                break;
+            }
+        }
+
+        $now = date('c');
+        if (!$customer) {
+            $payload = [
+                'name' => trim((string)($request['client_name'] ?? '')) ?: 'عميل الطلب',
+                'phone' => (string)$request['phone'],
+                'email' => (string)($request['email'] ?? ''),
+                'source' => 'service_request',
+                'firstRequestId' => (int)$request['id'],
+                'lastRequestId' => (int)$request['id'],
+                'lastRequestClientName' => (string)($request['client_name'] ?? ''),
+                'lastRequestAt' => (string)($request['created_at'] ?? $now),
+            ];
+            $insertCustomer->execute([
+                ':reference' => 'CUS-' . str_pad((string)$request['id'], 5, '0', STR_PAD_LEFT),
+                ':payload' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE),
+                ':now' => $now,
+            ]);
+            $customer = ['id' => (int)$pdo->lastInsertId(), 'payload' => $payload];
+        } else {
+            $payload = $customer['payload'];
+            $payload['lastRequestId'] = (int)$request['id'];
+            $payload['lastRequestClientName'] = (string)($request['client_name'] ?? '');
+            $payload['lastRequestAt'] = (string)($request['created_at'] ?? $now);
+            if (!empty($request['email'])) $payload['email'] = (string)$request['email'];
+            $updateCustomer->execute([
+                ':payload' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE),
+                ':updated_at' => $now,
+                ':id' => $customer['id'],
+            ]);
+        }
+
+        $location = trim((string)($request['location'] ?? ''));
+        if ($location !== '' && $location !== 'غير محدد') {
+            $sameSite = false;
+            $findSite->execute();
+            foreach ($findSite->fetchAll(PDO::FETCH_ASSOC) as $siteRow) {
+                $sitePayload = hsPayload((string)($siteRow['payload'] ?? ''));
+                if ((int)($sitePayload['customerRecordId'] ?? 0) === $customer['id'] &&
+                    trim((string)($sitePayload['address'] ?? $sitePayload['location'] ?? '')) === $location) {
+                    $sameSite = true;
+                    break;
+                }
+            }
+            if (!$sameSite) {
+                $sitePayload = [
+                    'customerRecordId' => $customer['id'],
+                    'name' => trim((string)($request['client_name'] ?? '')) . ' — عنوان الطلب #' . (int)$request['id'],
+                    'address' => $location,
+                    'location' => $location,
+                    'requestId' => (int)$request['id'],
+                    'source' => 'service_request',
+                    'serviceType' => (string)($request['service_type'] ?? ''),
+                ];
+                $insertSite->execute([
+                    ':reference' => 'SITE-' . str_pad((string)$request['id'], 5, '0', STR_PAD_LEFT),
+                    ':payload' => json_encode($sitePayload, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE),
+                    ':now' => $now,
+                ]);
+            }
+        }
+
+        if ((int)($request['customer_record_id'] ?? 0) !== $customer['id']) {
+            $linkRequest->execute([':customer_id' => $customer['id'], ':id' => (int)$request['id']]);
+        }
+    }
+}
+
 function hsAuth(PDO $pdo, bool $managerOnly = false): array {
     $header = getAuthHeader();
     if (!$header || !preg_match('/^Bearer\s+(.+)$/i', $header, $matches)) {
@@ -288,6 +377,10 @@ function hsSyncMovement(PDO $pdo, array $payload, int $actorId): void {
 function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, array $input): void {
     if (!str_starts_with($path, '/admin/container-system')) return;
     hsEnsureSchema($pdo);
+    // Repair orders created before customer indexing was deployed. This keeps
+    // Hostinger self-contained and makes the customer list an authoritative
+    // projection of all historical service requests.
+    hsSyncRequestsToCustomers($pdo);
     $admin = hsAuth($pdo);
     $actorId = (int)$admin['id'];
 
