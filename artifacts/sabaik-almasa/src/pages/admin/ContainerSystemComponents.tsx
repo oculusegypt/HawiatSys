@@ -186,7 +186,7 @@ export const FIELD_CONFIG: Record<RecordKind, FieldConfig[]> = {
   container: [
     { key: "assetCode", label: "رقم الأصل", placeholder: "CNT-204" },
     { key: "typeName", label: "نوع الحاوية", placeholder: "20 ياردة" },
-    { key: "status", label: "حالة الأصل", placeholder: "متاح / مؤجر / صيانة" },
+    { key: "status", label: "الحالة التشغيلية لأصل الحاوية", placeholder: "اختر الحالة التي تصف وضع الحاوية الآن" },
     { key: "location", label: "الموقع الحالي", placeholder: "مستودع الشفا" },
     { key: "lastInspection", label: "آخر فحص", type: "date" },
   ],
@@ -578,6 +578,20 @@ export const STATUS_OPTIONS = [
   ["delinquent", "مديونية"], ["approved", "معتمد"], ["rejected", "مرفوض"],
 ] as const
 
+const CONTAINER_STATUS_OPTIONS = [
+  { value: "available", label: "متاحة — جاهزة للتأجير" },
+  { value: "reserved", label: "محجوزة — بانتظار التسليم" },
+  { value: "rented", label: "مؤجرة — لدى عميل" },
+  { value: "in_transit", label: "في الطريق — قيد النقل" },
+  { value: "with_customer", label: "لدى العميل — قيد الاستخدام" },
+  { value: "awaiting_return", label: "بانتظار الاسترجاع" },
+  { value: "inspection", label: "تحت الفحص" },
+  { value: "maintenance", label: "في الصيانة" },
+  { value: "damaged", label: "تالفة — تحتاج إصلاحًا" },
+  { value: "lost", label: "مفقودة — تحتاج متابعة" },
+  { value: "out_of_service", label: "خارج الخدمة" },
+] as const
+
 export function statusTone(status?: string) {
   const normalized = (status ?? "").toLowerCase()
   if (["active", "available", "متاح", "نشط", "جاهزة", "مكتملة", "تمت المعالجة"].some(item => normalized.includes(item))) {
@@ -716,6 +730,7 @@ export function RecordDialog({
     for (const field of FIELD_CONFIG[kind]) {
       if (field.type === "date") initial[field.key] = dateInputValue(initial[field.key])
     }
+    if (kind === "container" && !initial.status) initial.status = record?.status || "available"
     setPayload(initial)
     setStatus(record?.status || "active")
   }, [initialPayload, open, kind, record])
@@ -723,6 +738,7 @@ export function RecordDialog({
   const setValue = (key: string, value: string) => setPayload(current => ({ ...current, [key]: value }))
   const fields = FIELD_CONFIG[kind]
   const optionsFor = (key: string) => {
+    if (kind === "container" && key === "status") return CONTAINER_STATUS_OPTIONS
     // Operational movements may be entered without a contract number, and
     // movementType intentionally remains free text so the operator can use
     // the exact operational wording used on the job.
@@ -749,22 +765,22 @@ export function RecordDialog({
   }
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent dir="rtl" className="max-h-[90vh] max-w-3xl overflow-y-auto border-cyan-100 p-0">
+      <DialogContent dir="rtl" className="max-h-[94vh] max-w-5xl overflow-y-auto border-cyan-100 p-0">
         <DialogHeader className="border-b border-slate-100 bg-slate-50/80 p-6 text-right">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-100 text-cyan-800"><PenLine size={20} /></div>
             <div>
-              <DialogTitle className="text-xl text-slate-900">{record ? "تعديل السجل" : kind === "contract" ? "تسجيل تعاقد" : kind === "contract_line" ? "تسجيل إيجار حاوية" : `إضافة ${KIND_LABELS[kind]}`}</DialogTitle>
-              <DialogDescription className="mt-1">سجل تشغيلي محفوظ مباشرة في نظام الحاويات.</DialogDescription>
+              <DialogTitle className="text-xl text-slate-900">{record ? kind === "container" ? "تعديل بيانات أصل الحاوية" : "تعديل بيانات السجل" : kind === "contract" ? "تسجيل تعاقد" : kind === "contract_line" ? "تسجيل إيجار حاوية" : `إضافة ${KIND_LABELS[kind]}`}</DialogTitle>
+              <DialogDescription className="mt-1">{kind === "container" ? "حدّد بيانات الحاوية وحالتها التشغيلية الحالية ليعتمد عليها نظام التوفر والتأجير." : "بيانات تشغيلية محفوظة مباشرة في نظام الحاويات."}</DialogDescription>
             </div>
           </div>
         </DialogHeader>
-        <form onSubmit={event => { event.preventDefault(); onSubmit(payload, status) }} className="space-y-5 p-6">
+        <form onSubmit={event => { event.preventDefault(); onSubmit(payload, kind === "container" ? payload.status || status : status) }} className="space-y-5 p-6">
           <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
             <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
-                <p className="text-sm font-black text-slate-900">البيانات الأساسية</p>
-                <p className="mt-1 text-[11px] text-slate-400">أدخل البيانات في الحقول المتساوية ثم راجعها قبل الحفظ.</p>
+                 <p className="text-sm font-black text-slate-900">{kind === "container" ? "بيانات الحاوية الأساسية" : "البيانات الأساسية"}</p>
+                 <p className="mt-1 text-[11px] text-slate-400">{kind === "container" ? "اختر الحالة التي تعكس وضع الحاوية الفعلي الآن، ثم راجع البيانات قبل الحفظ." : "أدخل البيانات في الحقول المتساوية ثم راجعها قبل الحفظ."}</p>
               </div>
               <Badge variant="outline" className="border-cyan-200 bg-cyan-50 text-cyan-800">{KIND_LABELS[kind]}</Badge>
             </div>
@@ -776,7 +792,7 @@ export function RecordDialog({
                   <Textarea id={`record-${field.key}`} value={payload[field.key] ?? ""} onChange={event => setValue(field.key, event.target.value)} placeholder={field.placeholder} rows={3} className="min-h-20 resize-y border-slate-200 bg-white" data-testid={`textarea-record-${field.key}`} />
                 ) : optionsFor(field.key).length > 0 ? (
                   <select id={`record-${field.key}`} value={payload[field.key] ?? ""} onChange={event => setValue(field.key, event.target.value)} className="flex h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100" data-testid={`select-record-${field.key}`}>
-                    <option value="">اختر {field.label}</option>
+                     <option value="">اختر {field.label}</option>
                     {optionsFor(field.key).map(option => <option key={`${field.key}-${option.value}`} value={option.value}>{option.label}</option>)}
                   </select>
                 ) : (
@@ -801,19 +817,19 @@ export function RecordDialog({
                 )}
               </div>
             ))}
-            <div className={kind === "contract" ? "" : "sm:col-span-2"}>
+             {kind !== "container" && <div className={kind === "contract" ? "" : "sm:col-span-2"}>
               <Label htmlFor="record-status" className="mb-1.5 block text-xs font-bold text-slate-600">حالة السجل</Label>
               <select id="record-status" value={status} onChange={event => setStatus(event.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-700" data-testid="select-record-status">
                 {STATUS_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
               </select>
-            </div>
+             </div>}
           </div>
           </div>
           {kind === "contract" && <ContractTemplatePicker value={payload.contractTemplate ?? ""} onChange={value => { setValue("contractTemplate", value); if (value) setValue("notes", CONTRACT_TEMPLATES.find(template => template.id === value)?.terms ?? "") }} />}
           {["contract", "container_movement"].includes(kind) && <SignaturePad value={payload.signatureData ?? ""} onChange={value => setValue("signatureData", value)} />}
           <DialogFooter className="gap-2 border-t border-slate-100 pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="gap-2" data-testid="button-cancel-record"><X size={15} /> إلغاء</Button>
-            <Button type="submit" disabled={busy} className="gap-2 bg-cyan-800 hover:bg-cyan-900" data-testid="button-save-record"><Save size={15} /> {busy ? "جارٍ الحفظ..." : "حفظ السجل"}</Button>
+             <Button type="submit" disabled={busy} className="gap-2 bg-cyan-800 hover:bg-cyan-900" data-testid="button-save-record"><Save size={15} /> {busy ? "جارٍ الحفظ..." : kind === "container" ? "حفظ بيانات الحاوية" : "حفظ السجل"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
