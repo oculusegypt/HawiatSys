@@ -1,0 +1,52 @@
+index.js:62 Target website not loaded
+/api/admin/active-visitors:1  Failed to load resource: the server responded with a status of 401 ()
+/api/admin/active-visitors:1  Failed to load resource: the server responded with a status of 401 ()
+/api/admin/active-visitors:1  Failed to load resource: the server responded with a status of 401 ()
+/api/admin/active-visitors:1  Failed to load resource: the server responded with a status of 401 ()
+/api/admin/active-visitors:1  Failed to load resource: the server responded with a status of 401 ()
+/api/admin/active-visitors:1  Failed to load resource: the server responded with a status of 401 ()
+/api/admin/active-visitors:1  Failed to load resource: the server responded with a status of 401 ()
+/api/admin/active-visitors:1  Failed to load resource: the server responded with a status of 401 ()
+/api/admin/active-visitors:1  Failed to load resource: the server responded with a status of 401 ()
+/api/admin/active-visitors:1  Failed to load resource: the server responded with a status of 401 ()
+/api/admin/active-visitors:1  Failed to load resource: the server responded with a status of 401 ()
+/api/admin/active-visitors:1  Failed to load resource: the server responded with a status of 401 ()
+/api/admin/active-visitors:1  Failed to load resource: the server responded with a status of 401 ()
+/api/admin/active-visitors:1  Failed to load resource: the server responded with a status of 401 ()
+/api/admin/active-visitors:1  Failed to load resource: the server responded with a status of 401 ()
+/api/admin/active-visitors:1  Failed to load resource: the server responded with a status of 401 ()
+/api/conversations/49:1  Failed to load resource: the server responded with a status of 404 ()
+/api/admin/active-visitors:1  Failed to load resource: the server responded with a status of 401 ()
+/api/conversations/49:1  Failed to load resource: the server responded with a status of 404 ()
+/api/conversations/49:1  Failed to load resource: the server responded with a status of 404 ()
+Conversations-C1pWzqus.js:1  GET https://hawiat.aiservx.com/api/admin/active-visitors 401 (Unauthorized)
+(anonymous) @ Conversations-C1pWzqus.js:1
+(anonymous) @ Conversations-C1pWzqus.js:1
+index-D3Htmu0z.js:9  PATCH https://hawiat.aiservx.com/api/conversations/49 404 (Not Found)
+N @ index-D3Htmu0z.js:9
+await in N
+mc @ index-D3Htmu0z.js:9
+mutationFn @ index-D3Htmu0z.js:9
+fn @ index-D3Htmu0z.js:2
+g @ index-D3Htmu0z.js:2
+start @ index-D3Htmu0z.js:2
+execute @ index-D3Htmu0z.js:2
+await in execute
+mutate @ index-D3Htmu0z.js:2
+(anonymous) @ index-D3Htmu0z.js:2
+me @ Conversations-C1pWzqus.js:1
+$d @ vendor-react-DnIBL4nP.js:8
+(anonymous) @ vendor-react-DnIBL4nP.js:8
+es @ vendor-react-DnIBL4nP.js:8
+wo @ vendor-react-DnIBL4nP.js:8
+Yo @ vendor-react-DnIBL4nP.js:9
+gv @ vendor-react-DnIBL4nP.js:9
+Conversations-C1pWzqus.js:1  GET https://hawiat.aiservx.com/api/admin/active-visitors 401 (Unauthorized)
+(anonymous) @ Conversations-C1pWzqus.js:1
+onClick @ Conversations-C1pWzqus.js:1
+$d @ vendor-react-DnIBL4nP.js:8
+(anonymous) @ vendor-react-DnIBL4nP.js:8
+es @ vendor-react-DnIBL4nP.js:8
+wo @ vendor-react-DnIBL4nP.js:8
+Yo @ vendor-react-DnIBL4nP.js:9
+gv @ vendor-react-DnIBL4nP.js:9

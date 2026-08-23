@@ -137,6 +137,7 @@ export default function AdminConversations() {
   const [activeVisitors, setActiveVisitors] = useState<ActiveVisitor[]>([])
   const [visitorMessage, setVisitorMessage] = useState("مرحباً، فريق الدعم متاح لمساعدتك. سجّل بياناتك لنبدأ المحادثة.")
   const [invitingVisitor, setInvitingVisitor] = useState<string | null>(null)
+  const visitorAuthFailedRef = useRef(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
   const { phoneWhatsapp } = useSiteSettings()
@@ -148,11 +149,17 @@ export default function AdminConversations() {
   const visibleConversations = showClosed ? closedConversations : activeConversations
 
   const loadActiveVisitors = useCallback(async () => {
+    const token = localStorage.getItem("admin_token")
+    if (!token || visitorAuthFailedRef.current) return
     try {
       const response = await fetch(`${API_BASE}/api/admin/active-visitors`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("admin_token") || ""}` },
+        headers: { Authorization: `Bearer ${token}` },
         cache: "no-store",
       })
+      if (response.status === 401 || response.status === 403) {
+        visitorAuthFailedRef.current = true
+        return
+      }
       if (response.ok) setActiveVisitors(await response.json() as ActiveVisitor[])
     } catch {}
   }, [])

@@ -4055,6 +4055,27 @@ try {
         exit;
     }
 
+    // Update conversation status. This route is used by the admin UI for
+    // closing and reopening conversations and must exist in the PHP build.
+    if (preg_match('#^/(?:admin/)?conversations/(\d+)$#', $path, $m) && $method === 'PATCH') {
+        $id = (int)$m[1];
+        $status = (string)($input['status'] ?? '');
+        if (!in_array($status, ['open', 'active', 'closed'], true)) {
+            http_response_code(422);
+            echo json_encode(['error' => 'حالة المحادثة غير صحيحة'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        $stmt = $pdo->prepare("UPDATE conversations SET status = :status, unread_count = CASE WHEN :status = 'closed' THEN 0 ELSE unread_count END, updated_at = :now WHERE id = :id");
+        $stmt->execute([':status' => $status, ':now' => date('c'), ':id' => $id]);
+        if ($stmt->rowCount() < 1) {
+            http_response_code(404);
+            echo json_encode(['error' => 'المحادثة غير موجودة'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        echo json_encode(['id' => $id, 'status' => $status, 'success' => true], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
     // Backward-compatible admin aliases used by older deployed bundles.
     // The canonical public API remains /api/conversations, but Hostinger
     // installations may still request /api/admin/conversations.
