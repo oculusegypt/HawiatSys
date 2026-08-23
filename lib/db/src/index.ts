@@ -225,6 +225,12 @@ sqlite.exec(`
 
 // Normalize legacy fixture identifiers while preserving every relationship
 // that references a container code in another record's JSON payload.
+function normalizeContainerCodes(value: string) {
+  return value.replace(/(?:DEMO-)?CNT-(12|20)-(\d{2})/g, (_match, size: string, sequence: string) => {
+    const offset = size === "12" ? 100 : 110;
+    return `CNT-${offset + Number(sequence)}`;
+  });
+}
 const legacyContainerRecords = sqlite.prepare(
   "SELECT id, kind, reference, payload FROM container_system_records WHERE reference LIKE 'DEMO-CNT-%' OR payload LIKE '%DEMO-CNT-%'",
 ).all() as Array<{ id: number; kind: string; reference: string; payload: string }>;
@@ -233,9 +239,9 @@ const updateLegacyContainer = sqlite.prepare(
 );
 for (const record of legacyContainerRecords) {
   const reference = record.kind === "container" || record.kind === "container_asset"
-    ? record.reference.replaceAll("DEMO-CNT-", "CNT-")
+    ? normalizeContainerCodes(record.reference)
     : record.reference;
-  const payload = record.payload.replaceAll("DEMO-CNT-", "CNT-");
+  const payload = normalizeContainerCodes(record.payload);
   if (reference !== record.reference || payload !== record.payload) {
     updateLegacyContainer.run(reference, payload, new Date().toISOString(), record.id);
   }
