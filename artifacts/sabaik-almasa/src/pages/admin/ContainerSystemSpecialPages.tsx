@@ -145,6 +145,28 @@ const directField = (payload: Record<string, unknown>, ...keys: string[]) => {
   return "—"
 }
 
+const REPORT_FILTER_FIELDS: Record<string, string[]> = {
+  "اسم العميل": ["customerName", "clientName"],
+  "العميل": ["customerName", "clientName"],
+  "رقم الهاتف": ["phone", "customerPhone", "mobile"],
+  "رقم العميل": ["customerRecordId"],
+  "رقم العقد": ["contractNumber"],
+  "العقد": ["contractNumber"],
+  "رقم الفاتورة": ["invoiceNumber"],
+  "الفاتورة": ["invoiceNumber"],
+  "طريقة الدفع": ["paymentMethod", "methodName"],
+  "الخزينة": ["cashbox", "treasury", "treasuryName"],
+  "السائق / المشرف": ["employeeName", "driverName", "supervisorName", "staffName"],
+  "السائق": ["driverName", "employeeName"],
+  "الموظف": ["employeeName", "createdByName", "staffName"],
+  "حالة العقد": ["contractStatus", "status"],
+  "حالة الدفع": ["paymentStatus", "status"],
+  "نوع المصروف": ["expenseType", "category"],
+  "الفرع": ["branchName", "branch"],
+  "رقم السيارة": ["vehiclePlate", "plateNumber"],
+  "الحاوية": ["containerCode", "assetCode"],
+}
+
 const valueFor = (reportId: ReportId, record: ContainerSystemRecord, label: string, allRecords: ContainerSystemRecord[]) => {
   const p = record.payload as Record<string, unknown>
   const money = (value: unknown) => `${Number(value ?? 0).toLocaleString("ar-SA")} ر.س`
@@ -218,15 +240,31 @@ export function ReportPage({ reportId, records, onBack }: { reportId: ReportId; 
   const [query, setQuery] = useState("")
   const [from, setFrom] = useState("")
   const [to, setTo] = useState("")
+  const [fieldFilter, setFieldFilter] = useState("")
+  const [fieldValue, setFieldValue] = useState("")
+  const filterFields = useMemo(() => report.filters.filter(filter => REPORT_FILTER_FIELDS[filter]), [report.filters])
+  const fieldOptions = useMemo(() => {
+    if (!fieldFilter) return []
+    const keys = REPORT_FILTER_FIELDS[fieldFilter] ?? []
+    return [...new Set(records
+      .filter(record => report.kinds.includes(record.kind))
+      .map(record => String(directField(record.payload as Record<string, unknown>, ...keys)))
+      .filter(value => value !== "—" && value.trim())
+    )].sort((left, right) => left.localeCompare(right, "ar"))
+  }, [fieldFilter, records, report.kinds])
   const filtered = useMemo(() => records.filter(record => {
     if (!report.kinds.includes(record.kind)) return false
     const date = String(record.payload.date ?? record.payload.startDate ?? record.createdAt).slice(0, 10)
     const haystack = JSON.stringify(record.payload).toLowerCase()
-    return (!from || date >= from) && (!to || date <= to) && (!query || haystack.includes(query.toLowerCase()))
-  }), [from, query, records, report.kinds, to])
+    const keys = REPORT_FILTER_FIELDS[fieldFilter] ?? []
+    const selectedFieldValue = fieldFilter ? String(directField(record.payload as Record<string, unknown>, ...keys)) : ""
+    return (!from || date >= from) && (!to || date <= to) &&
+      (!query || haystack.includes(query.toLowerCase())) &&
+      (!fieldValue || selectedFieldValue === fieldValue)
+  }), [fieldFilter, fieldValue, from, query, records, report.kinds, to])
   const total = filtered.reduce((sum, record) => sum + amountOf(record), 0)
    return <div className="space-y-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><Button variant="ghost" onClick={onBack} className="mb-2 gap-2 px-0 text-cyan-800"><ArrowRight size={16} /> كل التقارير</Button><h3 className="text-xl font-black text-slate-900">{report.title}</h3><p className="mt-1 text-xs leading-6 text-slate-500">{report.description}</p></div><div className="flex gap-2"><Button onClick={() => window.print()} variant="outline" className="gap-2"><Printer size={15} /> طباعة</Button><Button onClick={() => exportRows(report.title, report.id, report.columns, filtered)} variant="outline" className="gap-2 border-cyan-200 text-cyan-800"><FileDown size={15} /> Excel</Button></div></div>
-    <Card><CardContent className="flex flex-wrap items-end gap-3 p-4"><div className="min-w-52 flex-1"><label className="mb-1 block text-xs font-bold text-slate-500">بحث داخل التقرير</label><div className="relative"><Search size={15} className="absolute right-3 top-2.5 text-slate-400" /><Input value={query} onChange={event => setQuery(event.target.value)} className="pr-9" placeholder="اسم العميل أو الرقم أو الحاوية" /></div></div><div><label className="mb-1 block text-xs font-bold text-slate-500">من</label><Input type="date" value={from} onChange={event => setFrom(event.target.value)} /></div><div><label className="mb-1 block text-xs font-bold text-slate-500">إلى</label><Input type="date" value={to} onChange={event => setTo(event.target.value)} /></div>{report.filters.map(filter => <Badge key={filter} variant="outline" className="mb-1 border-cyan-200 bg-cyan-50 text-cyan-800">{filter}</Badge>)}</CardContent></Card>
+     <Card><CardContent className="flex flex-wrap items-end gap-3 p-4"><div className="min-w-52 flex-1"><label className="mb-1 block text-xs font-bold text-slate-500">بحث داخل التقرير</label><div className="relative"><Search size={15} className="absolute right-3 top-2.5 text-slate-400" /><Input value={query} onChange={event => setQuery(event.target.value)} className="pr-9" placeholder="اسم العميل أو الرقم أو الحاوية" /></div></div><div><label className="mb-1 block text-xs font-bold text-slate-500">فلتر تفصيلي</label><select value={fieldFilter} onChange={event => { setFieldFilter(event.target.value); setFieldValue("") }} className="h-10 min-w-44 rounded-md border border-slate-200 bg-white px-3 text-sm"><option value="">كل الحقول</option>{filterFields.map(filter => <option key={filter} value={filter}>{filter}</option>)}</select></div>{fieldFilter && <div><label className="mb-1 block text-xs font-bold text-slate-500">القيمة</label><select value={fieldValue} onChange={event => setFieldValue(event.target.value)} className="h-10 min-w-44 rounded-md border border-slate-200 bg-white px-3 text-sm"><option value="">كل القيم</option>{fieldOptions.map(option => <option key={option} value={option}>{option}</option>)}</select></div>}<div><label className="mb-1 block text-xs font-bold text-slate-500">من</label><Input type="date" value={from} onChange={event => setFrom(event.target.value)} /></div><div><label className="mb-1 block text-xs font-bold text-slate-500">إلى</label><Input type="date" value={to} onChange={event => setTo(event.target.value)} /></div>{report.filters.filter(filter => !REPORT_FILTER_FIELDS[filter]).map(filter => <Badge key={filter} variant="outline" className="mb-1 border-cyan-200 bg-cyan-50 text-cyan-800">{filter}</Badge>)}</CardContent></Card>
     <div className="grid gap-3 sm:grid-cols-3"><Card><CardContent className="p-4"><p className="text-xs text-slate-500">عدد السجلات</p><b className="mt-1 block text-2xl">{filtered.length}</b></CardContent></Card><Card><CardContent className="p-4"><p className="text-xs text-slate-500">الإجمالي</p><b className="mt-1 block text-2xl text-cyan-800">{total.toLocaleString("ar-SA")} ر.س</b></CardContent></Card><Card><CardContent className="p-4"><p className="text-xs text-slate-500">أنواع السجلات المرتبطة</p><b className="mt-1 block text-sm">{report.kinds.map(kind => KIND_LABELS[kind as RecordKind] ?? kind).join("، ")}</b></CardContent></Card></div>
      <Card className="overflow-hidden"><CardHeader className="border-b bg-slate-50/60"><CardTitle className="text-base">بيانات {report.title}</CardTitle></CardHeader><CardContent className="overflow-x-auto p-0"><table className="min-w-[900px] w-full text-right text-xs"><thead><tr className="border-b bg-slate-50 text-slate-500">{report.columns.map(column => <th key={column} className="whitespace-nowrap px-4 py-3 font-black">{column}</th>)}</tr></thead><tbody>{filtered.length === 0 ? <tr><td colSpan={report.columns.length} className="p-12 text-center text-slate-500">لا توجد بيانات مطابقة للفلاتر الحالية.</td></tr> : filtered.map(record => <tr key={record.id} className="border-b last:border-0 hover:bg-cyan-50/30">{report.columns.map(column => <td key={column} className="whitespace-nowrap px-4 py-3 text-slate-700">{valueFor(report.id, record, column, records)}</td>)}</tr>)}</tbody></table></CardContent></Card>
   </div>

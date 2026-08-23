@@ -20,6 +20,12 @@ const idempotentKinds = new Set([
   "container_movement", "receipt", "payment", "expense", "deposit", "bank_deposit",
   "invoice", "invoice_return", "payment_return", "transfer", "purchase", "purchase_return", "contract",
 ]);
+const financialLifecycleKinds = new Set([
+  "receipt", "payment", "expense", "deposit", "bank_deposit", "invoice",
+  "invoice_return", "payment_return", "transfer", "purchase", "purchase_return",
+  "commission", "salary_advance", "salary_payment", "fuel_expense", "daily_expense",
+]);
+const financialLifecycleStatuses = new Set(["draft", "pending_approval", "approved", "posted", "rejected", "cancelled"]);
 
 function parsePayload(payload: string): Record<string, unknown> {
   try {
@@ -63,6 +69,36 @@ function requireContainerPermission(kind: string) {
     }
     next();
   };
+}
+
+function validateFinancialLifecycle(
+  kind: string,
+  currentStatus: string,
+  nextStatus: string,
+  payload: Record<string, unknown>,
+  role: string,
+) {
+  if (!financialLifecycleKinds.has(kind) || currentStatus === nextStatus) return;
+  if (!financialLifecycleStatuses.has(nextStatus)) {
+    throw new Error("حالة الحركة المالية غير مدعومة");
+  }
+  const transitions: Record<string, string[]> = {
+    draft: ["pending_approval", "rejected", "cancelled"],
+    pending_approval: ["approved", "rejected", "cancelled"],
+    approved: ["posted", "cancelled"],
+    posted: ["cancelled"],
+    rejected: ["draft", "cancelled"],
+    cancelled: [],
+  };
+  if (!transitions[currentStatus]?.includes(nextStatus)) {
+    throw new Error("انتقال الحركة المالية غير مسموح؛ استخدم دورة الاعتماد بالترتيب");
+  }
+  if (["approved", "posted", "cancelled"].includes(nextStatus) && !["admin", "manager"].includes(role)) {
+    throw new Error("اعتماد أو إلغاء الحركة المالية يتطلب صلاحية المدير");
+  }
+  if (nextStatus === "cancelled" && String(payload.cancellationReason ?? payload.reason ?? "").trim().length < 3) {
+    throw new Error("سبب إلغاء الحركة المالية مطلوب");
+  }
 }
 
 function referenceFor(kind: string, payload: Record<string, unknown>, nextId: number): string {
@@ -270,9 +306,15 @@ async function validateContractPayload(payload: Record<string, unknown>, ignored
 }
 
 async function validateFinancialPayload(kind: string, payload: Record<string, unknown>) {
-  if (["payment", "receipt", "expense", "deposit", "bank_deposit", "invoice", "invoice_return"].includes(kind)) {
+  if (["payment", "receipt", "expense", "deposit", "bank_deposit", "invoice", "invoice_return", "payment_return", "transfer", "purchase", "purchase_return"].includes(kind)) {
     const amount = Number(payload.amount ?? payload.total ?? 0);
     if (!Number.isFinite(amount) || amount <= 0) throw new Error("القيمة المالية يجب أن تكون أكبر من صفر");
+  }
+  if (kind === "transfer") {
+    const fromTreasury = String(payload.fromTreasury ?? payload.fromTreasuryId ?? "").trim();
+    const toTreasury = String(payload.toTreasury ?? payload.toTreasuryId ?? "").trim();
+    if (!fromTreasury || !toTreasury) throw new Error("الخزينة المصدر والخزينة المستلمة مطلوبتان");
+    if (fromTreasury === toTreasury) throw new Error("لا يمكن التحويل إلى نفس الخزينة");
   }
   const contractRecordId = Number(payload.contractRecordId);
   if (Number.isInteger(contractRecordId) && contractRecordId > 0 && ["payment", "receipt", "invoice", "invoice_return"].includes(kind)) {
@@ -327,7 +369,7 @@ async function validateFinancialPayload(kind: string, payload: Record<string, un
     }
   }
   const invoiceNumber = String(payload.invoiceNumber ?? "").trim();
-  if (invoiceNumber && ["payment", "receipt", "invoice_return"].includes(kind)) {
+  if (invoiceNumber && ["payment", "receipt", "invoice_return", "payment_return"].includes(kind)) {
     const records = await db.select().from(containerSystemRecordsTable);
     const invoice = records.find(record =>
       record.kind === "invoice" &&
@@ -347,6 +389,23 @@ async function validateFinancialPayload(kind: string, payload: Record<string, un
         .reduce((sum, record) => sum + Number(parsePayload(record.payload).amount ?? 0), 0);
       if (Number.isFinite(invoiceTotal) && Number(payload.amount ?? 0) + returned > invoiceTotal) {
         throw new Error("قيمة المرتجع تتجاوز الرصيد المتبقي من الفاتورة");
+      }
+    }
+    if (kind === "payment_return") {
+      const originalPaymentId = Number(payload.originalPaymentId ?? 0);
+      if (originalPaymentId > 0) {
+        const originalPayment = records.find(record =>
+          record.id === originalPaymentId && ["payment", "receipt"].includes(record.kind) && record.status !== "archived",
+        );
+        if (!originalPayment) throw new Error("السداد الأصلي للمرتجع غير موجود");
+        const originalAmount = Number(parsePayload(originalPayment.payload).amount ?? 0);
+        const returned = records
+          .filter(record => record.kind === "payment_return" && record.status !== "archived")
+          .filter(record => Number(parsePayload(record.payload).originalPaymentId ?? 0) === originalPaymentId)
+          .reduce((sum, record) => sum + Number(parsePayload(record.payload).amount ?? 0), 0);
+        if (Number.isFinite(originalAmount) && Number(payload.amount ?? 0) + returned > originalAmount + 0.01) {
+          throw new Error("قيمة مرتجع السداد تتجاوز قيمة السداد الأصلي");
+        }
       }
     }
   }
@@ -1198,7 +1257,9 @@ router.post("/admin/container-system/records", async (req, res) => {
   } catch (error) {
     return res.status(422).json({ error: error instanceof Error ? error.message : "بيانات مالية غير صحيحة" });
   }
-  const normalizedStatus = kind === "container" || kind === "container_asset"
+  const normalizedStatus = financialLifecycleKinds.has(kind)
+    ? (financialLifecycleStatuses.has(String(status)) ? String(status) : "draft")
+    : kind === "container" || kind === "container_asset"
     ? canonicalAssetStatus(payload.status, String(status))
     : kind === "container_assignment" ? "reserved" : String(status);
   let created: typeof containerSystemRecordsTable.$inferSelect;
@@ -1278,7 +1339,7 @@ router.post("/admin/container-system/records", async (req, res) => {
       return res.status(422).json({ error: error instanceof Error ? error.message : "تعذر ربط العقد بالطلب" });
     }
   }
-   if (["payment", "receipt", "expense", "deposit", "bank_deposit"].includes(kind)) {
+   if (["payment", "receipt", "expense", "deposit", "bank_deposit", "invoice", "invoice_return", "payment_return", "transfer", "purchase", "purchase_return"].includes(kind) && normalizedStatus === "posted") {
     await db.insert(containerSystemRecordsTable).values({
       kind: "ledger_entry",
       status: "posted",
@@ -1292,7 +1353,7 @@ router.post("/admin/container-system/records", async (req, res) => {
         customerName: payload.customerName ?? "",
         customerRecordId: Number(payload.customerRecordId) || null,
         amount: Number(payload.amount ?? 0),
-        direction: kind === "expense" ? "debit" : "credit",
+         direction: ["expense", "payment_return", "purchase", "purchase_return"].includes(kind) ? "debit" : ["invoice", "invoice_return"].includes(kind) ? "debit" : "credit",
         date: payload.date ?? new Date().toISOString().slice(0, 10),
         ...(Array.isArray(payload.allocations) ? { allocations: payload.allocations } : {}),
       }),
@@ -1313,6 +1374,30 @@ router.patch("/admin/container-system/records/:id", async (req, res) => {
   }
   const body = req.body as { status?: string; payload?: Record<string, unknown> };
   const nextPayload = body.payload ? { ...parsePayload(current.payload), ...body.payload } : parsePayload(current.payload);
+  try {
+    validateFinancialLifecycle(
+      current.kind,
+      current.status,
+      String(body.status ?? current.status),
+      nextPayload,
+      adminReq.adminRole,
+    );
+  } catch (error) {
+    return res.status(422).json({ error: error instanceof Error ? error.message : "دورة اعتماد مالية غير صحيحة" });
+  }
+  if (financialLifecycleKinds.has(current.kind) && ["approved", "posted", "cancelled"].includes(current.status) &&
+      body.payload && JSON.stringify(nextPayload) !== JSON.stringify(parsePayload(current.payload)) &&
+      String(body.status ?? current.status) === current.status) {
+    return res.status(409).json({ error: "الحركة المالية المعتمدة لا تعدل مباشرة؛ أنشئ تصحيحاً أو ألغها بسبب موثق" });
+  }
+  if (financialLifecycleKinds.has(current.kind) && ["approved", "posted"].includes(String(body.status ?? ""))) {
+    nextPayload.approvedAt = new Date().toISOString();
+    nextPayload.approvedBy = adminReq.adminId;
+  }
+  if (financialLifecycleKinds.has(current.kind) && String(body.status ?? "") === "cancelled") {
+    nextPayload.cancelledAt = new Date().toISOString();
+    nextPayload.cancelledBy = adminReq.adminId;
+  }
   if (current.kind === "contract") {
     Object.assign(nextPayload, normalizeContractPayload(nextPayload));
     const amount = Number(nextPayload.amount ?? 0);
@@ -1365,6 +1450,41 @@ router.patch("/admin/container-system/records/:id", async (req, res) => {
     recordId: id, kind: current.kind, action: "update", beforePayload: current.payload,
     afterPayload: updated.payload, actorId: adminReq.adminId,
   });
+  if (financialLifecycleKinds.has(current.kind) && current.status !== nextStatus) {
+    await db.insert(containerSystemAuditTable).values({
+      recordId: id,
+      kind: current.kind,
+      action: nextStatus === "cancelled" ? "financial_cancel" : "financial_status_change",
+      beforePayload: JSON.stringify({ status: current.status }),
+      afterPayload: JSON.stringify({ status: nextStatus, reason: nextPayload.reason ?? nextPayload.cancellationReason ?? "" }),
+      actorId: adminReq.adminId,
+    });
+  }
+  if (financialLifecycleKinds.has(current.kind) && nextStatus === "posted" && current.status !== "posted") {
+    const existingLedger = (await db.select().from(containerSystemRecordsTable)).find(record =>
+      record.kind === "ledger_entry" && Number(parsePayload(record.payload).sourceId) === id && record.status !== "archived",
+    );
+    if (!existingLedger) {
+      await db.insert(containerSystemRecordsTable).values({
+        kind: "ledger_entry",
+        status: "posted",
+        reference: `LED-${id}`,
+        payload: JSON.stringify({
+          sourceKind: current.kind,
+          sourceId: id,
+          contractNumber: nextPayload.contractNumber ?? "",
+          contractRecordId: Number(nextPayload.contractRecordId) || null,
+          invoiceRecordId: Number(nextPayload.invoiceRecordId) || null,
+          customerName: nextPayload.customerName ?? "",
+          customerRecordId: Number(nextPayload.customerRecordId) || null,
+          amount: Number(nextPayload.amount ?? nextPayload.total ?? 0),
+          direction: ["expense", "payment_return", "purchase", "purchase_return"].includes(current.kind) ? "debit" : "credit",
+          date: nextPayload.date ?? new Date().toISOString().slice(0, 10),
+        }),
+        createdBy: adminReq.adminId,
+      });
+    }
+  }
   if (current.kind === "container_movement") await syncMovement(nextPayload, adminReq.adminId);
   if (current.kind === "contract" && nextPayload.requestId) {
     try {

@@ -206,6 +206,34 @@ function hsSupportedKinds(): array {
     ];
 }
 
+function hsFinancialLifecycleKinds(): array {
+    return ['receipt', 'payment', 'expense', 'deposit', 'bank_deposit', 'invoice', 'invoice_return',
+        'payment_return', 'transfer', 'purchase', 'purchase_return', 'commission', 'salary_advance',
+        'salary_payment', 'fuel_expense', 'daily_expense'];
+}
+
+function hsValidateFinancialLifecycle(array $admin, string $kind, string $current, string $next, array $payload): void {
+    if (!in_array($kind, hsFinancialLifecycleKinds(), true) || $current === $next) return;
+    $allowed = [
+        'draft' => ['pending_approval', 'rejected', 'cancelled'],
+        'pending_approval' => ['approved', 'rejected', 'cancelled'],
+        'approved' => ['posted', 'cancelled'],
+        'posted' => ['cancelled'],
+        'rejected' => ['draft', 'cancelled'],
+        'cancelled' => [],
+    ];
+    if (!isset($allowed[$next]) || !in_array($next, $allowed[$current] ?? [], true)) {
+        hsJson(['error' => 'انتقال الحركة المالية غير مسموح؛ استخدم دورة الاعتماد بالترتيب'], 422);
+    }
+    if (in_array($next, ['approved', 'posted', 'cancelled'], true)
+        && !in_array((string)($admin['role'] ?? ''), ['admin', 'manager'], true)) {
+        hsJson(['error' => 'اعتماد أو إلغاء الحركة المالية يتطلب صلاحية المدير'], 422);
+    }
+    if ($next === 'cancelled' && mb_strlen(trim((string)($payload['cancellationReason'] ?? $payload['reason'] ?? ''))) < 3) {
+        hsJson(['error' => 'سبب إلغاء الحركة المالية مطلوب'], 422);
+    }
+}
+
 function hsReference(string $kind, array $payload, int $id): string {
     if (!empty($payload['reference'])) return (string)$payload['reference'];
     if (!empty($payload['code'])) return (string)$payload['code'];
@@ -641,8 +669,24 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
             if ($current['kind'] === 'container_movement') hsJson(['error' => 'حركة التشغيل لا تُعدّل بعد تسجيلها'], 409);
             $payload = array_merge(hsPayload($current['payload']), is_array($input['payload'] ?? null) ? $input['payload'] : []);
             $payload = hsNormalizeFinancial((string)$current['kind'], $payload);
-            hsValidateRecord($pdo, (string)$current['kind'], $payload, $id);
             $nextStatus = (string)($input['status'] ?? $current['status']);
+            hsValidateFinancialLifecycle($admin, (string)$current['kind'], (string)$current['status'], $nextStatus, $payload);
+            if (in_array((string)$current['kind'], hsFinancialLifecycleKinds(), true)
+                && in_array((string)$current['status'], ['approved', 'posted', 'cancelled'], true)
+                && isset($input['payload'])
+                && json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE) !== $current['payload']
+                && $nextStatus === (string)$current['status']) {
+                hsJson(['error' => 'الحركة المالية المعتمدة لا تعدل مباشرة؛ أنشئ تصحيحاً أو ألغها بسبب موثق'], 409);
+            }
+            if (in_array((string)$current['kind'], hsFinancialLifecycleKinds(), true) && in_array($nextStatus, ['approved', 'posted'], true)) {
+                $payload['approvedAt'] = date('c');
+                $payload['approvedBy'] = (int)$admin['id'];
+            }
+            if (in_array((string)$current['kind'], hsFinancialLifecycleKinds(), true) && $nextStatus === 'cancelled') {
+                $payload['cancelledAt'] = date('c');
+                $payload['cancelledBy'] = (int)$admin['id'];
+            }
+            hsValidateRecord($pdo, (string)$current['kind'], $payload, $id);
             if (in_array($current['kind'], ['container', 'container_asset'], true)) $nextStatus = hsCanonicalAssetStatus((string)($payload['status'] ?? ''), $nextStatus);
             $pdo->beginTransaction();
             try {
@@ -651,6 +695,28 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
                     ':status' => $nextStatus, ':payload' => json_encode($payload, JSON_UNESCAPED_UNICODE), ':updated_at' => $now, ':id' => $id,
                 ]);
                 hsAudit($pdo, $id, (string)$current['kind'], 'update', $current['payload'], json_encode($payload, JSON_UNESCAPED_UNICODE), $actorId);
+                if (in_array((string)$current['kind'], hsFinancialLifecycleKinds(), true) && $current['status'] !== $nextStatus) {
+                    hsAudit($pdo, $id, (string)$current['kind'], $nextStatus === 'cancelled' ? 'financial_cancel' : 'financial_status_change',
+                        json_encode(['status' => $current['status']], JSON_UNESCAPED_UNICODE),
+                        json_encode(['status' => $nextStatus, 'reason' => $payload['reason'] ?? $payload['cancellationReason'] ?? ''], JSON_UNESCAPED_UNICODE),
+                        $actorId);
+                }
+                if (in_array((string)$current['kind'], hsFinancialLifecycleKinds(), true) && $nextStatus === 'posted' && $current['status'] !== 'posted') {
+                    $ledger = [
+                        'sourceKind' => $current['kind'], 'sourceId' => $id,
+                        'contractNumber' => $payload['contractNumber'] ?? '',
+                        'contractRecordId' => isset($payload['contractRecordId']) ? (int)$payload['contractRecordId'] : null,
+                        'invoiceRecordId' => isset($payload['invoiceRecordId']) ? (int)$payload['invoiceRecordId'] : null,
+                        'customerName' => $payload['customerName'] ?? '',
+                        'customerRecordId' => isset($payload['customerRecordId']) ? (int)$payload['customerRecordId'] : null,
+                        'amount' => (float)($payload['amount'] ?? $payload['total'] ?? 0),
+                        'direction' => in_array((string)$current['kind'], ['expense', 'payment_return', 'purchase', 'purchase_return'], true) ? 'debit' : 'credit',
+                        'date' => $payload['date'] ?? date('Y-m-d'),
+                    ];
+                    if (isset($payload['allocations']) && is_array($payload['allocations'])) $ledger['allocations'] = $payload['allocations'];
+                    $ledgerStmt = $pdo->prepare("INSERT INTO container_system_records (kind, status, reference, payload, created_by, created_at, updated_at) VALUES ('ledger_entry', 'posted', :reference, :payload, :created_by, :created_at, :updated_at)");
+                    $ledgerStmt->execute([':reference' => 'LED-' . $id, ':payload' => json_encode($ledger, JSON_UNESCAPED_UNICODE), ':created_by' => $actorId, ':created_at' => $now, ':updated_at' => $now]);
+                }
                 $updated = $pdo->prepare("SELECT * FROM container_system_records WHERE id = :id");
                 $updated->execute([':id' => $id]);
                 $pdo->commit();
@@ -670,7 +736,9 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
         hsValidateRecord($pdo, $kind, $payload);
         $status = in_array($kind, ['container', 'container_asset'], true)
             ? hsCanonicalAssetStatus((string)($payload['status'] ?? ''), (string)($input['status'] ?? 'available'))
-            : (string)($input['status'] ?? 'active');
+            : (in_array($kind, hsFinancialLifecycleKinds(), true)
+                ? (in_array((string)($input['status'] ?? ''), ['draft', 'pending_approval', 'approved', 'posted'], true) ? (string)$input['status'] : 'draft')
+                : (string)($input['status'] ?? 'active'));
         $pdo->beginTransaction();
         try {
             $now = date('c');
@@ -681,7 +749,8 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
             $pdo->prepare("UPDATE container_system_records SET reference = :reference WHERE id = :id")->execute([':reference' => $reference, ':id' => $id]);
             hsAudit($pdo, $id, $kind, 'create', null, json_encode($payload, JSON_UNESCAPED_UNICODE), $actorId);
             if ($kind === 'container_movement') hsSyncMovement($pdo, $payload, $actorId);
-            if (in_array($kind, ['payment', 'receipt', 'expense', 'deposit', 'bank_deposit'], true)) {
+            if (in_array($kind, ['payment', 'receipt', 'expense', 'deposit', 'bank_deposit', 'invoice', 'invoice_return', 'payment_return', 'transfer', 'purchase', 'purchase_return'], true)
+                && $status === 'posted') {
                 $ledger = [
                     'sourceKind' => $kind,
                     'sourceId' => $id,
@@ -691,7 +760,7 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
                     'customerName' => $payload['customerName'] ?? '',
                     'customerRecordId' => isset($payload['customerRecordId']) ? (int)$payload['customerRecordId'] : null,
                     'amount' => (float)($payload['amount'] ?? 0),
-                    'direction' => $kind === 'expense' ? 'debit' : 'credit',
+                    'direction' => in_array($kind, ['expense', 'payment_return', 'purchase', 'purchase_return'], true) ? 'debit' : 'credit',
                     'date' => $payload['date'] ?? date('Y-m-d'),
                 ];
                 if (isset($payload['allocations']) && is_array($payload['allocations'])) $ledger['allocations'] = $payload['allocations'];
