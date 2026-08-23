@@ -285,7 +285,7 @@ export const FIELD_CONFIG: Record<RecordKind, FieldConfig[]> = {
   payment: [
     { key: "customerName", label: "العميل", placeholder: "اسم العميل" },
     { key: "contractNumber", label: "العقد", placeholder: "اختر العقد المرتبط" },
-    { key: "invoiceNumber", label: "الفاتورة (اختياري)", placeholder: "اختر الفاتورة إذا لم يرتبط السداد بعقد" },
+    { key: "invoiceNumber", label: "الفاتورة (اختياري)", placeholder: "أدخل رقم الفاتورة يدوياً إذا لم يرتبط السداد بعقد" },
     { key: "amount", label: "المبلغ", type: "number", placeholder: "0" },
     { key: "paymentMethod", label: "طريقة الدفع", placeholder: "تحويل / شبكة / نقدي" },
     { key: "date", label: "التاريخ", type: "date" },
@@ -741,6 +741,7 @@ export function RecordDialog({
 }) {
   const [payload, setPayload] = useState<Record<string, string>>(emptyPayload(kind))
   const [status, setStatus] = useState("active")
+  const [formError, setFormError] = useState("")
 
   useEffect(() => {
     if (!open) return
@@ -759,9 +760,12 @@ export function RecordDialog({
     if (kind === "container" && !initial.status) initial.status = record?.status || "available"
     setPayload(initial)
     setStatus(record?.status || (kind === "invoice" ? "draft" : "active"))
+    setFormError("")
   }, [initialPayload, open, kind, record])
 
-  const setValue = (key: string, value: string) => setPayload(current => {
+  const setValue = (key: string, value: string) => {
+    setFormError("")
+    setPayload(current => {
     const next = { ...current, [key]: value }
     if (kind === "invoice" && (key === "quantity" || key === "unitPrice")) {
       const quantity = Number(key === "quantity" ? value : next.quantity)
@@ -771,7 +775,8 @@ export function RecordDialog({
       }
     }
     return next
-  })
+    })
+  }
   const fields = FIELD_CONFIG[kind]
   const isCustomerPayment = kind === "payment"
   const customers = records.filter(item => item.kind === "customer" && item.status !== "archived")
@@ -871,7 +876,14 @@ export function RecordDialog({
             </div>
           </div>
         </DialogHeader>
-        <form onSubmit={event => { event.preventDefault(); onSubmit(payload, kind === "container" ? payload.status || status : status) }} className="space-y-5 p-6">
+        <form onSubmit={event => {
+          event.preventDefault()
+          if (isCustomerPayment && !String(payload.contractNumber ?? "").trim() && !String(payload.invoiceNumber ?? "").trim()) {
+            setFormError("اختر عقداً واحداً على الأقل أو أدخل رقم الفاتورة يدوياً.")
+            return
+          }
+          onSubmit(payload, kind === "container" ? payload.status || status : status)
+        }} className="space-y-5 p-6">
           <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
             <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
@@ -883,7 +895,7 @@ export function RecordDialog({
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {fields.map(field => (
               isCustomerPayment && (field.key === "customerName" || field.key === "contractNumber") ? null : (
-              <div key={field.key} className={`min-h-[82px] rounded-xl border border-slate-100 bg-slate-50/45 p-3 ${field.wide ? "sm:col-span-2" : ""}`}>
+              <div key={field.key} className={`min-h-[82px] rounded-xl border border-slate-100 bg-slate-50/45 p-3 ${field.wide ? "sm:col-span-2" : ""} ${isCustomerPayment ? field.key === "invoiceNumber" ? "order-3" : field.key === "amount" ? "order-4" : field.key === "paymentMethod" ? "order-5" : field.key === "date" ? "order-6" : "" : ""}`}>
                 <Label htmlFor={`record-${field.key}`} className="mb-1.5 block text-xs font-bold text-slate-600">{field.label}</Label>
                 {field.type === "textarea" ? (
                   <Textarea id={`record-${field.key}`} value={payload[field.key] ?? ""} onChange={event => setValue(field.key, event.target.value)} placeholder={field.placeholder} required={field.required} rows={3} className="min-h-20 resize-y border-slate-200 bg-white" data-testid={`textarea-record-${field.key}`} />
@@ -918,7 +930,7 @@ export function RecordDialog({
             ))}
             {isCustomerPayment && (
               <>
-                <div className="min-h-[82px] rounded-xl border border-cyan-100 bg-cyan-50/40 p-3">
+                <div className="order-1 min-h-[82px] rounded-xl border border-cyan-100 bg-cyan-50/40 p-3">
                   <Label htmlFor="record-payment-customer" className="mb-1.5 block text-xs font-bold text-slate-600">العميل</Label>
                   <select
                     id="record-payment-customer"
@@ -943,7 +955,7 @@ export function RecordDialog({
                     {paymentCustomerOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
                   </select>
                 </div>
-                <div className="min-h-[82px] rounded-xl border border-cyan-100 bg-cyan-50/40 p-3">
+                <div className="order-2 min-h-[82px] rounded-xl border border-cyan-100 bg-cyan-50/40 p-3">
                   <Label htmlFor="record-payment-contract" className="mb-1.5 block text-xs font-bold text-slate-600">العقد</Label>
                   <select
                     id="record-payment-contract"
@@ -966,7 +978,7 @@ export function RecordDialog({
                         contractNumbers: JSON.stringify(contractNumbers),
                       }))
                     }}
-                    required
+                    required={!String(payload.invoiceNumber ?? "").trim()}
                     disabled={!customerIdForPayment}
                     className="flex h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100 disabled:cursor-not-allowed disabled:bg-slate-100"
                     data-testid="select-payment-contract"
@@ -977,7 +989,7 @@ export function RecordDialog({
                   <p className="mt-1 text-[11px] text-slate-500">
                     {selectedPaymentContractIds.length > 1
                       ? `تم اختيار ${selectedPaymentContractIds.length} عقود؛ سيُستخدم أول عقد كالعقد الأساسي ويُحفظ الباقي كعقود مرتبطة.`
-                      : "يمكن اختيار أكثر من عقد باستخدام Ctrl أو ⌘."}
+                      : "يمكن اختيار أكثر من عقد باستخدام Ctrl أو ⌘، أو تركه فارغاً وإدخال رقم الفاتورة يدوياً."}
                   </p>
                   {customerIdForPayment && paymentContractOptions.length === 0 && (
                     <p className="mt-1 text-[11px] text-amber-700">لا توجد عقود مفتوحة لهذا العميل.</p>
@@ -985,7 +997,10 @@ export function RecordDialog({
                 </div>
               </>
             )}
-             {kind !== "container" && <div className={kind === "contract" ? "" : "sm:col-span-2"}>
+            {isCustomerPayment && formError && (
+              <p role="alert" className="order-7 sm:col-span-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700">{formError}</p>
+            )}
+             {kind !== "container" && <div className={`${kind === "contract" ? "" : "sm:col-span-2"} ${isCustomerPayment ? "order-7" : ""}`}>
               <Label htmlFor="record-status" className="mb-1.5 block text-xs font-bold text-slate-600">حالة السجل</Label>
               <select id="record-status" value={status} onChange={event => setStatus(event.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-700" data-testid="select-record-status">
                 {STATUS_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
