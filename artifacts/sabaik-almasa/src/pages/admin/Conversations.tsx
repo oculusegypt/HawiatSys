@@ -4,7 +4,7 @@ import { MessageSenderType, MessageInputSenderType, MessageInputMessageType, Con
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Send, User, CheckCircle2, Clock, MessageSquare, Trash2, AlertTriangle, Package, MapPin, Phone } from "lucide-react"
+import { Send, User, CheckCircle2, Clock, MessageSquare, Trash2, AlertTriangle, Package, MapPin, Phone, Users, RefreshCw } from "lucide-react"
 import { FaWhatsapp } from "react-icons/fa"
 import { useToast } from "@/hooks/use-toast"
 import { useSiteSettings } from "@/context/SiteSettingsContext"
@@ -24,6 +24,17 @@ type AdminMessage = {
   locationLabel?: string | null
   locationLat?: string | null
   locationLng?: string | null
+}
+
+type ActiveVisitor = {
+  sessionId: string
+  page: string
+  deviceType: string
+  clientName?: string | null
+  phone?: string | null
+  conversationId?: number | null
+  lastSeen: string
+  hasPendingInvitation: boolean
 }
 
 function LocationMessagePreview({
@@ -122,6 +133,10 @@ export default function AdminConversations() {
   const [deletingAll, setDeletingAll] = useState(false)
   const [confirmDeleteAll, setConfirmDeleteAll] = useState(false)
   const [selectedPackageId, setSelectedPackageId] = useState("")
+  const [showClosed, setShowClosed] = useState(false)
+  const [activeVisitors, setActiveVisitors] = useState<ActiveVisitor[]>([])
+  const [visitorMessage, setVisitorMessage] = useState("مرحباً، فريق الدعم متاح لمساعدتك. سجّل بياناتك لنبدأ المحادثة.")
+  const [invitingVisitor, setInvitingVisitor] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
   const { phoneWhatsapp } = useSiteSettings()
@@ -129,6 +144,18 @@ export default function AdminConversations() {
   const { data: conversations, refetch: refetchConvs } = useGetConversations()
   const { data: containers = [] } = useGetContainers()
   const activeConversations = conversations?.filter(conversation => conversation.status !== "closed") ?? []
+  const closedConversations = conversations?.filter(conversation => conversation.status === "closed") ?? []
+  const visibleConversations = showClosed ? closedConversations : activeConversations
+
+  const loadActiveVisitors = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE}/api/admin/active-visitors`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("admin_token") || ""}` },
+        cache: "no-store",
+      })
+      if (response.ok) setActiveVisitors(await response.json() as ActiveVisitor[])
+    } catch {}
+  }, [])
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: messages, refetch: refetchMsgs } = useGetMessages(selectedId as number, {
@@ -183,21 +210,49 @@ export default function AdminConversations() {
   }, [refetchConvs])
 
   useEffect(() => {
+    void loadActiveVisitors()
+    const timer = setInterval(() => void loadActiveVisitors(), 8000)
+    return () => clearInterval(timer)
+  }, [loadActiveVisitors])
+
+  async function inviteVisitor(sessionId: string) {
+    if (!visitorMessage.trim()) return
+    setInvitingVisitor(sessionId)
+    try {
+      const response = await fetch(`${API_BASE}/api/admin/active-visitors/${encodeURIComponent(sessionId)}/invite`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("admin_token") || ""}`,
+        },
+        body: JSON.stringify({ message: visitorMessage.trim() }),
+      })
+      if (!response.ok) throw new Error()
+      toast({ title: "تم إرسال الدعوة للزائر" })
+      await loadActiveVisitors()
+    } catch {
+      toast({ variant: "destructive", title: "تعذر إرسال الدعوة، ربما غادر الزائر" })
+    } finally {
+      setInvitingVisitor(null)
+    }
+  }
+
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView()
   }, [messageList])
 
   useEffect(() => {
     const openId = Number(new URLSearchParams(window.location.search).get("open"))
-    if (openId && activeConversations.some(conversation => conversation.id === openId)) {
+    if (openId && conversations?.some(conversation => conversation.id === openId)) {
       setSelectedId(openId)
     }
-  }, [activeConversations])
+  }, [conversations])
 
   useEffect(() => {
-    if (selectedId && conversations && !activeConversations.some(conversation => conversation.id === selectedId)) {
+    if (selectedId && conversations && !conversations.some(conversation => conversation.id === selectedId)) {
       setSelectedId(null)
     }
-  }, [activeConversations, conversations, selectedId])
+  }, [conversations, selectedId])
 
   useEffect(() => {
     if (selectedId) {
@@ -263,10 +318,11 @@ export default function AdminConversations() {
     })
   }
 
-  const handleClose = () => {
+  const handleToggleClosed = () => {
     if (!selectedId) return
-    updateConv({ id: selectedId, data: { status: ConversationUpdateStatus.closed } }, {
-      onSuccess: () => { refetchConvs(); setSelectedId(null) }
+    const nextStatus = selectedConversation?.status === "closed" ? ConversationUpdateStatus.open : ConversationUpdateStatus.closed
+    updateConv({ id: selectedId, data: { status: nextStatus } }, {
+      onSuccess: () => { refetchConvs(); setSelectedId(null); toast({ title: nextStatus === ConversationUpdateStatus.closed ? "تم إنهاء وإغلاق المحادثة" : "تم إعادة فتح المحادثة" }) }
     })
   }
 
@@ -336,6 +392,38 @@ export default function AdminConversations() {
         </div>
       )}
 
+      <Card className="overflow-hidden border-emerald-100 bg-emerald-50/40">
+        <div className="flex flex-wrap items-center gap-3 border-b border-emerald-100 px-4 py-3">
+          <Users size={19} className="text-emerald-700" />
+          <div className="flex-1">
+            <h2 className="font-bold text-emerald-950">الزوار الموجودون الآن</h2>
+            <p className="text-xs text-emerald-800/70">يظهر الزائر هنا ما دام يتصفح الموقع خلال آخر خمس دقائق.</p>
+          </div>
+          <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-800">{activeVisitors.length} متصل</span>
+          <button onClick={() => void loadActiveVisitors()} className="rounded-lg p-2 text-emerald-700 hover:bg-emerald-100" title="تحديث القائمة" aria-label="تحديث القائمة"><RefreshCw size={15} /></button>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 border-b border-emerald-100 px-4 py-3">
+          <Input value={visitorMessage} onChange={event => setVisitorMessage(event.target.value)} className="min-w-[18rem] flex-1 bg-white text-xs" placeholder="رسالة الدعوة للزائر" />
+        </div>
+        <div className="flex gap-2 overflow-x-auto p-3">
+          {activeVisitors.filter(visitor => !visitor.conversationId).map(visitor => (
+            <div key={visitor.sessionId} className="min-w-[14rem] rounded-xl border border-emerald-100 bg-white p-3 shadow-sm">
+              <div className="flex items-center justify-between gap-2">
+                <p className="truncate text-sm font-bold text-gray-800">{visitor.clientName || "زائر مجهول"}</p>
+                <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
+              </div>
+              <p className="mt-1 truncate text-[11px] text-gray-500" dir="ltr">{visitor.phone || "لم يسجل بياناته"} · {visitor.page || "/"}</p>
+              <Button size="sm" onClick={() => void inviteVisitor(visitor.sessionId)} disabled={invitingVisitor === visitor.sessionId || visitor.hasPendingInvitation} className="mt-3 h-8 w-full gap-1.5 rounded-lg bg-emerald-600 text-xs hover:bg-emerald-700">
+                <Send size={13} /> {visitor.hasPendingInvitation ? "تم إرسال الدعوة" : invitingVisitor === visitor.sessionId ? "جارٍ الإرسال..." : "دعوة للمحادثة"}
+              </Button>
+            </div>
+          ))}
+          {activeVisitors.filter(visitor => !visitor.conversationId).length === 0 && (
+            <p className="px-2 py-3 text-xs text-emerald-900/60">لا يوجد زوار جدد بدون محادثة حالياً.</p>
+          )}
+        </div>
+      </Card>
+
       <div className="flex flex-1 min-h-0 flex-col gap-4 lg:flex-row lg:gap-6">
         {/* List */}
         <Card className="flex h-64 w-full shrink-0 flex-col overflow-hidden lg:h-auto lg:w-1/3">
@@ -352,7 +440,15 @@ export default function AdminConversations() {
             )}
           </div>
           <div className="flex-1 overflow-y-auto">
-            {activeConversations.map(conv => (
+            <div className="sticky top-0 z-10 flex gap-1 border-b bg-white p-2">
+              <button onClick={() => setShowClosed(false)} className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-bold ${!showClosed ? "bg-primary text-white" : "text-gray-500 hover:bg-gray-50"}`}>
+                المفتوحة ({activeConversations.length})
+              </button>
+              <button onClick={() => setShowClosed(true)} className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-bold ${showClosed ? "bg-gray-700 text-white" : "text-gray-500 hover:bg-gray-50"}`}>
+                المغلقة ({closedConversations.length})
+              </button>
+            </div>
+            {visibleConversations.map(conv => (
               <div key={conv.id} className={`group relative border-b transition-colors ${
                 selectedId === conv.id ? "bg-primary/5 border-l-4 border-l-primary" : "hover:bg-gray-50"
               }`}>
@@ -401,8 +497,8 @@ export default function AdminConversations() {
                 </button>
               </div>
             ))}
-            {activeConversations.length === 0 && (
-              <div className="p-8 text-center text-gray-500">لا توجد محادثات نشطة</div>
+            {visibleConversations.length === 0 && (
+              <div className="p-8 text-center text-gray-500">{showClosed ? "لا توجد محادثات مغلقة" : "لا توجد محادثات مفتوحة"}</div>
             )}
           </div>
         </Card>
@@ -473,8 +569,8 @@ export default function AdminConversations() {
                     <Trash2 size={14} />
                     {deletingId === selectedId ? "جارٍ الحذف..." : "حذف"}
                   </Button>
-                  <Button variant="outline" size="sm" onClick={handleClose} className="text-gray-600">
-                    <CheckCircle2 size={16} className="mr-2" /> إغلاق
+                  <Button variant="outline" size="sm" onClick={handleToggleClosed} className="text-gray-600">
+                    <CheckCircle2 size={16} className="mr-2" /> {selectedConversation?.status === "closed" ? "إعادة فتح" : "إنهاء وإغلاق"}
                   </Button>
                 </div>
               </div>

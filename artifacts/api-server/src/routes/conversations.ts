@@ -115,7 +115,11 @@ router.patch(["/conversations/:id", "/admin/conversations/:id"], requireAdmin, r
   const id = parseInt(String(req.params.id), 10);
   const { status } = req.body;
   const [conversation] = await db.update(conversationsTable)
-    .set({ status, updatedAt: new Date().toISOString() })
+    .set({
+      status,
+      updatedAt: new Date().toISOString(),
+      ...(status === "closed" ? { unreadCount: 0 } : {}),
+    })
     .where(eq(conversationsTable.id, id))
     .returning();
   if (!conversation) return res.status(404).json({ error: "Not found" });
@@ -153,7 +157,7 @@ router.post(["/conversations/:id/read", "/admin/conversations/:id/read"], requir
       eq(messagesTable.senderType, "client"),
     ));
   await db.update(conversationsTable)
-    .set({ unreadCount: 0 })
+    .set({ unreadCount: 0, updatedAt: new Date().toISOString() })
     .where(eq(conversationsTable.id, id));
 
   return res.json({ success: true, conversationId: id });

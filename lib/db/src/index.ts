@@ -72,6 +72,8 @@ const analyticsMigrations = [
   "ALTER TABLE active_visitors ADD COLUMN conversation_id INTEGER",
   "ALTER TABLE active_visitors ADD COLUMN client_name TEXT",
   "ALTER TABLE active_visitors ADD COLUMN phone TEXT",
+  "ALTER TABLE active_visitors ADD COLUMN invitation_message TEXT",
+  "ALTER TABLE active_visitors ADD COLUMN invitation_created_at TEXT",
 ];
 for (const sql of analyticsMigrations) {
   try { sqlite.exec(sql); } catch { /* column already exists — safe to ignore */ }

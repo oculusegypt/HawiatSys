@@ -115,6 +115,14 @@ try {
         $pdo = new PDO('sqlite:' . $dbFile);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+        // Presence invitations are additive so older Hostinger databases can
+        // receive this patch without a destructive migration.
+        foreach ([
+            'invitation_message' => "TEXT",
+            'invitation_created_at' => "TEXT",
+        ] as $column => $definition) {
+            try { $pdo->exec("ALTER TABLE active_visitors ADD COLUMN {$column} {$definition}"); } catch (\Throwable $ignored) {}
+        }
         // Keep older Hostinger SQLite databases compatible with the current
         // admin ads form. Shared hosting does not run Drizzle migrations.
         $pdo->exec("CREATE TABLE IF NOT EXISTS ads (
@@ -1177,6 +1185,43 @@ try {
         ]);
 
         $newId = (int)$pdo->lastInsertId();
+
+        // Keep the PHP deployment in parity with Node: a public request also
+        // creates/reuses a customer and stores the submitted address as a site.
+        try {
+            $pdo->exec("CREATE TABLE IF NOT EXISTS container_system_records (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'active',
+                reference TEXT NOT NULL DEFAULT '', payload TEXT NOT NULL DEFAULT '{}',
+                created_by INTEGER, created_at TEXT NOT NULL DEFAULT '', updated_at TEXT NOT NULL DEFAULT ''
+            )");
+            try { $pdo->exec("ALTER TABLE service_requests ADD COLUMN customer_record_id INTEGER"); } catch (\Throwable $ignored) {}
+            $digits = preg_replace('/\D+/', '', $phone);
+            $allCustomers = $pdo->query("SELECT id, payload FROM container_system_records WHERE kind = 'customer' AND status != 'archived'")->fetchAll();
+            $customerId = null;
+            foreach ($allCustomers as $customerRow) {
+                $customerPayload = json_decode((string)$customerRow['payload'], true);
+                if (is_array($customerPayload) && preg_replace('/\D+/', '', (string)($customerPayload['phone'] ?? '')) === $digits && $digits !== '') {
+                    $customerId = (int)$customerRow['id'];
+                    break;
+                }
+            }
+            if (!$customerId) {
+                $customerPayload = json_encode(['name'=>$clientName, 'phone'=>$phone, 'email'=>$email, 'source'=>'service_request', 'firstRequestId'=>$newId], JSON_UNESCAPED_UNICODE);
+                $customerInsert = $pdo->prepare("INSERT INTO container_system_records (kind,status,reference,payload,created_at,updated_at) VALUES ('customer','active',:reference,:payload,:now,:now)");
+                $customerInsert->execute([':reference' => 'CUS-' . str_pad((string)$newId, 5, '0', STR_PAD_LEFT), ':payload' => $customerPayload, ':now' => $now]);
+                $customerId = (int)$pdo->lastInsertId();
+            }
+            if ($customerId && $location !== '') {
+                $sitePayload = json_encode(['customerRecordId'=>$customerId, 'name'=>$clientName . ' — عنوان الطلب #' . $newId, 'address'=>$location, 'location'=>$location, 'requestId'=>$newId, 'source'=>'service_request'], JSON_UNESCAPED_UNICODE);
+                $siteInsert = $pdo->prepare("INSERT INTO container_system_records (kind,status,reference,payload,created_at,updated_at) VALUES ('customer_site','active',:reference,:payload,:now,:now)");
+                $siteInsert->execute([':reference' => 'SITE-' . str_pad((string)$newId, 5, '0', STR_PAD_LEFT), ':payload' => $sitePayload, ':now' => $now]);
+            }
+            if ($customerId) {
+                $pdo->prepare("UPDATE service_requests SET customer_record_id = :customer WHERE id = :id")->execute([':customer'=>$customerId, ':id'=>$newId]);
+            }
+        } catch (\Throwable $ignored) {
+            // Never turn a successfully stored request into a failed response.
+        }
 
         // Create Notification in notifications table
         $notifTitle = "طلب خدمة جديد #{$newId}";
@@ -3321,6 +3366,61 @@ try {
         ]);
         echo json_encode(['ok' => true, 'lastSeen' => $lastSeen], JSON_UNESCAPED_UNICODE);
         exit;
+    }
+
+    // 27c. Live visitor invitations (Hostinger/PHP parity with the Node API).
+    if ($path === '/admin/active-visitors' && $method === 'GET') {
+        requireAdminAccess($pdo, 'conversations', false, false, true);
+        $pdo->prepare("DELETE FROM active_visitors WHERE last_seen < :cutoff")->execute([':cutoff' => date('c', time() - 300)]);
+        $rows = $pdo->query("SELECT session_id, page, device_type, client_name, phone, conversation_id, last_seen, invitation_message, invitation_created_at FROM active_visitors ORDER BY last_seen DESC")->fetchAll();
+        echo json_encode(array_map(static fn(array $row): array => [
+            'sessionId' => $row['session_id'], 'page' => $row['page'], 'deviceType' => $row['device_type'],
+            'clientName' => $row['client_name'], 'phone' => $row['phone'], 'conversationId' => $row['conversation_id'] ? (int)$row['conversation_id'] : null,
+            'lastSeen' => $row['last_seen'], 'hasPendingInvitation' => !empty($row['invitation_message']) && !empty($row['invitation_created_at']),
+        ], $rows), JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+    if (preg_match('#^/admin/active-visitors/([^/]+)/invite$#', $path, $match) && $method === 'POST') {
+        requireAdminAccess($pdo, 'conversations', false, false, true);
+        $sessionId = urldecode($match[1]);
+        $message = substr(trim((string)($input['message'] ?? '')), 0, 500);
+        if ($message === '') { http_response_code(422); echo json_encode(['error' => 'رسالة الدعوة مطلوبة'], JSON_UNESCAPED_UNICODE); exit; }
+        $stmt = $pdo->prepare("UPDATE active_visitors SET invitation_message = :message, invitation_created_at = :created WHERE session_id = :sid");
+        $stmt->execute([':message' => $message, ':created' => date('c'), ':sid' => $sessionId]);
+        if ($stmt->rowCount() < 1) { http_response_code(404); echo json_encode(['error' => 'الزائر لم يعد متصلاً'], JSON_UNESCAPED_UNICODE); exit; }
+        echo json_encode(['ok' => true], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+    if ($path === '/visitor/invitation' && $method === 'GET') {
+        $sessionId = trim((string)($_GET['sessionId'] ?? ''));
+        $stmt = $pdo->prepare("SELECT invitation_message, invitation_created_at, client_name, phone FROM active_visitors WHERE session_id = :sid");
+        $stmt->execute([':sid' => $sessionId]);
+        $row = $stmt->fetch();
+        echo json_encode(['invitation' => ($row && $row['invitation_message']) ? [
+            'message' => $row['invitation_message'], 'createdAt' => $row['invitation_created_at'],
+            'clientName' => $row['client_name'], 'phone' => $row['phone'],
+        ] : null], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+    if ($path === '/visitor/invitation/accept' && $method === 'POST') {
+        $sessionId = trim((string)($input['sessionId'] ?? ''));
+        $clientName = substr(trim((string)($input['clientName'] ?? '')), 0, 160);
+        $phone = substr(trim((string)($input['phone'] ?? '')), 0, 40);
+        $service = substr(trim((string)($input['service'] ?? '')), 0, 160);
+        if (!$sessionId || !$clientName || !$phone) { http_response_code(422); echo json_encode(['error' => 'الاسم ورقم الجوال مطلوبان'], JSON_UNESCAPED_UNICODE); exit; }
+        $check = $pdo->prepare("SELECT session_id FROM active_visitors WHERE session_id = :sid");
+        $check->execute([':sid' => $sessionId]);
+        if (!$check->fetch()) { http_response_code(404); echo json_encode(['error' => 'انتهت جلسة الزائر'], JSON_UNESCAPED_UNICODE); exit; }
+        $now = date('c');
+        $stmt = $pdo->prepare("INSERT INTO conversations (client_name, phone, subject, package_name, status, last_message, unread_count, created_at, updated_at) VALUES (:name, :phone, :subject, :package, 'active', '', 0, :now, :now)");
+        $stmt->execute([':name' => $clientName, ':phone' => $phone, ':subject' => $service ?: 'دعوة من زائر الموقع', ':package' => $service ?: null, ':now' => $now]);
+        $conversationId = (int)$pdo->lastInsertId();
+        $message = $service ? "أرغب في الاستفسار عن خدمة: {$service}" : 'أرغب في التواصل مع الدعم المباشر';
+        $msgStmt = $pdo->prepare("INSERT INTO messages (conversation_id, sender_type, content, is_read, created_at) VALUES (:cid, 'client', :content, 'false', :now)");
+        $msgStmt->execute([':cid' => $conversationId, ':content' => $message, ':now' => $now]);
+        $update = $pdo->prepare("UPDATE active_visitors SET client_name=:name, phone=:phone, conversation_id=:cid, invitation_message=NULL, invitation_created_at=NULL, last_seen=:now WHERE session_id=:sid");
+        $update->execute([':name'=>$clientName, ':phone'=>$phone, ':cid'=>$conversationId, ':now'=>$now, ':sid'=>$sessionId]);
+        http_response_code(201); echo json_encode(['conversationId' => $conversationId], JSON_UNESCAPED_UNICODE); exit;
     }
 
     // ── 28. ADMIN ANALYTICS: GET /api/admin/analytics ──

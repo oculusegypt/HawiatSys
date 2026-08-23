@@ -13,7 +13,7 @@ import { LiveSupportChat } from "./LiveSupportChat"
 import { getHighAccuracyPosition } from "@/lib/reverseGeocode"
 import { DraggableMapPicker } from "@/components/ui/DraggableMapPicker"
 import { useSiteSettings } from "@/context/SiteSettingsContext"
-import { playNotificationChime, sendVisitorHeartbeat, getKnownCustomerInfo } from "@/lib/visitorAttribution"
+import { playNotificationChime, sendVisitorHeartbeat, getKnownCustomerInfo, getVisitorTracking } from "@/lib/visitorAttribution"
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -891,6 +891,12 @@ export function AIChatbotWidget({ onOpenChange }: { onOpenChange?: (open: boolea
   const [supportStatus, setSupportStatus] = useState("unavailable")
   const [requestsLocked, setRequestsLocked] = useState(false)
   const [incomingSupportNotice, setIncomingSupportNotice] = useState<{ content: string; convId: number } | null>(null)
+  const [visitorInvitation, setVisitorInvitation] = useState<{ message: string; createdAt: string } | null>(null)
+  const lastInvitationAtRef = useRef("")
+  const [invitationName, setInvitationName] = useState("")
+  const [invitationPhone, setInvitationPhone] = useState("")
+  const [invitationService, setInvitationService] = useState("")
+  const [invitationSubmitting, setInvitationSubmitting] = useState(false)
   const lastSeenMsgIdRef = useRef<number>(0)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -911,6 +917,59 @@ export function AIChatbotWidget({ onOpenChange }: { onOpenChange?: (open: boolea
     const id = setInterval(load, 60000)
     return () => clearInterval(id)
   }, [])
+
+  // Admin invitations are short-lived and scoped to this anonymous browser
+  // session. They remain visible until the visitor accepts or dismisses them.
+  useEffect(() => {
+    const sessionId = getVisitorTracking().sessionId
+    const checkInvitation = async () => {
+      try {
+        const response = await fetch(`${API_BASE}/api/visitor/invitation?sessionId=${encodeURIComponent(sessionId)}`, { cache: "no-store" })
+        if (!response.ok) return
+        const data = await response.json() as { invitation?: { message?: string; createdAt?: string } | null }
+        if (data.invitation?.message) {
+          const createdAt = String(data.invitation.createdAt ?? "")
+          setVisitorInvitation({ message: data.invitation.message, createdAt })
+          if (createdAt && createdAt !== lastInvitationAtRef.current) {
+            lastInvitationAtRef.current = createdAt
+            playNotificationChime()
+          }
+        }
+      } catch {}
+    }
+    void checkInvitation()
+    const timer = setInterval(checkInvitation, 5000)
+    return () => clearInterval(timer)
+  }, [])
+
+  const acceptVisitorInvitation = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!invitationName.trim() || !invitationPhone.trim() || invitationSubmitting) return
+    setInvitationSubmitting(true)
+    try {
+      const response = await fetch(`${API_BASE}/api/visitor/invitation/accept`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId: getVisitorTracking().sessionId,
+          clientName: invitationName.trim(),
+          phone: invitationPhone.trim(),
+          service: invitationService.trim(),
+        }),
+      })
+      if (!response.ok) throw new Error("تعذر بدء المحادثة")
+      const data = await response.json() as { conversationId: number }
+      sessionStorage.setItem("support_conversation_id", String(data.conversationId))
+      sessionStorage.setItem("customer_name", invitationName.trim())
+      sessionStorage.setItem("customer_phone", invitationPhone.trim())
+      setVisitorInvitation(null)
+      setLiveChatOpen(true)
+    } catch {
+      // The form remains open so the visitor can retry without losing input.
+    } finally {
+      setInvitationSubmitting(false)
+    }
+  }
 
   // 2. Heartbeat Presence loop every 15s
   useEffect(() => {
@@ -1288,7 +1347,35 @@ export function AIChatbotWidget({ onOpenChange }: { onOpenChange?: (open: boolea
 
       {/* Floating Support Message Alert Bubble with Sound */}
       <AnimatePresence>
-        {incomingSupportNotice && !isAnyOpen && (
+        {visitorInvitation && !isAnyOpen ? (
+          <motion.div
+            initial={{ opacity: 0, y: 15, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.9 }}
+            className="fixed bottom-24 left-4 sm:left-6 z-[70] w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-emerald-500/40 bg-slate-950/95 p-4 text-white shadow-2xl backdrop-blur-md"
+          >
+            <div className="flex items-start gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500">
+                <Headphones size={18} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-black text-emerald-400">الدعم المباشر يدعوك للتواصل</p>
+                  <button onClick={() => setVisitorInvitation(null)} className="p-0.5 text-gray-400 hover:text-white" aria-label="إغلاق الدعوة"><X size={13} /></button>
+                </div>
+                <p className="mt-1 text-xs leading-relaxed text-gray-200">{visitorInvitation.message}</p>
+              </div>
+            </div>
+            <form onSubmit={acceptVisitorInvitation} className="mt-3 space-y-2">
+              <Input value={invitationName} onChange={event => setInvitationName(event.target.value)} placeholder="اسمك الكريم" className="h-9 rounded-xl border-white/10 bg-white/10 text-xs text-white placeholder:text-white/50" />
+              <Input value={invitationPhone} onChange={event => setInvitationPhone(event.target.value)} placeholder="رقم الجوال" dir="ltr" className="h-9 rounded-xl border-white/10 bg-white/10 text-xs text-white placeholder:text-white/50" />
+              <Input value={invitationService} onChange={event => setInvitationService(event.target.value)} placeholder="الخدمة المطلوبة (اختياري)" className="h-9 rounded-xl border-white/10 bg-white/10 text-xs text-white placeholder:text-white/50" />
+              <Button type="submit" disabled={invitationSubmitting || !invitationName.trim() || !invitationPhone.trim()} className="h-9 w-full rounded-xl bg-emerald-500 text-xs font-bold text-white hover:bg-emerald-600">
+                {invitationSubmitting ? "جارٍ فتح المحادثة..." : "ابدأ المحادثة الآن"}
+              </Button>
+            </form>
+          </motion.div>
+        ) : incomingSupportNotice && !isAnyOpen && (
           <motion.div
             initial={{ opacity: 0, y: 15, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}

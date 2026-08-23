@@ -4,7 +4,8 @@ import { pageViewsTable, activeVisitorsTable } from "@workspace/db";
 import { eq, gte, sql } from "drizzle-orm";
 import crypto from "crypto";
 import { getSetting } from "./settings";
-import { requireAdmin, requireSectionPermission } from "../middleware/adminAuth";
+import { requireAdmin, requireNonDriver, requireSectionPermission } from "../middleware/adminAuth";
+import { conversationsTable, messagesTable } from "@workspace/db";
 import { serviceRequestsTable } from "@workspace/db";
 import { SOURCE_LABELS, sourceForRow } from "../lib/attribution";
 
@@ -204,6 +205,82 @@ router.post("/visitor/heartbeat", async (req, res) => {
   } catch (e) {
     return res.status(500).json({ error: String(e) });
   }
+});
+
+// Visitors are intentionally identified by their anonymous session id. The
+// admin receives only a short-lived presence list and can send an invitation
+// without exposing private tracking data.
+router.get("/admin/active-visitors", requireAdmin, requireNonDriver, requireSectionPermission("conversations"), async (_req, res) => {
+  const cutoff = isoAgo(5 * 60 * 1000);
+  await db.delete(activeVisitorsTable).where(sql`${activeVisitorsTable.lastSeen} < ${cutoff}`);
+  const rows = await db.select().from(activeVisitorsTable);
+  return res.json(rows.sort((a, b) => b.lastSeen.localeCompare(a.lastSeen)).map(row => ({
+    sessionId: row.sessionId,
+    page: row.page,
+    deviceType: row.deviceType,
+    clientName: row.clientName,
+    phone: row.phone,
+    conversationId: row.conversationId,
+    lastSeen: row.lastSeen,
+    hasPendingInvitation: Boolean(row.invitationMessage && row.invitationCreatedAt),
+  })));
+});
+
+router.post("/admin/active-visitors/:sessionId/invite", requireAdmin, requireNonDriver, requireSectionPermission("conversations"), async (req, res) => {
+  const sessionId = String(req.params.sessionId ?? "").trim();
+  const message = typeof req.body?.message === "string" ? req.body.message.trim().slice(0, 500) : "";
+  if (!sessionId || !message) return res.status(422).json({ error: "رسالة الدعوة مطلوبة" });
+  const [visitor] = await db.update(activeVisitorsTable).set({
+    invitationMessage: message,
+    invitationCreatedAt: isoNow(),
+  }).where(eq(activeVisitorsTable.sessionId, sessionId)).returning();
+  if (!visitor) return res.status(404).json({ error: "الزائر لم يعد متصلاً" });
+  return res.json({ ok: true, sessionId, invitationMessage: message });
+});
+
+router.get("/visitor/invitation", async (req, res) => {
+  const sessionId = typeof req.query.sessionId === "string" ? req.query.sessionId.trim() : "";
+  if (!sessionId) return res.status(400).json({ error: "sessionId required" });
+  const [visitor] = await db.select().from(activeVisitorsTable).where(eq(activeVisitorsTable.sessionId, sessionId));
+  if (!visitor || !visitor.invitationMessage || !visitor.invitationCreatedAt) return res.json({ invitation: null });
+  return res.json({
+    invitation: {
+      message: visitor.invitationMessage,
+      createdAt: visitor.invitationCreatedAt,
+      clientName: visitor.clientName,
+      phone: visitor.phone,
+    },
+  });
+});
+
+router.post("/visitor/invitation/accept", async (req, res) => {
+  const sessionId = typeof req.body?.sessionId === "string" ? req.body.sessionId.trim() : "";
+  const clientName = typeof req.body?.clientName === "string" ? req.body.clientName.trim().slice(0, 160) : "";
+  const phone = typeof req.body?.phone === "string" ? req.body.phone.trim().slice(0, 40) : "";
+  const service = typeof req.body?.service === "string" ? req.body.service.trim().slice(0, 160) : "";
+  if (!sessionId || !clientName || !phone) return res.status(422).json({ error: "الاسم ورقم الجوال مطلوبان" });
+  const [visitor] = await db.select().from(activeVisitorsTable).where(eq(activeVisitorsTable.sessionId, sessionId));
+  if (!visitor) return res.status(404).json({ error: "انتهت جلسة الزائر" });
+  const [conversation] = await db.insert(conversationsTable).values({
+    clientName,
+    phone,
+    subject: service || "دعوة من زائر الموقع",
+    packageName: service || null,
+  }).returning();
+  await db.update(activeVisitorsTable).set({
+    clientName,
+    phone,
+    conversationId: conversation.id,
+    invitationMessage: null,
+    invitationCreatedAt: null,
+    lastSeen: isoNow(),
+  }).where(eq(activeVisitorsTable.sessionId, sessionId));
+  await db.insert(messagesTable).values({
+    conversationId: conversation.id,
+    content: service ? `أرغب في الاستفسار عن خدمة: ${service}` : "أرغب في التواصل مع الدعم المباشر",
+    senderType: "client",
+  });
+  return res.status(201).json({ conversationId: conversation.id });
 });
 
 router.get("/admin/analytics", requireAdmin, requireSectionPermission("analytics"), async (req, res) => {

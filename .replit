@@ -22,19 +22,3 @@ timeoutMs = 20000
 [nix]
 channel = "stable-25_05"
 packages = ["undollar"]
-
-[[ports]]
-localPort = 8080
-externalPort = 8080
-
-[[ports]]
-localPort = 8081
-externalPort = 8081
-
-[[ports]]
-localPort = 19040
-externalPort = 80
-
-[[ports]]
-localPort = 19770
-externalPort = 3000

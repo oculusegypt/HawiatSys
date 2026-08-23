@@ -24,5 +24,7 @@ export const activeVisitorsTable = sqliteTable("active_visitors", {
   conversationId: integer("conversation_id"),
   clientName: text("client_name"),
   phone: text("phone"),
+  invitationMessage: text("invitation_message"),
+  invitationCreatedAt: text("invitation_created_at"),
   lastSeen: text("last_seen").notNull(),
 });

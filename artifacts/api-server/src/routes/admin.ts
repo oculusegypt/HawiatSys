@@ -3,6 +3,7 @@ import { db } from "@workspace/db";
 import {
   serviceRequestsTable,
   conversationsTable,
+  messagesTable,
   notificationsTable,
 } from "@workspace/db";
 import { eq, count, desc, gte, sql } from "drizzle-orm";
@@ -15,11 +16,14 @@ const router = Router();
 router.get("/admin/sidebar-counts", requireAdmin, requireNonDriver, requireSectionPermission("dashboard"), async (_req, res) => {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
   const [conversationCount] = await db
-    .select({
-      count: sql<number>`COALESCE(SUM(${conversationsTable.unreadCount}), 0)`,
-    })
-    .from(conversationsTable)
-    .where(eq(conversationsTable.status, "open"));
+    .select({ count: count() })
+    .from(messagesTable)
+    .innerJoin(conversationsTable, eq(messagesTable.conversationId, conversationsTable.id))
+    .where(sql`
+      ${messagesTable.senderType} = 'client'
+      AND ${messagesTable.isRead} = 'false'
+      AND ${conversationsTable.status} = 'open'
+    `);
   const [openConversationCount] = await db
     .select({ count: count() })
     .from(conversationsTable)
