@@ -985,21 +985,21 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
         $now = date('c');
         try {
             $pdo->beginTransaction();
-            $insert = $pdo->prepare("INSERT INTO container_system_records (kind, status, reference, payload, created_by, created_at, updated_at) VALUES (:kind, :status, '', :payload, :created_by, :created_at, :updated_at)");
-            $insert->execute([':kind' => 'contract', ':status' => 'active', ':payload' => json_encode($contract, JSON_UNESCAPED_UNICODE), ':created_by' => $actorId, ':created_at' => $now, ':updated_at' => $now]);
+            $insert = $pdo->prepare("INSERT INTO container_system_records (kind, status, reference, payload, operation_key, created_by, created_at, updated_at) VALUES (:kind, :status, '', :payload, :operation_key, :created_by, :created_at, :updated_at)");
+            $insert->execute([':kind' => 'contract', ':status' => 'active', ':payload' => json_encode($contract, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE), ':operation_key' => $operationKey !== '' ? $operationKey : null, ':created_by' => $actorId, ':created_at' => $now, ':updated_at' => $now]);
             $contractId = (int)$pdo->lastInsertId();
             $contractNumber = trim((string)($contract['contractNumber'] ?? ''));
             if ($contractNumber === '') $contractNumber = 'RNT-' . str_pad((string)$contractId, 5, '0', STR_PAD_LEFT);
             $contract['contractNumber'] = $contractNumber;
             $pdo->prepare("UPDATE container_system_records SET reference = :reference, payload = :payload WHERE id = :id")->execute([':reference' => $contractNumber, ':payload' => json_encode($contract, JSON_UNESCAPED_UNICODE), ':id' => $contractId]);
             $assignment['contractRecordId'] = $contractId; $assignment['contractNumber'] = $contractNumber; $assignment['siteRecordId'] = $siteId; $assignment['containerRecordId'] = $assetId; $assignment['assignmentStatus'] = $assignment['assignmentStatus'] ?? 'reserved';
-            $insert->execute([':kind' => 'container_assignment', ':status' => 'reserved', ':payload' => json_encode($assignment, JSON_UNESCAPED_UNICODE), ':created_by' => $actorId, ':created_at' => $now, ':updated_at' => $now]);
+            $insert->execute([':kind' => 'container_assignment', ':status' => 'reserved', ':payload' => json_encode($assignment, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE), ':operation_key' => null, ':created_by' => $actorId, ':created_at' => $now, ':updated_at' => $now]);
             $assignmentId = (int)$pdo->lastInsertId();
             $pdo->prepare("UPDATE container_system_records SET reference = :reference WHERE id = :id")->execute([':reference' => 'ASSIGN-' . $assignmentId, ':id' => $assignmentId]);
             $assetPayload['assignmentRecordId'] = $assignmentId; $assetPayload['assignedContractRecordId'] = $contractId; $assetPayload['assignedSiteRecordId'] = $siteId;
             $pdo->prepare("UPDATE container_system_records SET status = 'reserved', payload = :payload, updated_at = :updated_at WHERE id = :id")->execute([':payload' => json_encode($assetPayload, JSON_UNESCAPED_UNICODE), ':updated_at' => $now, ':id' => $assetId]);
             $appointment['contractRecordId'] = $contractId; $appointment['contractNumber'] = $contractNumber; $appointment['customerRecordId'] = $customerId; $appointment['containerRecordId'] = $assetId;
-            $insert->execute([':kind' => 'appointment', ':status' => 'scheduled', ':payload' => json_encode($appointment, JSON_UNESCAPED_UNICODE), ':created_by' => $actorId, ':created_at' => $now, ':updated_at' => $now]);
+            $insert->execute([':kind' => 'appointment', ':status' => 'scheduled', ':payload' => json_encode($appointment, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE), ':operation_key' => null, ':created_by' => $actorId, ':created_at' => $now, ':updated_at' => $now]);
             $appointmentId = (int)$pdo->lastInsertId();
             $pdo->prepare("UPDATE container_system_records SET reference = :reference WHERE id = :id")->execute([':reference' => 'APT-' . $appointmentId, ':id' => $appointmentId]);
             $customerPayload = hsPayload($customer['payload']);

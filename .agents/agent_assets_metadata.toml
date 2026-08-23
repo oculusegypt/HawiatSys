@@ -35,14 +35,14 @@ content_type = "application/octet-stream"
 id = "RTo70OttJokFRCRKOlWig"
 uri = "file://hawiat-update-patch.zip"
 type = "unspecified"
-title = "Hawiat Hostinger Update Patch"
-description = "باتش تحديث شامل يحتوي على إصلاحات الدورة المالية، المطابقة البنكية، الإيراد الآخر، قفل الفترات، ملفات PHP، قاعدة البيانات، وأصول الواجهة اللازمة لإعادة الاختبار على Hostinger."
+title = "الباتش النهائي لإصلاح العقد والفواتير"
+description = "حزمة تحديث Hostinger متوافقة مع PHP وSQLite. أصلحت فتح نموذج العقد والفاتورة من تفاصيل الطلب، فتح المستند بعد نجاح الإنشاء، واستعادة سياق الطلب، مع تحديث مسار PHP وحماية التكرار."
 logical_id = "da5e0650-6b63-4e98-9652-3d02a75fa1ad"
-content_hash = "sha256:e32d05be2c5c3d8ea42ad4935d8a89ddac5a17bbbddaa0dfc82540a134489302"
-size = 2780565
-mtime_ms = 1787501552944
-storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:c886fad2-e3a3-44fa-9bf5-bd6eb5b74d70/da5e0650-6b63-4e98-9652-3d02a75fa1ad/1cb5c43b-4370-4b18-9ff8-273f5d3e9638"
-storage_version_token = "1787501646991321"
+content_hash = "sha256:235ea169187e1adfb3be53f4085fee384751766f7f369c36abf4ab798571f39f"
+size = 2783724
+mtime_ms = 1787513288386
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:40bddad7-23e3-483a-955a-38e870108617/da5e0650-6b63-4e98-9652-3d02a75fa1ad/af84ae76-0cf0-4c26-8f7a-d90791d5f729"
+storage_version_token = "1787513301441573"
 content_type = "application/octet-stream"
 
 [[outputs]]

@@ -919,11 +919,17 @@ function ContainerSearchPanel({ records, loading, onDetails, onEdit }: { records
 export default function ContainerSystem() {
   const queryClient = useQueryClient()
   const { toast } = useToast()
-  const [location] = useLocation()
+  const [location, navigate] = useLocation()
   const requestedView = new URLSearchParams(location.split("?")[1] ?? "").get("view") as ViewKey | null
   const requestedCustomerId = Number(new URLSearchParams(location.split("?")[1] ?? "").get("customerId") ?? 0) || null
   const requestedRequestId = Number(new URLSearchParams(location.split("?")[1] ?? "").get("requestId") ?? 0) || null
-  const requestContext = useMemo(() => requestContextFromStorage(requestedRequestId), [requestedRequestId])
+  const serviceRequestsQuery = useGetServiceRequests(undefined, { query: { staleTime: 30_000, queryKey: getGetServiceRequestsQueryKey() } })
+  const requestContext = useMemo(() => {
+    const stored = requestContextFromStorage(requestedRequestId)
+    if (stored) return stored
+    if (!requestedRequestId) return null
+    return (serviceRequestsQuery.data ?? []).find(request => request.id === requestedRequestId) ?? null
+  }, [requestedRequestId, serviceRequestsQuery.data])
   const [view, setView] = useState<ViewKey>("overview")
   const [search, setSearch] = useState("")
   const [dialog, setDialog] = useState<{ open: boolean; kind: RecordKind; record?: ContainerSystemRecord | null }>({ open: false, kind: "customer" })
@@ -948,7 +954,6 @@ export default function ContainerSystem() {
   const filterParams = useMemo(() => ({ kind: collectionKind, search: search.trim() || undefined }), [collectionKind, search])
   const snapshotQuery = useGetContainerSystem()
   const recordsQuery = useGetContainerSystemRecords(filterParams)
-  const serviceRequestsQuery = useGetServiceRequests(undefined, { query: { staleTime: 30_000, queryKey: getGetServiceRequestsQueryKey() } })
   const auditQuery = useGetContainerSystemAudit({ query: { enabled: view === "audit", queryKey: getGetContainerSystemAuditQueryKey() } })
   const createMutation = useCreateContainerSystemRecord()
   const contractWorkflowMutation = useCreateContainerContractWorkflow()
@@ -1022,7 +1027,19 @@ export default function ContainerSystem() {
     if (dialog.record) {
       updateMutation.mutate({ id: dialog.record.id, data: { status, payload } }, { onSuccess: () => { invalidate(); setDialog(current => ({ ...current, open: false })); showSuccess("تم تحديث السجل") }, onError: error => toast({ title: error instanceof Error ? error.message : "تعذر تحديث السجل", variant: "destructive" }) })
     } else {
-      createMutation.mutate({ data }, { onSuccess: () => { invalidate(); setDialog(current => ({ ...current, open: false })); showSuccess("تمت إضافة السجل") }, onError: error => toast({ title: error instanceof Error ? error.message : "تعذر إضافة السجل", variant: "destructive" }) })
+      createMutation.mutate({ data }, {
+        onSuccess: created => {
+          invalidate()
+          setDialog(current => ({ ...current, open: false }))
+          if (dialog.kind === "invoice" && created?.id) {
+            showSuccess("تم إنشاء الفاتورة بنجاح، جارٍ فتحها")
+            navigate(`/admin/container-system/invoice/${created.id}/print`)
+          } else {
+            showSuccess("تمت إضافة السجل")
+          }
+        },
+        onError: error => toast({ title: error instanceof Error ? error.message : "تعذر إضافة السجل", variant: "destructive" }),
+      })
     }
   }
   const submitContract = (payload: Record<string, unknown>) => {
@@ -1073,11 +1090,13 @@ export default function ContainerSystem() {
         },
       },
     }, {
-      onSuccess: () => {
+      onSuccess: result => {
         invalidate()
         setContractWizardOpen(false)
         setContractFlowBusy(false)
         showSuccess("تم إصدار العقد وإنشاء الموعد وأمر العمل وربطهما بالأصل")
+        const contractId = (result as { contract?: { id?: number } } | undefined)?.contract?.id
+        if (contractId) navigate(`/admin/container-system/contract/${contractId}/print`)
       },
       onError: error => {
         setContractFlowBusy(false)
