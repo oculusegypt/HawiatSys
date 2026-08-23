@@ -85,4 +85,8 @@ export const bankReconciliationsTable = sqliteTable("bank_reconciliations", {
   status: text("status").notNull().default("unmatched"),
   approvedBy: integer("approved_by"),
   approvedAt: text("approved_at"),
+  reviewedBy: integer("reviewed_by"),
+  reviewedAt: text("reviewed_at"),
+  rejectionReason: text("rejection_reason").notNull().default(""),
+  auditTrail: text("audit_trail").notNull().default("[]"),
 });

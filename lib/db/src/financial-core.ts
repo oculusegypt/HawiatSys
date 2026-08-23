@@ -11,11 +11,14 @@ export type FinancialSource = {
   createdBy?: number | null;
   allocations?: Array<{ contractId?: number | null; invoiceId?: number | null; amount: number }>;
   paymentMethod?: string;
+  /** A receipt linked to a payment is a document, not a second collection event. */
+  sourcePaymentId?: number | null;
 };
 
 const accountFor = (kind: string, paymentMethod = ""): [string, string] => {
   if (kind === "invoice") return ["AR-001", "REV-001"];
-  if (kind === "invoice_return") return ["REFUND-001", "AR-001"];
+  // An invoice return reverses the original revenue and receivable.
+  if (kind === "invoice_return") return ["REV-001", "AR-001"];
   if (kind === "payment_return") return ["REFUND-001", paymentMethod.includes("بنكي") ? "BANK-001" : "CASH-001"];
   if (kind === "payment" || kind === "receipt") return [paymentMethod.includes("بنكي") || paymentMethod.includes("شبكة") ? "BANK-001" : "CASH-001", "AR-001"];
   if (kind === "deposit" || kind === "bank_deposit") return ["BANK-001", "CASH-001"];
@@ -43,6 +46,11 @@ function assertOpenPeriod(date: string) {
 
 export function postToFinancialCore(source: FinancialSource) {
   if (!Number.isFinite(source.amount) || source.amount <= 0) throw new Error("لا يمكن ترحيل قيمة مالية غير موجبة");
+  // Receipts linked to a payment are presentation documents. Keeping them out
+  // of the ledger is the accounting boundary that prevents double counting.
+  if (source.sourceKind === "receipt" && source.sourcePaymentId) {
+    return { id: null, journalId: null, idempotent: true, documentOnly: true };
+  }
   const now = new Date().toISOString();
   const date = source.date || now.slice(0, 10);
   assertOpenPeriod(date);
@@ -102,7 +110,8 @@ export function financialTruth() {
   const totals = sqlite.prepare(`
     SELECT
       COALESCE(SUM(CASE WHEN jl.account_code IN ('CASH-001','BANK-001') THEN jl.debit - jl.credit ELSE 0 END), 0) AS cashAndBank,
-      COALESCE(SUM(CASE WHEN jl.account_code LIKE 'REV%' THEN jl.credit - jl.debit ELSE 0 END), 0) AS revenue,
+      COALESCE(SUM(CASE WHEN jl.account_code LIKE 'REV%' THEN jl.credit - jl.debit ELSE 0 END), 0) AS grossRevenue,
+      COALESCE(SUM(CASE WHEN jl.account_code = 'REFUND-001' THEN jl.debit - jl.credit ELSE 0 END), 0) AS refunds,
       COALESCE(SUM(CASE WHEN jl.account_code LIKE 'EXP%' OR jl.account_code IN ('COMM-001','COGS-001','BANK-FEE') THEN jl.debit - jl.credit ELSE 0 END), 0) AS expenses,
       COALESCE(SUM(CASE WHEN jl.account_code = 'AR-001' THEN jl.debit - jl.credit ELSE 0 END), 0) AS receivables,
       COALESCE(SUM(CASE WHEN jl.account_code = 'AP-001' THEN jl.credit - jl.debit ELSE 0 END), 0) AS payables,
@@ -112,8 +121,26 @@ export function financialTruth() {
     JOIN financial_journal_lines jl ON jl.journal_entry_id = je.id
     WHERE je.status = 'posted'
   `).get();
+  const collectionTotals = sqlite.prepare(`
+    SELECT
+      COALESCE(SUM(CASE WHEN transaction_type IN ('payment','receipt') THEN amount ELSE 0 END), 0) AS grossCollections,
+      COALESCE(SUM(CASE WHEN transaction_type = 'payment_return' THEN amount ELSE 0 END), 0) AS returnedCollections
+    FROM financial_transactions
+    WHERE status = 'posted'
+  `).get() as { grossCollections: number; returnedCollections: number };
   const counts = sqlite.prepare("SELECT transaction_type AS kind, COUNT(*) AS count FROM financial_transactions WHERE status = 'posted' GROUP BY transaction_type ORDER BY transaction_type").all();
-  return { totals, counts };
+  const rawTotals = totals as {
+    cashAndBank: number; grossRevenue: number; refunds: number; expenses: number;
+    receivables: number; payables: number; totalDebit: number; totalCredit: number;
+  };
+  const normalizedTotals = {
+    ...rawTotals,
+    revenue: Number((Number(rawTotals.grossRevenue) - Number(rawTotals.refunds)).toFixed(2)),
+    netCollections: Number((Number(collectionTotals.grossCollections) - Number(collectionTotals.returnedCollections)).toFixed(2)),
+    grossCollections: Number(collectionTotals.grossCollections),
+    returnedCollections: Number(collectionTotals.returnedCollections),
+  };
+  return { totals: normalizedTotals, counts };
 }
 
 export function financialPeriods() {

@@ -303,9 +303,21 @@ sqlite.exec(`
     difference_reason TEXT NOT NULL DEFAULT '',
     status TEXT NOT NULL DEFAULT 'unmatched',
     approved_by INTEGER,
-    approved_at TEXT
+    approved_at TEXT,
+    reviewed_by INTEGER,
+    reviewed_at TEXT,
+    rejection_reason TEXT NOT NULL DEFAULT '',
+    audit_trail TEXT NOT NULL DEFAULT '[]'
   );
 `);
+for (const sql of [
+  "ALTER TABLE bank_reconciliations ADD COLUMN reviewed_by INTEGER",
+  "ALTER TABLE bank_reconciliations ADD COLUMN reviewed_at TEXT",
+  "ALTER TABLE bank_reconciliations ADD COLUMN rejection_reason TEXT NOT NULL DEFAULT ''",
+  "ALTER TABLE bank_reconciliations ADD COLUMN audit_trail TEXT NOT NULL DEFAULT '[]'",
+]) {
+  try { sqlite.exec(sql); } catch { /* existing portable database */ }
+}
 const financialAccounts = [
   ["CASH-001", "الخزينة الرئيسية", "cash"],
   ["BANK-001", "الحساب البنكي الرئيسي", "bank"],

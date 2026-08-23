@@ -62,6 +62,122 @@ function hsPostedCollections(array $rows): array {
     return $payments;
 }
 
+function hsFinancialTables(PDO $pdo): void {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS financial_accounts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT NOT NULL UNIQUE, name TEXT NOT NULL,
+        category TEXT NOT NULL, is_active INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )");
+    $pdo->exec("CREATE TABLE IF NOT EXISTS financial_periods (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, period_key TEXT NOT NULL UNIQUE, starts_on TEXT NOT NULL,
+        ends_on TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'open', closed_by INTEGER, closed_at TEXT
+    )");
+    $pdo->exec("CREATE TABLE IF NOT EXISTS financial_transactions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, transaction_number TEXT NOT NULL, transaction_type TEXT NOT NULL,
+        source_kind TEXT NOT NULL, source_id INTEGER NOT NULL, reference TEXT NOT NULL DEFAULT '',
+        transaction_date TEXT NOT NULL, amount REAL NOT NULL DEFAULT 0, currency TEXT NOT NULL DEFAULT 'SAR',
+        status TEXT NOT NULL DEFAULT 'posted', operation_key TEXT UNIQUE, created_by INTEGER, posted_at TEXT,
+        cancellation_reason TEXT, UNIQUE(source_kind, source_id)
+    )");
+    $pdo->exec("CREATE TABLE IF NOT EXISTS financial_journal_entries (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, transaction_id INTEGER NOT NULL UNIQUE,
+        entry_number TEXT NOT NULL, total_debit REAL NOT NULL DEFAULT 0,
+        total_credit REAL NOT NULL DEFAULT 0, status TEXT NOT NULL DEFAULT 'posted'
+    )");
+    $pdo->exec("CREATE TABLE IF NOT EXISTS financial_journal_lines (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, journal_entry_id INTEGER NOT NULL, account_code TEXT NOT NULL,
+        debit REAL NOT NULL DEFAULT 0, credit REAL NOT NULL DEFAULT 0, description TEXT NOT NULL DEFAULT ''
+    )");
+    $pdo->exec("CREATE TABLE IF NOT EXISTS financial_allocations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, transaction_id INTEGER NOT NULL,
+        contract_id INTEGER, invoice_id INTEGER, amount REAL NOT NULL
+    )");
+    $pdo->exec("CREATE TABLE IF NOT EXISTS bank_reconciliations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, deposit_record_id INTEGER NOT NULL,
+        bank_account_code TEXT NOT NULL DEFAULT 'BANK-001', deposit_reference TEXT NOT NULL DEFAULT '',
+        deposit_date TEXT NOT NULL, amount REAL NOT NULL, linked_transaction_id INTEGER,
+        bank_fee REAL NOT NULL DEFAULT 0, difference REAL NOT NULL DEFAULT 0,
+        difference_reason TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'unmatched',
+        approved_by INTEGER, approved_at TEXT, reviewed_by INTEGER, reviewed_at TEXT,
+        rejection_reason TEXT NOT NULL DEFAULT '', audit_trail TEXT NOT NULL DEFAULT '[]'
+    )");
+    $accounts = [
+        ['CASH-001','الخزينة الرئيسية','cash'], ['BANK-001','الحساب البنكي الرئيسي','bank'],
+        ['AR-001','ذمم العملاء','receivable'], ['AP-001','ذمم الموردين','payable'],
+        ['REV-001','إيرادات الخدمات','revenue'], ['REV-OTHER','إيرادات أخرى','other_revenue'],
+        ['EXP-001','المصروفات العامة','expense'], ['EXP-MAINT','مصروفات الصيانة','maintenance'],
+        ['INV-001','المخزون','inventory'], ['COGS-001','تكلفة المبيعات','cogs'],
+        ['COMM-001','العمولات','commission'], ['BANK-FEE','رسوم بنكية','bank_fee'],
+        ['REFUND-001','المرتجعات','refund'], ['ADJ-001','التسويات','adjustment'],
+    ];
+    $stmt = $pdo->prepare("INSERT OR IGNORE INTO financial_accounts (code,name,category) VALUES (?,?,?)");
+    foreach ($accounts as $account) $stmt->execute($account);
+}
+
+function hsPostFinancialCore(PDO $pdo, string $kind, int $sourceId, array $payload, string $reference, ?int $actorId): void {
+    $amount = (float)($payload['amount'] ?? $payload['total'] ?? 0);
+    if ($amount <= 0) throw new RuntimeException('لا يمكن ترحيل قيمة مالية غير موجبة');
+    if ($kind === 'receipt' && !empty($payload['sourcePaymentId'])) return;
+    hsFinancialTables($pdo);
+    $date = (string)($payload['date'] ?? date('Y-m-d'));
+    $period = substr($date, 0, 7);
+    $periodStmt = $pdo->prepare("SELECT status FROM financial_periods WHERE period_key = ?");
+    $periodStmt->execute([$period]);
+    $periodStatus = $periodStmt->fetchColumn();
+    if ($periodStatus === 'closed') throw new RuntimeException("الفترة المالية {$period} مغلقة");
+    $pdo->prepare("INSERT OR IGNORE INTO financial_periods (period_key,starts_on,ends_on,status) VALUES (?,?,?,'open')")
+        ->execute([$period, "{$period}-01", "{$period}-31"]);
+    $exists = $pdo->prepare("SELECT id FROM financial_transactions WHERE source_kind = ? AND source_id = ?");
+    $exists->execute([$kind, $sourceId]);
+    if ($exists->fetchColumn()) return;
+    $debit = 'ADJ-001'; $credit = 'CASH-001';
+    if ($kind === 'invoice') [$debit,$credit] = ['AR-001','REV-001'];
+    elseif ($kind === 'invoice_return') [$debit,$credit] = ['REV-001','AR-001'];
+    elseif ($kind === 'payment' || $kind === 'receipt') [$debit,$credit] = [str_contains((string)($payload['paymentMethod'] ?? ''),'بنكي') || str_contains((string)($payload['paymentMethod'] ?? ''),'شبكة') ? 'BANK-001' : 'CASH-001','AR-001'];
+    elseif (in_array($kind,['payment_return'],true)) [$debit,$credit] = ['REFUND-001', str_contains((string)($payload['paymentMethod'] ?? ''),'بنكي') ? 'BANK-001' : 'CASH-001'];
+    elseif (in_array($kind,['expense','daily_expense','fuel_expense','salary_payment','salary_advance'],true)) [$debit,$credit] = ['EXP-001','CASH-001'];
+    elseif ($kind === 'purchase') [$debit,$credit] = ['INV-001','AP-001'];
+    elseif ($kind === 'purchase_return') [$debit,$credit] = ['AP-001','INV-001'];
+    elseif ($kind === 'deposit' || $kind === 'bank_deposit') [$debit,$credit] = ['BANK-001','CASH-001'];
+    $pdo->prepare("INSERT INTO financial_transactions (transaction_number,transaction_type,source_kind,source_id,reference,transaction_date,amount,status,operation_key,created_by,posted_at) VALUES (?,?,?,?,?,?,?,'posted',?,?,?)")
+        ->execute(["FT-{$sourceId}",$kind,$kind,$sourceId,$reference,$date,$amount,(string)($payload['operationKey'] ?? '') ?: null,$actorId,date('c')]);
+    $txId = (int)$pdo->lastInsertId();
+    $pdo->prepare("INSERT INTO financial_journal_entries (transaction_id,entry_number,total_debit,total_credit,status) VALUES (?,?,?,?,'posted')")
+        ->execute([$txId,"FJ-{$txId}",$amount,$amount]);
+    $entryId = (int)$pdo->lastInsertId();
+    $line = $pdo->prepare("INSERT INTO financial_journal_lines (journal_entry_id,account_code,debit,credit,description) VALUES (?,?,?,?,?)");
+    $line->execute([$entryId,$debit,$amount,0,"مدين — {$kind}"]);
+    $line->execute([$entryId,$credit,0,$amount,"دائن — {$kind}"]);
+    if (isset($payload['allocations']) && is_array($payload['allocations'])) {
+        $allocation = $pdo->prepare("INSERT INTO financial_allocations (transaction_id,contract_id,invoice_id,amount) VALUES (?,?,?,?)");
+        foreach ($payload['allocations'] as $item) $allocation->execute([$txId,(int)($item['contractId'] ?? 0) ?: null,(int)($item['invoiceId'] ?? 0) ?: null,(float)($item['amount'] ?? 0)]);
+    }
+}
+
+function hsFinancialTruth(PDO $pdo): array {
+    hsFinancialTables($pdo);
+    $row = $pdo->query("SELECT
+        COALESCE(SUM(CASE WHEN jl.account_code IN ('CASH-001','BANK-001') THEN jl.debit-jl.credit ELSE 0 END),0) cashAndBank,
+        COALESCE(SUM(CASE WHEN jl.account_code LIKE 'REV%' THEN jl.credit-jl.debit ELSE 0 END),0) grossRevenue,
+        COALESCE(SUM(CASE WHEN jl.account_code='REFUND-001' THEN jl.debit-jl.credit ELSE 0 END),0) refunds,
+        COALESCE(SUM(CASE WHEN jl.account_code LIKE 'EXP%' OR jl.account_code IN ('COMM-001','COGS-001','BANK-FEE') THEN jl.debit-jl.credit ELSE 0 END),0) expenses,
+        COALESCE(SUM(CASE WHEN jl.account_code='AR-001' THEN jl.debit-jl.credit ELSE 0 END),0) receivables,
+        COALESCE(SUM(CASE WHEN jl.account_code='AP-001' THEN jl.credit-jl.debit ELSE 0 END),0) payables,
+        COALESCE(SUM(jl.debit),0) totalDebit, COALESCE(SUM(jl.credit),0) totalCredit
+        FROM financial_journal_entries je JOIN financial_journal_lines jl ON jl.journal_entry_id=je.id
+        WHERE je.status='posted'")->fetch(PDO::FETCH_ASSOC) ?: [];
+    $collections = $pdo->query("SELECT
+        COALESCE(SUM(CASE WHEN transaction_type IN ('payment','receipt') THEN amount ELSE 0 END),0) grossCollections,
+        COALESCE(SUM(CASE WHEN transaction_type='payment_return' THEN amount ELSE 0 END),0) returnedCollections
+        FROM financial_transactions WHERE status='posted'")->fetch(PDO::FETCH_ASSOC) ?: [];
+    $row['revenue'] = round((float)($row['grossRevenue'] ?? 0) - (float)($row['refunds'] ?? 0), 2);
+    $row['netCollections'] = round((float)($collections['grossCollections'] ?? 0) - (float)($collections['returnedCollections'] ?? 0), 2);
+    $row['grossCollections'] = (float)($collections['grossCollections'] ?? 0);
+    $row['returnedCollections'] = (float)($collections['returnedCollections'] ?? 0);
+    $counts = $pdo->query("SELECT transaction_type kind, COUNT(*) count FROM financial_transactions WHERE status='posted' GROUP BY transaction_type ORDER BY transaction_type")->fetchAll(PDO::FETCH_ASSOC);
+    return ['totals' => $row, 'counts' => $counts];
+}
+
 function hsEnsureSchema(PDO $pdo): void {
     $pdo->exec("CREATE TABLE IF NOT EXISTS container_system_records (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -88,6 +204,7 @@ function hsEnsureSchema(PDO $pdo): void {
         $pdo->exec("UPDATE container_system_records SET operation_key = json_extract(payload, '$.operationKey') WHERE operation_key IS NULL AND json_extract(payload, '$.operationKey') IS NOT NULL");
     } catch (Throwable) { /* legacy SQLite without JSON1 */ }
     $pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_container_system_records_operation_key ON container_system_records(kind, operation_key) WHERE operation_key IS NOT NULL AND operation_key <> '' AND status <> 'archived'");
+    hsFinancialTables($pdo);
     $columns = $pdo->query("PRAGMA table_info(service_requests)")->fetchAll(PDO::FETCH_ASSOC);
     $known = array_fill_keys(array_map(static fn(array $column): string => (string)$column['name'], $columns), true);
     $migrations = [
@@ -591,15 +708,18 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
         $assets = array_filter($records, static fn(array $r): bool => in_array($r['kind'], ['container', 'container_asset'], true));
         $rented = count(array_filter($assets, static fn(array $r): bool => $r['status'] === 'rented'));
         $value = array_sum(array_map(static fn(array $r): float => (float)($r['payload']['total'] ?? 0), $contracts));
-        $collected = array_sum($payments);
-        $expenses = array_sum(array_map(static fn(array $r): float => (float)($r['payload']['amount'] ?? 0), array_filter($records, static fn(array $r): bool => in_array($r['kind'], ['expense', 'fuel_expense', 'daily_expense'], true))));
+        $truth = hsFinancialTruth($pdo);
+        $ledgerTotals = $truth['totals'];
+        $collected = (float)($ledgerTotals['netCollections'] ?? 0);
+        $expenses = (float)($ledgerTotals['expenses'] ?? 0);
         hsJson([
             'summary' => [
                 'customers' => $countKind('customer'), 'containers' => count($assets),
                 'availableContainers' => count(array_filter($assets, static fn(array $r): bool => $r['status'] === 'available')),
                 'rentedContainers' => $rented, 'activeContracts' => count(array_filter($contracts, static fn(array $r): bool => in_array($r['status'], ['active', 'issued', 'scheduled', 'delivered'], true))),
                 'containerMovements' => $countKind('container_movement'), 'collected' => $collected,
-                'contractValue' => $value, 'debt' => max($value - $collected, 0), 'expenses' => $expenses,
+                'contractValue' => (float)($ledgerTotals['grossRevenue'] ?? $value), 'debt' => (float)($ledgerTotals['receivables'] ?? 0), 'expenses' => $expenses,
+                'financialTruth' => $truth,
                 'maintenanceCost' => 0, 'vehicles' => $countKind('vehicle'), 'vehiclesReady' => count(array_filter($records, static fn(array $r): bool => $r['kind'] === 'vehicle' && $r['status'] === 'available')),
                 'openLedgerEntries' => count(array_filter($records, static fn(array $r): bool => $r['kind'] === 'ledger_entry' && $r['status'] === 'open')),
                 'expiringContracts' => 0, 'fleetUtilization' => 0,
@@ -608,6 +728,10 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
             ],
             'records' => $records, 'expiringContracts' => [], 'recent' => array_slice($records, 0, 12),
         ]);
+    }
+    if ($path === '/admin/container-system/financial/core' && $method === 'GET') {
+        if (!hsCanManage($admin, 'financial_reports')) hsJson(['error' => 'ليس لديك صلاحية للوصول إلى التقارير المالية'], 403);
+        hsJson(hsFinancialTruth($pdo));
     }
     if ($path === '/admin/container-system/contracts/workflow' && $method === 'POST') {
         if (!hsCanManage($admin, 'contract')) hsJson(['error' => 'ليس لديك صلاحية لهذه العملية'], 403);
@@ -836,6 +960,7 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
             $insert = $pdo->prepare("INSERT INTO container_system_records (kind,status,reference,payload,operation_key,created_by,created_at,updated_at) VALUES ('payment','posted',:reference,:payload,:operation_key,:created_by,:created_at,:updated_at)");
             $insert->execute([':reference' => 'PAY-' . time(), ':payload' => json_encode($paymentPayload, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE), ':operation_key' => $operationKey, ':created_by' => $actorId, ':created_at' => $now, ':updated_at' => $now]);
             $paymentId = (int)$pdo->lastInsertId();
+            hsPostFinancialCore($pdo, 'payment', $paymentId, $paymentPayload, 'PAY-' . $paymentId, $actorId);
             $ledgerPayload = ['sourceKind' => 'payment', 'sourceId' => $paymentId, 'contractId' => $first['contract']['id'], 'contractNumber' => $first['number'], 'amount' => $amount, 'direction' => 'credit', 'date' => $paymentPayload['date'], 'allocations' => $allocations];
             $ledgerInsert = $pdo->prepare("INSERT INTO container_system_records (kind,status,reference,payload,created_by,created_at,updated_at) VALUES ('ledger_entry','posted',:reference,:payload,:created_by,:created_at,:updated_at)");
             $ledgerInsert->execute([':reference' => 'LED-' . $paymentId, ':payload' => json_encode($ledgerPayload, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE), ':created_by' => $actorId, ':created_at' => $now, ':updated_at' => $now]);
@@ -1009,6 +1134,7 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
             if ($kind === 'container_movement') hsSyncMovement($pdo, $payload, $actorId);
             if (in_array($kind, ['payment', 'receipt', 'expense', 'deposit', 'bank_deposit', 'invoice', 'invoice_return', 'payment_return', 'transfer', 'purchase', 'purchase_return'], true)
                 && $status === 'posted') {
+                hsPostFinancialCore($pdo, $kind, $id, $payload, $reference, $actorId);
                 $ledger = [
                     'sourceKind' => $kind,
                     'sourceId' => $id,

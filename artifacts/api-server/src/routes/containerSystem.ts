@@ -644,8 +644,10 @@ router.get("/admin/container-system", requireContainerPermission("container_syst
   });
   const debt = contracts.reduce((sum, r) => sum + Number((r.payload as Record<string, unknown>).remaining ?? 0), 0);
   const contractValue = contracts.reduce((sum, r) => sum + Number((r.payload as Record<string, unknown>).total ?? 0), 0);
-  const expenses = records.filter(r => r.kind === "expense" && isPosted(r)).reduce((sum, r) => sum + Number((r.payload as Record<string, unknown>).amount ?? 0), 0);
-  const maintenanceCost = records.filter(r => r.kind === "maintenance" && isPosted(r)).reduce((sum, r) => sum + Number((r.payload as Record<string, unknown>).cost ?? 0), 0);
+  // Financial values come from the typed ledger. Legacy records remain useful
+  // for operations and contract metadata, but never determine final totals.
+  const truth = financialTruth();
+  const ledgerTotals = truth.totals as Record<string, number>;
   const fleetCount = records.filter(r => r.kind === "vehicle").length;
   const rentedCount = records.filter(r => ["container", "container_asset"].includes(r.kind) && r.status === "rented").length;
   const organization = {
@@ -674,12 +676,13 @@ router.get("/admin/container-system", requireContainerPermission("container_syst
       activeContracts: activeContracts.length,
       containerMovements: count("container_movement"),
       openLedgerEntries: records.filter(r => r.kind === "ledger_entry" && r.status === "open").length,
-      collected: Array.from(paymentsByContract.values()).reduce((sum, amount) => sum + amount, 0),
+       collected: Number(ledgerTotals.netCollections ?? 0),
       expiringContracts: expiringContracts.length,
-      debt,
-      contractValue,
-      expenses,
-      maintenanceCost,
+       debt: Number(ledgerTotals.receivables ?? 0),
+       contractValue: Number(ledgerTotals.grossRevenue ?? contractValue),
+       expenses: Number(ledgerTotals.expenses ?? 0),
+       maintenanceCost: 0,
+       financialTruth: truth,
       fleetUtilization: fleetCount ? Math.round(records.filter(r => r.kind === "vehicle" && r.status === "busy").length / fleetCount * 100) : 0,
       containerUtilization: records.filter(r => ["container", "container_asset"].includes(r.kind)).length
         ? Math.round(rentedCount / records.filter(r => ["container", "container_asset"].includes(r.kind)).length * 100) : 0,
@@ -1529,6 +1532,7 @@ router.post("/admin/container-system/records", async (req, res) => {
          operationKey: requestOperationKey,
          createdBy: adminReq.adminId,
          paymentMethod: String(payload.paymentMethod ?? ""),
+          sourcePaymentId: Number(payload.sourcePaymentId ?? payload.linkedPaymentId ?? 0) || null,
          allocations: Array.isArray(payload.allocations) ? payload.allocations.map((item: any) => ({
            contractId: Number(item.contractId) || null,
            invoiceId: Number(item.invoiceId) || null,
@@ -1760,6 +1764,34 @@ router.get("/admin/container-system/financial/reconciliation", requireContainerP
     ORDER BY br.deposit_date DESC, br.id DESC
   `).all();
   return res.json(rows);
+});
+
+router.patch("/admin/container-system/financial/reconciliation/:id", requireContainerPermission("financial_reports"), async (req, res) => {
+  const adminReq = req as unknown as AdminRequest;
+  const id = Number(req.params.id);
+  const body = req.body as { status?: string; reason?: string };
+  const allowed = new Set(["matched", "partial", "difference", "unmatched", "bank_fee", "pending", "approved", "rejected", "reversed"]);
+  const status = String(body.status ?? "").trim();
+  if (!allowed.has(status)) return res.status(422).json({ error: "حالة المطابقة البنكية غير مدعومة" });
+  const { sqlite } = await import("@workspace/db");
+  const current = sqlite.prepare("SELECT * FROM bank_reconciliations WHERE id = ?").get(id) as Record<string, unknown> | undefined;
+  if (!current) return res.status(404).json({ error: "سجل المطابقة غير موجود" });
+  const reason = String(body.reason ?? "").trim();
+  if (["difference", "bank_fee", "rejected", "reversed"].includes(status) && reason.length < 3) {
+    return res.status(422).json({ error: "سبب الفرق أو الرفض مطلوب" });
+  }
+  const now = new Date().toISOString();
+  let trail: unknown[] = [];
+  try { trail = JSON.parse(String(current.audit_trail ?? "[]")); } catch { trail = []; }
+  trail.push({ at: now, actorId: adminReq.adminId, from: current.status, to: status, reason });
+  sqlite.prepare(`
+    UPDATE bank_reconciliations
+    SET status = ?, difference_reason = CASE WHEN ? <> '' THEN ? ELSE difference_reason END,
+        rejection_reason = CASE WHEN ? = 'rejected' THEN ? ELSE rejection_reason END,
+        reviewed_by = ?, reviewed_at = ?, audit_trail = ?
+    WHERE id = ?
+  `).run(status, reason, reason, status, reason, adminReq.adminId, now, JSON.stringify(trail), id);
+  return res.json(sqlite.prepare("SELECT * FROM bank_reconciliations WHERE id = ?").get(id));
 });
 
 router.get("/admin/container-system/financial/periods", requireContainerPermission("financial_reports"), async (_req, res) => {
