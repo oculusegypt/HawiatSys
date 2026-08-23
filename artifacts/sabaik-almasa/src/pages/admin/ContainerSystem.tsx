@@ -286,9 +286,11 @@ function numericSummary(summary: Record<string, unknown> | undefined, keys: stri
 function ContainerAvailabilityBoard({
   records,
   onOpen,
+  onAssign,
 }: {
   records: ContainerSystemRecord[]
   onOpen: (record: ContainerSystemRecord) => void
+  onAssign: (record: ContainerSystemRecord) => void
 }) {
   const [filter, setFilter] = useState<"all" | "available" | "rented" | "maintenance" | "other">("all")
   const containers = records.filter(record =>
@@ -344,7 +346,7 @@ function ContainerAvailabilityBoard({
               const remaining = daysRemaining(record)
               const urgent = remaining !== null && remaining <= 3
               return (
-                <button type="button" key={record.id} onClick={() => onOpen(record)} className="group text-right" data-testid={`card-container-availability-${record.id}`}>
+                <div key={record.id} className="group text-right" data-testid={`card-container-availability-${record.id}`}>
                   <div className={`rounded-2xl border p-3 transition group-hover:-translate-y-0.5 group-hover:shadow-md ${state.tone}`}>
                     <div className="relative flex min-h-40 items-center justify-center rounded-xl bg-white/35 px-1">
                       <ContainerStatusImage
@@ -359,8 +361,18 @@ function ContainerAvailabilityBoard({
                       <span>{String(payload.size ?? payload.capacity ?? "الحجم غير محدد")}</span>
                       {remaining !== null && <span className={`font-black ${urgent ? "text-rose-700" : ""}`}>{remaining < 0 ? `منتهية منذ ${Math.abs(remaining)} يوم` : remaining === 0 ? "تنتهي اليوم" : `متبقي ${remaining} يوم`}</span>}
                     </div>
+                    <div className="mt-3 flex gap-2">
+                      <Button type="button" variant="outline" size="sm" onClick={() => onOpen(record)} className="h-8 flex-1 gap-1 border-cyan-200 bg-white/80 text-[11px] text-cyan-800 hover:bg-white">
+                        <FileText size={13} /> التفاصيل
+                      </Button>
+                      {classify(record) === "available" && (
+                        <Button type="button" size="sm" onClick={() => onAssign(record)} className="h-8 flex-1 gap-1 bg-cyan-800 text-[11px] text-white hover:bg-cyan-900" data-testid={`button-assign-container-${record.id}`}>
+                          <Link2 size={13} /> تخصيص
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                </button>
+                </div>
               )
             })}
           </div>
@@ -577,7 +589,7 @@ function ContainerPOS({ records, onDetails, onEdit, onAdd }: { records: Containe
   )
 }
 
-function Overview({ snapshot, records, onAdd, onOpen }: { snapshot?: any; records: ContainerSystemRecord[]; onAdd: (kind: RecordKind) => void; onOpen: (record: ContainerSystemRecord) => void }) {
+function Overview({ snapshot, records, onAdd, onOpen, onAssign }: { snapshot?: any; records: ContainerSystemRecord[]; onAdd: (kind: RecordKind) => void; onOpen: (record: ContainerSystemRecord) => void; onAssign: (record: ContainerSystemRecord) => void }) {
   const summary = snapshot?.summary as Record<string, unknown> | undefined
   const count = (kind: RecordKind) => records.filter(record => record.kind === kind && record.status !== "archived").length
   const today = new Date()
@@ -629,7 +641,7 @@ function Overview({ snapshot, records, onAdd, onOpen }: { snapshot?: any; record
           </Card>
         ))}
       </div>
-      <ContainerAvailabilityBoard records={records} onOpen={onOpen} />
+      <ContainerAvailabilityBoard records={records} onOpen={onOpen} onAssign={onAssign} />
       <div className="grid gap-5 xl:grid-cols-[1.35fr_.65fr]">
         <Card className="border-slate-200/80 shadow-[0_8px_28px_rgba(15,44,58,.05)]">
           <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 px-5 py-4"><div><CardTitle className="text-base text-slate-900">آخر حركة تشغيلية</CardTitle><p className="mt-1 text-xs text-slate-500">سجل زمني مختصر لأحدث التغييرات</p></div><ShieldCheck size={19} className="text-emerald-600" /></CardHeader>
@@ -915,6 +927,7 @@ export default function ContainerSystem() {
   const [dialog, setDialog] = useState<{ open: boolean; kind: RecordKind; record?: ContainerSystemRecord | null }>({ open: false, kind: "customer" })
   const [contractWizardOpen, setContractWizardOpen] = useState(false)
   const [assignmentWizardOpen, setAssignmentWizardOpen] = useState(false)
+  const [assignmentContainerId, setAssignmentContainerId] = useState<number | null>(null)
   const [contractFlowBusy, setContractFlowBusy] = useState(false)
   const [detailRecord, setDetailRecord] = useState<ContainerSystemRecord | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -963,6 +976,7 @@ export default function ContainerSystem() {
       return
     }
     if (kind === "container_assignment") {
+      setAssignmentContainerId(null)
       setAssignmentWizardOpen(true)
       return
     }
@@ -1184,7 +1198,7 @@ export default function ContainerSystem() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-bold text-cyan-700">نظام الحاويات الكامل / {viewLabel(view)}</p><h2 className="mt-1 text-xl font-black text-slate-900">{viewLabel(view)}</h2></div>{(isCollection || view === "container_search") && <div className="relative w-full sm:w-80"><Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" /><Input value={search} onChange={event => setSearch(event.target.value)} placeholder="رقم الحاوية أو اسم العميل أو الجوال" className="h-10 border-slate-200 bg-white pr-9" data-testid="input-search-container-records" />{search && <button type="button" onClick={() => setSearch("")} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700" data-testid="button-clear-container-search"><X size={15} /></button>}</div>}</div>
           {notice && <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800" role="status" data-testid="status-container-success"><CheckCircle2 size={17} /> {notice}</div>}
           {error ? <Card className="border-rose-200 bg-rose-50/50"><CardContent className="flex flex-col items-center gap-3 p-12 text-center"><AlertCircle size={27} className="text-rose-500" /><h3 className="font-bold text-rose-900">تعذر تحميل بيانات النظام</h3><p className="text-sm text-rose-700">تحقق من الاتصال ثم حاول مرة أخرى.</p><Button onClick={() => { snapshotQuery.refetch(); recordsQuery.refetch() }} variant="outline" className="gap-2 border-rose-200 bg-white text-rose-800" data-testid="button-retry-container-system"><RefreshCw size={15} /> إعادة المحاولة</Button></CardContent></Card>
-            : view === "overview" ? <Overview snapshot={snapshot} records={records} onAdd={openCreate} onOpen={setDetailRecord} />
+               : view === "overview" ? <Overview snapshot={snapshot} records={records} onAdd={openCreate} onOpen={setDetailRecord} onAssign={record => { setDetailRecord(null); setAssignmentContainerId(record.id); setAssignmentWizardOpen(true) }} />
               : view === "financial_center" ? <FinancialControlCenter records={snapshot?.records ?? records} onAdd={kind => openCreate(kind)} onNavigate={nextView => { setView(nextView); setSearch(""); if (nextView !== "reports") setReportId(null) }} />
               : view === "reports" ? reportId ? <ReportPage reportId={reportId} records={snapshot?.records ?? records} onBack={() => setReportId(null)} /> : <ReportsHub onOpen={setReportId} />
               : view === "settlements" ? <ContractSettlementWorkspace records={snapshot?.records ?? records} initialCustomerId={requestedCustomerId} />
@@ -1202,7 +1216,7 @@ export default function ContainerSystem() {
       </div>
       <RecordDetails record={detailRecord} allRecords={snapshot?.records ?? records} open={Boolean(detailRecord)} onOpenChange={open => { if (!open) setDetailRecord(null) }} onContractAction={contractAction} />
       <ContractWizard open={contractWizardOpen} records={snapshot?.records ?? records} initialCustomerId={requestedCustomerId} initialRequest={requestContext} busy={busy} onClose={() => { if (!contractFlowBusy) setContractWizardOpen(false) }} onSubmit={submitContract} />
-      <ContainerAssignmentWizard open={assignmentWizardOpen} records={snapshot?.records ?? records} busy={createMutation.isPending} onClose={() => { if (!createMutation.isPending) setAssignmentWizardOpen(false) }} onSubmit={submitAssignment} />
+       <ContainerAssignmentWizard open={assignmentWizardOpen} records={snapshot?.records ?? records} initialContainerId={assignmentContainerId} busy={createMutation.isPending} onClose={() => { if (!createMutation.isPending) { setAssignmentWizardOpen(false); setAssignmentContainerId(null) } }} onSubmit={submitAssignment} />
       <RecordDialog
         open={dialog.open}
         kind={dialog.kind}

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import type { ContainerSystemRecord } from "@workspace/api-client-react"
 import { CheckCircle2, Link2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 type Props = {
   open: boolean
   records: ContainerSystemRecord[]
+  initialContainerId?: number | null
   busy?: boolean
   onClose: () => void
   onSubmit: (payload: Record<string, unknown>) => void
@@ -16,7 +17,7 @@ type Props = {
 const payloadOf = (record: ContainerSystemRecord) => record.payload as Record<string, unknown>
 const labelOf = (record: ContainerSystemRecord) => String(payloadOf(record).name ?? payloadOf(record).customerName ?? payloadOf(record).contractNumber ?? payloadOf(record).assetCode ?? record.reference ?? `#${record.id}`)
 
-export function ContainerAssignmentWizard({ open, records, busy = false, onClose, onSubmit }: Props) {
+export function ContainerAssignmentWizard({ open, records, initialContainerId = null, busy = false, onClose, onSubmit }: Props) {
   const [contractRecordId, setContractRecordId] = useState("")
   const [containerRecordId, setContainerRecordId] = useState("")
   const [siteRecordId, setSiteRecordId] = useState("")
@@ -26,6 +27,14 @@ export function ContainerAssignmentWizard({ open, records, busy = false, onClose
   const customerId = contract ? String(payloadOf(contract).customerRecordId ?? "") : ""
   const sites = useMemo(() => records.filter(record => record.kind === "customer_site" && record.status !== "archived" && (!customerId || String(payloadOf(record).customerRecordId) === customerId)), [customerId, records])
   const containers = useMemo(() => records.filter(record => ["container", "container_asset"].includes(record.kind) && record.status !== "archived" && ["available", "reserved", "متاح"].includes(record.status)), [records])
+
+  useEffect(() => {
+    if (!open) return
+    setContractRecordId("")
+    setSiteRecordId("")
+    setContainerRecordId(initialContainerId ? String(initialContainerId) : "")
+    setError("")
+  }, [initialContainerId, open])
 
   if (!open) return null
   const submit = () => {
