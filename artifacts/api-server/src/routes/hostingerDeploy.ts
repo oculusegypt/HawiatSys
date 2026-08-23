@@ -50,13 +50,18 @@ async function getDeploySettings() {
   const [host, username, port, remotePath, secure, password] = await Promise.all(
     Object.values(SETTINGS).map(getSetting),
   );
+  const storedPassword = password ? decryptPassword(password) : "";
   return {
     host: host.replace(/^ftps?:\/\//i, "").replace(/\/+$/, ""),
     username,
     port: Number(port) || 21,
     remotePath: `/${(remotePath || "public_html").replace(/^\/+|\/+$/g, "")}`,
     secure: secure === "true",
-    password: password ? decryptPassword(password) : "",
+    // Replit keeps the fallback in its encrypted Secrets store. This avoids
+    // putting a plaintext FTP credential in source, logs, or a new database
+    // row, while still allowing one-click uploads when the saved setting is
+    // empty or belongs to an older installation.
+    password: storedPassword || process.env.HOSTINGER_FTP_PASSWORD || "",
   };
 }
 
@@ -84,7 +89,7 @@ router.get("/admin/hostinger", async (_req, res) => {
     port: port || "21",
     remotePath: remotePath || "public_html",
     secure: secure === "true",
-    hasPassword: Boolean(password),
+    hasPassword: Boolean(password) || Boolean(process.env.HOSTINGER_FTP_PASSWORD),
   });
 });
 
