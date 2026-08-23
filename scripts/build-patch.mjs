@@ -1,7 +1,7 @@
 import { execSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { existsSync, rmSync, mkdirSync, copyFileSync, cpSync, statSync, writeFileSync, readdirSync, readFileSync } from "node:fs";
-import { randomBytes } from "node:crypto";
+import { randomBytes, createHash, createCipheriv } from "node:crypto";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -13,6 +13,20 @@ const require = createRequire(join(ROOT, "lib", "db", "package.json"));
 const Database = require("better-sqlite3");
 
 console.log("🚀 [Hawiat Micro Patch] تجهيز حزمة تحديث خفيفة (كود فقط بدون صور)...");
+
+function hostingerPatchSecret() {
+  const previousApiPath = join(ROOT, "build_php/api/index.php");
+  const previousApi = existsSync(previousApiPath) ? readFileSync(previousApiPath, "utf8") : "";
+  return previousApi.match(/SESSION_SECRET'\)\s*\?:\s*'([0-9a-f]{64})'/)?.[1] || randomBytes(32).toString("hex");
+}
+
+function encryptHostingerPassword(password, secret) {
+  const key = createHash("sha256").update(`hostinger-ftp:${secret}`).digest();
+  const iv = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", key, iv);
+  const encrypted = Buffer.concat([cipher.update(password, "utf8"), cipher.final()]);
+  return [iv.toString("base64url"), cipher.getAuthTag().toString("base64url"), encrypted.toString("base64url")].join(".");
+}
 
 // 1. Rebuild frontend
 console.log("▶ بناء ملفات الواجهة الأمامية المحدثة...");
@@ -100,9 +114,7 @@ mkdirSync(apiDir, { recursive: true });
 // site_settings are encrypted with that secret; replacing it with the source
 // placeholder makes /admin/hostinger/test and /deploy fail with HTTP 500.
 const apiTemplatePath = join(ROOT, "scripts/api-index.php");
-const previousApiPath = join(ROOT, "build_php/api/index.php");
-const previousApi = existsSync(previousApiPath) ? readFileSync(previousApiPath, "utf8") : "";
-const previousSecret = previousApi.match(/SESSION_SECRET'\)\s*\?:\s*'([0-9a-f]{64})'/)?.[1] || randomBytes(32).toString("hex");
+const previousSecret = hostingerPatchSecret();
 const apiSource = readFileSync(apiTemplatePath, "utf8").replaceAll("__HOSTINGER_TOKEN_SECRET__", previousSecret);
 writeFileSync(join(apiDir, "index.php"), apiSource, "utf8");
 copyFileSync(join(ROOT, "scripts/container-system.php"), join(apiDir, "container-system.php"));
@@ -138,6 +150,20 @@ if (existsSync(dbSrc)) {
   const patchDb = new Database(join(dataDir, "sabaik.db"));
   try {
     patchDb.pragma("journal_mode=DELETE");
+    const hostingerPassword = String(process.env.HOSTINGER_FTP_PASSWORD ?? "").trim();
+    if (hostingerPassword) {
+      const encryptedPassword = encryptHostingerPassword(hostingerPassword, hostingerPatchSecret());
+      const now = new Date().toISOString();
+      const existing = patchDb.prepare("SELECT key FROM site_settings WHERE key = ?").get("hostinger_ftp_password");
+      if (existing) {
+        patchDb.prepare("UPDATE site_settings SET value = ?, updated_at = ? WHERE key = ?").run(encryptedPassword, now, "hostinger_ftp_password");
+      } else {
+        patchDb.prepare("INSERT INTO site_settings (key, value, updated_at) VALUES (?, ?, ?)").run("hostinger_ftp_password", encryptedPassword, now);
+      }
+      console.log("✓ تم تثبيت كلمة مرور Hostinger مشفرة داخل نسخة قاعدة بيانات الباتش.");
+    }
+    const integrity = patchDb.pragma("integrity_check", { simple: true });
+    if (integrity !== "ok") throw new Error(`فشل فحص سلامة قاعدة بيانات الباتش: ${integrity}`);
   } finally {
     patchDb.close();
   }
@@ -153,6 +179,7 @@ writeFileSync(join(PATCH_DIR, "UPLOAD_INSTRUCTIONS.txt"), [
   "",
   "لا تحذف uploads/ الموجودة على Hostinger.",
   "خذ نسخة احتياطية من data/sabaik.db الحالية قبل الاستبدال.",
+  "كلمة مرور FTP لا تُحفظ كنص صريح؛ يتم تثبيتها مشفرة تلقائياً من مخزن الأسرار الآمن.",
 ].join("\n"), "utf8");
 
 // 7. Compress patch with portable forward-slash paths (same root layout as
