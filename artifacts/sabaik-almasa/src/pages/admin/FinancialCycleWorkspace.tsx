@@ -25,6 +25,30 @@ function amount(record: ContainerSystemRecord) {
   return Number(payload(record).amount ?? payload(record).total ?? payload(record).value ?? 0) || 0
 }
 
+function collectionKey(record: ContainerSystemRecord) {
+  const p = payload(record)
+  return [
+    p.customerRecordId ?? "",
+    p.contractRecordId ?? p.contractNumber ?? "",
+    p.invoiceRecordId ?? p.invoiceNumber ?? "",
+    p.amount ?? "",
+    p.date ?? "",
+  ].join("|")
+}
+
+function postedCollections(records: ContainerSystemRecord[]) {
+  const posted = records.filter(record => record.status === "posted" && ["payment", "receipt"].includes(record.kind))
+  const payments = posted.filter(record => record.kind === "payment")
+  const paymentKeys = new Set(payments.map(collectionKey))
+  return [
+    ...payments,
+    ...posted.filter(record => {
+      const p = payload(record)
+      return record.kind === "receipt" && !paymentKeys.has(collectionKey(record)) && !p.sourcePaymentId
+    }),
+  ]
+}
+
 function money(value: number) {
   return `${Math.round(value).toLocaleString("ar-SA")} ر.س`
 }
@@ -54,11 +78,13 @@ export function FinancialCycleWorkspace({
   const financial = active.filter(record => ["receipt", "payment", "deposit", "bank_deposit", "invoice", "invoice_return", "payment_return", "treasury", "salary_advance", "salary_payment", "commission", "purchase", "purchase_return", "stock_issue", "stock_issue_return"].includes(record.kind))
   const search = query.trim().toLowerCase()
   const visible = useMemo(() => financial.filter(record => !search || `${record.reference} ${JSON.stringify(record.payload)}`.toLowerCase().includes(search)), [financial, search])
-  const receipts = active.filter(record => ["receipt", "payment"].includes(record.kind)).reduce((sum, record) => sum + amount(record), 0)
-  const deposits = active.filter(record => ["deposit", "bank_deposit"].includes(record.kind)).reduce((sum, record) => sum + amount(record), 0)
-  const openReturns = active.filter(record => ["invoice_return", "payment_return"].includes(record.kind))
-  const payroll = active.filter(record => ["salary_payment", "salary_advance", "commission"].includes(record.kind))
-  const stock = active.filter(record => ["purchase", "purchase_return", "stock_issue", "stock_issue_return"].includes(record.kind))
+  const posted = active.filter(record => record.status === "posted")
+  const receipts = postedCollections(active).reduce((sum, record) => sum + amount(record), 0) -
+    posted.filter(record => record.kind === "payment_return").reduce((sum, record) => sum + amount(record), 0)
+  const deposits = posted.filter(record => ["deposit", "bank_deposit"].includes(record.kind)).reduce((sum, record) => sum + amount(record), 0)
+  const openReturns = posted.filter(record => ["invoice_return", "payment_return"].includes(record.kind))
+  const payroll = posted.filter(record => ["salary_payment", "salary_advance", "commission"].includes(record.kind))
+  const stock = posted.filter(record => ["purchase", "purchase_return", "stock_issue", "stock_issue_return"].includes(record.kind))
   const difference = deposits - receipts
 
   const addAction = (kind: RecordKind, label: string) => <Button size="sm" onClick={() => onAdd(kind)} className="gap-2 bg-cyan-800 hover:bg-cyan-900"><ArrowDownLeft size={14} /> {label}</Button>

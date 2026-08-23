@@ -1347,7 +1347,7 @@ router.post("/admin/container-system/records", async (req, res) => {
     return res.status(422).json({ error: error instanceof Error ? error.message : "بيانات مالية غير صحيحة" });
   }
   const normalizedStatus = financialLifecycleKinds.has(kind)
-    ? (financialLifecycleStatuses.has(String(status)) ? String(status) : "draft")
+    ? (["draft", "pending_approval"].includes(String(status)) ? String(status) : "draft")
     : kind === "container" || kind === "container_asset"
     ? canonicalAssetStatus(payload.status, String(status))
     : kind === "container_assignment" ? "reserved" : String(status);

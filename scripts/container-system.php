@@ -393,16 +393,72 @@ function hsValidateRecord(PDO $pdo, string $kind, array $payload, ?int $ignoreId
             if (!$found) hsJson(['error' => 'الخزينة المرتبطة بالتحويل غير موجودة'], 422);
         }
     }
+    $rows = hsFindRecords($pdo);
+    if (in_array($kind, ['payment', 'receipt', 'invoice', 'invoice_return', 'payment_return'], true)) {
+        $customerId = (int)($payload['customerRecordId'] ?? 0);
+        if ($customerId > 0) {
+            $customer = array_filter($rows, static fn(array $row): bool =>
+                (int)$row['id'] === $customerId && $row['kind'] === 'customer' && $row['status'] !== 'archived');
+            if (!$customer) hsJson(['error' => 'العميل الرسمي المرتبط بالمستند غير موجود'], 422);
+        } elseif ($kind === 'invoice') {
+            hsJson(['error' => 'اختيار العميل الرسمي مطلوب قبل إصدار الفاتورة'], 422);
+        }
+        $contractNumber = trim((string)($payload['contractNumber'] ?? ''));
+        if ($contractNumber !== '' && in_array($kind, ['payment', 'receipt', 'invoice', 'invoice_return'], true)) {
+            $contract = array_filter($rows, static fn(array $row): bool =>
+                $row['kind'] === 'contract' && $row['status'] !== 'archived' &&
+                trim((string)(hsPayload($row['payload'])['contractNumber'] ?? $row['reference'])) === $contractNumber);
+            if (!$contract) hsJson(['error' => 'العقد المرتبط بالمستند المالي غير موجود'], 422);
+            $contractRow = array_values($contract)[0];
+            if ($customerId > 0 && (int)(hsPayload($contractRow['payload'])['customerRecordId'] ?? 0) !== $customerId) {
+                hsJson(['error' => 'العقد لا يتبع العميل المحدد في المستند'], 422);
+            }
+        }
+        $invoiceNumber = trim((string)($payload['invoiceNumber'] ?? ''));
+        if ($invoiceNumber !== '' && in_array($kind, ['payment', 'receipt', 'invoice_return', 'payment_return'], true)) {
+            $invoice = array_filter($rows, static fn(array $row): bool =>
+                $row['kind'] === 'invoice' && $row['status'] !== 'archived' &&
+                trim((string)(hsPayload($row['payload'])['invoiceNumber'] ?? $row['reference'])) === $invoiceNumber);
+            if (!$invoice) hsJson(['error' => 'الفاتورة المرتبطة بالمستند المالي غير موجودة'], 422);
+            $invoiceRow = array_values($invoice)[0];
+            if ($customerId > 0 && (int)(hsPayload($invoiceRow['payload'])['customerRecordId'] ?? 0) !== $customerId) {
+                hsJson(['error' => 'الفاتورة لا تتبع العميل المحدد في المستند'], 422);
+            }
+            if ($kind === 'invoice_return') {
+                $invoicePayload = hsPayload($invoiceRow['payload']);
+                $invoiceTotal = (float)($invoicePayload['total'] ?? $invoicePayload['amount'] ?? 0);
+                $returned = array_sum(array_map(static fn(array $row): float =>
+                    (float)(hsPayload($row['payload'])['amount'] ?? 0),
+                    array_filter($rows, static fn(array $row): bool =>
+                        $row['kind'] === 'invoice_return' && $row['status'] === 'posted' &&
+                        trim((string)(hsPayload($row['payload'])['invoiceNumber'] ?? '')) === $invoiceNumber)
+                ));
+                if ($invoiceTotal > 0 && (float)($payload['amount'] ?? 0) + $returned > $invoiceTotal + 0.01) {
+                    hsJson(['error' => 'قيمة المرتجع تتجاوز الرصيد المتبقي من الفاتورة'], 422);
+                }
+            }
+        }
+    }
     if ($kind === 'invoice_return' && trim((string)($payload['invoiceNumber'] ?? $payload['originalInvoiceNumber'] ?? '')) === '') {
         hsJson(['error' => 'يجب تحديد الفاتورة الأصلية قبل تسجيل المرتجع'], 422);
     }
     if ($kind === 'payment_return') {
         $originalId = (int)($payload['originalPaymentId'] ?? 0);
         if ($originalId <= 0) hsJson(['error' => 'يجب تحديد السداد الأصلي قبل تسجيل مرتجع السداد'], 422);
-        $originals = hsFindRecords($pdo);
-        $original = array_filter($originals, static fn(array $row): bool =>
-            (int)$row['id'] === $originalId && in_array($row['kind'], ['payment', 'receipt'], true) && $row['status'] !== 'archived');
-        if (!$original) hsJson(['error' => 'السداد الأصلي للمرتجع غير موجود'], 422);
+        $original = array_filter($rows, static fn(array $row): bool =>
+            (int)$row['id'] === $originalId && in_array($row['kind'], ['payment', 'receipt'], true) && $row['status'] === 'posted');
+        if (!$original) hsJson(['error' => 'السداد الأصلي للمرتجع غير موجود أو غير مرحّل'], 422);
+        $originalRow = array_values($original)[0];
+        $originalAmount = (float)(hsPayload($originalRow['payload'])['amount'] ?? 0);
+        $returned = array_sum(array_map(static fn(array $row): float =>
+            (float)(hsPayload($row['payload'])['amount'] ?? 0),
+            array_filter($rows, static fn(array $row): bool =>
+                $row['kind'] === 'payment_return' && $row['status'] === 'posted' &&
+                (int)(hsPayload($row['payload'])['originalPaymentId'] ?? 0) === $originalId)
+        ));
+        if ($originalAmount > 0 && (float)($payload['amount'] ?? 0) + $returned > $originalAmount + 0.01) {
+            hsJson(['error' => 'قيمة مرتجع السداد تتجاوز قيمة السداد الأصلي'], 422);
+        }
     }
     if (in_array($kind, ['purchase_return', 'stock_issue_return'], true)) {
         $originalId = (int)($payload['originalPurchaseId'] ?? $payload['originalStockIssueId'] ?? 0);
@@ -903,7 +959,7 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
         $status = in_array($kind, ['container', 'container_asset'], true)
             ? hsCanonicalAssetStatus((string)($payload['status'] ?? ''), (string)($input['status'] ?? 'available'))
             : (in_array($kind, hsFinancialLifecycleKinds(), true)
-                ? (in_array((string)($input['status'] ?? ''), ['draft', 'pending_approval', 'approved', 'posted'], true) ? (string)$input['status'] : 'draft')
+                ? (in_array((string)($input['status'] ?? ''), ['draft', 'pending_approval'], true) ? (string)$input['status'] : 'draft')
                 : (string)($input['status'] ?? 'active'));
         $pdo->beginTransaction();
         try {
