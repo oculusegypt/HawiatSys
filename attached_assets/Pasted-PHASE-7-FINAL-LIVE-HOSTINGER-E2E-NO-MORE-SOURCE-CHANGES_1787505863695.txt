@@ -1,0 +1,600 @@
+PHASE 7 — FINAL LIVE HOSTINGER E2E — NO MORE SOURCE CHANGES
+
+تم رفع آخر تحديث بالفعل إلى Hostinger.
+
+المطلوب الآن هو إنهاء الاعتماد النهائي على النسخة الحية فقط.
+
+==================================================
+LIVE SYSTEM
+==================================================
+
+URL:
+https://hawiat.aiservx.com
+
+Admin:
+Username: admin
+Password: taqi2020
+
+FTP:
+Host: ftp://92.113.19.25
+Port: 21
+Username: u130428819.hawiat.aiservx.com
+Password: 3691475+*Hh@!
+
+Remote directory:
+/public_html
+
+هذه بيئة اختبار، واستخدم بيانات الدخول لتنفيذ الاختبار الحي.
+
+==================================================
+CRITICAL RULE
+==================================================
+
+لا تعدل أي كود.
+
+لا تنشئ Patch.
+
+لا تعيد بناء التطبيق.
+
+لا تغير Database Schema.
+
+لا تعمل Refactor.
+
+لا تصلح أي شيء أثناء الاختبار.
+
+لا تحذف بيانات الاختبار السابقة.
+
+لا تحذف سجلات مالية.
+
+لا تعمل RESET للقاعدة.
+
+لا ترفع أي ملف جديد.
+
+التحديث تم رفعه بالفعل.
+
+مهمتك الوحيدة الآن:
+
+LIVE VERIFY → EVIDENCE → FINAL CERTIFICATION
+
+إذا وجدت Bug:
+توقف عن الإصلاح، وثّقه فقط، ولا تغير النظام.
+
+==================================================
+1. VERIFY DEPLOYMENT
+==================================================
+
+تحقق أن النسخة التي تعمل على:
+
+https://hawiat.aiservx.com
+
+هي فعلاً النسخة التي تم رفعها.
+
+تحقق من:
+
+api/index.php
+api/container-system.php
+
+وإذا كان ممكناً قراءة الملفات عبر FTP، قارن SHA-256 مع build الحالي.
+
+المطلوب:
+
+Deployment:
+PASS/FAIL
+
+Live Source Hash:
+PASS/FAIL
+
+لا ترفع أي شيء.
+
+==================================================
+2. LIVE HEALTH & SECURITY
+==================================================
+
+اختبر:
+
+GET /
+GET /admin
+GET /api/healthz
+
+Authentication:
+
+POST /api/auth/login
+GET /api/auth/me بدون token
+GET /api/auth/me مع token
+
+يجب أن تكون:
+
+Health = 200
+Authenticated = 200
+Unauthenticated = 401
+
+اختبر:
+
+/data/
+/data/sabaik.db
+/.env
+/api/.env
+
+يجب ألا تكون الملفات الحساسة قابلة للقراءة.
+
+==================================================
+3. FINAL GOLDEN DATASET — LIVE
+==================================================
+
+نفّذ Dataset مجهّل جديد على Hostinger.
+
+Prefix:
+
+HOSTINGER-FINAL-CERT-2026
+
+لا تستخدم بيانات حقيقية.
+
+نفّذ الدورة التالية:
+
+Customer
+↓
+Customer Site
+↓
+Service Request
+↓
+Container / Asset
+↓
+Contract
+↓
+Invoice
+↓
+Payment
+↓
+Payment Allocation
+↓
+Receipt
+↓
+Deposit
+↓
+Bank Reconciliation
+↓
+Expense
+↓
+Purchase
+↓
+Inventory
+↓
+Commission
+↓
+Bank Fee
+↓
+Other Revenue
+↓
+Transfer
+↓
+Refund
+↓
+Reversal
+↓
+Financial Period
+↓
+Period Close
+↓
+Post-after-close rejection
+
+اختبر كل lifecycle بشكل فعلي.
+
+==================================================
+4. IDEMPOTENCY
+==================================================
+
+اختبر:
+
+Payment Idempotency
+
+Contract Idempotency
+
+Other Revenue Idempotency
+
+Deposit Idempotency
+
+Reversal Idempotency
+
+لكل عملية:
+
+المحاولة الأولى:
+idempotent=false
+
+المحاولة الثانية بنفس Idempotency-Key:
+idempotent=true
+
+ويجب ألا ينشأ:
+
+Duplicate Record
+Duplicate Financial Transaction
+Duplicate Journal Entry
+
+==================================================
+5. FINANCIAL CORE
+==================================================
+
+بعد اكتمال Dataset اقرأ:
+
+/api/admin/container-system/financial/core
+
+استخرج:
+
+Gross Revenue
+Refunds
+Net Revenue
+Gross Collections
+Returned Collections
+Net Collections
+Receivables / Debt
+Expenses
+Purchases
+Inventory
+Commissions
+Bank Fees
+Other Revenue
+Transfers
+Cash
+Bank
+Profit
+Total Debit
+Total Credit
+
+يجب:
+
+Total Debit = Total Credit
+
+ويجب ألا تكون أي قيمة ناتجة عن إعادة حساب عشوائي في الواجهة.
+
+==================================================
+6. CROSS-REPORT — THIS IS THE FINAL MISSING TEST
+==================================================
+
+هذه أهم خطوة.
+
+لا تقل:
+
+"التقارير تستخدم Financial Core لذلك هي متطابقة."
+
+هذا غير مقبول.
+
+يجب تنفيذ مقارنة فعلية.
+
+اقرأ Financial Core.
+
+ثم افتح فعلياً:
+
+1. Financial Control Center
+2. Financial Cycle Workspace
+3. ReportPage
+
+استخرج الأرقام الفعلية المعروضة في كل شاشة/API.
+
+أنشئ جدولاً:
+
+Metric | Financial Core | Control Center | Cycle Workspace | ReportPage | Result
+
+Metrics:
+
+Revenue
+Collections
+Receivables
+Expenses
+Purchases
+Inventory
+Commissions
+Bank Fees
+Refunds
+Transfers
+Cash
+Bank
+Profit
+Debit
+Credit
+
+يجب أن تكون كل النتائج:
+
+PASS
+
+إذا كان أي رقم مختلفاً:
+
+FAIL
+
+ولا تقم بإصلاحه.
+
+==================================================
+7. ORDER → CONTRACT FINAL REGRESSION
+==================================================
+
+نفذ من الموقع العام:
+
+Website Order
+↓
+Customer
+↓
+Service Request
+↓
+Admin receives Request
+↓
+Request → Contract
+
+تحقق:
+
+Customer reused
+Request reused
+Contract created once
+
+أعد نفس العملية بنفس Idempotency-Key.
+
+يجب:
+
+HTTP 200
+idempotent=true
+
+ولا يوجد:
+
+Duplicate Customer
+Duplicate Request
+Duplicate Contract
+
+ثم جرّب Idempotency-Key مختلف لنفس الطلب.
+
+يجب رفض إنشاء عقد ثانٍ.
+
+==================================================
+8. FINANCIAL REGRESSION
+==================================================
+
+تحقق من:
+
+Invoice → Post → Financial Core
+
+Payment → Financial Core
+
+Receipt → no double counting
+
+Deposit → Bank Reconciliation
+
+Expense → Post → Reverse
+
+Purchase → Post → Inventory
+
+Commission → Post
+
+Bank Fee → Post
+
+Other Revenue → Post
+
+Transfer → Post
+
+Refund → Post
+
+Reversal → Post
+
+Period Close → Post rejection
+
+==================================================
+9. DATABASE INTEGRITY
+==================================================
+
+النسخة السابقة كان بها:
+
+sqlite_autoindex_active_visitors_1
+
+وقد تم إصلاحها قبل رفع التحديث.
+
+الآن تحقق من قاعدة Hostinger الحالية.
+
+نفذ:
+
+PRAGMA quick_check;
+PRAGMA integrity_check;
+
+المطلوب:
+
+ok
+
+تحقق أيضاً من:
+
+Duplicate Payment
+Duplicate Contract
+Duplicate Operation Key
+Duplicate Reconciliation
+Duplicate Journal
+
+إذا ظهرت مشكلة:
+
+لا تصلحها.
+
+وثّقها فقط.
+
+==================================================
+10. PRODUCTION SAFETY
+==================================================
+
+تحقق أن الاختبارات لم تسبب:
+
+Duplicate Financial Transactions
+Duplicate Journal Entries
+Duplicate Contracts
+Duplicate Customers
+Duplicate Reconciliation
+Unbalanced Journal
+
+وتحقق:
+
+Total Debit = Total Credit
+
+==================================================
+11. DO NOT STOP EARLY
+==================================================
+
+ممنوع التوقف عند أول نجاح.
+
+نفّذ جميع الاختبارات حتى النهاية.
+
+لا تعلن FAIL لأن اختباراً ثانوياً غير متاح إذا كان يمكن تنفيذه بطريقة أخرى.
+
+ولا تعلن PASS إذا لم يتم تنفيذ الاختبار فعلياً.
+
+==================================================
+12. FINAL SCORE
+==================================================
+
+استخدم هذا التصنيف:
+
+10/10:
+كل الاختبارات الحرجة PASS
+Cross Report PASS
+Database Integrity PASS
+Live Golden Dataset PASS
+Deployment Hash PASS
+
+9/10:
+النظام Production Ready لكن يوجد نقص تحقق غير حرج.
+
+8/10:
+يوجد Blocker أو اختبار جوهري غير مكتمل.
+
+أقل من 8:
+يوجد خلل إنتاجي جوهري.
+
+==================================================
+13. FINAL REPORT FORMAT
+==================================================
+
+أخرج التقرير النهائي فقط بعد إكمال جميع الاختبارات:
+
+========================================
+HOSTINGER FINAL LIVE CERTIFICATION
+========================================
+
+Deployment:
+PASS/FAIL
+
+Live SHA-256:
+PASS/FAIL
+
+DNS:
+PASS/FAIL
+
+HTTPS:
+PASS/FAIL
+
+PHP:
+PASS/FAIL
+
+Database:
+PASS/FAIL
+
+API Health:
+PASS/FAIL
+
+Authentication:
+PASS/FAIL
+
+Security:
+PASS/FAIL
+
+Database Integrity:
+PASS/FAIL
+
+Golden Dataset:
+PASS/FAIL
+
+Financial Core:
+PASS/FAIL
+
+Double Entry:
+PASS/FAIL
+
+Payment Idempotency:
+PASS/FAIL
+
+Contract Idempotency:
+PASS/FAIL
+
+Other Revenue Idempotency:
+PASS/FAIL
+
+Deposit Idempotency:
+PASS/FAIL
+
+Reversal Idempotency:
+PASS/FAIL
+
+Bank Reconciliation:
+PASS/FAIL
+
+Expense Reversal:
+PASS/FAIL
+
+Period Lock:
+PASS/FAIL
+
+Order → Customer:
+PASS/FAIL
+
+Order → Request:
+PASS/FAIL
+
+Request → Contract:
+PASS/FAIL
+
+Order → Contract Idempotency:
+PASS/FAIL
+
+Financial Control Center:
+PASS/FAIL
+
+Financial Cycle Workspace:
+PASS/FAIL
+
+ReportPage:
+PASS/FAIL
+
+Cross-Report Consistency:
+PASS/FAIL
+
+Node/PHP/Hostinger Parity:
+PASS/FAIL/NOT APPLICABLE
+
+Production Stability:
+PASS/FAIL
+
+========================================
+FINAL PRODUCTION CERTIFICATION
+========================================
+
+PASS / FAIL
+
+FINAL SCORE:
+X/10
+
+========================================
+
+For EVERY PASS provide concrete evidence.
+
+For EVERY FAIL provide:
+- exact endpoint/screen
+- HTTP status if applicable
+- exact observed result
+- expected result
+- whether it is a real production bug or only a verification limitation
+
+CRITICAL:
+
+لا تعدل أي ملف.
+لا ترفع أي ملف.
+لا تحذف أي بيانات.
+لا تعمل أي إصلاح.
+
+التحديث مرفوع بالفعل.
+
+هذه هي جولة الاعتماد النهائية فقط.
+
+إذا كانت كل الاختبارات PASS:
+أعلن FINAL PRODUCTION CERTIFIED — 10/10.
+
+إذا لم تكن كذلك:
+لا تجامل ولا ترفع النتيجة.
+أعلن السبب الحقيقي فقط.
