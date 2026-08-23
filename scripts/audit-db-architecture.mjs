@@ -33,9 +33,9 @@ console.log("Problematic / Misspelled pages found:", problematic);
 console.log("Non-core (moving furniture) pages found:", nonCore);
 
 console.log("\n=== 2. Services Audit ===");
-const services = db.prepare("SELECT id, name, seo_slug, is_active FROM services").all();
+const services = db.prepare("SELECT id, title, seo_slug, is_active FROM services").all();
 for (const s of services) {
-  console.log(`[${s.id}] ${s.name} (${s.seo_slug})`);
+  console.log(`[${s.id}] ${s.title} (${s.seo_slug})`);
 }
 
 console.log("\n=== 3. Containers / Packages Audit ===");
