@@ -804,6 +804,7 @@ export function RecordDialog({
   const fields = FIELD_CONFIG[kind]
   const isCustomerPayment = kind === "payment"
   const isInvoice = kind === "invoice"
+  const isFinancialRecord = ["receipt", "payment", "expense", "deposit", "bank_deposit", "invoice", "invoice_return", "payment_return", "transfer", "purchase", "purchase_return", "commission", "salary_advance", "salary_payment"].includes(kind)
   const isCustomerLinkedFinancial = ["invoice", "receipt", "payment", "invoice_return", "payment_return", "ledger_entry"].includes(kind)
   const customers = records.filter(item => item.kind === "customer" && item.status !== "archived")
   const customerIdForPayment = String(
@@ -1009,6 +1010,10 @@ export function RecordDialog({
                setFormError("وزّع مبلغ السداد بالكامل على كل عقد محدد قبل الحفظ.")
                return
              }
+           }
+           if (isFinancialRecord && status === "cancelled" && String(payload.cancellationReason ?? payload.reason ?? "").trim().length < 3) {
+             setFormError("سبب الإلغاء مطلوب قبل إلغاء الحركة المالية.")
+             return
            }
           onSubmit(invoicePayload, kind === "container" ? payload.status || status : status)
         }} className="space-y-5 p-6">
@@ -1313,6 +1318,12 @@ export function RecordDialog({
             {isCustomerPayment && formError && (
               <p role="alert" className="order-7 sm:col-span-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700">{formError}</p>
             )}
+             {isFinancialRecord && status === "cancelled" && (
+               <div className="order-8 sm:col-span-2 rounded-xl border border-rose-200 bg-rose-50/70 p-3">
+                 <Label htmlFor="record-cancellation-reason" className="mb-1.5 block text-xs font-bold text-rose-800">سبب الإلغاء</Label>
+                 <Textarea id="record-cancellation-reason" value={payload.cancellationReason ?? payload.reason ?? ""} onChange={event => setValue("cancellationReason", event.target.value)} required rows={3} placeholder="اكتب سبباً واضحاً للإلغاء..." className="border-rose-200 bg-white" data-testid="textarea-record-cancellation-reason" />
+               </div>
+             )}
              {kind !== "container" && <div className={`${kind === "contract" ? "" : "sm:col-span-2"} ${isCustomerPayment ? "order-7" : ""}`}>
               <Label htmlFor="record-status" className="mb-1.5 block text-xs font-bold text-slate-600">حالة السجل</Label>
               <select id="record-status" value={status} onChange={event => setStatus(event.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-700" data-testid="select-record-status">
