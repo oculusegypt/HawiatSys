@@ -773,6 +773,38 @@ export function RecordDialog({
     return next
   })
   const fields = FIELD_CONFIG[kind]
+  const isCustomerPayment = kind === "payment"
+  const customers = records.filter(item => item.kind === "customer" && item.status !== "archived")
+  const customerIdForPayment = String(
+    payload.customerRecordId ??
+      customers.find(item => String(item.payload.name ?? "") === String(payload.customerName ?? ""))?.id ??
+      "",
+  )
+  const selectedPaymentCustomer = customers.find(item => String(item.id) === customerIdForPayment)
+  const openContractsForPayment = records.filter(item => {
+    if (item.kind !== "contract" || item.status === "archived") return false
+    if (!customerIdForPayment) return false
+    const contractPayload = item.payload as Record<string, unknown>
+    const contractCustomerId = String(contractPayload.customerRecordId ?? "")
+    const customerName = String(contractPayload.customerName ?? "").trim()
+    const selectedCustomerName = String(selectedPaymentCustomer?.payload.name ?? payload.customerName ?? "").trim()
+    const belongsToCustomer = contractCustomerId === customerIdForPayment ||
+      (!contractCustomerId && Boolean(selectedCustomerName) && customerName === selectedCustomerName)
+    const openStatuses = ["active", "issued", "scheduled", "delivered", "due", "overdue", "delinquent", "pending", "draft"]
+    return belongsToCustomer && openStatuses.includes(String(item.status).toLowerCase())
+  })
+  const paymentCustomerOptions = customers.map(item => ({
+    value: String(item.id),
+    label: String(item.payload.name ?? item.payload.customerName ?? item.reference ?? `عميل #${item.id}`),
+  }))
+  const paymentContractOptions = openContractsForPayment.map(item => {
+    const contractPayload = item.payload as Record<string, unknown>
+    const number = String(contractPayload.contractNumber ?? item.reference ?? `#${item.id}`)
+    return {
+      value: number,
+      label: `${number} · ${String(contractPayload.customerName ?? selectedPaymentCustomer?.payload.name ?? "عميل")}`,
+    }
+  })
   const optionsFor = (key: string) => {
     if (kind === "container" && key === "status") return CONTAINER_STATUS_OPTIONS
     if (kind === "invoice" && key === "invoiceType") return INVOICE_TYPE_OPTIONS
@@ -832,6 +864,7 @@ export function RecordDialog({
             </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {fields.map(field => (
+              isCustomerPayment && (field.key === "customerName" || field.key === "contractNumber") ? null : (
               <div key={field.key} className={`min-h-[82px] rounded-xl border border-slate-100 bg-slate-50/45 p-3 ${field.wide ? "sm:col-span-2" : ""}`}>
                 <Label htmlFor={`record-${field.key}`} className="mb-1.5 block text-xs font-bold text-slate-600">{field.label}</Label>
                 {field.type === "textarea" ? (
@@ -863,7 +896,63 @@ export function RecordDialog({
                   </>
                 )}
               </div>
+              )
             ))}
+            {isCustomerPayment && (
+              <>
+                <div className="min-h-[82px] rounded-xl border border-cyan-100 bg-cyan-50/40 p-3">
+                  <Label htmlFor="record-payment-customer" className="mb-1.5 block text-xs font-bold text-slate-600">العميل</Label>
+                  <select
+                    id="record-payment-customer"
+                    value={customerIdForPayment}
+                    onChange={event => {
+                      const customer = customers.find(item => String(item.id) === event.target.value)
+                      setPayload(current => ({
+                        ...current,
+                        customerRecordId: event.target.value,
+                        customerName: String(customer?.payload.name ?? ""),
+                        contractNumber: "",
+                        contractRecordId: "",
+                      }))
+                    }}
+                    required
+                    className="flex h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
+                    data-testid="select-payment-customer"
+                  >
+                    <option value="">اختر العميل</option>
+                    {paymentCustomerOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+                  </select>
+                </div>
+                <div className="min-h-[82px] rounded-xl border border-cyan-100 bg-cyan-50/40 p-3">
+                  <Label htmlFor="record-payment-contract" className="mb-1.5 block text-xs font-bold text-slate-600">العقد</Label>
+                  <select
+                    id="record-payment-contract"
+                    value={payload.contractNumber ?? ""}
+                    onChange={event => {
+                      const contract = openContractsForPayment.find(item => {
+                        const contractPayload = item.payload as Record<string, unknown>
+                        return String(contractPayload.contractNumber ?? item.reference ?? "") === event.target.value
+                      })
+                      setPayload(current => ({
+                        ...current,
+                        contractNumber: event.target.value,
+                        contractRecordId: contract?.id ? String(contract.id) : "",
+                      }))
+                    }}
+                    required
+                    disabled={!customerIdForPayment}
+                    className="flex h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                    data-testid="select-payment-contract"
+                  >
+                    <option value="">{customerIdForPayment ? "اختر العقد المفتوح" : "اختر العميل أولًا"}</option>
+                    {paymentContractOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+                  </select>
+                  {customerIdForPayment && paymentContractOptions.length === 0 && (
+                    <p className="mt-1 text-[11px] text-amber-700">لا توجد عقود مفتوحة لهذا العميل.</p>
+                  )}
+                </div>
+              </>
+            )}
              {kind !== "container" && <div className={kind === "contract" ? "" : "sm:col-span-2"}>
               <Label htmlFor="record-status" className="mb-1.5 block text-xs font-bold text-slate-600">حالة السجل</Label>
               <select id="record-status" value={status} onChange={event => setStatus(event.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-700" data-testid="select-record-status">
