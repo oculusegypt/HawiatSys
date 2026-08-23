@@ -1,0 +1,522 @@
+PHASE 6 — FINAL PRODUCTION HARDENING & 10/10 VERIFICATION
+
+أنت الآن تعمل على النسخة الحية الفعلية:
+
+https://hawiat.aiservx.com
+
+هذه المرحلة ليست لإعادة تصميم النظام ولا لإعادة بناء Financial Core.
+
+الهدف الوحيد:
+إغلاق الأدلة الثلاثة المتبقية للوصول إلى اعتماد Production حقيقي، مع ZERO REGRESSION.
+
+==================================================
+1. بيانات الوصول — استخدمها للاختبار فقط
+==================================================
+
+Website:
+https://hawiat.aiservx.com/admin
+
+Admin:
+Username: admin
+Password: taqi2020
+
+Hostinger FTP:
+
+Host:
+ftp://92.113.19.25
+Port:
+21
+
+FTP User:
+u130428819.hawiat.aiservx.com
+
+FTP Password:
+3691475+*Hh@!
+
+Remote root:
+ /public_html
+
+مهم:
+هذه بيئة اختبار مخصصة، ويمكنك استخدام بيانات الدخول لتنفيذ التحقق الحي.
+
+لا تقم بتغيير كلمات المرور.
+لا تحذف بيانات الاختبار السابقة.
+لا تحذف أو تعدل بيانات الإنتاج الحقيقية.
+لا ترفع أي ملف جديد إلا إذا أثبتت أولاً أن هناك إصلاحاً ضرورياً وبعد موافقة مرحلة الإصلاح.
+
+==================================================
+2. الحالة الحالية المثبتة
+==================================================
+
+تم بالفعل إثبات:
+
+Deployment:
+PASS
+
+FTP:
+PASS
+
+FTP → /public_html:
+PASS
+
+SHA-256 source/archive/live:
+PASS
+
+DNS:
+PASS
+
+HTTPS:
+PASS
+
+PHP:
+PASS
+
+Database Connection:
+PASS
+
+Authentication:
+PASS
+
+API Health:
+PASS
+
+Security:
+PASS
+
+Bank Reconciliation:
+PASS
+
+Other Revenue Idempotency:
+PASS
+
+Financial Period Lock:
+PASS
+
+Expense Reversal:
+PASS
+
+Financial Core:
+PASS
+
+Double Entry:
+PASS
+
+Order → Customer:
+PASS
+
+Order → Request:
+PASS
+
+Request → Contract:
+PASS
+
+Contract Idempotency:
+PASS
+
+==================================================
+3. ممنوع إعادة اختبار الأشياء الناجحة بلا سبب
+==================================================
+
+لا تعيد تعديل أي مسار ناجح.
+
+لا تغير:
+
+- Financial Core
+- Payment Idempotency
+- Contract Idempotency
+- Bank Reconciliation
+- Other Revenue Idempotency
+- Expense Reversal
+- Period Lock
+- Order → Contract
+- Node/PHP parity
+
+إلا إذا ظهر Regression حقيقي أثناء التحقق.
+
+==================================================
+4. BLOCKER #1 — SQLite integrity_check
+==================================================
+
+الاختبار السابق على قاعدة Hostinger أعطى:
+
+PRAGMA integrity_check;
+
+Result:
+
+wrong # of entries in index sqlite_autoindex_active_visitors_1
+
+هذه المشكلة يجب التحقيق فيها أولاً.
+
+ممنوع افتراض أن قاعدة البيانات فاسدة.
+
+ممنوع إعادة بناء قاعدة البيانات.
+
+ممنوع حذف index.
+
+ممنوع حذف بيانات active_visitors.
+
+ممنوع تنفيذ REINDEX أو VACUUM على الإنتاج قبل أخذ نسخة احتياطية والتحقق من السبب.
+
+نفذ تحقيقاً Read-Only أولاً:
+
+1. اعرف schema جدول active_visitors.
+2. اعرف الـUNIQUE constraint الذي أنشأ:
+   sqlite_autoindex_active_visitors_1
+3. افحص الصفوف المتعارضة.
+4. افحص duplicate values.
+5. نفذ:
+   PRAGMA integrity_check;
+   PRAGMA quick_check;
+6. افحص:
+   PRAGMA index_list('active_visitors');
+7. افحص:
+   PRAGMA index_info('sqlite_autoindex_active_visitors_1');
+
+قارن النتيجة مع نسخة قاعدة البيانات المحلية/المصدر.
+
+المطلوب تحديد ROOT CAUSE الحقيقي.
+
+إذا كانت المشكلة بسبب فساد index فعلي:
+- خذ backup كامل أولاً.
+- لا تحذف بيانات.
+- أصلح بأقل تغيير ممكن.
+- أعد integrity_check.
+- أعد كل الاختبارات المتأثرة.
+
+إذا كانت المشكلة بسبب طريقة نسخ قاعدة SQLite أثناء التشغيل:
+لا تعدل قاعدة الإنتاج.
+أثبت ذلك بدليل، ثم نفذ integrity_check على نسخة SQLite سليمة/متوقفة.
+
+==================================================
+5. BLOCKER #2 — Reversal Financial Transaction
+==================================================
+
+التقرير السابق ذكر:
+
+Financial Transaction الخاص بالعكس يظهر كسجل orphan في فحص الربط المباشر.
+
+لكن التقرير نفسه يقول إن هذا قد يكون متوقعاً حسب تصميم العكس الحالي.
+
+ممنوع تعديل الكود قبل إثبات التصميم.
+
+افحص:
+
+- original financial transaction
+- reversal financial transaction
+- original journal entry
+- reversal journal entry
+- reversal metadata
+- source transaction IDs
+- reversal IDs
+- idempotency keys
+- أي relationship محفوظ بين الأصل والعكس
+
+أجب بدليل:
+
+هل الـFinancial Core specification الحالية تتطلب:
+
+A)
+reversal transaction.source_transaction_id
+→ original transaction
+
+أم:
+
+B)
+العلاقة محفوظة في reversal metadata / journal relationship بطريقة صحيحة؟
+
+إذا كان B هو التصميم الصحيح:
+لا تغير الكود.
+
+بدلاً من ذلك:
+حدّث أداة Database Integrity Audit لكي تفهم علاقة reversal الصحيحة ولا تعتبرها orphan.
+
+إذا كان A مطلوباً:
+نفذ أقل إصلاح ممكن فقط، ثم اختبر:
+
+- original transaction
+- reversal transaction
+- journal
+- balance
+- duplicate reversal
+- idempotency
+
+ويجب ألا يتغير Total Debit/Total Credit.
+
+==================================================
+6. BLOCKER #3 — Cross Report Verification
+==================================================
+
+نفذ Golden Dataset حي مجهّل على Hostinger.
+
+استخدم prefix جديد:
+
+HOSTINGER-PHASE6-E2E-2026
+
+لا تستخدم بيانات المستخدمين الحقيقيين.
+
+الدورة المطلوبة:
+
+Customer
+→ Site
+→ Service Request
+→ Contract
+→ Invoice
+→ Payment
+→ Allocation
+→ Receipt
+→ Deposit
+→ Expense
+→ Purchase
+→ Inventory
+→ Commission
+→ Bank Fee
+→ Other Revenue
+→ Transfer
+→ Refund
+→ Reversal
+
+بعد اكتمال الدورة، اقرأ Financial Core.
+
+ثم اقرأ مباشرة:
+
+1. Financial Control Center
+2. Financial Cycle Workspace
+3. ReportPage
+
+لا تعتمد على أن الشاشات "تستخدم نفس endpoint".
+
+يجب استخراج القيم الفعلية التي تعرضها كل شاشة/API.
+
+قارن:
+
+Revenue
+Collections
+Receivables
+Expenses
+Purchases
+Inventory
+Commissions
+Bank Fees
+Refunds
+Transfers
+Cash
+Bank
+Profit
+Debit
+Credit
+
+اكتب جدولاً:
+
+Metric | Financial Core | Control Center | Cycle Workspace | ReportPage | Match
+
+يجب أن تكون:
+
+Match = PASS
+
+لكل القيم.
+
+إذا ظهر اختلاف:
+لا تصلحه بتغيير الرقم في الواجهة.
+
+تتبع مصدر الرقم حتى Financial Core/API.
+
+أصلح السبب الحقيقي فقط.
+
+==================================================
+7. Full Regression بعد أي إصلاح
+==================================================
+
+بعد أي تعديل كودي:
+
+TypeScript:
+PASS
+
+PHP lint:
+PASS
+
+Financial Core:
+PASS
+
+Financial Certification:
+PASS
+
+Golden Dataset:
+PASS
+
+Cross Report:
+PASS
+
+Operational Validation:
+PASS
+
+API Health:
+PASS
+
+Order → Contract:
+PASS
+
+Contract Idempotency:
+PASS
+
+Payment Idempotency:
+PASS
+
+Other Revenue Idempotency:
+PASS
+
+Bank Reconciliation:
+PASS
+
+Expense Reversal:
+PASS
+
+Period Lock:
+PASS
+
+Double Entry:
+PASS
+
+==================================================
+8. Deployment Rule
+==================================================
+
+لا ترفع أي تعديل تلقائياً.
+
+إذا وجدت Bug:
+
+1. وثّق Root Cause.
+2. حدّد أقل إصلاح ممكن.
+3. طبّق الإصلاح على المصدر.
+4. شغّل كل اختبارات regression.
+5. ابنِ:
+
+cleanflow-services-hostinger.zip
+
+6. تحقق من:
+- archive integrity
+- forbidden files
+- secrets
+- SQLite inclusion
+- PHP files
+- frontend
+- API
+
+ثم توقف قبل النشر.
+
+لا تعتبر الإصلاح Production حتى يتم رفعه ثم التحقق من SHA-256 للملفات الحية.
+
+==================================================
+9. إذا لم توجد مشكلة فعلية
+==================================================
+
+لا تعدل أي كود.
+
+إذا ثبت أن:
+
+- integrity_check issue ليس فساداً حقيقياً
+- reversal orphan ليس Bug وفق التصميم
+- Cross Report = PASS
+
+فلا تخترع إصلاحات.
+
+اعلن:
+
+PRODUCTION HARDENING:
+PASS
+
+FINAL PRODUCTION CERTIFICATION:
+PASS
+
+10/10:
+PASS
+
+فقط إذا كانت كل الأدلة مثبتة فعلياً.
+
+==================================================
+10. المطلوب في التقرير النهائي
+==================================================
+
+أخرج تقريراً بهذه الصيغة:
+
+PHASE 6 FINAL PRODUCTION CERTIFICATION
+
+Deployment:
+PASS/FAIL
+
+Database Integrity:
+PASS/FAIL
+
+Integrity Root Cause:
+...
+
+Reversal Relationship:
+PASS/FAIL
+
+Cross Report:
+PASS/FAIL
+
+Financial Core:
+PASS/FAIL
+
+Double Entry:
+PASS/FAIL
+
+Bank Reconciliation:
+PASS/FAIL
+
+Other Revenue Idempotency:
+PASS/FAIL
+
+Expense Reversal:
+PASS/FAIL
+
+Period Lock:
+PASS/FAIL
+
+Order → Contract:
+PASS/FAIL
+
+Contract Idempotency:
+PASS/FAIL
+
+Payment Idempotency:
+PASS/FAIL
+
+Security:
+PASS/FAIL
+
+TypeScript:
+PASS/FAIL
+
+PHP:
+PASS/FAIL
+
+Operational Validation:
+PASS/FAIL
+
+Golden Dataset:
+PASS/FAIL
+
+FINAL PRODUCTION CERTIFICATION:
+PASS/FAIL
+
+FINAL SCORE:
+X/10
+
+Every PASS must include concrete evidence.
+
+Do not declare 10/10 based on assumptions.
+
+Do not modify working systems unnecessarily.
+
+Do not hide failures.
+
+Do not delete test evidence.
+
+Do not reset the database.
+
+Do not rebuild the application architecture.
+
+Your priority is:
+
+VERIFY → DIAGNOSE → MINIMAL FIX ONLY IF REQUIRED → REGRESSION → LIVE VERIFICATION → CERTIFY.

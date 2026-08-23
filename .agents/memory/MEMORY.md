@@ -20,3 +20,4 @@
 - [Financial final certification](financial-final-certification.md) — code checks alone cannot certify finance; require a full safe transaction cycle and cross-report reconciliation.
 - [Golden financial verification](golden-financial-verification.md) — derive regression expectations from posted journal behavior and keep Hostinger claims runtime-backed.
 - [Hostinger FTP verification](hostinger-ftp-verification.md) — HTTP health does not prove FTP access or source-to-live file parity.
+- [Active visitors SQLite integrity](sqlite-active-visitors-integrity.md) — WAL-backed copies can make the primary-key index appear corrupt; preserve, repair minimally, and verify row preservation.
