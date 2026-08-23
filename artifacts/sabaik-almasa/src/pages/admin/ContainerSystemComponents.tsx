@@ -151,6 +151,7 @@ type FieldConfig = {
   placeholder?: string
   type?: "text" | "date" | "number" | "textarea"
   wide?: boolean
+  required?: boolean
 }
 
 function dateInputValue(value: unknown) {
@@ -374,14 +375,20 @@ export const FIELD_CONFIG: Record<RecordKind, FieldConfig[]> = {
     { key: "description", label: "البيان", type: "textarea", wide: true },
   ],
   invoice: [
-    { key: "invoiceNumber", label: "رقم الفاتورة", placeholder: "سيولد تلقائياً عند الحفظ" },
-    { key: "customerName", label: "العميل", placeholder: "اسم العميل" },
-    { key: "contractNumber", label: "العقد", placeholder: "رقم العقد" },
-    { key: "amount", label: "المبلغ قبل الضريبة", type: "number", placeholder: "0" },
-    { key: "taxRate", label: "نسبة الضريبة %", type: "number", placeholder: "15" },
-    { key: "total", label: "الإجمالي", type: "number", placeholder: "0" },
-    { key: "date", label: "التاريخ", type: "date" },
-    { key: "notes", label: "ملاحظات", type: "textarea", wide: true },
+    { key: "invoiceNumber", label: "رقم الفاتورة", placeholder: "يُولد تلقائياً إذا تركته فارغاً" },
+    { key: "invoiceType", label: "نوع الفاتورة", placeholder: "اختر نوع الفاتورة", required: true },
+    { key: "customerName", label: "اسم العميل أو المنشأة", placeholder: "الاسم كما سيظهر في الفاتورة", required: true },
+    { key: "customerTaxNumber", label: "الرقم الضريبي للعميل", placeholder: "للعميل المسجل ضريبياً" },
+    { key: "customerAddress", label: "عنوان العميل", placeholder: "العنوان الوطني أو المدينة" },
+    { key: "contractNumber", label: "رقم العقد المرتبط", placeholder: "اختياري — للربط التشغيلي" },
+    { key: "description", label: "وصف الخدمة أو البند", placeholder: "مثال: تأجير حاوية أنقاض 20 ياردة", wide: true, required: true },
+    { key: "quantity", label: "الكمية", type: "number", placeholder: "1" },
+    { key: "unitPrice", label: "سعر الوحدة قبل الضريبة", type: "number", placeholder: "0" },
+    { key: "amount", label: "الإجمالي قبل الضريبة", type: "number", placeholder: "0", required: true },
+    { key: "taxRate", label: "نسبة ضريبة القيمة المضافة %", type: "number", placeholder: "15", required: true },
+    { key: "paymentMethod", label: "طريقة السداد", placeholder: "اختر طريقة السداد" },
+    { key: "date", label: "تاريخ إصدار الفاتورة", type: "date", required: true },
+    { key: "notes", label: "ملاحظات وشروط إضافية", type: "textarea", wide: true },
   ],
   invoice_return: [
     { key: "invoiceNumber", label: "رقم الفاتورة الأصلية", placeholder: "INV-001" },
@@ -592,6 +599,18 @@ const CONTAINER_STATUS_OPTIONS = [
   { value: "out_of_service", label: "خارج الخدمة" },
 ] as const
 
+const INVOICE_TYPE_OPTIONS = [
+  { value: "standard", label: "فاتورة ضريبية — بيع أو خدمة لمنشأة" },
+  { value: "simplified", label: "فاتورة ضريبية مبسطة — بيع للمستهلك" },
+] as const
+
+const PAYMENT_METHOD_OPTIONS = [
+  { value: "cash", label: "نقدي" },
+  { value: "card", label: "بطاقة / شبكة" },
+  { value: "bank_transfer", label: "تحويل بنكي" },
+  { value: "credit", label: "آجل / على الحساب" },
+] as const
+
 export function statusTone(status?: string) {
   const normalized = (status ?? "").toLowerCase()
   if (["active", "available", "متاح", "نشط", "جاهزة", "مكتملة", "تمت المعالجة"].some(item => normalized.includes(item))) {
@@ -739,6 +758,8 @@ export function RecordDialog({
   const fields = FIELD_CONFIG[kind]
   const optionsFor = (key: string) => {
     if (kind === "container" && key === "status") return CONTAINER_STATUS_OPTIONS
+    if (kind === "invoice" && key === "invoiceType") return INVOICE_TYPE_OPTIONS
+    if (kind === "invoice" && key === "paymentMethod") return PAYMENT_METHOD_OPTIONS
     // Operational movements may be entered without a contract number, and
     // movementType intentionally remains free text so the operator can use
     // the exact operational wording used on the job.
@@ -793,7 +814,7 @@ export function RecordDialog({
                 ) : optionsFor(field.key).length > 0 ? (
                   <select id={`record-${field.key}`} value={payload[field.key] ?? ""} onChange={event => setValue(field.key, event.target.value)} className="flex h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100" data-testid={`select-record-${field.key}`}>
                      <option value="">اختر {field.label}</option>
-                    {optionsFor(field.key).map(option => <option key={`${field.key}-${option.value}`} value={option.value}>{option.label}</option>)}
+                     {optionsFor(field.key).map(option => <option key={`${field.key}-${option.value}`} value={option.value}>{option.label}</option>)}
                   </select>
                 ) : (
                   <>
@@ -804,6 +825,7 @@ export function RecordDialog({
                       value={payload[field.key] ?? ""}
                       onChange={event => setValue(field.key, event.target.value)}
                       placeholder={field.placeholder}
+                       required={field.required}
                       dir={field.key.toLowerCase().includes("phone") || field.type === "number" ? "ltr" : "rtl"}
                       className="h-11 border-slate-200 bg-white"
                       data-testid={`input-record-${field.key}`}

@@ -373,6 +373,86 @@ function RecordRow({ record, kind, onDetails, onEdit, onArchive }: { record: Con
   )
 }
 
+function InvoiceWorkspace({ records, onAdd, onDetails, onEdit, onArchive }: { records: ContainerSystemRecord[]; onAdd: () => void; onDetails: (record: ContainerSystemRecord) => void; onEdit: (record: ContainerSystemRecord) => void; onArchive: (record: ContainerSystemRecord) => void }) {
+  const [filter, setFilter] = useState<"all" | "draft" | "issued" | "paid">("all")
+  const activeRecords = records.filter(record => record.status !== "archived")
+  const visibleRecords = filter === "all" ? activeRecords : activeRecords.filter(record => record.status === filter)
+  const total = activeRecords.reduce((sum, record) => sum + amountOf(record), 0)
+  const paid = activeRecords.filter(record => ["paid", "settled"].includes(record.status)).length
+  const draft = activeRecords.filter(record => ["draft", "pending"].includes(record.status)).length
+  const money = (value: number) => `${value.toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س`
+
+  return (
+    <div className="space-y-5">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard label="إجمالي الفواتير" value={activeRecords.length} icon={FileText} tone="bg-cyan-600" hint="الفواتير المحفوظة غير المؤرشفة" />
+        <MetricCard label="إجمالي قيمة الفواتير" value={money(total)} icon={Coins} tone="bg-emerald-600" hint="بعد احتساب ضريبة القيمة المضافة" />
+        <MetricCard label="فواتير مسودة" value={draft} icon={FilePenLine} tone="bg-amber-500" hint="تحتاج مراجعة قبل الإصدار" />
+        <MetricCard label="فواتير مسددة" value={paid} icon={CheckCircle2} tone="bg-emerald-600" hint="مرتبطة بتحصيل مكتمل" />
+      </div>
+      <Card className="overflow-hidden border-cyan-100 shadow-[0_10px_30px_rgba(15,44,58,.06)]">
+        <CardHeader className="border-b border-slate-100 bg-gradient-to-l from-cyan-50/80 to-white px-5 py-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <CardTitle className="text-lg text-slate-900">الفواتير الإلكترونية</CardTitle>
+                <Badge className="border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-50">مهيأة للفوترة الإلكترونية</Badge>
+              </div>
+              <p className="mt-1 max-w-2xl text-xs leading-6 text-slate-500">أنشئ فاتورة ضريبية واضحة، احسب الضريبة تلقائيًا، واربطها بالعميل والعقد والحاوية. تجهيز الإرسال الرسمي يتطلب بيانات المنشأة وشهادة الربط من الهيئة.</p>
+            </div>
+            <Button onClick={onAdd} className="gap-2 bg-cyan-800 px-5 hover:bg-cyan-900" data-testid="button-create-electronic-invoice"><Plus size={16} /> إنشاء فاتورة إلكترونية</Button>
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {([
+              ["all", `كل الفواتير (${activeRecords.length})`],
+              ["draft", `مسودات المراجعة (${draft})`],
+              ["issued", `مصدرة (${activeRecords.filter(record => record.status === "issued").length})`],
+              ["paid", `مسددة (${paid})`],
+            ] as const).map(([value, label]) => (
+              <button key={value} type="button" onClick={() => setFilter(value)} className={`rounded-full border px-3 py-1.5 text-xs font-bold transition ${filter === value ? "border-cyan-700 bg-cyan-800 text-white" : "border-slate-200 bg-white text-slate-600 hover:border-cyan-300"}`}>{label}</button>
+            ))}
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          {visibleRecords.length === 0 ? (
+            <div className="flex min-h-56 flex-col items-center justify-center px-6 text-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-800"><FileText size={22} /></div>
+              <h3 className="mt-4 font-bold text-slate-800">لا توجد فواتير ضمن هذا التصنيف</h3>
+              <p className="mt-1 text-xs text-slate-500">ابدأ بإنشاء فاتورة إلكترونية جديدة، وستظهر هنا بعد حفظها.</p>
+              <Button onClick={onAdd} variant="outline" className="mt-4 gap-2 border-cyan-200 text-cyan-800"><Plus size={15} /> إنشاء أول فاتورة</Button>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <div className="min-w-[820px]">
+                <div className="grid grid-cols-[1.1fr_1.4fr_1.2fr_1fr_1fr_auto] gap-3 bg-slate-50 px-5 py-3 text-[10px] font-black text-slate-400">
+                  <span>رقم الفاتورة</span><span>العميل</span><span>البيان</span><span>تاريخ الإصدار</span><span>الإجمالي</span><span>الحالة</span>
+                </div>
+                {visibleRecords.map(record => {
+                  const payload = record.payload as Record<string, unknown>
+                  return (
+                    <div key={record.id} className="grid grid-cols-[1.1fr_1.4fr_1.2fr_1fr_1fr_auto] items-center gap-3 border-t border-slate-100 px-5 py-4 text-xs transition hover:bg-cyan-50/30" data-testid={`row-invoice-${record.id}`}>
+                      <button type="button" onClick={() => onDetails(record)} className="text-right font-black text-cyan-800 hover:underline" dir="ltr">{String(payload.invoiceNumber ?? record.reference ?? `#${record.id}`)}</button>
+                      <span className="truncate font-bold text-slate-700">{String(payload.customerName ?? "عميل غير محدد")}</span>
+                      <span className="truncate text-slate-600">{String(payload.description ?? "خدمات حاويات")}</span>
+                      <span className="text-slate-600">{String(payload.date ?? "غير محدد")}</span>
+                      <span className="font-black text-slate-800">{money(amountOf(record))}</span>
+                      <div className="flex items-center justify-end gap-1">
+                        <RecordStatus status={record.status} />
+                        <Button variant="ghost" size="icon" onClick={() => onEdit(record)} className="h-8 w-8 text-slate-500 hover:bg-cyan-50 hover:text-cyan-800" title="تعديل الفاتورة"><FilePenLine size={14} /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => onArchive(record)} className="h-8 w-8 text-slate-400 hover:bg-rose-50 hover:text-rose-600" title="أرشفة الفاتورة"><Archive size={14} /></Button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
 function RecordsPanel({ kind, records, loading, onAdd, onDetails, onEdit, onArchive }: { kind: RecordKind; records: ContainerSystemRecord[]; loading: boolean; onAdd: () => void; onDetails: (record: ContainerSystemRecord) => void; onEdit: (record: ContainerSystemRecord) => void; onArchive: (record: ContainerSystemRecord) => void }) {
   return (
     <Card className="border-slate-200/80 shadow-[0_8px_28px_rgba(15,44,58,.05)]">
@@ -969,7 +1049,9 @@ export default function ContainerSystem() {
              : view === "audit" ? <AuditLog audits={auditQuery.data ?? []} loading={auditQuery.isLoading} />
               : view === "container_search" ? <ContainerSearchPanel records={records} loading={loading} onDetails={record => setDetailRecord(record)} onEdit={openEdit} />
               : view === "bookings" ? <DispatchCalendar records={snapshot?.records ?? records} onOpenAppointment={record => setDetailRecord(record)} />
-             : view === "container"
+              : view === "invoice"
+                ? <InvoiceWorkspace records={records} onAdd={() => openCreate("invoice")} onDetails={record => setDetailRecord(record)} onEdit={openEdit} onArchive={archiveRecord} />
+              : view === "container"
                ? <ContainerPOS records={records} onAdd={() => openCreate("container")} onDetails={record => setDetailRecord(record)} onEdit={openEdit} />
                 : <RecordsPanel kind={collectionKind ?? "customer"} records={records} loading={loading} onAdd={() => openCreate(collectionKind ?? "customer")} onDetails={record => setDetailRecord(record)} onEdit={openEdit} onArchive={archiveRecord} />}
         </main>
