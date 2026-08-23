@@ -1,0 +1,76 @@
+{
+  "version": 1,
+  "generatedAt": "2026-08-23T04:15:27.475Z",
+  "scanned": 6,
+  "upgraded": 2,
+  "unresolved": [
+    {
+      "id": 342,
+      "kind": "receipt",
+      "reference": "RECE-DEMO",
+      "reason": [
+        "تعذر إيجاد علاقة رسمية وحيدة"
+      ],
+      "suggestedAction": "مراجعة يدوية قبل استخدام --apply"
+    },
+    {
+      "id": 343,
+      "kind": "receipt",
+      "reference": "RECE-DEMO",
+      "reason": [
+        "تعذر إيجاد علاقة رسمية وحيدة"
+      ],
+      "suggestedAction": "مراجعة يدوية قبل استخدام --apply"
+    },
+    {
+      "id": 404,
+      "kind": "payment",
+      "reference": "PAY-52053361",
+      "reason": [
+        "لا يوجد عميل رسمي مطابق للاسم"
+      ],
+      "suggestedAction": "مراجعة يدوية قبل استخدام --apply"
+    }
+  ],
+  "applied": false,
+  "records": [
+    {
+      "id": 342,
+      "kind": "receipt",
+      "before": {
+        "receiptNumber": "REC-2026-0091",
+        "customerName": "شركة البناء المتين",
+        "amount": 3000,
+        "paymentMethod": "تحويل بنكي",
+        "date": "2026-08-19"
+      },
+      "after": {
+        "receiptNumber": "REC-2026-0091",
+        "customerName": "شركة البناء المتين",
+        "amount": 3000,
+        "paymentMethod": "تحويل بنكي",
+        "date": "2026-08-19",
+        "customerRecordId": 321
+      }
+    },
+    {
+      "id": 343,
+      "kind": "receipt",
+      "before": {
+        "receiptNumber": "REC-2026-0092",
+        "customerName": "عبدالله سالم العتيبي",
+        "amount": 875,
+        "paymentMethod": "شبكة",
+        "date": "2026-08-20"
+      },
+      "after": {
+        "receiptNumber": "REC-2026-0092",
+        "customerName": "عبدالله سالم العتيبي",
+        "amount": 875,
+        "paymentMethod": "شبكة",
+        "date": "2026-08-20",
+        "customerRecordId": 323
+      }
+    }
+  ]
+}

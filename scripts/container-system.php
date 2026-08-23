@@ -682,7 +682,19 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
             hsAudit($pdo, $id, $kind, 'create', null, json_encode($payload, JSON_UNESCAPED_UNICODE), $actorId);
             if ($kind === 'container_movement') hsSyncMovement($pdo, $payload, $actorId);
             if (in_array($kind, ['payment', 'receipt', 'expense', 'deposit', 'bank_deposit'], true)) {
-                $ledger = ['sourceKind' => $kind, 'sourceId' => $id, 'contractNumber' => $payload['contractNumber'] ?? '', 'customerName' => $payload['customerName'] ?? '', 'amount' => (float)($payload['amount'] ?? 0), 'direction' => $kind === 'expense' ? 'debit' : 'credit', 'date' => $payload['date'] ?? date('Y-m-d')];
+                $ledger = [
+                    'sourceKind' => $kind,
+                    'sourceId' => $id,
+                    'contractNumber' => $payload['contractNumber'] ?? '',
+                    'contractRecordId' => isset($payload['contractRecordId']) ? (int)$payload['contractRecordId'] : null,
+                    'invoiceRecordId' => isset($payload['invoiceRecordId']) ? (int)$payload['invoiceRecordId'] : null,
+                    'customerName' => $payload['customerName'] ?? '',
+                    'customerRecordId' => isset($payload['customerRecordId']) ? (int)$payload['customerRecordId'] : null,
+                    'amount' => (float)($payload['amount'] ?? 0),
+                    'direction' => $kind === 'expense' ? 'debit' : 'credit',
+                    'date' => $payload['date'] ?? date('Y-m-d'),
+                ];
+                if (isset($payload['allocations']) && is_array($payload['allocations'])) $ledger['allocations'] = $payload['allocations'];
                 $ledgerStmt = $pdo->prepare("INSERT INTO container_system_records (kind, status, reference, payload, created_by, created_at, updated_at) VALUES ('ledger_entry', 'posted', :reference, :payload, :created_by, :created_at, :updated_at)");
                 $ledgerStmt->execute([':reference' => 'LED-' . $id, ':payload' => json_encode($ledger, JSON_UNESCAPED_UNICODE), ':created_by' => $actorId, ':created_at' => $now, ':updated_at' => $now]);
             }

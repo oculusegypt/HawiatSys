@@ -120,15 +120,72 @@ export const REPORTS: { id: ReportId; title: string; group: string; description:
   { id: "purchase_returns", title: "مرتجع المشتريات", group: "تقارير المخزون والمشتريات", description: "مرتجع المشتريات ورقم الفاتورة والمخزن والإجمالي.", kinds: ["purchase_return"], filters: ["رقم الفاتورة", "المخزن", "المستخدم", "الفترة الزمنية"], columns: ["رقم الفاتورة", "المخزن", "الإجمالي", "المستخدم", "التاريخ"] },
 ]
 
-const valueFor = (record: ContainerSystemRecord, label: string) => {
-  const p = record.payload as Record<string, unknown>
-  const normalized = label.replaceAll(" ", "").replaceAll("/", "")
-  const candidates = Object.entries(p).filter(([key]) => key.replaceAll(" ", "").replaceAll("/", "").includes(normalized.slice(0, 4)))
-  return String(candidates[0]?.[1] ?? p.name ?? p.reference ?? record.reference ?? "—")
+const directField = (payload: Record<string, unknown>, ...keys: string[]) => {
+  for (const key of keys) {
+    const value = payload[key]
+    if (value !== undefined && value !== null && String(value).trim() !== "") return value
+  }
+  return "—"
 }
 
-function exportRows(title: string, columns: string[], records: ContainerSystemRecord[]) {
-  const rows = [columns, ...records.map(record => columns.map(column => valueFor(record, column)))]
+const valueFor = (reportId: ReportId, record: ContainerSystemRecord, label: string, allRecords: ContainerSystemRecord[]) => {
+  const p = record.payload as Record<string, unknown>
+  const money = (value: unknown) => `${Number(value ?? 0).toLocaleString("ar-SA")} ر.س`
+  const active = allRecords.filter(item => item.status !== "archived")
+  const payments = active.filter(item => item.kind === "payment" || item.kind === "receipt")
+  const returns = active.filter(item => item.kind === "payment_return" || item.kind === "invoice_return")
+  const contractNumber = String(p.contractNumber ?? record.reference ?? "")
+  const invoiceNumber = String(p.invoiceNumber ?? record.reference ?? "")
+  const allocated = (payment: ContainerSystemRecord, key: "contractId" | "invoiceId", id: number) => {
+    const allocations = (payment.payload as Record<string, unknown>).allocations
+    if (!Array.isArray(allocations)) return 0
+    return allocations.reduce((sum, item) => {
+      const allocation = item as Record<string, unknown>
+      return Number(allocation[key]) === id ? sum + Number(allocation.amount ?? 0) : sum
+    }, 0)
+  }
+  const paid = record.kind === "contract"
+    ? payments.reduce((sum, payment) => {
+      const pp = payment.payload as Record<string, unknown>
+      return sum + allocated(payment, "contractId", record.id) +
+        (!Array.isArray(pp.allocations) && String(pp.contractNumber ?? "") === contractNumber ? Number(pp.amount ?? 0) : 0)
+    }, 0)
+    : record.kind === "invoice"
+      ? payments.reduce((sum, payment) => sum + allocated(payment, "invoiceId", record.id), 0)
+      : Number(p.paid ?? 0)
+  const returned = returns.reduce((sum, item) => {
+    const rp = item.payload as Record<string, unknown>
+    return String(rp.originalInvoiceNumber ?? rp.invoiceNumber ?? "") === invoiceNumber ||
+      String(rp.originalPaymentId ?? "") === String(record.id) ? sum + Number(rp.amount ?? rp.total ?? 0) : sum
+  }, 0)
+  if (label === "رقم العقد" || label === "العقد / الفاتورة") return String(directField(p, "contractNumber", "invoiceNumber", "receiptNumber", "reference"))
+  if (label === "رقم الفاتورة" || label === "رقم الإيصال والفاتورة") return String(directField(p, "invoiceNumber", "receiptNumber", "reference"))
+  if (label === "الفاتورة الأصلية") return String(directField(p, "originalInvoiceNumber", "invoiceNumber"))
+  if (label === "العميل") return String(directField(p, "customerName", "clientName"))
+  if (label === "الإجمالي" || label === "المبلغ" || label === "القيمة") return money(directField(p, "total", "amount", "lineTotal", "value"))
+  if (label === "المدفوع") return money(paid)
+  if (label === "المتبقي") return money(Math.max(Number(p.total ?? p.amount ?? 0) - paid - returned, 0))
+  if (label === "الضريبة") return money(directField(p, "taxAmount"))
+  if (label === "المرتجعات") return money(returned)
+  if (label === "الصافي") return money(Number(p.total ?? p.amount ?? 0) - returned)
+  if (label === "التاريخ" || label === "تاريخ التسجيل") return String(directField(p, "date", "startDate", "createdAt") || record.createdAt).slice(0, 10)
+  const explicitFields: Record<string, string[]> = {
+    "طريقة الدفع": ["paymentMethod", "methodName"],
+    "الخزينة": ["cashbox", "treasury", "cashier"],
+    "الملاحظات": ["notes", "description"],
+    "نوع العميل": ["customerType", "clientType"],
+    "حالة العقد": ["contractStatus", "status"],
+    "رقم المصروف": ["expenseNumber", "reference"],
+    "رقم السند": ["receiptNumber", "voucherNumber", "reference"],
+    "العمولة": ["commission", "commissionAmount"],
+    "الموظف": ["employeeName", "createdByName", "staffName"],
+    "نوع المصروف": ["expenseType", "category"],
+  }
+  return String(directField(p, ...(explicitFields[label] ?? ["name", "description", "reference"])))
+}
+
+function exportRows(title: string, reportId: ReportId, columns: string[], records: ContainerSystemRecord[]) {
+  const rows = [columns, ...records.map(record => columns.map(column => valueFor(reportId, record, column, records)))]
   const csv = "\uFEFF" + rows.map(row => row.map(value => `"${value.replaceAll('"', '""')}"`).join(",")).join("\n")
   const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }))
   const link = document.createElement("a"); link.href = url; link.download = `${title}.csv`; link.click(); URL.revokeObjectURL(url)
@@ -151,10 +208,10 @@ export function ReportPage({ reportId, records, onBack }: { reportId: ReportId; 
     return (!from || date >= from) && (!to || date <= to) && (!query || haystack.includes(query.toLowerCase()))
   }), [from, query, records, report.kinds, to])
   const total = filtered.reduce((sum, record) => sum + amountOf(record), 0)
-  return <div className="space-y-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><Button variant="ghost" onClick={onBack} className="mb-2 gap-2 px-0 text-cyan-800"><ArrowRight size={16} /> كل التقارير</Button><h3 className="text-xl font-black text-slate-900">{report.title}</h3><p className="mt-1 text-xs leading-6 text-slate-500">{report.description}</p></div><div className="flex gap-2"><Button onClick={() => window.print()} variant="outline" className="gap-2"><Printer size={15} /> طباعة</Button><Button onClick={() => exportRows(report.title, report.columns, filtered)} variant="outline" className="gap-2 border-cyan-200 text-cyan-800"><FileDown size={15} /> Excel</Button></div></div>
+   return <div className="space-y-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><Button variant="ghost" onClick={onBack} className="mb-2 gap-2 px-0 text-cyan-800"><ArrowRight size={16} /> كل التقارير</Button><h3 className="text-xl font-black text-slate-900">{report.title}</h3><p className="mt-1 text-xs leading-6 text-slate-500">{report.description}</p></div><div className="flex gap-2"><Button onClick={() => window.print()} variant="outline" className="gap-2"><Printer size={15} /> طباعة</Button><Button onClick={() => exportRows(report.title, report.id, report.columns, filtered)} variant="outline" className="gap-2 border-cyan-200 text-cyan-800"><FileDown size={15} /> Excel</Button></div></div>
     <Card><CardContent className="flex flex-wrap items-end gap-3 p-4"><div className="min-w-52 flex-1"><label className="mb-1 block text-xs font-bold text-slate-500">بحث داخل التقرير</label><div className="relative"><Search size={15} className="absolute right-3 top-2.5 text-slate-400" /><Input value={query} onChange={event => setQuery(event.target.value)} className="pr-9" placeholder="اسم العميل أو الرقم أو الحاوية" /></div></div><div><label className="mb-1 block text-xs font-bold text-slate-500">من</label><Input type="date" value={from} onChange={event => setFrom(event.target.value)} /></div><div><label className="mb-1 block text-xs font-bold text-slate-500">إلى</label><Input type="date" value={to} onChange={event => setTo(event.target.value)} /></div>{report.filters.map(filter => <Badge key={filter} variant="outline" className="mb-1 border-cyan-200 bg-cyan-50 text-cyan-800">{filter}</Badge>)}</CardContent></Card>
     <div className="grid gap-3 sm:grid-cols-3"><Card><CardContent className="p-4"><p className="text-xs text-slate-500">عدد السجلات</p><b className="mt-1 block text-2xl">{filtered.length}</b></CardContent></Card><Card><CardContent className="p-4"><p className="text-xs text-slate-500">الإجمالي</p><b className="mt-1 block text-2xl text-cyan-800">{total.toLocaleString("ar-SA")} ر.س</b></CardContent></Card><Card><CardContent className="p-4"><p className="text-xs text-slate-500">أنواع السجلات المرتبطة</p><b className="mt-1 block text-sm">{report.kinds.map(kind => KIND_LABELS[kind as RecordKind] ?? kind).join("، ")}</b></CardContent></Card></div>
-    <Card className="overflow-hidden"><CardHeader className="border-b bg-slate-50/60"><CardTitle className="text-base">بيانات {report.title}</CardTitle></CardHeader><CardContent className="overflow-x-auto p-0"><table className="min-w-[900px] w-full text-right text-xs"><thead><tr className="border-b bg-slate-50 text-slate-500">{report.columns.map(column => <th key={column} className="whitespace-nowrap px-4 py-3 font-black">{column}</th>)}</tr></thead><tbody>{filtered.length === 0 ? <tr><td colSpan={report.columns.length} className="p-12 text-center text-slate-500">لا توجد بيانات مطابقة للفلاتر الحالية.</td></tr> : filtered.map(record => <tr key={record.id} className="border-b last:border-0 hover:bg-cyan-50/30">{report.columns.map(column => <td key={column} className="whitespace-nowrap px-4 py-3 text-slate-700">{valueFor(record, column)}</td>)}</tr>)}</tbody></table></CardContent></Card>
+     <Card className="overflow-hidden"><CardHeader className="border-b bg-slate-50/60"><CardTitle className="text-base">بيانات {report.title}</CardTitle></CardHeader><CardContent className="overflow-x-auto p-0"><table className="min-w-[900px] w-full text-right text-xs"><thead><tr className="border-b bg-slate-50 text-slate-500">{report.columns.map(column => <th key={column} className="whitespace-nowrap px-4 py-3 font-black">{column}</th>)}</tr></thead><tbody>{filtered.length === 0 ? <tr><td colSpan={report.columns.length} className="p-12 text-center text-slate-500">لا توجد بيانات مطابقة للفلاتر الحالية.</td></tr> : filtered.map(record => <tr key={record.id} className="border-b last:border-0 hover:bg-cyan-50/30">{report.columns.map(column => <td key={column} className="whitespace-nowrap px-4 py-3 text-slate-700">{valueFor(report.id, record, column, records)}</td>)}</tr>)}</tbody></table></CardContent></Card>
   </div>
 }
 
