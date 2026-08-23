@@ -599,6 +599,8 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
         $rows = array_map('hsRecord', hsFindRecords($pdo));
         $contracts = array_filter($rows, static fn(array $row): bool => $row['kind'] === 'contract' && (!$contractId || (int)$row['id'] === $contractId));
         $payments = array_filter($rows, static fn(array $row): bool => in_array($row['kind'], ['payment', 'receipt'], true));
+        $returns = array_filter($rows, static fn(array $row): bool => $row['kind'] === 'payment_return');
+        $deposits = array_filter($rows, static fn(array $row): bool => in_array($row['kind'], ['deposit', 'bank_deposit'], true));
         $ledgers = [];
         foreach ($contracts as $contract) {
             $payload = $contract['payload']; $number = (string)($payload['contractNumber'] ?? $contract['reference']);
@@ -609,6 +611,18 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
                 }
                 return false;
             }));
+            $relatedReturns = array_values(array_filter($returns, static function (array $row) use ($contract, $number): bool {
+                return (string)($row['payload']['contractNumber'] ?? '') === $number
+                    || (int)($row['payload']['contractId'] ?? 0) === (int)$contract['id'];
+            }));
+            $relatedDeposits = array_values(array_filter($deposits, static function (array $row) use ($relatedPayments, $contract, $number): bool {
+                $payload = $row['payload'];
+                if ((string)($payload['contractNumber'] ?? '') === $number || (int)($payload['linkedContractId'] ?? 0) === (int)$contract['id']) return true;
+                foreach ($relatedPayments as $payment) {
+                    if ((int)($payload['sourcePaymentId'] ?? $payload['linkedPaymentId'] ?? 0) === (int)$payment['id']) return true;
+                }
+                return false;
+            }));
             $total = (float)($payload['total'] ?? $payload['amount'] ?? 0); $collected = array_sum(array_map(static fn(array $row): float => (float)($row['payload']['amount'] ?? 0), $relatedPayments));
             $collected = array_sum(array_map(static function (array $row) use ($contract): float {
                 foreach (($row['payload']['allocations'] ?? []) as $allocation) {
@@ -616,10 +630,12 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
                 }
                 return (float)($row['payload']['amount'] ?? 0);
             }, $relatedPayments));
+            $collected -= array_sum(array_map(static fn(array $row): float => (float)($row['payload']['amount'] ?? $row['payload']['total'] ?? 0), $relatedReturns));
             if ($search !== '' && !str_contains(mb_strtolower($number . ' ' . json_encode($payload, JSON_UNESCAPED_UNICODE)), $search)) continue;
-            $ledgers[] = ['contract' => $contract, 'total' => $total, 'collected' => $collected, 'deposited' => 0, 'remaining' => max($total - $collected, 0), 'deposits' => [], 'payments' => $relatedPayments];
+            $deposited = array_sum(array_map(static fn(array $row): float => (float)($row['payload']['amount'] ?? $row['payload']['total'] ?? 0), $relatedDeposits));
+            $ledgers[] = ['contract' => $contract, 'total' => $total, 'collected' => $collected, 'deposited' => $deposited, 'remaining' => max($total - $collected, 0), 'deposits' => $relatedDeposits, 'payments' => $relatedPayments];
         }
-        hsJson(['ledgers' => $ledgers, 'totals' => ['contractValue' => array_sum(array_column($ledgers, 'total')), 'collected' => array_sum(array_column($ledgers, 'collected')), 'deposited' => 0, 'remaining' => array_sum(array_column($ledgers, 'remaining'))]]);
+        hsJson(['ledgers' => $ledgers, 'totals' => ['contractValue' => array_sum(array_column($ledgers, 'total')), 'collected' => array_sum(array_column($ledgers, 'collected')), 'deposited' => array_sum(array_column($ledgers, 'deposited')), 'remaining' => array_sum(array_column($ledgers, 'remaining'))]]);
     }
     if ($path === '/admin/container-system/financial/settle' && $method === 'POST') {
         if (!hsCanManage($admin, 'payment')) hsJson(['error' => 'ليس لديك صلاحية تسجيل تحصيل العقود'], 403);
@@ -629,14 +645,16 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
         $requested = is_array($input['allocations'] ?? null) && count($input['allocations']) > 0
             ? $input['allocations']
             : (isset($input['contractId']) ? [['contractId' => $input['contractId'], 'amount' => $amount, 'invoiceId' => $input['invoiceId'] ?? null]] : []);
-        if ($amount <= 0 || $methodName === '' || strlen($operationKey) < 8 || count($requested) === 0) hsJson(['error' => 'بيانات التحصيل أو التوزيع غير صحيحة'], 422);
+        if ($amount <= 0 || $methodName === '' || strlen($operationKey) < 8 || strlen($operationKey) > 160 || count($requested) === 0) hsJson(['error' => 'بيانات التحصيل أو التوزيع غير صحيحة'], 422);
         $allocations = array_map(static fn(array $item): array => ['contractId' => (int)($item['contractId'] ?? 0), 'amount' => (float)($item['amount'] ?? 0), 'invoiceId' => isset($item['invoiceId']) && $item['invoiceId'] !== null ? (int)$item['invoiceId'] : null], $requested);
-        if (abs(array_sum(array_column($allocations, 'amount')) - $amount) > 0.01 || count(array_unique(array_column($allocations, 'contractId'))) !== count($allocations)) hsJson(['error' => 'يجب أن يساوي مجموع التوزيعات مبلغ التحصيل دون تكرار العقود'], 422);
+        if (abs(array_sum(array_column($allocations, 'amount')) - $amount) > 0.01 || count(array_unique(array_column($allocations, 'contractId'))) !== count($allocations) || array_filter($allocations, static fn(array $item): bool => $item['contractId'] <= 0 || $item['amount'] <= 0) !== []) hsJson(['error' => 'يجب أن يساوي مجموع التوزيعات مبلغ التحصيل دون تكرار العقود'], 422);
         $rows = array_map('hsRecord', hsFindRecords($pdo));
         foreach ($rows as $row) {
             if ($row['kind'] === 'payment' && (string)($row['payload']['operationKey'] ?? '') === $operationKey) {
-                if ((float)($row['payload']['amount'] ?? 0) !== $amount) hsJson(['error' => 'مفتاح العملية مستخدم لحمولة مختلفة'], 409);
-                hsJson(['payment' => $row, 'ledgerEntry' => null, 'idempotent' => true]);
+                if ((float)($row['payload']['amount'] ?? 0) !== $amount || json_encode($row['payload']['allocations'] ?? [], JSON_UNESCAPED_UNICODE) !== json_encode($allocations, JSON_UNESCAPED_UNICODE)) hsJson(['error' => 'مفتاح العملية مستخدم لحمولة مختلفة'], 409);
+                $ledger = null;
+                foreach ($rows as $candidate) if ($candidate['kind'] === 'ledger_entry' && (int)($candidate['payload']['sourceId'] ?? 0) === (int)$row['id']) { $ledger = $candidate; break; }
+                hsJson(['payment' => $row, 'ledgerEntry' => $ledger, 'idempotent' => true]);
             }
         }
         $contractRows = [];
@@ -662,21 +680,41 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
         }
         $first = $contractRows[0]; $now = date('c');
         $paymentPayload = ['operationKey' => $operationKey, 'contractId' => $first['contract']['id'], 'contractNumber' => $first['number'], 'customerRecordId' => $first['contract']['payload']['customerRecordId'] ?? null, 'customerName' => $first['contract']['payload']['customerName'] ?? '', 'amount' => $amount, 'paymentMethod' => $methodName, 'invoiceRecordId' => $allocations[0]['invoiceId'], 'date' => $input['date'] ?? date('Y-m-d'), 'notes' => $input['notes'] ?? '', 'allocations' => array_map(static fn(array $item): array => $item, $allocations)];
-        $pdo->beginTransaction();
+            $customerIds = array_unique(array_filter(array_map(static fn(array $item): string => (string)($item['contract']['payload']['customerRecordId'] ?? ''), $contractRows)));
+            if (count($customerIds) > 1) hsJson(['error' => 'لا يمكن توزيع تحصيل واحد على عقود لعملاء مختلفين'], 422);
+            $deposit = null;
+            if (!empty($input['depositId'])) {
+                foreach ($rows as $row) if ((int)$row['id'] === (int)$input['depositId'] && in_array($row['kind'], ['deposit', 'bank_deposit'], true) && $row['status'] !== 'archived') $deposit = $row;
+                if (!$deposit) hsJson(['error' => 'الإيداع المرتبط غير موجود أو مؤرشف'], 422);
+                if (!empty($deposit['payload']['linkedPaymentId'])) hsJson(['error' => 'الإيداع البنكي مرتبط بسداد سابق؛ أنشئ إيداعاً جديداً'], 422);
+                $depositAmount = (float)($deposit['payload']['amount'] ?? $deposit['payload']['total'] ?? 0);
+                if ($depositAmount > 0 && abs($depositAmount - $amount) > 0.01) hsJson(['error' => 'مبلغ الإيداع لا يطابق مبلغ السداد'], 422);
+            }
+            $pdo->beginTransaction();
         try {
             $insert = $pdo->prepare("INSERT INTO container_system_records (kind,status,reference,payload,created_by,created_at,updated_at) VALUES ('payment','posted',:reference,:payload,:created_by,:created_at,:updated_at)");
             $insert->execute([':reference' => 'PAY-' . time(), ':payload' => json_encode($paymentPayload, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE), ':created_by' => $actorId, ':created_at' => $now, ':updated_at' => $now]);
             $paymentId = (int)$pdo->lastInsertId();
-            $ledger = ['sourceKind' => 'payment', 'sourceId' => $paymentId, 'contractId' => $first['contract']['id'], 'contractNumber' => $first['number'], 'amount' => $amount, 'direction' => 'credit', 'date' => $paymentPayload['date'], 'allocations' => $allocations];
-            $insert->execute([':reference' => 'LED-' . $paymentId, ':payload' => json_encode($ledger, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE), ':created_by' => $actorId, ':created_at' => $now, ':updated_at' => $now]);
+            $ledgerPayload = ['sourceKind' => 'payment', 'sourceId' => $paymentId, 'contractId' => $first['contract']['id'], 'contractNumber' => $first['number'], 'amount' => $amount, 'direction' => 'credit', 'date' => $paymentPayload['date'], 'allocations' => $allocations];
+            $ledgerInsert = $pdo->prepare("INSERT INTO container_system_records (kind,status,reference,payload,created_by,created_at,updated_at) VALUES ('ledger_entry','posted',:reference,:payload,:created_by,:created_at,:updated_at)");
+            $ledgerInsert->execute([':reference' => 'LED-' . $paymentId, ':payload' => json_encode($ledgerPayload, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE), ':created_by' => $actorId, ':created_at' => $now, ':updated_at' => $now]);
+            $ledgerId = (int)$pdo->lastInsertId();
             foreach ($contractRows as $index => $item) {
                 $next = $item['contract']['payload']; $next['paid'] = $item['paid'] + $allocations[$index]['amount']; $next['remaining'] = max($item['total'] - $next['paid'], 0);
                 $pdo->prepare("UPDATE container_system_records SET payload=:payload,status=:status,updated_at=:updated_at WHERE id=:id")->execute([':payload' => json_encode($next, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE), ':status' => $next['remaining'] <= 0.01 && $item['total'] > 0 ? 'settled' : $item['contract']['status'], ':updated_at' => $now, ':id' => $item['contract']['id']]);
             }
+            if ($deposit) {
+                $depositPayload = $deposit['payload'];
+                $depositPayload['linkedContractId'] = $first['contract']['id'];
+                $depositPayload['linkedPaymentId'] = $paymentId;
+                $pdo->prepare("UPDATE container_system_records SET payload=:payload,updated_at=:updated_at WHERE id=:id")->execute([':payload' => json_encode($depositPayload, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE), ':updated_at' => $now, ':id' => $deposit['id']]);
+            }
             $pdo->commit();
             $created = $pdo->prepare("SELECT * FROM container_system_records WHERE id = :id LIMIT 1");
             $created->execute([':id' => $paymentId]);
-            hsJson(['payment' => hsRecord($created->fetch(PDO::FETCH_ASSOC)), 'ledgerEntry' => null, 'idempotent' => false], 201);
+            $ledgerCreated = $pdo->prepare("SELECT * FROM container_system_records WHERE id = :id LIMIT 1");
+            $ledgerCreated->execute([':id' => $ledgerId]);
+            hsJson(['payment' => hsRecord($created->fetch(PDO::FETCH_ASSOC)), 'ledgerEntry' => hsRecord($ledgerCreated->fetch(PDO::FETCH_ASSOC)), 'idempotent' => false], 201);
         } catch (Throwable $error) { if ($pdo->inTransaction()) $pdo->rollBack(); hsJson(['error' => $error->getMessage()], 422); }
     }
     if ($path === '/admin/container-system/records' && $method === 'GET') {

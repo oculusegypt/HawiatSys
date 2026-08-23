@@ -1,13 +1,18 @@
 import { ArrowRight, BriefcaseBusiness, CalendarDays, CheckCircle2, FileDown, FileText, MapPin, Phone, Printer, Truck, UserRound, Wallet, Wrench } from "lucide-react"
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import { useLocation, useParams } from "wouter"
-import { getGetServiceRequestsQueryKey, useGetContainerSystem, useGetServiceRequests } from "@workspace/api-client-react"
+import { getGetContainerSystemQueryKey, getGetServiceRequestsQueryKey, useCreateContainerContractWorkflow, useCreateContainerSystemRecord, useGetContainerSystem, useGetServiceRequests } from "@workspace/api-client-react"
 import type { ContainerSystemRecord } from "@workspace/api-client-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { amountOf, FIELD_CONFIG, formatRecordDate, formatStatus, KIND_LABELS, RecordStatus, RecordKind } from "./ContainerSystemComponents"
+import { amountOf, FIELD_CONFIG, formatRecordDate, formatStatus, KIND_LABELS, RecordDialog, RecordStatus, RecordKind } from "./ContainerSystemComponents"
 import { ContainerStatusImage } from "@/components/admin/ContainerStatusImage"
+import { ContractWizard } from "./ContractWizard"
+import { useToast } from "@/hooks/use-toast"
+
+const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
 
 type ProfileMode = "customer" | "employee" | "container"
 
@@ -38,6 +43,12 @@ function findProfileRecord(records: ContainerSystemRecord[], mode: ProfileMode, 
 
 function CustomerProfile({ record, records }: { record: ContainerSystemRecord; records: ContainerSystemRecord[] }) {
   const [, navigate] = useLocation()
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+  const [action, setAction] = useState<"contract" | "site" | "payment" | null>(null)
+  const [busy, setBusy] = useState(false)
+  const createMutation = useCreateContainerSystemRecord()
+  const contractMutation = useCreateContainerContractWorkflow()
   const p = payloadOf(record)
   const name = text(p.name ?? p.customerName)
   const related = records.filter(item => {
@@ -62,11 +73,158 @@ function CustomerProfile({ record, records }: { record: ContainerSystemRecord; r
     return linked.customerRecordId === record.id || (linked.contractRecordId != null && contractIds.has(linked.contractRecordId))
   })
   const upcomingAppointments = appointments.filter(item => String(payloadOf(item).appointmentDate ?? "") >= new Date().toISOString().slice(0, 10))
+  const refreshProfile = () => {
+    void queryClient.invalidateQueries({ queryKey: getGetContainerSystemQueryKey() })
+  }
+  const submitSite = (payload: Record<string, unknown>, status: string) => {
+    createMutation.mutate({
+      data: {
+        kind: "customer_site",
+        status,
+        payload: {
+          ...payload,
+          customerRecordId: String(record.id),
+          customerName: name,
+        },
+      },
+    }, {
+      onSuccess: () => {
+        refreshProfile()
+        setAction(null)
+        toast({ title: "تمت إضافة الموقع إلى ملف العميل" })
+      },
+      onError: error => toast({ title: error instanceof Error ? error.message : "تعذر إضافة الموقع", variant: "destructive" }),
+    })
+  }
+  const submitContract = (payload: Record<string, unknown>) => {
+    if (busy) return
+    setBusy(true)
+    const { appointmentDate, appointmentTime, appointmentType, ...contractPayload } = payload
+    const contractNumber = String(contractPayload.contractNumber ?? "")
+    contractMutation.mutate({
+      data: {
+        operationKey: crypto.randomUUID(),
+        contract: { ...contractPayload, customerRecordId: String(record.id), customerName: name },
+        assignment: {
+          siteRecordId: contractPayload.siteRecordId,
+          containerRecordId: contractPayload.containerRecordId,
+          contractNumber,
+          assignmentStatus: "reserved",
+          startDate: contractPayload.startDate,
+          endDate: contractPayload.endDate,
+          containerCode: contractPayload.containerCode,
+          customerRecordId: String(record.id),
+          notes: "تم الإنشاء من ملف العميل",
+        },
+        appointment: {
+          contractNumber,
+          customerRecordId: String(record.id),
+          customerName: name,
+          containerRecordId: contractPayload.containerRecordId,
+          containerCode: contractPayload.containerCode,
+          appointmentType,
+          appointmentDate,
+          appointmentTime,
+          scheduledAt: `${String(appointmentDate)}T${String(appointmentTime)}:00`,
+          source: "customer_profile",
+        },
+        serviceRequest: {
+          clientName: name,
+          phone: p.phone,
+          email: p.email,
+          serviceType: appointmentType === "pickup" ? "استرجاع حاوية" : appointmentType === "inspection" ? "فحص وتجهيز حاوية" : "تسليم حاوية",
+          containerSize: contractPayload.containerCode,
+          location: contractPayload.location ?? "يحدد لاحقًا",
+          duration: contractPayload.duration ?? "",
+          notes: contractPayload.notes ?? "",
+          appointmentType: "scheduled",
+          scheduledAt: `${String(appointmentDate)}T${String(appointmentTime)}:00`,
+        },
+      },
+    }, {
+      onSuccess: () => {
+        refreshProfile()
+        setAction(null)
+        setBusy(false)
+        toast({ title: "تم إنشاء العقد وربطه بملف العميل" })
+      },
+      onError: error => {
+        setBusy(false)
+        toast({ title: error instanceof Error ? error.message : "تعذر إنشاء العقد", variant: "destructive" })
+      },
+    })
+  }
+  const submitPayment = (payload: Record<string, unknown>) => {
+    let ids: string[] = []
+    let amounts: Record<string, string> = {}
+    let invoices: Record<string, string> = {}
+    try {
+      ids = JSON.parse(String(payload.contractRecordIds ?? ""))
+      amounts = JSON.parse(String(payload.allocationAmounts ?? "{}"))
+      invoices = JSON.parse(String(payload.allocationInvoices ?? "{}"))
+    } catch {
+      ids = []
+    }
+    const allocations = ids.map(id => ({
+      contractId: Number(id),
+      amount: Number(amounts[id] ?? 0),
+      invoiceId: invoices[id] ? Number(invoices[id]) : null,
+    })).filter(item => item.contractId && item.amount > 0)
+    if (allocations.length === 0) {
+      toast({ title: "اختر عقداً واحداً على الأقل وحدد مبلغ التوزيع", variant: "destructive" })
+      return
+    }
+    const operationKey = crypto.randomUUID()
+    setBusy(true)
+    void fetch(`${API_BASE}/api/admin/container-system/financial/settle`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("admin_token") ?? ""}`,
+        "Idempotency-Key": operationKey,
+      },
+      body: JSON.stringify({
+        ...payload,
+        customerRecordId: String(record.id),
+        customerName: name,
+        amount: Number(payload.amount ?? 0),
+        operationKey,
+        allocations,
+      }),
+    }).then(async response => {
+      const body = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(String(body.error ?? "تعذر تسجيل الدفعة"))
+      refreshProfile()
+      setAction(null)
+      toast({ title: body.idempotent ? "تم تأكيد الدفعة السابقة دون تكرارها" : "تم تسجيل الدفعة وتحديث كشف العميل" })
+    }).catch(error => {
+      toast({ title: error instanceof Error ? error.message : "تعذر تسجيل الدفعة", variant: "destructive" })
+    }).finally(() => setBusy(false))
+  }
   return <div className="space-y-5">
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-cyan-100 bg-cyan-50/60 p-4">
       <div><p className="text-sm font-black text-cyan-950">إجراءات العميل</p><p className="mt-1 text-xs text-cyan-800/70">كل العمليات تبدأ من ملف العميل وتبقى مرتبطة بسجله.</p></div>
-      <div className="flex flex-wrap gap-2"><Button size="sm" onClick={() => navigate(`/admin/container-system?view=contract&customerId=${record.id}`)} className="bg-cyan-800 hover:bg-cyan-900">إنشاء عقد</Button><Button size="sm" variant="outline" onClick={() => navigate(`/admin/container-system?view=customer_site&customerId=${record.id}`)} className="border-cyan-200 text-cyan-800">إضافة موقع</Button><Button size="sm" variant="outline" onClick={() => navigate(`/admin/container-system?view=settlements&customerId=${record.id}`)} className="border-emerald-200 text-emerald-800">تسجيل دفعة</Button></div>
+      <div className="flex flex-wrap gap-2"><Button size="sm" onClick={() => setAction("contract")} className="bg-cyan-800 hover:bg-cyan-900">إنشاء عقد</Button><Button size="sm" variant="outline" onClick={() => setAction("site")} className="border-cyan-200 text-cyan-800">إضافة موقع</Button><Button size="sm" variant="outline" onClick={() => setAction("payment")} className="border-emerald-200 text-emerald-800">تسجيل دفعة</Button></div>
     </div>
+    <ContractWizard
+      open={action === "contract"}
+      records={records}
+      initialCustomerId={record.id}
+      busy={busy}
+      onClose={() => { if (!busy) setAction(null) }}
+      onSubmit={submitContract}
+    />
+    <RecordDialog
+      open={action === "site" || action === "payment"}
+      kind={action === "payment" ? "payment" : "customer_site"}
+      records={records}
+      initialPayload={action === "payment"
+        ? { customerRecordId: String(record.id), customerName: name }
+        : { customerRecordId: String(record.id), customerName: name, city: String(p.city ?? ""), address: String(p.address ?? "") }}
+      busy={busy || createMutation.isPending}
+      onOpenChange={open => { if (!open && !busy) setAction(null) }}
+      onSubmit={action === "payment" ? submitPayment : submitSite}
+    />
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><Stat label="إجمالي العقود" value={contracts.length} /><Stat label="المواقع" value={sites.length} /><Stat label="الحاويات الحالية" value={containers.length} /><Stat label="المواعيد القادمة" value={upcomingAppointments.length} /></div>
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><Stat label="إجمالي المطالبات" value={money(charges)} /><Stat label="المدفوع" value={money(paid)} tone="text-emerald-700" /><Stat label="الرصيد المستحق" value={money(Math.max(charges - paid, 0))} tone="text-rose-700" /><Stat label="أوامر العمل" value={workOrders.length} tone="text-amber-700" /></div>
     <div className="grid gap-5 xl:grid-cols-2"><RelatedRows title="مواقع العميل" records={sites} empty="لم تتم إضافة موقع لهذا العميل بعد" /><RelatedRows title="الحاويات المخصصة" records={containers} empty="لا توجد حاويات مخصصة حاليًا" /></div>
