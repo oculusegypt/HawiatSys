@@ -48,6 +48,7 @@ import type {
   GetContainerContractLedgersParams,
   GetContainerSystemRecordsParams,
   GetDriverWorkOrdersParams,
+  GetFinancialTruthParams,
   GetServiceRequestsParams,
   HealthStatus,
   HeroSlide,
@@ -4681,17 +4682,24 @@ export function useGetContainerContractLedgers<TData = Awaited<ReturnType<typeof
 
 
 
-export const getGetFinancialTruthUrl = () => {
+export const getGetFinancialTruthUrl = (params?: GetFinancialTruthParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/admin/container-system/financial/core`
+  return stringifiedParams.length > 0 ? `/api/admin/container-system/financial/core?${stringifiedParams}` : `/api/admin/container-system/financial/core`
 }
 
-export const getFinancialTruth = async ( options?: RequestInit): Promise<FinancialTruthResponse> => {
+export const getFinancialTruth = async (params?: GetFinancialTruthParams, options?: RequestInit): Promise<FinancialTruthResponse> => {
 
-  return customFetch<FinancialTruthResponse>(getGetFinancialTruthUrl(),
+  return customFetch<FinancialTruthResponse>(getGetFinancialTruthUrl(params),
   {
     ...options,
     method: 'GET'
@@ -4704,23 +4712,23 @@ export const getFinancialTruth = async ( options?: RequestInit): Promise<Financi
 
 
 
-export const getGetFinancialTruthQueryKey = () => {
+export const getGetFinancialTruthQueryKey = (params?: GetFinancialTruthParams,) => {
     return [
-    `/api/admin/container-system/financial/core`
+    `/api/admin/container-system/financial/core`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getGetFinancialTruthQueryOptions = <TData = Awaited<ReturnType<typeof getFinancialTruth>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFinancialTruth>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetFinancialTruthQueryOptions = <TData = Awaited<ReturnType<typeof getFinancialTruth>>, TError = ErrorType<unknown>>(params?: GetFinancialTruthParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFinancialTruth>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetFinancialTruthQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getGetFinancialTruthQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getFinancialTruth>>> = ({ signal }) => getFinancialTruth({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getFinancialTruth>>> = ({ signal }) => getFinancialTruth(params, { signal, ...requestOptions });
 
 
 
@@ -4735,11 +4743,11 @@ export type GetFinancialTruthQueryError = ErrorType<unknown>
 
 
 export function useGetFinancialTruth<TData = Awaited<ReturnType<typeof getFinancialTruth>>, TError = ErrorType<unknown>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFinancialTruth>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: GetFinancialTruthParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFinancialTruth>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetFinancialTruthQueryOptions(options)
+  const queryOptions = getGetFinancialTruthQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

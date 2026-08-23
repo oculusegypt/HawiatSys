@@ -45,6 +45,7 @@ export interface FinancialTruthTotals {
   grossCollections: number;
   netCollections: number;
   returnedCollections: number;
+  deposits: number;
   totalDebit: number;
   totalCredit: number;
   balances: FinancialTruthTotalsBalances;
@@ -1011,5 +1012,10 @@ search?: string;
 export type GetContainerContractLedgersParams = {
 contractId?: number;
 search?: string;
+};
+
+export type GetFinancialTruthParams = {
+from?: string;
+to?: string;
 };
 

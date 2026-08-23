@@ -1,0 +1,853 @@
+# FINAL HANDOFF — استكمال إغلاق Financial Core من الحالة الحالية حتى 10/10
+
+## CONTEXT
+
+أنت تستلم مشروعاً تم فيه تنفيذ معظم الـ Financial Core فعلياً.
+
+**لا تبدأ المشروع من الصفر.**
+
+**لا تعيد تصميم Financial Core.**
+
+**لا تنشئ خطة جديدة.**
+
+**لا تقضي وقتك في إعادة قراءة وتحليل ما تم إنجازه إلا بالقدر اللازم لفهم الحالة الحالية.**
+
+المطلوب هو **استكمال التنفيذ من آخر نقطة توقف عندها الـ Agent السابق** وإغلاق الفجوات المتبقية فقط.
+
+---
+
+# الحالة الحالية المؤكدة
+
+تم بالفعل تنفيذ واختبار:
+
+* Financial Core typed.
+* Financial Accounts.
+* Financial Periods.
+* Financial Transactions.
+* Journal Entries.
+* Journal Lines.
+* Financial Allocations.
+* Bank Reconciliation.
+* Chart of Accounts.
+* Double-entry validation.
+* Idempotency.
+* Refund ledger effect.
+* Reversal ledger effect.
+* Period lock.
+* Receipt double-count prevention.
+* Node/PHP core parity.
+* Financial Truth Contract.
+* Financial Core API.
+* Dashboard financial truth integration.
+* Bank deposit linkage.
+* Bank fee posting.
+* Frontend financial truth integration الأساسي.
+
+والاختبارات السابقة الناجحة تشمل:
+
+```text
+Financial certification assertions: PASS
+Financial core assertions: PASS
+TypeScript workspace typecheck: PASS
+PHP lint: PASS
+Node API: RUNNING
+Frontend: RUNNING
+Preview: WORKING
+```
+
+الحالة السابقة الصادقة كانت:
+
+```text
+Financial Core: PASS
+Double Entry: PASS
+Idempotency: PASS
+Receipt Double Counting: PASS
+Refund Ledger Effect: PASS
+Reversal Ledger Effect: PASS
+Period Lock: PASS
+Node/PHP Core Parity: PASS
+Bank Deposit Linkage: PASS
+Bank Fee Posting: PASS
+Frontend Financial Truth Integration: PASS
+
+Full Hostinger Production Validation: NOT RUN
+All Individual Report Screens Migration: PARTIAL
+
+Final Score: 8/10
+```
+
+---
+
+# آخر نقطة وصل إليها الـ Agent السابق
+
+الـ Agent السابق بدأ فعلياً تدقيق الـ Financial UI واكتشف نقطتين مهمتين:
+
+### 1. FinancialCycleWorkspace
+
+ما زالت هناك مجاميع مالية تُحسب من:
+
+```text
+container_system_records
+```
+
+داخل المتصفح.
+
+### 2. ReportPage / التقارير العامة
+
+ما زالت بعض التقارير تعتمد على السجلات الخام بدلاً من Financial Core.
+
+### 3. Dashboard الرئيسي
+
+تمت مراجعة Dashboard واتضح أنه **تشغيلي وليس التقرير المالي المستهدف**، فلا تقم بتغييره لمجرد أنه موجود.
+
+### 4. آخر اتجاه كان يتم تنفيذه
+
+الـ Agent السابق كان يتجه إلى:
+
+> إرجاع ملخصات التقارير من Financial Core حسب النوع والفترة، ثم جعل صفحات التقارير تعرض النتائج القادمة من API بدلاً من إعادة الحساب داخل المتصفح.
+
+**أكمل هذا الاتجاه. لا تبدأ اتجاهاً جديداً.**
+
+---
+
+# المهمة النهائية
+
+أنت الآن مسؤول عن تحويل:
+
+```text
+8/10
+```
+
+إلى:
+
+```text
+10/10
+```
+
+ولكن **فقط إذا أثبتت الاختبارات ذلك فعلياً**.
+
+المتبقي محصور في:
+
+## GAP 1
+
+إغلاق جميع Financial Report Screens حول Financial Core.
+
+## GAP 2
+
+تنفيذ Hostinger / PHP production-like validation فعلياً أو تسجيلها BLOCKED إذا كانت البيئة غير متاحة.
+
+---
+
+# RULE ZERO — أهم قاعدة
+
+## لا تعيد بناء الـ Financial Core
+
+لا تعدل:
+
+* Schema المالي إلا إذا ظهر Bug حقيقي.
+* Journal architecture.
+* Chart of Accounts.
+* Financial Transaction architecture.
+* Financial Truth Contract.
+
+إلا إذا أثبت الاختبار وجود خلل حقيقي.
+
+**المشكلة الحالية ليست في Core.**
+
+المشكلة:
+
+```text
+Financial Core
+        ↓
+لكن بعض UI / Reports
+        ↓
+ما زالت تقرأ Legacy Records
+```
+
+المطلوب هو إزالة هذا الانفصال.
+
+---
+
+# PHASE 1 — أكمل من الملفات التي كان يفحصها الـ Agent السابق
+
+ابدأ مباشرة من:
+
+```text
+ContainerSystemSpecialPages.tsx
+Dashboard.tsx
+FinancialCycleWorkspace.tsx
+ReportPage
+```
+
+ثم نفّذ Repository-wide search عن:
+
+```text
+container_system_records
+```
+
+و:
+
+```text
+financial
+revenue
+collected
+debt
+expenses
+contractValue
+profit
+balance
+payment
+refund
+deposit
+inventory
+commission
+bank
+cash
+```
+
+ولا تعتمد على البحث عن `reduce()` فقط.
+
+ابحث عن **المصدر المالي نفسه**.
+
+---
+
+# PHASE 2 — Financial Report Inventory
+
+حدد كل شاشة مالية فعلية موجودة في المشروع.
+
+أنشئ داخلياً Matrix مثل:
+
+```text
+Screen
+Route
+Component
+API
+Financial Fields
+Current Source
+Target Source
+Status
+```
+
+مثال:
+
+```text
+FinancialCycleWorkspace
+→ container_system_records
+→ Financial Core
+→ PARTIAL
+```
+
+و:
+
+```text
+Dashboard
+→ operational data
+→ N/A
+```
+
+لا تعدل شاشة ليست Financial Report لمجرد وجود كلمات مالية فيها.
+
+---
+
+# PHASE 3 — ممنوع Frontend Accounting
+
+أي كود في Frontend يفعل:
+
+```text
+raw records
+→ sum/filter/reduce
+→ financial truth
+```
+
+يجب تحويله إلى:
+
+```text
+Frontend
+    ↓
+Financial API
+    ↓
+Financial Truth
+    ↓
+Display
+```
+
+لكن انتبه:
+
+**لا تنقل الحساب من Frontend إلى Endpoint جديد عشوائي لمجرد التخلص من `reduce()`.**
+
+يجب أن يكون المصدر النهائي:
+
+```text
+Financial Core / Ledger
+```
+
+وليس مجرد API يقوم بنفس الحساب القديم.
+
+---
+
+# PHASE 4 — Financial Report API
+
+استخدم الـ Financial Core API الموجود حالياً:
+
+```text
+/api/admin/container-system/financial/core
+```
+
+إذا كان لا يغطي تقريراً محدداً، **وسّعه بطريقة منظمة** أو أضف endpoint مالي واضح.
+
+لا تنشئ:
+
+```text
+/report-snapshot
+```
+
+لمجرد أن الاسم يبدو مناسباً إذا كان ذلك سيخلق Financial Source جديد.
+
+الأفضل:
+
+```text
+Financial Core
+    ↓
+Financial Reporting Query/Service
+    ↓
+Report API
+    ↓
+UI
+```
+
+أي Reporting Service يجب أن يقرأ من Financial Core، وليس من `container_system_records`.
+
+---
+
+# PHASE 5 — FinancialCycleWorkspace
+
+هذه الشاشة حالياً من أهم نقاط الفجوة.
+
+أصلحها بحيث:
+
+```text
+FinancialCycleWorkspace
+        ↓
+Financial API
+        ↓
+Financial Core
+```
+
+ولا تسمح لها بإعادة حساب:
+
+* Revenue.
+* Collected.
+* Expenses.
+* Debt.
+* Profit.
+* Balance.
+
+من Legacy Records.
+
+إذا كانت الشاشة تحتاج تفاصيل تشغيلية غير مالية، يمكنها استخدام مصدرها التشغيلي.
+
+لكن:
+
+> **أي رقم مالي نهائي يجب أن يأتي من Financial Truth.**
+
+---
+
+# PHASE 6 — ReportPage
+
+راجع `ReportPage` بعناية.
+
+إذا كانت تستخدم:
+
+```text
+container_system_records
+```
+
+لإنتاج:
+
+* Total.
+* Revenue.
+* Expenses.
+* Payments.
+* Balance.
+* Profit.
+
+فهذا يجب تغييره.
+
+إذا كانت تعرض بيانات تشغيلية فقط، فلا تقم بتغييرها بلا سبب.
+
+الهدف:
+
+> **لا Legacy Financial Source.**
+
+وليس:
+
+> **لا Legacy Source إطلاقاً.**
+
+---
+
+# PHASE 7 — Cross-Report Consistency
+
+بعد تحويل التقارير، أنشئ Dataset اختبار واحد.
+
+يجب أن يحتوي على:
+
+```text
+Customer
+Contract
+Invoice
+Invoice Lines
+Payment
+Allocation
+Receipt
+Deposit
+Expense
+Purchase
+Inventory
+Commission
+Bank Fee
+Other Revenue
+Transfer
+Refund
+Reversal
+```
+
+ثم استخرج النتائج من Financial Core.
+
+استخدم هذه النتائج كـ Golden Financial Truth.
+
+بعد ذلك اختبر كل شاشة مالية.
+
+مثلاً:
+
+```text
+Revenue:
+Core = X
+Report A = X
+Report B = X
+Dashboard financial section = X
+Statement = X
+```
+
+أي اختلاف:
+
+```text
+FAIL
+```
+
+---
+
+# PHASE 8 — لا تعتمد على Screenshot فقط
+
+الـ Screenshot يثبت أن الواجهة تظهر.
+
+لا يثبت صحة الحسابات.
+
+لذلك:
+
+```text
+UI Screenshot = Visual Evidence
+API Assertion = Financial Evidence
+Database Assertion = Accounting Evidence
+```
+
+يجب استخدام الثلاثة عندما يكون ذلك ممكناً.
+
+---
+
+# PHASE 9 — Hostinger Validation
+
+بعد إنهاء Report Migration، انتقل مباشرة إلى Hostinger.
+
+**لا تعتبر Build نجاحاً في Hostinger.**
+
+المطلوب تشغيل دورة مالية فعلية ببيانات اختبار آمنة ومجهّلة.
+
+الدورة:
+
+```text
+Customer
+→ Contract
+→ Invoice
+→ Invoice Lines
+→ Payment
+→ Allocation
+→ Receipt
+→ Deposit
+→ Bank Reconciliation
+→ Expense
+→ Purchase
+→ Inventory
+→ Commission
+→ Bank Fee
+→ Other Revenue
+→ Transfer
+→ Refund
+→ Reversal
+```
+
+---
+
+# PHASE 10 — Node vs PHP vs Hostinger
+
+استخدم نفس السيناريو والقيم.
+
+قارن:
+
+```text
+Node
+PHP
+Hostinger
+```
+
+في:
+
+* Revenue.
+* Collected.
+* Receivables.
+* Expenses.
+* Purchases.
+* Inventory.
+* Commissions.
+* Bank Fees.
+* Refunds.
+* Transfers.
+* Cash.
+* Bank.
+* Net Profit.
+* Debit.
+* Credit.
+
+يجب أن تكون النتائج:
+
+```text
+Node = PHP = Hostinger
+```
+
+---
+
+# PHASE 11 — إذا لم تكن Hostinger متاحة
+
+لا تخترع نتيجة.
+
+إذا كانت البيئة لا تسمح بتشغيل Hostinger فعلياً، قل صراحة:
+
+```text
+Hostinger Production Validation: BLOCKED
+```
+
+مع:
+
+```text
+Reason
+What was attempted
+What is required
+```
+
+ولا تقل:
+
+```text
+PASS
+```
+
+ولا ترفع النتيجة إلى 10/10.
+
+لكن قبل إعلان BLOCKED:
+
+**ابحث داخل المشروع عن أدوات deployment/build/Hostinger الموجودة فعلياً واستفد منها.**
+
+لا تفترض أن البيئة غير متاحة قبل التحقق.
+
+---
+
+# PHASE 12 — اختبارات Final Certification
+
+بعد التنفيذ يجب أن تنجح:
+
+```text
+Financial Core assertions
+Financial certification assertions
+TypeScript workspace typecheck
+PHP lint
+Operational validation
+Build
+Financial report consistency
+Report source audit
+Node/PHP parity
+Hostinger E2E
+Ledger reconciliation
+```
+
+حسب ما هو متاح في البيئة.
+
+---
+
+# PHASE 13 — Legacy Source Audit
+
+نفّذ Search نهائي:
+
+```text
+container_system_records
+```
+
+ثم صنف كل استخدام.
+
+المسموح:
+
+```text
+Historical
+Operational non-financial
+Migration
+Compatibility
+```
+
+غير المسموح:
+
+```text
+Financial Truth
+Financial Totals
+Revenue Calculation
+Expense Calculation
+Balance Calculation
+Profit Calculation
+Financial Dashboard Metrics
+```
+
+إذا وجدت Financial use:
+
+**أصلحه.**
+
+---
+
+# PHASE 14 — لا تقتل Legacy بعنف
+
+لا تحذف `container_system_records`.
+
+لا تنفذ Migration خطرة.
+
+لا تحذف بيانات قديمة.
+
+المطلوب:
+
+```text
+Legacy
+   ↓
+Historical / Operational
+```
+
+و:
+
+```text
+Financial Core
+   ↓
+Financial Truth
+```
+
+---
+
+# PHASE 15 — Regression
+
+بعد كل إصلاح:
+
+```text
+typecheck
+build
+operational validation
+```
+
+ثم الاختبارات المالية.
+
+لا تترك المشروع في حالة:
+
+> "الكود تم تعديله لكن لم يتم تشغيله."
+
+---
+
+# PHASE 16 — لا توسع نطاق المهمة
+
+لا تبدأ الآن في:
+
+* UI redesign.
+* Design system.
+* Features جديدة.
+* Refactoring شامل.
+* إعادة تسمية الملفات.
+* إعادة بناء الـ API بالكامل.
+* إعادة بناء قاعدة البيانات.
+* Documentation expansion.
+
+إلا إذا كان ذلك ضرورياً مباشرة لإغلاق إحدى الفجوتين.
+
+**نحن في Final Verification، وليس Development Phase.**
+
+---
+
+# PHASE 17 — Definition of 10/10
+
+لا تعلن 10/10 إلا إذا:
+
+```text
+Financial Core                         PASS
+Double Entry                          PASS
+Idempotency                           PASS
+Double Counting                       PASS
+Refunds                               PASS
+Reversals                             PASS
+Period Lock                           PASS
+Bank Reconciliation                   PASS
+Node/PHP Parity                       PASS
+Frontend Financial Truth              PASS
+All Financial Reports                 PASS
+Cross-Report Consistency              PASS
+Legacy Financial Reads                0
+Hostinger E2E                         PASS
+Hostinger Reconciliation              PASS
+```
+
+إذا بقي:
+
+```text
+All Individual Report Screens Migration: PARTIAL
+```
+
+فالنتيجة **ليست 10/10**.
+
+إذا بقي:
+
+```text
+Hostinger Production Validation: NOT RUN
+```
+
+فالنتيجة **ليست 10/10**.
+
+---
+
+# FINAL CERTIFICATION FORMAT
+
+عند انتهاء العمل، لا ترسل تقريراً إنشائياً.
+
+أرسل:
+
+```text
+FINAL FINANCIAL CERTIFICATION
+
+Financial Core: PASS
+Double Entry: PASS
+Idempotency: PASS
+Receipt Double Counting: PASS
+Refund Ledger Effect: PASS
+Reversal Ledger Effect: PASS
+Period Lock: PASS
+Bank Reconciliation: PASS
+Node/PHP Core Parity: PASS
+Frontend Financial Truth: PASS
+
+Financial Report Screens:
+PASS: X
+PARTIAL: X
+FAIL: X
+
+Legacy Financial Sources:
+0
+
+Cross-Report Consistency: PASS/FAIL
+
+Hostinger E2E: PASS/BLOCKED/FAIL
+Hostinger Ledger Reconciliation: PASS/BLOCKED/FAIL
+
+TypeScript: PASS/FAIL
+PHP: PASS/FAIL
+Build: PASS/FAIL
+Operational Validation: PASS/FAIL
+
+Final Score: X/10
+```
+
+ثم اذكر فقط:
+
+```text
+Files Changed
+Tests Executed
+Evidence
+Remaining Gaps
+```
+
+---
+
+# IMPORTANT — أنت تستلم من Agent توقف بسبب انتهاء الـ Quota
+
+الـ Agent السابق **لم يفشل**.
+
+لقد وصل إلى نقطة واضحة جداً:
+
+```text
+FinancialCycleWorkspace
+ReportPage
+↓
+Legacy financial calculations
+↓
+Needs migration to Financial Core
+```
+
+ثم توقف بسبب انتهاء الـ quota.
+
+لذلك:
+
+> **لا تعتبر العمل غير منفذ. افحص الـ git diff والحالة الحالية أولاً، وحافظ على كل التعديلات الصحيحة التي تركها الـ Agent السابق.**
+
+لا تعمل Reset.
+
+لا تعمل Revert.
+
+لا تعيد الملفات إلى حالتها القديمة.
+
+استكمل من الحالة الحالية.
+
+---
+
+# التنفيذ الآن
+
+ابدأ بهذا الترتيب فقط:
+
+```text
+1. Inspect current git diff
+2. Inspect FinancialCycleWorkspace changes
+3. Inspect ReportPage changes
+4. Repository-wide financial source audit
+5. Complete Financial Core report integration
+6. Run tests
+7. Run cross-report consistency
+8. Run Hostinger/PHP validation
+9. Run final regression
+10. Issue final certification
+```
+
+**لا تتوقف بعد خطوة 1 أو 2 لإرسال تقرير.**
+
+استمر في التنفيذ حتى تصل إلى:
+
+```text
+10/10
+```
+
+أو إلى **حاجز حقيقي لا يمكنك تجاوزه**.
+
+وفي حالة الحاجز، لا تكتب خطة مستقبلية؛ اذكر:
+
+```text
+BLOCKER
+Cause
+Evidence
+Exact requirement to unblock
+```
+
+## الهدف النهائي
+
+ليس:
+
+> "Financial Core موجود."
+
+بل:
+
+> **كل النظام المالي الآن يستخدم Financial Core فعلياً، كل التقارير تعطي نفس الحقيقة، Node وPHP وHostinger متطابقون، والدورة المالية الكاملة تم إثباتها End-to-End.**
+
+**أكمل من الحالة الحالية ولا تعيد العمل الذي تم إنجازه.**

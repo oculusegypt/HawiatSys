@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { ArrowLeft, ArrowRight, CalendarClock, ChevronLeft, ChevronRight, ClipboardList, Coins, FileDown, FileText, MapPin, Printer, Save, Search, Settings2, Truck, UserRound, AlertTriangle, ArrowDownRight, ArrowUpRight, Banknote, CheckCircle2, CircleDollarSign, FileCheck2, ReceiptText, Sparkles, WalletCards, RotateCcw, SlidersHorizontal, ArrowUpDown } from "lucide-react"
-import { getGetAdminWorkOrdersQueryKey, getGetContainerContractLedgersQueryKey, useAssignServiceRequest, useGetAdminWorkOrders, useGetContainerContractLedgers, useSettleContainerContract, type ContainerSystemRecord, type ServiceRequest } from "@workspace/api-client-react"
+import { getGetAdminWorkOrdersQueryKey, getGetContainerContractLedgersQueryKey, getGetFinancialTruthQueryKey, useAssignServiceRequest, useGetAdminWorkOrders, useGetContainerContractLedgers, useGetFinancialTruth, useSettleContainerContract, type ContainerSystemRecord, type ServiceRequest } from "@workspace/api-client-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -55,12 +55,10 @@ function postedCollections(records: ContainerSystemRecord[]) {
 
 export function FinancialControlCenter({
   records,
-  truth,
   onNavigate,
   onAdd,
 }: {
   records: ContainerSystemRecord[]
-  truth?: { totals?: { revenue?: number; netCollections?: number; receivables?: number; expenses?: number; netProfit?: number } } | null
   onNavigate: (view: "invoice" | "payment" | "receipt" | "expense" | "settlements" | "reports") => void
   onAdd: (kind: RecordKind) => void
 }) {
@@ -72,6 +70,19 @@ export function FinancialControlCenter({
     date.setMonth(date.getMonth() - 1)
     return localMonthKey(date)
   })()
+  const truthParams = period === "all"
+    ? undefined
+    : {
+        from: `${period === "current" ? periodKey : previousPeriodKey}-01`,
+        to: `${period === "current" ? periodKey : previousPeriodKey}-31`,
+      }
+  const financialTruthQuery = useGetFinancialTruth(truthParams, {
+    query: {
+      staleTime: 15_000,
+      queryKey: getGetFinancialTruthQueryKey(truthParams),
+    },
+  })
+  const truth = financialTruthQuery.data
   const inPeriod = (record: ContainerSystemRecord) => {
     if (period === "all") return true
     const payload = financialPayload(record)
@@ -88,12 +99,12 @@ export function FinancialControlCenter({
     record.kind === "contract" &&
     ["active", "issued", "scheduled", "delivered", "due", "overdue", "delinquent", "pending", "settled"].includes(record.status),
   )
-  const invoiceTotal = invoices.reduce((sum, record) => sum + financialAmount(record), 0)
-  const collected = payments.reduce((sum, record) => sum + financialAmount(record), 0)
+  let invoiceTotal = invoices.reduce((sum, record) => sum + financialAmount(record), 0)
+  let collected = payments.reduce((sum, record) => sum + financialAmount(record), 0)
   const expenseTotal = expenses.reduce((sum, record) => sum + financialAmount(record), 0)
-  const returnTotal = returns.reduce((sum, record) => sum + financialAmount(record), 0)
-  const depositTotal = deposits.reduce((sum, record) => sum + financialAmount(record), 0)
-  const reconciliationDifference = depositTotal - collected
+  let returnTotal = returns.reduce((sum, record) => sum + financialAmount(record), 0)
+  let depositTotal = deposits.reduce((sum, record) => sum + financialAmount(record), 0)
+  let reconciliationDifference = depositTotal - collected
   const paidForContract = (contract: ContainerSystemRecord) => {
     const p = financialPayload(contract)
     const number = String(p.contractNumber ?? contract.reference)
@@ -147,11 +158,20 @@ export function FinancialControlCenter({
    const paymentReturns = returns.filter(record => record.kind === "payment_return").reduce((sum, record) => sum + financialAmount(record), 0)
    const netCash = collected - expenseTotal - paymentReturns
    const ledger = truth?.totals
-   const reportedRevenue = Number(ledger?.revenue ?? invoiceTotal)
-   const reportedCollected = Number(ledger?.netCollections ?? collected)
-   const reportedReceivables = Number(ledger?.receivables ?? receivables)
-   const reportedExpenses = Number(ledger?.expenses ?? expenseTotal)
-   const reportedNetProfit = Number(ledger?.netProfit ?? (reportedRevenue - reportedExpenses))
+  const reportedRevenue = Number(ledger?.revenue ?? 0)
+  const reportedCollected = Number(ledger?.netCollections ?? 0)
+  const reportedReceivables = Number(ledger?.receivables ?? 0)
+  const reportedExpenses = Number(ledger?.expenses ?? 0)
+  const reportedNetProfit = Number(ledger?.netProfit ?? 0)
+   const reportedRefunds = Number(ledger?.refunds ?? 0)
+   const reportedDeposits = Number(ledger?.deposits ?? 0)
+   const reportedGrossRevenue = Number(ledger?.grossRevenue ?? 0)
+   const reportedReconciliationDifference = reportedDeposits - reportedCollected
+   invoiceTotal = reportedGrossRevenue
+   collected = reportedCollected
+   returnTotal = reportedRefunds
+   depositTotal = reportedDeposits
+   reconciliationDifference = reportedReconciliationDifference
   const recent = [...scoped].filter(record => ["invoice", "payment", "receipt", "expense", "invoice_return", "payment_return"].includes(record.kind)).sort((left, right) => String(right.updatedAt).localeCompare(String(left.updatedAt))).slice(0, 7)
   const unmatched = payments.filter(record => {
     const payload = financialPayload(record)
@@ -443,6 +463,10 @@ export function ReportPage({ reportId, records, onBack }: { reportId: ReportId; 
   const [fieldValue, setFieldValue] = useState("")
   const [sortColumn, setSortColumn] = useState("")
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
+  const financialTruthQuery = useGetFinancialTruth(
+    { from: from || undefined, to: to || undefined },
+    { query: { staleTime: 15_000, queryKey: getGetFinancialTruthQueryKey({ from: from || undefined, to: to || undefined }) } },
+  )
   const filterFields = useMemo(() => report.filters.filter(filter => REPORT_FILTER_FIELDS[filter]), [report.filters])
   const fieldOptions = useMemo(() => {
     if (!fieldFilter) return []
@@ -464,13 +488,30 @@ export function ReportPage({ reportId, records, onBack }: { reportId: ReportId; 
       (!query || haystack.includes(query.toLowerCase())) &&
       (!fieldValue || selectedFieldValue === fieldValue)
   }), [fieldFilter, fieldValue, from, query, records, report.kinds, to])
-  const total = filtered.reduce((sum, record) => sum + (
+  const operationalTotal = filtered.reduce((sum, record) => sum + (
     record.kind === "invoice" || record.kind === "contract"
       ? Number((record.payload as Record<string, unknown>).total ?? 0)
       : record.kind === "contract_line"
         ? Number((record.payload as Record<string, unknown>).lineTotal ?? 0)
         : Number((record.payload as Record<string, unknown>).amount ?? (record.payload as Record<string, unknown>).value ?? 0)
   ), 0)
+  const financialTotals = financialTruthQuery.data?.totals
+  const financialTotal = FINANCIAL_REPORT_KINDS.has(report.kinds[0])
+    ? reportId === "receipt" || reportId === "contract_payments" || reportId === "daily_totals" || reportId === "customer_ledger"
+      ? financialTotals?.netCollections ?? 0
+      : reportId === "expense_voucher" || reportId === "general_expenses" || reportId === "truck_expenses"
+        ? financialTotals?.expenses ?? 0
+        : reportId === "customer_debt" || reportId === "deferred_rentals"
+          ? financialTotals?.receivables ?? 0
+          : reportId === "inventory" || reportId === "item_purchases" || reportId === "general_purchases" || reportId === "purchase_returns"
+            ? financialTotals?.purchases ?? 0
+            : reportId === "commissions"
+              ? financialTotals?.commissions ?? 0
+              : reportId === "payment_returns"
+                ? financialTotals?.refunds ?? 0
+                : financialTotals?.revenue ?? 0
+    : null
+  const total = financialTotal ?? operationalTotal
     const sortedFiltered = useMemo(() => {
       if (!sortColumn) return filtered
       return [...filtered].sort((left, right) => {

@@ -40,6 +40,7 @@ export type FinancialTruthContract = {
   grossCollections: number;
   netCollections: number;
   returnedCollections: number;
+  deposits: number;
   cashAndBank: number;
   totalDebit: number;
   totalCredit: number;
@@ -137,7 +138,10 @@ export function reverseInFinancialCore(source: FinancialSource, reason: string, 
   })();
 }
 
-export function financialTruth() {
+export function financialTruth(filters: { from?: string; to?: string } = {}) {
+  const from = filters.from && /^\d{4}-\d{2}-\d{2}$/.test(filters.from) ? filters.from : null;
+  const to = filters.to && /^\d{4}-\d{2}-\d{2}$/.test(filters.to) ? filters.to : null;
+  const dateClause = " AND (? IS NULL OR ft.transaction_date >= ?) AND (? IS NULL OR ft.transaction_date <= ?)";
   const totals = sqlite.prepare(`
     SELECT
       COALESCE(SUM(CASE WHEN jl.account_code IN ('CASH-001','BANK-001') THEN jl.debit - jl.credit ELSE 0 END), 0) AS cashAndBank,
@@ -153,18 +157,31 @@ export function financialTruth() {
       COALESCE(SUM(CASE WHEN jl.account_code = 'AP-001' THEN jl.credit - jl.debit ELSE 0 END), 0) AS payables,
       COALESCE(SUM(jl.debit), 0) AS totalDebit,
       COALESCE(SUM(jl.credit), 0) AS totalCredit
-    FROM financial_journal_entries je
+     FROM financial_journal_entries je
+     JOIN financial_transactions ft ON ft.id = je.transaction_id
     JOIN financial_journal_lines jl ON jl.journal_entry_id = je.id
-    WHERE je.status = 'posted'
-  `).get();
+     WHERE je.status = 'posted' AND ft.status = 'posted'${dateClause}
+  `).get(from, from, to, to);
   const collectionTotals = sqlite.prepare(`
     SELECT
       COALESCE(SUM(CASE WHEN transaction_type IN ('payment','receipt') THEN amount ELSE 0 END), 0) AS grossCollections,
       COALESCE(SUM(CASE WHEN transaction_type = 'payment_return' THEN amount ELSE 0 END), 0) AS returnedCollections
     FROM financial_transactions
+     WHERE status = 'posted' AND (? IS NULL OR transaction_date >= ?) AND (? IS NULL OR transaction_date <= ?)
+  `).get(from, from, to, to) as { grossCollections: number; returnedCollections: number };
+  const depositTotals = sqlite.prepare(`
+    SELECT COALESCE(SUM(amount), 0) AS deposits
+    FROM financial_transactions
+    WHERE status = 'posted' AND transaction_type IN ('deposit', 'bank_deposit')
+      AND (? IS NULL OR transaction_date >= ?) AND (? IS NULL OR transaction_date <= ?)
+  `).get(from, from, to, to) as { deposits: number };
+  const counts = sqlite.prepare(`
+    SELECT transaction_type AS kind, COUNT(*) AS count
+    FROM financial_transactions
     WHERE status = 'posted'
-  `).get() as { grossCollections: number; returnedCollections: number };
-  const counts = sqlite.prepare("SELECT transaction_type AS kind, COUNT(*) AS count FROM financial_transactions WHERE status = 'posted' GROUP BY transaction_type ORDER BY transaction_type").all();
+      AND (? IS NULL OR transaction_date >= ?) AND (? IS NULL OR transaction_date <= ?)
+    GROUP BY transaction_type ORDER BY transaction_type
+  `).all(from, from, to, to);
   const rawTotals = totals as {
     cashAndBank: number; cashBalance: number; bankBalance: number; grossRevenue: number; refunds: number; expenses: number;
     inventory: number; commissions: number; bankFees: number;
@@ -188,6 +205,7 @@ export function financialTruth() {
     netCollections: Number((Number(collectionTotals.grossCollections) - Number(collectionTotals.returnedCollections)).toFixed(2)),
     grossCollections: Number(collectionTotals.grossCollections),
     returnedCollections: Number(collectionTotals.returnedCollections),
+    deposits: Number(depositTotals.deposits),
   } as FinancialTruthContract;
   return { totals: normalizedTotals, counts };
 }

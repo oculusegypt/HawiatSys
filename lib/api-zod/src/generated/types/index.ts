@@ -57,6 +57,7 @@ export * from './financialTruthTotalsBalances';
 export * from './getContainerContractLedgersParams';
 export * from './getContainerSystemRecordsParams';
 export * from './getDriverWorkOrdersParams';
+export * from './getFinancialTruthParams';
 export * from './getServiceRequestsParams';
 export * from './getServiceRequestsStatus';
 export * from './healthStatus';

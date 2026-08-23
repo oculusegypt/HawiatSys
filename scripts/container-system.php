@@ -191,9 +191,11 @@ function hsReverseFinancialCore(PDO $pdo, string $kind, int $sourceId, float $am
     }
 }
 
-function hsFinancialTruth(PDO $pdo): array {
+function hsFinancialTruth(PDO $pdo, ?string $from = null, ?string $to = null): array {
     hsFinancialTables($pdo);
-    $row = $pdo->query("SELECT
+    $from = $from && preg_match('/^\d{4}-\d{2}-\d{2}$/', $from) ? $from : null;
+    $to = $to && preg_match('/^\d{4}-\d{2}-\d{2}$/', $to) ? $to : null;
+    $rowStmt = $pdo->prepare("SELECT
         COALESCE(SUM(CASE WHEN jl.account_code IN ('CASH-001','BANK-001') THEN jl.debit-jl.credit ELSE 0 END),0) cashAndBank,
         COALESCE(SUM(CASE WHEN jl.account_code='CASH-001' THEN jl.debit-jl.credit ELSE 0 END),0) cashBalance,
         COALESCE(SUM(CASE WHEN jl.account_code='BANK-001' THEN jl.debit-jl.credit ELSE 0 END),0) bankBalance,
@@ -206,12 +208,30 @@ function hsFinancialTruth(PDO $pdo): array {
         COALESCE(SUM(CASE WHEN jl.account_code='AR-001' THEN jl.debit-jl.credit ELSE 0 END),0) receivables,
         COALESCE(SUM(CASE WHEN jl.account_code='AP-001' THEN jl.credit-jl.debit ELSE 0 END),0) payables,
         COALESCE(SUM(jl.debit),0) totalDebit, COALESCE(SUM(jl.credit),0) totalCredit
-        FROM financial_journal_entries je JOIN financial_journal_lines jl ON jl.journal_entry_id=je.id
-        WHERE je.status='posted'")->fetch(PDO::FETCH_ASSOC) ?: [];
-    $collections = $pdo->query("SELECT
+        FROM financial_journal_entries je
+        JOIN financial_transactions ft ON ft.id=je.transaction_id
+        JOIN financial_journal_lines jl ON jl.journal_entry_id=je.id
+        WHERE je.status='posted' AND ft.status='posted'
+          AND (:from IS NULL OR ft.transaction_date >= :from)
+          AND (:to IS NULL OR ft.transaction_date <= :to)");
+    $rowStmt->execute([':from' => $from, ':to' => $to]);
+    $row = $rowStmt->fetch(PDO::FETCH_ASSOC) ?: [];
+    $collectionStmt = $pdo->prepare("SELECT
         COALESCE(SUM(CASE WHEN transaction_type IN ('payment','receipt') THEN amount ELSE 0 END),0) grossCollections,
         COALESCE(SUM(CASE WHEN transaction_type='payment_return' THEN amount ELSE 0 END),0) returnedCollections
-        FROM financial_transactions WHERE status='posted'")->fetch(PDO::FETCH_ASSOC) ?: [];
+        FROM financial_transactions
+        WHERE status='posted'
+          AND (:from IS NULL OR transaction_date >= :from)
+          AND (:to IS NULL OR transaction_date <= :to)");
+    $collectionStmt->execute([':from' => $from, ':to' => $to]);
+    $collections = $collectionStmt->fetch(PDO::FETCH_ASSOC) ?: [];
+    $depositStmt = $pdo->prepare("SELECT COALESCE(SUM(amount),0) deposits
+        FROM financial_transactions
+        WHERE status='posted' AND transaction_type IN ('deposit','bank_deposit')
+          AND (:from IS NULL OR transaction_date >= :from)
+          AND (:to IS NULL OR transaction_date <= :to)");
+    $depositStmt->execute([':from' => $from, ':to' => $to]);
+    $row['deposits'] = (float)($depositStmt->fetchColumn() ?: 0);
     $row['revenue'] = round((float)($row['grossRevenue'] ?? 0) - (float)($row['refunds'] ?? 0), 2);
     $row['netCollections'] = round((float)($collections['grossCollections'] ?? 0) - (float)($collections['returnedCollections'] ?? 0), 2);
     $row['grossCollections'] = (float)($collections['grossCollections'] ?? 0);
@@ -227,7 +247,13 @@ function hsFinancialTruth(PDO $pdo): array {
         'bank' => (float)($row['bankBalance'] ?? 0),
         'inventory' => (float)($row['inventory'] ?? 0),
     ];
-    $counts = $pdo->query("SELECT transaction_type kind, COUNT(*) count FROM financial_transactions WHERE status='posted' GROUP BY transaction_type ORDER BY transaction_type")->fetchAll(PDO::FETCH_ASSOC);
+    $countStmt = $pdo->prepare("SELECT transaction_type kind, COUNT(*) count
+        FROM financial_transactions WHERE status='posted'
+          AND (:from IS NULL OR transaction_date >= :from)
+          AND (:to IS NULL OR transaction_date <= :to)
+        GROUP BY transaction_type ORDER BY transaction_type");
+    $countStmt->execute([':from' => $from, ':to' => $to]);
+    $counts = $countStmt->fetchAll(PDO::FETCH_ASSOC);
     return ['totals' => $row, 'counts' => $counts];
 }
 
@@ -784,7 +810,12 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
     }
     if ($path === '/admin/container-system/financial/core' && $method === 'GET') {
         if (!hsCanManage($admin, 'financial_reports')) hsJson(['error' => 'ليس لديك صلاحية للوصول إلى التقارير المالية'], 403);
-        hsJson(hsFinancialTruth($pdo));
+        $from = isset($_GET['from']) && is_string($_GET['from']) ? $_GET['from'] : null;
+        $to = isset($_GET['to']) && is_string($_GET['to']) ? $_GET['to'] : null;
+        if (($from && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $from)) || ($to && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $to))) {
+            hsJson(['error' => 'نطاق التاريخ المالي غير صالح'], 422);
+        }
+        hsJson(hsFinancialTruth($pdo, $from, $to));
     }
     if ($path === '/admin/container-system/contracts/workflow' && $method === 'POST') {
         if (!hsCanManage($admin, 'contract')) hsJson(['error' => 'ليس لديك صلاحية لهذه العملية'], 403);

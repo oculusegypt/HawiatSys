@@ -1185,6 +1185,15 @@ paths:
       tags: [admin]
       security:
         - bearerAuth: []
+      parameters:
+        - name: from
+          in: query
+          required: false
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          required: false
+          schema: { type: string, format: date }
       responses:
         "200":
           description: Single source of truth for posted financial results
@@ -1249,7 +1258,7 @@ components:
 
     FinancialTruthTotals:
       type: object
-      required: [revenue, collected, receivables, expenses, purchases, inventory, commissions, bankFees, refunds, transfers, cashBalance, bankBalance, netProfit, balances, grossRevenue, grossCollections, netCollections, returnedCollections, totalDebit, totalCredit]
+      required: [revenue, collected, receivables, expenses, purchases, inventory, commissions, bankFees, refunds, transfers, cashBalance, bankBalance, netProfit, balances, grossRevenue, grossCollections, netCollections, returnedCollections, deposits, totalDebit, totalCredit]
       properties:
         revenue: { type: number }
         collected: { type: number }
@@ -1268,6 +1277,7 @@ components:
         grossCollections: { type: number }
         netCollections: { type: number }
         returnedCollections: { type: number }
+        deposits: { type: number }
         totalDebit: { type: number }
         totalCredit: { type: number }
         balances:

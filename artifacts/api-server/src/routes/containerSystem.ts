@@ -1751,8 +1751,13 @@ router.patch("/admin/container-system/records/:id", async (req, res) => {
   return res.json(formatRecord(updated));
 });
 
-router.get("/admin/container-system/financial/core", requireContainerPermission("financial_reports"), async (_req, res) => {
-  return res.json(financialTruth());
+router.get("/admin/container-system/financial/core", requireContainerPermission("financial_reports"), async (req, res) => {
+  const from = typeof req.query.from === "string" ? req.query.from : undefined;
+  const to = typeof req.query.to === "string" ? req.query.to : undefined;
+  if ((from && !/^\d{4}-\d{2}-\d{2}$/.test(from)) || (to && !/^\d{4}-\d{2}-\d{2}$/.test(to))) {
+    return res.status(422).json({ error: "نطاق التاريخ المالي غير صالح" });
+  }
+  return res.json(financialTruth({ from, to }));
 });
 
 router.get("/admin/container-system/financial/reconciliation", requireContainerPermission("financial_reports"), async (_req, res) => {

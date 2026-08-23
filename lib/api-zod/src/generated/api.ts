@@ -1804,6 +1804,11 @@ export const GetContainerContractLedgersResponse = zod.object({
 })
 
 
+export const GetFinancialTruthQueryParams = zod.object({
+  "from": zod.date().optional(),
+  "to": zod.date().optional()
+})
+
 export const GetFinancialTruthResponse = zod.object({
   "totals": zod.object({
   "revenue": zod.number(),
@@ -1823,6 +1828,7 @@ export const GetFinancialTruthResponse = zod.object({
   "grossCollections": zod.number(),
   "netCollections": zod.number(),
   "returnedCollections": zod.number(),
+  "deposits": zod.number(),
   "totalDebit": zod.number(),
   "totalCredit": zod.number(),
   "balances": zod.object({

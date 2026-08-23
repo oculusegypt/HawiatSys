@@ -1,0 +1,545 @@
+# أمر الاعتماد النهائي — من 8/10 إلى 10/10
+
+تم قبول النتيجة الحالية **8/10** باعتبارها نتيجة صادقة ومبنية على اختبارات فعلية.
+
+الـ Financial Core الآن موجود، موحد، ومختبر.
+
+**لا أريد أي إعادة تصميم أو توسعة جديدة للـ Financial Core في هذه المرحلة.**
+
+المتبقي هو فقط إغلاق فجوتين:
+
+1. **Full Report Screen Verification**
+2. **Real Hostinger Production Validation**
+
+وبعدهما فقط يتم إصدار الشهادة النهائية.
+
+---
+
+# P0 — FINAL VERIFICATION ONLY
+
+من هذه اللحظة:
+
+> **ممنوع إضافة Features مالية جديدة إلا إذا كانت ضرورية مباشرة لإغلاق أحد الاختبارين المتبقيين.**
+
+> **ممنوع زيادة التوثيق أو إنشاء Roadmap جديدة بدلاً من التنفيذ.**
+
+> **ممنوع تغيير الدرجة إلا بناءً على Evidence فعلي.**
+
+---
+
+# 1. Full Report Screen Migration Audit
+
+أنشئ قائمة كاملة بكل شاشة أو صفحة أو Dashboard أو Report تعرض أي معلومة مالية.
+
+ابحث Repository-wide عن جميع:
+
+* Financial pages.
+* Reports.
+* Dashboards.
+* Statements.
+* Tables.
+* Cards.
+* Charts.
+* KPIs.
+* Exports.
+* API endpoints التي تغذيها.
+
+يجب تصنيف كل شاشة:
+
+```text
+PASS
+PARTIAL
+FAIL
+N/A
+```
+
+---
+
+# 2. معيار PASS للشاشة
+
+لا تعتبر الشاشة PASS لمجرد أن البيانات تظهر.
+
+الشاشة تكون:
+
+> **PASS**
+
+فقط إذا كان كل رقم مالي فيها يأتي من Financial Truth / Financial Core.
+
+مثلاً:
+
+```text
+Revenue
+Collected
+Debt
+Expenses
+Profit
+Cash
+Bank
+Inventory
+Commissions
+Refunds
+```
+
+يجب ألا تعيد الشاشة حساب أي منها من:
+
+```text
+container_system_records
+```
+
+أو من بيانات خام بطريقة مستقلة.
+
+---
+
+# 3. Frontend Audit
+
+راجع جميع المكونات المالية.
+
+ابحث تحديداً عن:
+
+```text
+reduce()
+filter()
+sum()
+aggregate()
+```
+
+وأي عمليات حسابية على البيانات المالية داخل الـ UI.
+
+ليس كل `reduce()` خطأ، لكن أي حساب ينتج **Financial Truth** يجب نقله إلى الـ API/Core.
+
+الـ Frontend وظيفته:
+
+```text
+Fetch → Display → Filter/View
+```
+
+وليس:
+
+```text
+Fetch Raw Financial Data
+→ Recalculate Accounting
+→ Display
+```
+
+---
+
+# 4. API Report Audit
+
+لكل Report Endpoint:
+
+```text
+Endpoint
+→ Service
+→ Financial Core
+→ Ledger
+```
+
+يجب التحقق من المسار.
+
+إذا كان Endpoint مالي ما زال يقرأ Legacy Records مباشرة:
+
+```text
+FAIL
+```
+
+حتى لو كانت النتيجة الحالية صحيحة.
+
+---
+
+# 5. Cross-Report Consistency
+
+أنشئ Dataset واحد ثابت للاختبار.
+
+مثلاً:
+
+```text
+Revenue = X
+Collected = Y
+Expenses = Z
+Refunds = R
+Net Profit = P
+Bank = B
+Cash = C
+Receivables = A
+Inventory = I
+```
+
+ثم اسحب النتائج من **كل شاشة مالية**.
+
+يجب إثبات:
+
+```text
+Dashboard
+=
+Financial Center
+=
+Revenue Report
+=
+Customer Statement
+=
+Contract Statement
+=
+Payment Report
+=
+Bank
+=
+Treasury
+=
+Profitability
+```
+
+بالنسبة لنفس الحقيقة المالية.
+
+أي اختلاف:
+
+```text
+FAIL
+```
+
+---
+
+# 6. Hostinger Validation
+
+هذه هي البوابة الأخيرة.
+
+لا يكفي:
+
+```text
+Hostinger Build: PASS
+```
+
+ولا:
+
+```text
+PHP lint: PASS
+```
+
+ولا:
+
+```text
+Archive exists: PASS
+```
+
+المطلوب تشغيل النظام فعلياً على Hostinger/بيئة الإنتاج المستهدفة.
+
+---
+
+# 7. Production-like Financial Cycle
+
+شغّل Dataset آمن ومجهّل على Hostinger.
+
+نفّذ دورة:
+
+```text
+Customer
+→ Contract
+→ Invoice
+→ Invoice Lines
+→ Payment
+→ Allocation
+→ Receipt
+→ Deposit
+→ Bank Reconciliation
+→ Expense
+→ Purchase
+→ Inventory
+→ Commission
+→ Bank Fee
+→ Other Revenue
+→ Transfer
+→ Refund
+→ Reversal
+```
+
+ثم استخرج النتائج.
+
+---
+
+# 8. Compare Node vs Hostinger
+
+شغّل **نفس السيناريو ونفس القيم** في:
+
+```text
+Node
+PHP
+Hostinger
+```
+
+وقارن:
+
+* Revenue.
+* Collected.
+* Receivables.
+* Expenses.
+* Purchases.
+* Inventory.
+* Commissions.
+* Bank Fees.
+* Refunds.
+* Transfers.
+* Cash.
+* Bank.
+* Net Profit.
+* Journal Totals.
+
+المطلوب:
+
+```text
+Node = PHP = Hostinger
+```
+
+بالنسبة لكل نتيجة مالية أساسية.
+
+---
+
+# 9. Database Reconciliation على Hostinger
+
+بعد انتهاء السيناريو:
+
+```text
+Total Debit
+=
+Total Credit
+```
+
+ثم:
+
+```text
+Ledger Balance
+=
+Reported Balance
+```
+
+ثم:
+
+```text
+Bank Reconciliation
+=
+Bank Financial Truth
+```
+
+ثم:
+
+```text
+Customer Balance
+=
+Receivable Ledger
+```
+
+ثم:
+
+```text
+Contract Balance
+=
+Contract Financial Truth
+```
+
+أي اختلاف يعني أن الاعتماد النهائي لم يكتمل.
+
+---
+
+# 10. Production Safety
+
+أثناء الاختبار على Hostinger:
+
+* لا تستخدم بيانات عملاء حقيقية.
+* لا تستخدم أموالاً حقيقية.
+* لا تعدّل بيانات تشغيلية حقيقية.
+* استخدم Dataset واضحاً ومجهّلاً.
+* سجّل كل Transaction IDs.
+* احتفظ بنتائج الاختبار.
+* احذف/اعزل بيانات الاختبار بعد انتهاء التحقق حسب آلية البيئة.
+
+---
+
+# 11. لا تزور نتيجة Hostinger
+
+إذا تعذر تشغيل الدورة الكاملة على Hostinger بسبب:
+
+* صلاحيات.
+* Database.
+* Environment.
+* Configuration.
+* Deployment.
+* API.
+* Authentication.
+
+سجّل:
+
+```text
+Hostinger Validation: BLOCKED
+```
+
+ولا تسجل:
+
+```text
+PASS
+```
+
+ولا:
+
+```text
+10/10
+```
+
+---
+
+# 12. Report Coverage Matrix
+
+أنشئ Matrix نهائية:
+
+```text
+Report / Screen              Source             Status
+-------------------------------------------------------
+Dashboard                    Financial Core     PASS
+Financial Center             Financial Core     PASS
+Revenue                      Financial Core     PASS
+Expenses                     Financial Core     PASS
+Payments                     Financial Core     PASS
+Invoices                     Financial Core     PASS
+Customer Statement           Financial Core     PASS
+Contract Statement           Financial Core     PASS
+Treasury                     Financial Core     PASS
+Bank                         Financial Core     PASS
+Inventory                    Financial Core     PASS
+Purchases                    Financial Core     PASS
+Maintenance                  Financial Core     PASS
+Commissions                  Financial Core     PASS
+Profitability                Financial Core     PASS
+Refunds                      Financial Core     PASS
+Transfers                    Financial Core     PASS
+```
+
+القائمة يجب أن تكون مبنية على **الشاشات الموجودة فعلياً في المشروع**، وليست قائمة افتراضية.
+
+---
+
+# 13. Definition of 10/10
+
+لا تعلن:
+
+> 10/10
+
+إلا إذا تحقق الآتي:
+
+```text
+Financial Core                         PASS
+Double Entry                          PASS
+Idempotency                           PASS
+Double Counting                       PASS
+Refunds                               PASS
+Reversals                             PASS
+Period Lock                           PASS
+Bank Reconciliation                   PASS
+Node/PHP Parity                       PASS
+Frontend Financial Truth              PASS
+All Report Screens                    PASS
+Cross-Report Consistency              PASS
+Hostinger E2E                         PASS
+Hostinger Ledger Reconciliation      PASS
+Production-like Dataset               PASS
+```
+
+---
+
+# 14. إذا بقيت أي شاشة PARTIAL
+
+لا تعيد بناء النظام.
+
+اعمل الآتي فقط:
+
+```text
+Identify Screen
+→ Identify Financial Source
+→ Replace Legacy Query
+→ Use Financial Truth
+→ Test
+→ Verify
+```
+
+ثم انتقل للشاشة التالية.
+
+---
+
+# 15. النتيجة النهائية المطلوبة
+
+بعد انتهاء التحقق، أريد تقريراً نهائياً مختصراً بهذا الشكل:
+
+```text
+FINAL FINANCIAL CERTIFICATION
+
+Financial Core: PASS
+Double Entry: PASS
+Idempotency: PASS
+Refunds: PASS
+Reversals: PASS
+Period Lock: PASS
+Bank Reconciliation: PASS
+Node/PHP Parity: PASS
+Frontend Integration: PASS
+
+Report Screens:
+PASS: XX
+PARTIAL: 0
+FAIL: 0
+
+Cross-Report Consistency: PASS
+
+Hostinger E2E: PASS
+Hostinger Ledger Reconciliation: PASS
+
+Final Score: 10/10
+
+Certification:
+FINANCIALLY UNIFIED
+FULLY INTEGRATED
+AUDITABLE
+RECONCILED
+PRODUCTION READY
+```
+
+إذا لم تتحقق الشروط:
+
+```text
+Final Score: 8/10
+```
+
+أو الدرجة الفعلية التي تثبتها الاختبارات.
+
+**لا ترفع الدرجة تجميلياً.**
+
+---
+
+# القرار
+
+العمل الحالي وصل إلى **8/10**.
+
+الـ Core ليس المشكلة الآن.
+
+**لا تضف Core جديداً. لا توسع المعمارية. لا تكتب خطة جديدة.**
+
+أغلق فقط:
+
+```text
+8/10
+ ↓
+All Report Screens
+ ↓
+Cross-Report Consistency
+ ↓
+Real Hostinger E2E
+ ↓
+Hostinger Reconciliation
+ ↓
+Final Certification
+ ↓
+10/10
+```
+
+وبعد نجاح آخر اختبار فقط:
+
+> **اعتمد النظام 10/10.**
+
+وإذا فشل أي اختبار، أصلح سبب الفشل نفسه ثم أعد الاختبار.
+
+**المطلوب الآن إثبات نهائي، وليس المزيد من التطوير النظري.**
