@@ -50,10 +50,22 @@ export function FinancialControlCenter({
   const collected = payments.reduce((sum, record) => sum + financialAmount(record), 0)
   const expenseTotal = expenses.reduce((sum, record) => sum + financialAmount(record), 0)
   const returnTotal = returns.reduce((sum, record) => sum + financialAmount(record), 0)
+  const paidForContract = (contract: ContainerSystemRecord) => {
+    const p = financialPayload(contract)
+    const number = String(p.contractNumber ?? contract.reference)
+    return payments.reduce((sum, payment) => {
+      const pp = financialPayload(payment)
+      const allocation = Array.isArray(pp.allocations)
+        ? pp.allocations.find(item => Number((item as Record<string, unknown>).contractId) === contract.id)
+        : null
+      if (allocation) return sum + Number((allocation as Record<string, unknown>).amount ?? 0)
+      return !Array.isArray(pp.allocations) && String(pp.contractNumber ?? "") === number ? sum + Number(pp.amount ?? 0) : sum
+    }, 0)
+  }
   const receivables = contracts.reduce((sum, record) => {
     const payload = financialPayload(record)
     const total = Number(payload.total ?? payload.amount ?? 0)
-    const paid = Number(payload.paid ?? 0)
+    const paid = paidForContract(record)
     return sum + Math.max((Number.isFinite(total) ? total : 0) - (Number.isFinite(paid) ? paid : 0), 0)
   }, 0)
   const netCash = collected - expenseTotal - returnTotal
@@ -152,6 +164,9 @@ export function ContractSettlementWorkspace({ records, initialCustomerId = null 
   const ledgerQuery = useGetContainerContractLedgers(undefined, { query: { queryKey: getGetContainerContractLedgersQueryKey(), staleTime: 15_000 } })
   const settlementMutation = useSettleContainerContract()
   const [selectedId, setSelectedId] = useState<number | null>(null)
+  const [selectedIds, setSelectedIds] = useState<number[]>([])
+  const [allocationAmounts, setAllocationAmounts] = useState<Record<number, string>>({})
+  const [allocationInvoices, setAllocationInvoices] = useState<Record<number, string>>({})
   const [amount, setAmount] = useState("")
   const [paymentMethod, setPaymentMethod] = useState("نقدي")
   const [depositId, setDepositId] = useState("")
@@ -162,24 +177,42 @@ export function ContractSettlementWorkspace({ records, initialCustomerId = null 
   }), [initialCustomerId, ledgerQuery.data?.ledgers])
   const selected = ledgers.find(row => row.contract.id === selectedId) ?? ledgers[0]
   const deposits = records.filter(record => (record.kind === "deposit" || record.kind === "bank_deposit") && record.status !== "archived")
+  const selectedRows = ledgers.filter(row => selectedIds.includes(row.contract.id))
+  const invoicesFor = (contractId: number, contractNumber: string) => records.filter(record => {
+    if (record.kind !== "invoice" || record.status === "archived") return false
+    const payload = record.payload as Record<string, unknown>
+    return Number(payload.contractRecordId ?? 0) === contractId || String(payload.contractNumber ?? "").trim() === contractNumber
+  })
   useEffect(() => {
     if (selected) {
       setSelectedId(selected.contract.id)
-      setAmount(String(Math.max(selected.remaining, 0)))
+      if (!selectedIds.length) {
+        setSelectedIds([selected.contract.id])
+        setAllocationAmounts({ [selected.contract.id]: String(Math.max(selected.remaining, 0)) })
+      }
     }
-  }, [selected])
-  useEffect(() => {
-    if (selected) setAmount(String(Math.max(selected.remaining, 0)))
-  }, [selected?.contract.id])
+  }, [selected, selectedIds.length])
+  const totalAllocated = selectedRows.reduce((sum, row) => sum + Number(allocationAmounts[row.contract.id] ?? 0), 0)
+  useEffect(() => setAmount(totalAllocated ? String(Math.round(totalAllocated * 100) / 100) : ""), [totalAllocated])
   const submit = () => {
-    if (!selected) return
+    if (!selectedRows.length) return
     const value = Number(amount)
-    if (!Number.isFinite(value) || value <= 0 || value > selected.remaining + 0.01) {
-      toast({ title: "أدخل مبلغاً صحيحاً لا يتجاوز المتبقي", variant: "destructive" })
+    const allocations = selectedRows.map(row => ({
+      contractId: row.contract.id,
+      amount: Number(allocationAmounts[row.contract.id] ?? 0),
+      invoiceId: allocationInvoices[row.contract.id] ? Number(allocationInvoices[row.contract.id]) : null,
+    }))
+    if (!Number.isFinite(value) || value <= 0 || allocations.some(item => !Number.isFinite(item.amount) || item.amount <= 0)) {
+      toast({ title: "وزّع مبلغاً موجباً على كل عقد محدد", variant: "destructive" })
+      return
+    }
+    if (Math.abs(allocations.reduce((sum, item) => sum + item.amount, 0) - value) > 0.01 ||
+        allocations.some(item => item.amount > (ledgers.find(row => row.contract.id === item.contractId)?.remaining ?? 0) + 0.01)) {
+      toast({ title: "تحقق من أن التوزيع يساوي المبلغ ولا يتجاوز رصيد أي عقد", variant: "destructive" })
       return
     }
     settlementMutation.mutate({ data: {
-      contractId: selected.contract.id, amount: value, paymentMethod,
+      contractId: selectedRows[0].contract.id, amount: value, paymentMethod, allocations,
       operationKey: crypto.randomUUID(), depositId: depositId ? Number(depositId) : null, notes,
     } }, {
       onSuccess: result => {
@@ -205,14 +238,14 @@ export function ContractSettlementWorkspace({ records, initialCustomerId = null 
     </Card>
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(18rem,.75fr)]">
       <Card className="overflow-hidden"><CardHeader className="border-b bg-slate-50/70"><CardTitle className="text-base">كشوف العقود</CardTitle></CardHeader><CardContent className="overflow-x-auto p-0">
-        <table className="min-w-[680px] w-full text-right text-xs"><thead><tr className="border-b bg-slate-50 text-slate-500"><th className="px-4 py-3">العقد والعميل</th><th className="px-4 py-3">الإجمالي</th><th className="px-4 py-3">المحصل</th><th className="px-4 py-3">المودع</th><th className="px-4 py-3">المتبقي</th></tr></thead><tbody>
-          {ledgerQuery.isLoading ? <tr><td colSpan={5} className="p-10 text-center text-slate-500">جارٍ تحميل الكشوف...</td></tr> : ledgers.length === 0 ? <tr><td colSpan={5} className="p-10 text-center text-slate-500">لا توجد عقود قابلة للتسوية.</td></tr> : ledgers.map(row => <tr key={row.contract.id} onClick={() => setSelectedId(row.contract.id)} className={`cursor-pointer border-b last:border-0 hover:bg-cyan-50/50 ${selected?.contract.id === row.contract.id ? "bg-cyan-50" : ""}`} data-testid={`row-contract-ledger-${row.contract.id}`}><td className="px-4 py-3"><b className="block text-slate-800">{String(row.contract.payload.customerName ?? "عميل غير محدد")}</b><span className="font-mono text-[11px] text-slate-400" dir="ltr">{row.contract.reference}</span></td><td className="px-4 py-3">{row.total.toLocaleString("ar-SA")}</td><td className="px-4 py-3 text-emerald-700">{row.collected.toLocaleString("ar-SA")}</td><td className="px-4 py-3 text-indigo-700">{row.deposited.toLocaleString("ar-SA")}</td><td className="px-4 py-3 font-black text-amber-700">{row.remaining.toLocaleString("ar-SA")}</td></tr>)}
+           <table className="min-w-[680px] w-full text-right text-xs"><thead><tr className="border-b bg-slate-50 text-slate-500"><th className="px-4 py-3">اختيار</th><th className="px-4 py-3">العقد والعميل</th><th className="px-4 py-3">الإجمالي</th><th className="px-4 py-3">المحصل</th><th className="px-4 py-3">المودع</th><th className="px-4 py-3">المتبقي</th></tr></thead><tbody>
+           {ledgerQuery.isLoading ? <tr><td colSpan={6} className="p-10 text-center text-slate-500">جارٍ تحميل الكشوف...</td></tr> : ledgers.length === 0 ? <tr><td colSpan={6} className="p-10 text-center text-slate-500">لا توجد عقود قابلة للتسوية.</td></tr> : ledgers.map(row => <tr key={row.contract.id} onClick={() => { setSelectedId(row.contract.id); if (!selectedIds.includes(row.contract.id)) { const next = [...selectedIds, row.contract.id]; setSelectedIds(next); setAllocationAmounts(current => ({ ...current, [row.contract.id]: String(Math.max(row.remaining, 0)) })) } }} className={`cursor-pointer border-b last:border-0 hover:bg-cyan-50/50 ${selectedIds.includes(row.contract.id) ? "bg-cyan-50" : ""}`} data-testid={`row-contract-ledger-${row.contract.id}`}><td className="px-4 py-3"><input type="checkbox" checked={selectedIds.includes(row.contract.id)} onChange={event => { event.stopPropagation(); const next = event.target.checked ? [...selectedIds, row.contract.id] : selectedIds.filter(id => id !== row.contract.id); setSelectedIds(next); if (event.target.checked) setAllocationAmounts(current => ({ ...current, [row.contract.id]: current[row.contract.id] ?? String(Math.max(row.remaining, 0)) })); else setAllocationAmounts(current => { const copy = { ...current }; delete copy[row.contract.id]; return copy }) }} onClick={event => event.stopPropagation()} className="h-4 w-4 accent-cyan-700" aria-label={`اختيار العقد ${row.contract.reference}`} /></td><td className="px-4 py-3"><b className="block text-slate-800">{String(row.contract.payload.customerName ?? "عميل غير محدد")}</b><span className="font-mono text-[11px] text-slate-400" dir="ltr">{row.contract.reference}</span></td><td className="px-4 py-3">{row.total.toLocaleString("ar-SA")}</td><td className="px-4 py-3 text-emerald-700">{row.collected.toLocaleString("ar-SA")}</td><td className="px-4 py-3 text-indigo-700">{row.deposited.toLocaleString("ar-SA")}</td><td className="px-4 py-3 font-black text-amber-700">{row.remaining.toLocaleString("ar-SA")}</td></tr>)}
         </tbody></table>
       </CardContent></Card>
       <Card className="h-fit"><CardHeader className="border-b"><CardTitle className="text-base">تسجيل تحصيل</CardTitle><p className="text-xs text-slate-500">يُحدّث العقد وكشف المديونية والقيد في عملية واحدة.</p></CardHeader><CardContent className="space-y-3 p-4">
-        <label className="block text-xs font-bold text-slate-600">العقد<select value={selected?.contract.id ?? ""} onChange={event => setSelectedId(Number(event.target.value))} className="mt-1 h-10 w-full rounded-md border bg-white px-3 text-sm">{ledgers.map(row => <option key={row.contract.id} value={row.contract.id}>{String(row.contract.payload.customerName ?? "عميل")} · {row.contract.reference}</option>)}</select></label>
-        <div className="rounded-xl bg-slate-50 p-3 text-xs"><span className="text-slate-500">المتبقي:</span> <b className="text-amber-700">{(selected?.remaining ?? 0).toLocaleString("ar-SA")} ر.س</b></div>
-        <label className="block text-xs font-bold text-slate-600">مبلغ التحصيل<Input type="number" min="0.01" step="0.01" value={amount} onChange={event => setAmount(event.target.value)} className="mt-1" /></label>
+         <div className="space-y-2"><p className="text-xs font-bold text-slate-600">توزيع التحصيل على العقود</p>{selectedRows.map(row => { const p = row.contract.payload as Record<string, unknown>; const number = String(p.contractNumber ?? row.contract.reference); const invoices = invoicesFor(row.contract.id, number); return <div key={row.contract.id} className="rounded-xl border border-cyan-100 bg-cyan-50/40 p-3"><div className="flex items-center justify-between gap-2 text-xs"><b>{number}</b><span className="text-amber-700">المتبقي {row.remaining.toLocaleString("ar-SA")} ر.س</span></div><Input type="number" min="0.01" step="0.01" value={allocationAmounts[row.contract.id] ?? ""} onChange={event => setAllocationAmounts(current => ({ ...current, [row.contract.id]: event.target.value }))} className="mt-2 bg-white" placeholder="مبلغ هذا العقد" />{invoices.length > 0 && <select value={allocationInvoices[row.contract.id] ?? ""} onChange={event => setAllocationInvoices(current => ({ ...current, [row.contract.id]: event.target.value }))} className="mt-2 h-9 w-full rounded-md border bg-white px-2 text-xs"><option value="">بدون فاتورة محددة</option>{invoices.map(invoice => { const ip = invoice.payload as Record<string, unknown>; return <option key={invoice.id} value={invoice.id}>{String(ip.invoiceNumber ?? invoice.reference)} · {Number(ip.total ?? ip.amount ?? 0).toLocaleString("ar-SA")} ر.س</option> })}</select>}</div> })}</div>
+         <div className="rounded-xl bg-slate-50 p-3 text-xs"><span className="text-slate-500">إجمالي التوزيع:</span> <b className="text-cyan-800">{totalAllocated.toLocaleString("ar-SA")} ر.س</b></div>
+         <label className="block text-xs font-bold text-slate-600">مبلغ التحصيل<Input type="number" min="0.01" step="0.01" value={amount} readOnly className="mt-1 bg-slate-50" /></label>
         <label className="block text-xs font-bold text-slate-600">طريقة الدفع<select value={paymentMethod} onChange={event => setPaymentMethod(event.target.value)} className="mt-1 h-10 w-full rounded-md border bg-white px-3 text-sm"><option>نقدي</option><option>تحويل بنكي</option><option>شبكة</option><option>شيك</option></select></label>
         <label className="block text-xs font-bold text-slate-600">الإيداع المرتبط (اختياري)<select value={depositId} onChange={event => setDepositId(event.target.value)} className="mt-1 h-10 w-full rounded-md border bg-white px-3 text-sm"><option value="">بدون ربط</option>{deposits.map(record => <option key={record.id} value={record.id}>{record.reference} · {String(record.payload.date ?? record.createdAt).slice(0, 10)}</option>)}</select></label>
         <label className="block text-xs font-bold text-slate-600">ملاحظات<Input value={notes} onChange={event => setNotes(event.target.value)} className="mt-1" placeholder="مرجع التحويل أو ملاحظة التسوية" /></label>

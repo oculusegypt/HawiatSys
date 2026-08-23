@@ -1360,15 +1360,26 @@ components:
 
     ContractSettlementInput:
       type: object
-      required: [contractId, amount, paymentMethod, operationKey]
+      required: [amount, paymentMethod, operationKey]
       properties:
-        contractId: { type: integer }
+        contractId: { type: integer, description: Legacy single-contract shortcut; allocations is preferred }
+        invoiceId: { type: ["integer", "null"] }
         amount: { type: number, exclusiveMinimum: 0 }
         paymentMethod: { type: string }
         operationKey: { type: string, minLength: 8, maxLength: 160 }
         depositId: { type: ["integer", "null"] }
         date: { type: string }
         notes: { type: string }
+        allocations:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [contractId, amount]
+            properties:
+              contractId: { type: integer }
+              amount: { type: number, exclusiveMinimum: 0 }
+              invoiceId: { type: ["integer", "null"] }
 
     ContractSettlementResult:
       type: object

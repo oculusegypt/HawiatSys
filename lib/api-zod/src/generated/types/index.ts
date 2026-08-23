@@ -35,6 +35,7 @@ export * from './contractLedgerResponse';
 export * from './contractLedgerResponseTotals';
 export * from './contractLedgerRow';
 export * from './contractSettlementInput';
+export * from './contractSettlementInputAllocationsItem';
 export * from './contractSettlementResult';
 export * from './conversation';
 export * from './conversationInput';

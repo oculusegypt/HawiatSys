@@ -5,9 +5,13 @@
  * Sabaik Almasa API
  * OpenAPI spec version: 0.1.0
  */
+import type { ContractSettlementInputAllocationsItem } from './contractSettlementInputAllocationsItem';
 
 export interface ContractSettlementInput {
-  contractId: number;
+  /** Legacy single-contract shortcut; allocations is preferred */
+  contractId?: number;
+  /** @nullable */
+  invoiceId?: number | null;
   /** @exclusiveMinimum 0 */
   amount: number;
   paymentMethod: string;
@@ -20,4 +24,6 @@ export interface ContractSettlementInput {
   depositId?: number | null;
   date?: string;
   notes?: string;
+  /** @minItems 1 */
+  allocations?: ContractSettlementInputAllocationsItem[];
 }

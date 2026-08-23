@@ -711,14 +711,25 @@ router.get("/admin/container-system/financial/contract-ledgers", requireContaine
       const payload = parsePayload(contract.payload);
       const contractNumber = String(payload.contractNumber ?? contract.reference).trim();
       const customerName = String(payload.customerName ?? "").trim();
-      const paymentsForContract = payments.filter(row => matchContract(parsePayload(row.payload)) === contractNumber);
+       const paymentsForContract = payments.filter(row => {
+         const payment = parsePayload(row.payload);
+         return matchContract(payment) === contractNumber ||
+           (Array.isArray(payment.allocations) && payment.allocations.some((allocation: unknown) =>
+             Number((allocation as Record<string, unknown>).contractId) === contract.id));
+       });
       const depositsForContract = deposits.filter(row => {
         const item = parsePayload(row.payload);
         return String(item.contractNumber ?? "").trim() === contractNumber ||
           paymentsForContract.some(payment => String(item.sourcePaymentId ?? "") === String(payment.id));
       });
       const total = Number(payload.total ?? payload.amount ?? 0);
-      const collected = paymentsForContract.reduce((sum, row) => sum + Number(parsePayload(row.payload).amount ?? 0), 0);
+       const collected = paymentsForContract.reduce((sum, row) => {
+         const payment = parsePayload(row.payload);
+         const allocation = Array.isArray(payment.allocations)
+           ? payment.allocations.find((item: unknown) => Number((item as Record<string, unknown>).contractId) === contract.id)
+           : null;
+         return sum + Number(allocation ? (allocation as Record<string, unknown>).amount : payment.amount ?? 0);
+       }, 0);
       const deposited = depositsForContract.reduce((sum, row) => sum + Number(parsePayload(row.payload).amount ?? parsePayload(row.payload).total ?? 0), 0);
       return {
         contract: formatRecord(contract),
@@ -746,19 +757,39 @@ router.post("/admin/container-system/financial/settle", requireContainerPermissi
   const adminReq = req as unknown as AdminRequest;
   if (!canManage(adminReq, "payment")) return res.status(403).json({ error: "ليس لديك صلاحية تسجيل تحصيل العقود" });
   const body = req.body as {
-    contractId?: number; amount?: number; paymentMethod?: string; operationKey?: string; depositId?: number | null; date?: string; notes?: string;
+    contractId?: number; invoiceId?: number | null; amount?: number; paymentMethod?: string; operationKey?: string;
+    depositId?: number | null; date?: string; notes?: string;
+    allocations?: Array<{ contractId?: number; amount?: number; invoiceId?: number | null }>;
   };
-  const contractId = Number(body.contractId);
   const amount = Number(body.amount);
   const paymentMethod = String(body.paymentMethod ?? "").trim();
   const operationKey = String(req.get("Idempotency-Key") ?? body.operationKey ?? "").trim();
-  if (!Number.isInteger(contractId) || contractId <= 0) return res.status(422).json({ error: "العقد غير صحيح" });
   if (!Number.isFinite(amount) || amount <= 0) return res.status(422).json({ error: "قيمة التحصيل يجب أن تكون أكبر من صفر" });
   if (!paymentMethod) return res.status(422).json({ error: "طريقة الدفع مطلوبة" });
   if (operationKey.length < 8 || operationKey.length > 160) return res.status(422).json({ error: "مفتاح العملية غير صالح" });
+  const requestedAllocations = Array.isArray(body.allocations) && body.allocations.length > 0
+    ? body.allocations
+    : body.contractId ? [{ contractId: body.contractId, amount, invoiceId: body.invoiceId ?? null }] : [];
+  if (!requestedAllocations.length) return res.status(422).json({ error: "حدد عقداً واحداً على الأقل لتوزيع التحصيل" });
+  const allocations = requestedAllocations.map(item => ({
+    contractId: Number(item.contractId),
+    amount: Number(item.amount),
+    invoiceId: item.invoiceId == null ? null : Number(item.invoiceId),
+  }));
+  if (allocations.some(item => !Number.isInteger(item.contractId) || item.contractId <= 0 || !Number.isFinite(item.amount) || item.amount <= 0)) {
+    return res.status(422).json({ error: "توزيع التحصيل غير صحيح" });
+  }
+  const allocationTotal = allocations.reduce((sum, item) => sum + item.amount, 0);
+  if (Math.abs(allocationTotal - amount) > 0.01) return res.status(422).json({ error: "يجب أن يساوي مجموع التوزيعات مبلغ التحصيل بالكامل" });
+  if (new Set(allocations.map(item => item.contractId)).size !== allocations.length) {
+    return res.status(422).json({ error: "لا تكرر العقد؛ اجمع مبلغه في توزيع واحد" });
+  }
   const existing = await findByOperationKey("payment", operationKey);
   if (existing) {
     const existingPayload = parsePayload(existing.payload);
+    if (JSON.stringify(existingPayload.allocations ?? []) !== JSON.stringify(allocations) || Number(existingPayload.amount ?? 0) !== amount) {
+      return res.status(409).json({ error: "مفتاح العملية مستخدم لحمولة مالية مختلفة" });
+    }
     const ledger = (await db.select().from(containerSystemRecordsTable)).find(row =>
       row.kind === "ledger_entry" && String(parsePayload(row.payload).sourceId ?? "") === String(existing.id),
     );
@@ -766,25 +797,57 @@ router.post("/admin/container-system/financial/settle", requireContainerPermissi
   }
   try {
     const result = db.transaction((tx) => {
-      const contract = tx.select().from(containerSystemRecordsTable).where(eq(containerSystemRecordsTable.id, contractId)).get();
-      if (!contract || contract.kind !== "contract" || contract.status === "archived") throw new Error("العقد غير موجود أو مؤرشف");
-      const contractPayload = parsePayload(contract.payload);
-      const contractNumber = String(contractPayload.contractNumber ?? contract.reference).trim();
       const all = tx.select().from(containerSystemRecordsTable).all();
-      const paid = all.filter(row => (row.kind === "payment" || row.kind === "receipt") && matchContractForSettlement(row, all) === contractNumber)
-        .reduce((sum, row) => sum + Number(parsePayload(row.payload).amount ?? 0), 0);
-      const total = Number(contractPayload.total ?? contractPayload.amount ?? 0);
-      if (Number.isFinite(total) && paid + amount > total + 0.01) throw new Error("قيمة التحصيل تتجاوز المتبقي في كشف العقد");
-      let deposit: typeof contract | undefined;
+      const contractRows = allocations.map(item => {
+        const contract = all.find(row => row.id === item.contractId && row.kind === "contract" && row.status !== "archived");
+        if (!contract) throw new Error("أحد العقود غير موجود أو مؤرشف");
+        const contractPayload = parsePayload(contract.payload);
+        const contractNumber = String(contractPayload.contractNumber ?? contract.reference).trim();
+        const paid = all.filter(row => (row.kind === "payment" || row.kind === "receipt") && matchContractForSettlement(row, all) === contractNumber)
+          .reduce((sum, row) => {
+            const payment = parsePayload(row.payload);
+            const allocated = Array.isArray(payment.allocations)
+              ? payment.allocations.find((entry: unknown) => Number((entry as Record<string, unknown>).contractId) === contract.id)
+              : null;
+            return sum + Number(allocated ? (allocated as Record<string, unknown>).amount : payment.contractId === contract.id ? payment.amount : 0);
+          }, 0);
+        const total = Number(contractPayload.total ?? contractPayload.amount ?? 0);
+        if (Number.isFinite(total) && paid + item.amount > total + 0.01) throw new Error(`قيمة التحصيل تتجاوز المتبقي في العقد ${contractNumber}`);
+        if (item.invoiceId) {
+          const invoice = all.find(row => row.id === item.invoiceId && row.kind === "invoice" && row.status !== "archived");
+          if (!invoice) throw new Error("الفاتورة المرتبطة غير موجودة أو مؤرشفة");
+          const invoicePayload = parsePayload(invoice.payload);
+          if (Number(invoicePayload.contractRecordId ?? 0) !== contract.id &&
+              String(invoicePayload.contractNumber ?? "").trim() !== contractNumber) {
+            throw new Error("الفاتورة لا تتبع العقد المحدد");
+          }
+          const invoiceTotal = Number(invoicePayload.total ?? invoicePayload.amount ?? 0);
+          const invoicePaid = all.filter(row => row.kind === "payment" || row.kind === "receipt").reduce((sum, row) => {
+            const payment = parsePayload(row.payload);
+            const entry = Array.isArray(payment.allocations)
+              ? payment.allocations.find((allocation: unknown) => Number((allocation as Record<string, unknown>).invoiceId) === invoice.id)
+              : Number(payment.invoiceRecordId ?? 0) === invoice.id ? { amount: payment.amount } : null;
+            return sum + Number(entry ? (entry as Record<string, unknown>).amount ?? 0 : 0);
+          }, 0);
+          if (Number.isFinite(invoiceTotal) && invoicePaid + item.amount > invoiceTotal + 0.01) throw new Error("قيمة التحصيل تتجاوز المتبقي في الفاتورة");
+        }
+        return { ...item, contract, contractPayload, contractNumber, paid, total };
+      });
+      let deposit: typeof containerSystemRecordsTable.$inferSelect | undefined;
       if (body.depositId) {
         deposit = all.find(row => row.id === Number(body.depositId) && (row.kind === "deposit" || row.kind === "bank_deposit") && row.status !== "archived");
         if (!deposit) throw new Error("الإيداع المرتبط غير موجود أو مؤرشف");
       }
       const now = new Date().toISOString();
+      const first = contractRows[0];
+      const customerIds = new Set(contractRows.map(item => String(item.contractPayload.customerRecordId ?? "")));
+      if (customerIds.size > 1) throw new Error("لا يمكن توزيع تحصيل واحد على عقود لعملاء مختلفين");
       const paymentPayload = {
-        operationKey, contractId, contractNumber, customerName: contractPayload.customerName ?? "",
-        customerRecordId: Number(contractPayload.customerRecordId) || null,
-        amount, paymentMethod, depositId: body.depositId ?? null, date: body.date ?? now.slice(0, 10), notes: body.notes ?? "",
+        operationKey, contractId: first.contract.id, contractNumber: first.contractNumber,
+        invoiceRecordId: first.invoiceId ?? null, customerName: first.contractPayload.customerName ?? "",
+        customerRecordId: Number(first.contractPayload.customerRecordId) || null, amount, paymentMethod,
+        depositId: body.depositId ?? null, date: body.date ?? now.slice(0, 10), notes: body.notes ?? "",
+        allocations: contractRows.map(item => ({ contractId: item.contract.id, contractNumber: item.contractNumber, invoiceId: item.invoiceId, amount: item.amount })),
         source: "contract_settlement",
       };
       const payment = tx.insert(containerSystemRecordsTable).values({
@@ -794,24 +857,27 @@ router.post("/admin/container-system/financial/settle", requireContainerPermissi
       const ledger = tx.insert(containerSystemRecordsTable).values({
         kind: "ledger_entry", status: "posted", reference: `LED-${payment.id}`,
         payload: JSON.stringify({
-          sourceKind: "payment", sourceId: payment.id, contractId, contractNumber,
-          customerName: contractPayload.customerName ?? "", customerRecordId: Number(contractPayload.customerRecordId) || null, amount, direction: "credit",
+          sourceKind: "payment", sourceId: payment.id, contractId: first.contract.id, contractNumber: first.contractNumber,
+          customerName: first.contractPayload.customerName ?? "", customerRecordId: Number(first.contractPayload.customerRecordId) || null, amount, direction: "credit",
           date: paymentPayload.date, depositId: body.depositId ?? null,
+          allocations: paymentPayload.allocations,
         }), createdBy: adminReq.adminId,
       }).returning().get();
-      const nextPaid = paid + amount;
-      const nextContract = { ...contractPayload, paid: nextPaid, remaining: Math.max(total - nextPaid, 0), lastSettlementAt: now };
-      const nextStatus = Number.isFinite(total) && nextPaid >= total - 0.01 ? "settled" : contract.status;
-      tx.update(containerSystemRecordsTable).set({ payload: JSON.stringify(nextContract), status: nextStatus, updatedAt: now })
-        .where(eq(containerSystemRecordsTable.id, contractId)).run();
+      for (const item of contractRows) {
+        const nextPaid = item.paid + item.amount;
+        const nextContract = { ...item.contractPayload, paid: nextPaid, remaining: Math.max(item.total - nextPaid, 0), lastSettlementAt: now };
+        const nextStatus = Number.isFinite(item.total) && nextPaid >= item.total - 0.01 ? "settled" : item.contract.status;
+        tx.update(containerSystemRecordsTable).set({ payload: JSON.stringify(nextContract), status: nextStatus, updatedAt: now })
+          .where(eq(containerSystemRecordsTable.id, item.contract.id)).run();
+      }
       tx.insert(containerSystemAuditTable).values([
         { recordId: payment.id, kind: "payment", action: "contract_settlement", afterPayload: payment.payload, actorId: adminReq.adminId },
-        { recordId: contractId, kind: "contract", action: "settlement_posted", beforePayload: contract.payload, afterPayload: JSON.stringify(nextContract), actorId: adminReq.adminId },
+        ...contractRows.map(item => ({ recordId: item.contract.id, kind: "contract", action: "settlement_posted", beforePayload: item.contract.payload, afterPayload: JSON.stringify({ ...item.contractPayload, paid: item.paid + item.amount, remaining: Math.max(item.total - item.paid - item.amount, 0), lastSettlementAt: now }), actorId: adminReq.adminId })),
       ]).run();
       if (deposit) {
         const depositPayload = parsePayload(deposit.payload);
         tx.update(containerSystemRecordsTable).set({
-          payload: JSON.stringify({ ...depositPayload, linkedContractId: contractId, linkedPaymentId: payment.id }),
+          payload: JSON.stringify({ ...depositPayload, linkedContractId: first.contract.id, linkedPaymentId: payment.id }),
           updatedAt: now,
         }).where(eq(containerSystemRecordsTable.id, deposit.id)).run();
       }

@@ -109,8 +109,19 @@ export interface ContractLedgerResponse {
   totals: ContractLedgerResponseTotals;
 }
 
-export interface ContractSettlementInput {
+export type ContractSettlementInputAllocationsItem = {
   contractId: number;
+  /** @exclusiveMinimum 0 */
+  amount: number;
+  /** @nullable */
+  invoiceId?: number | null;
+};
+
+export interface ContractSettlementInput {
+  /** Legacy single-contract shortcut; allocations is preferred */
+  contractId?: number;
+  /** @nullable */
+  invoiceId?: number | null;
   /** @exclusiveMinimum 0 */
   amount: number;
   paymentMethod: string;
@@ -123,6 +134,8 @@ export interface ContractSettlementInput {
   depositId?: number | null;
   date?: string;
   notes?: string;
+  /** @minItems 1 */
+  allocations?: ContractSettlementInputAllocationsItem[];
 }
 
 export interface ContractSettlementResult {

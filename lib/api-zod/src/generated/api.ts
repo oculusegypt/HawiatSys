@@ -1818,16 +1818,25 @@ export const settleContainerContractBodyAmountExclusiveMin = 0;
 export const settleContainerContractBodyOperationKeyMin = 8;
 export const settleContainerContractBodyOperationKeyMax = 160;
 
+export const settleContainerContractBodyAllocationsItemAmountExclusiveMin = 0;
+
+
 
 
 export const SettleContainerContractBody = zod.object({
-  "contractId": zod.number(),
+  "contractId": zod.number().optional().describe('Legacy single-contract shortcut; allocations is preferred'),
+  "invoiceId": zod.number().nullish(),
   "amount": zod.number().gt(settleContainerContractBodyAmountExclusiveMin),
   "paymentMethod": zod.string(),
   "operationKey": zod.string().min(settleContainerContractBodyOperationKeyMin).max(settleContainerContractBodyOperationKeyMax),
   "depositId": zod.number().nullish(),
   "date": zod.string().optional(),
-  "notes": zod.string().optional()
+  "notes": zod.string().optional(),
+  "allocations": zod.array(zod.object({
+  "contractId": zod.number(),
+  "amount": zod.number().gt(settleContainerContractBodyAllocationsItemAmountExclusiveMin),
+  "invoiceId": zod.number().nullish()
+})).min(1).optional()
 })
 
 export const SettleContainerContractResponse = zod.object({
