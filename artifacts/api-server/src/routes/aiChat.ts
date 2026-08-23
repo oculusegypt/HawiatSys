@@ -4,6 +4,8 @@ import { conversationsTable, messagesTable, serviceRequestsTable, containersTabl
 import { eq, sql, asc } from "drizzle-orm";
 import { getSetting } from "./settings";
 import { createNotification } from "../lib/pushNotifications";
+import { syncCustomerFromRequest } from "../lib/customerSync";
+import { logger } from "../lib/logger";
 
 const router = Router();
 
@@ -764,6 +766,11 @@ async function handleConfirm(message: string, intent: string, state: FlowState, 
         notes: notesParts.join(" | "),
       })
       .returning();
+
+    await syncCustomerFromRequest(request).catch((error) => {
+      // Customer indexing must not make a confirmed chat order fail.
+      logger.warn({ err: error, requestId: request.id }, "customer auto-save skipped");
+    });
 
     await createNotification({
         title: isQuoteRequest ? "📋 طلب عرض سعر عبر البوت" : "🤖 طلب جديد عبر البوت الذكي",

@@ -5,6 +5,7 @@ import { getSetting } from "./settings";
 import { createNotification } from "../lib/pushNotifications";
 import { requireAdmin, requireAdminOnly, requireDriver, requireRequestAssignment, requireManagerOrAdmin, requireAnySectionPermission, requireSectionPermission, type AdminRequest } from "../middleware/adminAuth";
 import { sourceForRow } from "../lib/attribution";
+import { syncCustomerFromRequest } from "../lib/customerSync";
 
 const router = Router();
 
@@ -171,77 +172,6 @@ function normalizePhone(value: string | null | undefined): string {
   return digits;
 }
 
-function parseContainerRecordPayload(payload: string): Record<string, unknown> {
-  try {
-    const parsed = JSON.parse(payload);
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch {
-    return {};
-  }
-}
-
-async function saveCustomerFromRequest(request: typeof serviceRequestsTable.$inferSelect) {
-  const normalizedPhone = normalizePhone(request.phone);
-  if (!normalizedPhone) return null;
-  const records = await db.select().from(containerSystemRecordsTable);
-  const customer = records.find(record => {
-    if (record.kind !== "customer" || record.status === "archived") return false;
-    const payload = parseContainerRecordPayload(record.payload);
-    return normalizePhone(String(payload.phone ?? "")) === normalizedPhone;
-  });
-  const customerPayload = customer
-    ? parseContainerRecordPayload(customer.payload)
-    : { name: request.clientName, phone: request.phone, email: request.email ?? "" };
-  if (!customer) {
-    const [createdCustomer] = await db.insert(containerSystemRecordsTable).values({
-      kind: "customer",
-      status: "active",
-      reference: `CUS-${String(request.id).padStart(5, "0")}`,
-      payload: JSON.stringify({ ...customerPayload, source: "service_request", firstRequestId: request.id }),
-    }).returning();
-    return createdCustomer;
-  }
-  const [updatedCustomer] = await db.update(containerSystemRecordsTable).set({
-    payload: JSON.stringify({
-      ...customerPayload,
-      name: request.clientName || customerPayload.name,
-      phone: request.phone || customerPayload.phone,
-      email: request.email ?? customerPayload.email ?? "",
-      lastRequestId: request.id,
-      updatedFrom: "service_request",
-    }),
-    updatedAt: new Date().toISOString(),
-  }).where(eq(containerSystemRecordsTable.id, customer.id)).returning();
-  return updatedCustomer ?? customer;
-}
-
-async function saveRequestAddress(customerId: number, request: typeof serviceRequestsTable.$inferSelect) {
-  const location = String(request.location ?? "").trim();
-  if (!location || location === "غير محدد") return null;
-  const records = await db.select().from(containerSystemRecordsTable);
-  const existing = records.find(record => {
-    if (record.kind !== "customer_site" || record.status === "archived") return false;
-    const payload = parseContainerRecordPayload(record.payload);
-    return Number(payload.customerRecordId) === customerId && String(payload.address ?? payload.location ?? "").trim() === location;
-  });
-  if (existing) return existing;
-  const [site] = await db.insert(containerSystemRecordsTable).values({
-    kind: "customer_site",
-    status: "active",
-    reference: `SITE-${String(request.id).padStart(5, "0")}`,
-    payload: JSON.stringify({
-      customerRecordId: customerId,
-      name: `${request.clientName} — عنوان الطلب #${request.id}`,
-      address: location,
-      location,
-      source: "service_request",
-      requestId: request.id,
-      serviceType: request.serviceType,
-    }),
-  }).returning();
-  return site;
-}
-
 async function addPresenceToRequests<T extends typeof serviceRequestsTable.$inferSelect>(requests: T[]) {
   const visitors = await db.select().from(activeVisitorsTable);
   const visitorBySession = new Map<string, typeof visitors[number]>();
@@ -370,15 +300,8 @@ router.post("/admin/service-requests/from-contract", requireAdmin, requireAnySec
   // a customer site. This is deliberately best-effort after the request is
   // stored so a malformed legacy record can never lose the order itself.
   try {
-    const customer = await saveCustomerFromRequest(request);
-    if (customer) {
-      await saveRequestAddress(customer.id, request);
-      const [linkedRequest] = await db.update(serviceRequestsTable)
-        .set({ customerRecordId: customer.id, updatedAt: new Date().toISOString() })
-        .where(eq(serviceRequestsTable.id, request.id))
-        .returning();
-      if (linkedRequest) Object.assign(request, linkedRequest);
-    }
+    const synced = await syncCustomerFromRequest(request);
+    Object.assign(request, synced.request);
   } catch (error) {
     req.log.warn({ err: error, requestId: request.id }, "customer auto-save skipped");
   }
@@ -467,6 +390,13 @@ router.post("/service-requests", async (req, res) => {
     attributionUtmCampaign: attribution.utmCampaign,
     attributionGclid: attribution.gclid,
   }).returning();
+
+  try {
+    const synced = await syncCustomerFromRequest(request);
+    Object.assign(request, synced.request);
+  } catch (error) {
+    req.log.warn({ err: error, requestId: request.id }, "customer auto-save skipped");
+  }
 
   // Create notification
   await createNotification({

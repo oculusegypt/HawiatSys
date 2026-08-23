@@ -2098,6 +2098,63 @@ try {
                     $newReqId = (int)$pdo->lastInsertId();
                 }
 
+                // Keep chat-confirmed orders in Container Operations too:
+                // reuse the customer by phone and add the address only once.
+                try {
+                    $pdo->exec("CREATE TABLE IF NOT EXISTS container_system_records (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'active',
+                        reference TEXT NOT NULL DEFAULT '', payload TEXT NOT NULL DEFAULT '{}',
+                        created_by INTEGER, created_at TEXT NOT NULL DEFAULT '', updated_at TEXT NOT NULL DEFAULT ''
+                    )");
+                    try { $pdo->exec("ALTER TABLE service_requests ADD COLUMN customer_record_id INTEGER"); } catch (\Throwable $ignored) {}
+                    $digits = preg_replace('/\D+/', '', $phone);
+                    $customerId = null;
+                    $customers = $pdo->query("SELECT id, payload FROM container_system_records WHERE kind = 'customer' AND status != 'archived'")->fetchAll();
+                    foreach ($customers as $customerRow) {
+                        $customerPayload = json_decode((string)$customerRow['payload'], true);
+                        if (is_array($customerPayload) && $digits !== '' &&
+                            preg_replace('/\D+/', '', (string)($customerPayload['phone'] ?? '')) === $digits) {
+                            $customerId = (int)$customerRow['id'];
+                            break;
+                        }
+                    }
+                    if (!$customerId) {
+                        $customerInsert = $pdo->prepare("INSERT INTO container_system_records (kind,status,reference,payload,created_at,updated_at) VALUES ('customer','active',:reference,:payload,:now,:now)");
+                        $customerInsert->execute([
+                            ':reference' => 'CUS-' . str_pad((string)$newReqId, 5, '0', STR_PAD_LEFT),
+                            ':payload' => json_encode(['name'=>$clientName, 'phone'=>$phone, 'email'=>'', 'source'=>'service_request', 'firstRequestId'=>$newReqId], JSON_UNESCAPED_UNICODE),
+                            ':now' => $now,
+                        ]);
+                        $customerId = (int)$pdo->lastInsertId();
+                    }
+                    if ($customerId && trim($location) !== '' && trim($location) !== 'غير محدد') {
+                        $siteExists = $pdo->prepare("SELECT id FROM container_system_records WHERE kind = 'customer_site' AND status != 'archived' AND payload LIKE :needle LIMIT 1");
+                        $siteExists->execute([':needle' => '%"customerRecordId":' . $customerId . '%']);
+                        $hasSameSite = false;
+                        foreach ($siteExists->fetchAll() as $siteRow) {
+                            $sitePayload = json_decode((string)($siteRow['payload'] ?? ''), true);
+                            if (is_array($sitePayload) && trim((string)($sitePayload['address'] ?? $sitePayload['location'] ?? '')) === trim($location)) {
+                                $hasSameSite = true;
+                                break;
+                            }
+                        }
+                        if (!$hasSameSite) {
+                            $siteInsert = $pdo->prepare("INSERT INTO container_system_records (kind,status,reference,payload,created_at,updated_at) VALUES ('customer_site','active',:reference,:payload,:now,:now)");
+                            $siteInsert->execute([
+                                ':reference' => 'SITE-' . str_pad((string)$newReqId, 5, '0', STR_PAD_LEFT),
+                                ':payload' => json_encode(['customerRecordId'=>$customerId, 'name'=>$clientName . ' — عنوان الطلب #' . $newReqId, 'address'=>$location, 'location'=>$location, 'requestId'=>$newReqId, 'source'=>'service_request', 'serviceType'=>$serviceType], JSON_UNESCAPED_UNICODE),
+                                ':now' => $now,
+                            ]);
+                        }
+                    }
+                    if ($customerId) {
+                        $pdo->prepare("UPDATE service_requests SET customer_record_id = :customer WHERE id = :id")
+                            ->execute([':customer'=>$customerId, ':id'=>$newReqId]);
+                    }
+                } catch (\Throwable $ignored) {
+                    // The order has already been saved; indexing is best-effort.
+                }
+
                 echo json_encode([
                     'reply' => "🎉 **تم تأكيد طلبك بنجاح!**\n\nرقم الطلب الخاص بك: **#{$newReqId}**\nسيتواصل معك السائق / المشرف الميداني لتأكيد تفريغ الحاوية وبدء التوصيل فوراً.",
                     'messageType' => 'success',
