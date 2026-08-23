@@ -120,6 +120,7 @@ export default function AdminRequests() {
   const [filter, setFilter]               = useState<string>("all")
   const [selectedRequest, setSelected]    = useState<ServiceRequest | null>(null)
   const [documentAction, setDocumentAction] = useState<{ request: RequestDocumentContext; kind: "contract" | "invoice" } | null>(null)
+  const [pendingDocumentAction, setPendingDocumentAction] = useState<{ request: RequestDocumentContext; kind: "contract" | "invoice" } | null>(null)
   const [editRequest, setEdit]            = useState<ServiceRequest | null>(null)
   const [createOpen, setCreateOpen]       = useState(false)
   const [deleteTarget, setDeleteTarget]   = useState<ServiceRequest | null>(null)
@@ -177,6 +178,15 @@ export default function AdminRequests() {
       .catch(() => setDrivers([]))
       .finally(() => setDriversLoading(false))
   }, [])
+
+  useEffect(() => {
+    if (selectedRequest || !pendingDocumentAction) return
+    const timer = window.setTimeout(() => {
+      setDocumentAction(pendingDocumentAction)
+      setPendingDocumentAction(null)
+    }, 250)
+    return () => window.clearTimeout(timer)
+  }, [pendingDocumentAction, selectedRequest])
 
   const handleAssignment = (request: ServiceRequest, value: string) => {
     const driverId = value === "unassigned" ? null : Number(value)
@@ -587,8 +597,14 @@ export default function AdminRequests() {
         drivers={drivers}
         assigning={assigning}
         onAssign={driverId => selectedRequest && handleAssignment(selectedRequest, driverId ? String(driverId) : "unassigned")}
-        onCreateContract={request => setDocumentAction({ request: request as RequestDocumentContext, kind: "contract" })}
-        onCreateInvoice={request => setDocumentAction({ request: request as RequestDocumentContext, kind: "invoice" })}
+        onCreateContract={request => {
+          setPendingDocumentAction({ request: request as RequestDocumentContext, kind: "contract" })
+          setSelected(null)
+        }}
+        onCreateInvoice={request => {
+          setPendingDocumentAction({ request: request as RequestDocumentContext, kind: "invoice" })
+          setSelected(null)
+        }}
       />
       <RequestDocumentModal
         request={documentAction?.request ?? null}
