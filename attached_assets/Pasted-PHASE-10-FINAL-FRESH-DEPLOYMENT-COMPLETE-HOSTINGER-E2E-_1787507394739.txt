@@ -1,0 +1,610 @@
+PHASE 10 — FINAL FRESH DEPLOYMENT + COMPLETE HOSTINGER E2E
+
+هذه الجولة إلزامية للتنفيذ حتى النهاية. لا تتوقف عند التخطيط أو التقرير.
+
+1. الموقع الصحيح — استخدم هذا فقط
+https://hawiat.aiservx.com
+
+ممنوع استخدام أي Domain آخر.
+
+2. بيانات Admin للإختبار الحي
+Admin URL:
+https://hawiat.aiservx.com/admin
+
+Username:
+admin
+
+Password:
+taqi2020
+
+ابدأ بتسجيل الدخول فعلياً واستخدم الـsession/token الناتج في جميع الاختبارات.
+
+3. بيانات Hostinger FTP
+
+استخدم البيانات التالية حرفياً:
+
+FTP Host:
+92.113.19.25
+
+FTP Port:
+21
+
+FTP Username:
+u130428819.hawiat.aiservx.com
+
+FTP Password:
+3691475+*Hh@!
+
+Remote Directory:
+public_html
+مهم جداً
+
+لا تتوقف بمجرد فشل أول محاولة FTP.
+
+جرّب بالترتيب:
+
+FTP على Port 21.
+Passive mode.
+تأكد أن الـusername يُرسل كاملاً بدون تعديل.
+تأكد أن الـremote path هو:
+public_html
+إذا ظهر 530، تحقق من طريقة المصادقة/صلاحية الحساب والمسار قبل إعلان BLOCKED.
+لا تستخدم Domain آخر.
+لا تفترض أن FTP غير متاح لمجرد فشل محاولة واحدة.
+
+إذا كان الاتصال متاحاً فعلياً، نفّذ النشر بنفسك ولا تنتظر مني خطوة إضافية.
+
+4. المطلوب قبل النشر
+
+لدينا Build جاهز:
+
+cleanflow-services-hostinger.zip
+
+لكن لا تفترض أن النسخة الموجودة على Hostinger هي النسخة الصحيحة.
+
+يجب:
+
+أولاً — Backup
+
+خذ نسخة احتياطية من قاعدة الإنتاج الحالية قبل أي استبدال:
+
+sabaik.db
+
+ولا تحذف بيانات الإنتاج قبل التأكد من نجاح الـbackup.
+
+ثانياً — Deployment
+
+ارفع النسخة الجديدة إلى:
+
+/public_html
+
+واستبدل الملفات القديمة فعلياً.
+
+تأكد خصوصاً من:
+
+api/index.php
+api/container-system.php
+data/sabaik.db
+cleanflow-platform/
+
+لا تضع الأرشيف داخل مجلد فرعي.
+
+المطلوب أن تكون الملفات الفعلية داخل:
+
+/public_html
+
+وليس:
+
+/public_html/cleanflow-services-hostinger/
+5. Deployment Verification
+
+بعد الرفع، تحقق فعلياً من الملفات المنشورة.
+
+تحقق من:
+
+api/index.php
+api/container-system.php
+
+وقارن:
+
+File size
+SHA-256
+
+مع النسخة الموجودة في Build.
+
+لا تقل Deployment PASS اعتماداً على HTTP 200 فقط.
+
+6. مهم جداً — البيانات القديمة
+
+أنا أريد Fresh E2E بعد الرفع.
+
+رفع النسخة الجديدة قد يستبدل قاعدة البيانات، وبالتالي لا تعتمد على Dataset القديم.
+
+بعد التأكد من نجاح Deployment، أنشئ Dataset جديد بالكامل باستخدام prefix:
+
+HOSTINGER-FRESH-E2E-2026
+
+ولا تستخدم IDs أو سجلات الاختبارات القديمة كأساس للجولة الجديدة.
+
+7. لا تتوقف بسبب عدم وجود موظفين أو مخازن
+
+هذه نقطة مهمة جداً.
+
+إذا كانت اختبارات:
+
+Purchase
+Inventory
+Commission
+Transfer
+Bank Fee
+
+تحتاج بيانات أساسية، أنشئ البيانات الأساسية المطلوبة داخل Dataset الجديد بدلاً من إعلان BLOCKED.
+
+أنشئ عند الحاجة:
+
+Customer
+Customer Site
+Contact
+Service Request
+Container / Asset
+Employee
+Warehouse
+Supplier
+Inventory Item
+Treasury
+Cash Account
+Bank Account
+Contract
+
+واجعل كل البيانات تحمل:
+
+HOSTINGER-FRESH-E2E-2026
+
+بحيث تكون مجموعة اختبار مستقلة وقابلة للتتبع.
+
+8. نفّذ Golden Dataset الكامل
+
+نفّذ الدورة التالية كاملة:
+
+Customer
+→ Site
+→ Contact
+→ Service Request
+→ Container / Asset
+→ Contract
+→ Contract Idempotency
+→ Invoice
+→ Invoice Approval
+→ Invoice Posting
+→ Payment
+→ Payment Idempotency
+→ Allocation
+→ Receipt
+→ Deposit
+→ Deposit Idempotency
+→ Bank Reconciliation
+→ Expense
+→ Expense Approval
+→ Expense Posting
+→ Expense Reversal
+→ Purchase
+→ Inventory
+→ Commission
+→ Bank Fee
+→ Bank Fee Idempotency
+→ Other Revenue
+→ Other Revenue Idempotency
+→ Transfer
+→ Refund
+→ Refund Reversal
+→ Financial Period
+→ Period Close
+→ Attempt Post After Close
+9. Idempotency — لا تتجاوز أي اختبار
+
+لكل عملية تدعم idempotency:
+
+First request
+
+يجب أن تكون مثلاً:
+
+201
+idempotent: false
+Second request بنفس المفتاح
+
+يجب أن تكون:
+
+200
+idempotent: true
+
+ويجب أن يعيد نفس السجل.
+
+تحقق من عدم وجود:
+
+Duplicate Record
+Duplicate Financial Transaction
+Duplicate Journal Entry
+Duplicate Reconciliation
+
+اختبر على الأقل:
+
+Contract
+Payment
+Deposit
+Bank Fee
+Other Revenue
+Reversal
+10. Bank Reconciliation
+
+يجب التأكد من:
+
+Deposit
+→ Financial Transaction
+→ Journal Entry
+→ Bank Reconciliation
+
+ويجب أن يكون:
+
+1 Deposit
+1 Financial Transaction
+1 Reconciliation
+
+وليس:
+
+1 Deposit
+2 Reconciliation
+11. Financial Period Lock
+
+أنشئ فترة اختبار جديدة.
+
+مثلاً:
+
+2026-10
+
+ثم:
+
+Post transaction.
+Close period.
+حاول Post transaction جديدة داخل الفترة المغلقة.
+
+المطلوب:
+
+HTTP 422
+
+مع:
+
+{
+  "error": "FINANCIAL_PERIOD_CLOSED"
+}
+
+وتأكد أن:
+
+No Financial Transaction
+No Journal Entry
+No financial mutation
+
+حدثت بعد الرفض.
+
+12. Financial Core
+
+بعد انتهاء كل العمليات، اقرأ Financial Core مباشرة من Hostinger.
+
+تحقق من:
+
+Gross Revenue
+Refunds
+Net Revenue
+Gross Collections
+Returned Collections
+Net Collections
+Expenses
+Purchases
+Inventory
+Commissions
+Bank Fees
+Other Revenue
+Transfers
+Cash
+Bank
+Profit
+Total Debit
+Total Credit
+
+والشرط الأساسي:
+
+Total Debit == Total Credit
+13. Cross Report Verification
+
+لا تكتفِ بقراءة API.
+
+افتح فعلياً:
+
+Financial Control Center
+Financial Cycle Workspace
+ReportPage
+
+واستخرج القيم الفعلية من الشاشات.
+
+أنشئ جدول:
+
+Metric
+Financial Core
+Control Center
+Cycle Workspace
+ReportPage
+Result
+
+ويجب أن تكون القيم متطابقة.
+
+14. Order → Contract
+
+اختبر:
+
+Order
+→ Customer
+→ Request
+→ Contract
+
+ثم:
+
+نفس Idempotency Key
+
+يجب:
+
+idempotent=true
+
+ونفس العقد.
+
+Different Key
+
+يجب رفض إنشاء عقد ثانٍ لنفس الطلب.
+
+وتأكد من عدم إنشاء:
+
+Duplicate Customer
+Duplicate Request
+Duplicate Contract
+15. Database Integrity
+
+بعد انتهاء الاختبارات، وإذا كان الوصول المباشر لقاعدة الإنتاج متاحاً، نفّذ:
+
+PRAGMA quick_check;
+PRAGMA integrity_check;
+
+ويجب:
+
+ok
+
+كذلك تحقق من:
+
+Duplicate session_id = 0
+
+ولا تعلن Database PASS اعتماداً على قاعدة محلية فقط.
+
+16. Security
+
+تحقق من:
+
+/data/
+/data/sabaik.db
+/.env
+/api/.env
+
+ويجب ألا تكون قابلة للتحميل.
+
+المتوقع:
+
+403
+
+واختبر API بدون Token:
+
+401
+17. لا تتوقف عند أول Failure
+
+هذا مهم جداً.
+
+إذا فشل اختبار واحد، لا توقف الجولة كلها.
+
+سجّل:
+
+FAIL
+Root Cause
+Endpoint
+HTTP Status
+Response
+
+ثم أكمل باقي الاختبارات المستقلة.
+
+التوقف يكون فقط إذا كان هناك خطر حقيقي على بيانات الإنتاج أو النظام.
+
+18. ممنوع تعديل المصدر أثناء Live E2E
+
+هذه الجولة هي:
+
+DEPLOY → VERIFY → TEST
+
+لا تعدّل الكود أثناء الاختبار.
+
+إذا اكتشفت Bug:
+
+STOP PATCHING
+DOCUMENT BUG
+CONTINUE SAFE TESTS
+
+ولا تعمل Patch جديد إلا في جولة إصلاح منفصلة.
+
+19. البيانات
+
+لا تحذف Dataset الجديد أثناء الجولة.
+
+كل البيانات يجب أن تحمل:
+
+HOSTINGER-FRESH-E2E-2026
+
+حتى يمكن حذفها لاحقاً كحزمة واحدة إذا أردنا ذلك.
+
+20. التقرير النهائي المطلوب
+
+في النهاية لا تكتب مجرد:
+
+8/10
+BLOCKED
+
+أريد تقريراً نهائياً يحتوي:
+
+========================================
+HOSTINGER FINAL FRESH E2E
+========================================
+
+Deployment:
+PASS/FAIL
+
+Live SHA-256:
+PASS/FAIL
+
+Authentication:
+PASS/FAIL
+
+Security:
+PASS/FAIL
+
+Database Integrity:
+PASS/FAIL
+
+Customer:
+PASS/FAIL
+
+Order:
+PASS/FAIL
+
+Contract:
+PASS/FAIL
+
+Contract Idempotency:
+PASS/FAIL
+
+Invoice:
+PASS/FAIL
+
+Payment:
+PASS/FAIL
+
+Payment Idempotency:
+PASS/FAIL
+
+Receipt:
+PASS/FAIL
+
+Deposit:
+PASS/FAIL
+
+Deposit Idempotency:
+PASS/FAIL
+
+Bank Reconciliation:
+PASS/FAIL
+
+Expense:
+PASS/FAIL
+
+Expense Reversal:
+PASS/FAIL
+
+Purchase:
+PASS/FAIL
+
+Inventory:
+PASS/FAIL
+
+Commission:
+PASS/FAIL
+
+Bank Fee:
+PASS/FAIL
+
+Bank Fee Idempotency:
+PASS/FAIL
+
+Other Revenue:
+PASS/FAIL
+
+Other Revenue Idempotency:
+PASS/FAIL
+
+Transfer:
+PASS/FAIL
+
+Refund:
+PASS/FAIL
+
+Refund Reversal:
+PASS/FAIL
+
+Financial Period:
+PASS/FAIL
+
+Period Lock:
+PASS/FAIL
+
+Financial Core:
+PASS/FAIL
+
+Double Entry:
+PASS/FAIL
+
+Financial Control Center:
+PASS/FAIL
+
+Financial Cycle Workspace:
+PASS/FAIL
+
+ReportPage:
+PASS/FAIL
+
+Cross Report:
+PASS/FAIL
+
+Node/PHP Parity:
+PASS/FAIL
+
+Database Integrity:
+PASS/FAIL
+
+Production Stability:
+PASS/FAIL
+
+========================================
+FINAL PRODUCTION CERTIFICATION
+========================================
+
+ثم اذكر كل Failure حقيقي فقط مع السبب والدليل.
+
+القاعدة الأخيرة
+
+لا أريد خطة جديدة.
+
+لا أريد أن تقول لي "سأبني أرشيفاً" ثم تتوقف.
+
+المطلوب:
+
+1. استخدم بيانات الدخول أعلاه.
+2. ادخل FTP.
+3. خذ Backup.
+4. ارفع Build.
+5. تحقق من Deployment.
+6. أنشئ Fresh Dataset.
+7. أنشئ Employee/Warehouse/Supplier/Treasury وكل prerequisites المطلوبة.
+8. نفّذ Golden Dataset بالكامل.
+9. اختبر كل Financial Lifecycle.
+10. اختبر Idempotency.
+11. اختبر Financial Core.
+12. اختبر التقارير.
+13. اختبر Database Integrity.
+14. أكمل حتى نهاية الجولة.
+15. أعطني التقرير النهائي فقط بعد إكمال كل ما يمكن تنفيذه.
+
+لا تعلن BLOCKED بسبب عدم وجود بيانات أساسية؛ أنشئها ضمن HOSTINGER-FRESH-E2E-2026.
+
+ولا تعلن 10/10 إلا إذا تم تنفيذ الاختبارات فعلياً وإثباتها بالأدلة.
+
+ابدأ الآن ونفّذ، لا تكتفِ بالتحليل أو كتابة خطة.
