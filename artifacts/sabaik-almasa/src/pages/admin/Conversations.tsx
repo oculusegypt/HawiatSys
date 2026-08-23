@@ -147,6 +147,8 @@ export default function AdminConversations() {
   const activeConversations = conversations?.filter(conversation => conversation.status !== "closed") ?? []
   const closedConversations = conversations?.filter(conversation => conversation.status === "closed") ?? []
   const visibleConversations = showClosed ? closedConversations : activeConversations
+  const newVisitors = activeVisitors.filter(visitor => !visitor.conversationId)
+  const visitorsWithConversations = activeVisitors.length - newVisitors.length
 
   const loadActiveVisitors = useCallback(async () => {
     const token = localStorage.getItem("admin_token")
@@ -406,27 +408,39 @@ export default function AdminConversations() {
             <h2 className="font-bold text-emerald-950">الزوار الموجودون الآن</h2>
             <p className="text-xs text-emerald-800/70">يظهر الزائر هنا ما دام يتصفح الموقع خلال آخر خمس دقائق.</p>
           </div>
-          <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-800">{activeVisitors.length} متصل</span>
+          <div className="flex flex-wrap items-center gap-1.5 text-xs font-bold">
+            <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-emerald-800">{activeVisitors.length} زائر نشط</span>
+            <span className="rounded-full bg-blue-100 px-2.5 py-1 text-blue-800">{visitorsWithConversations} في محادثة</span>
+            <span className="rounded-full bg-amber-100 px-2.5 py-1 text-amber-800">{newVisitors.length} بدون محادثة</span>
+          </div>
           <button onClick={() => void loadActiveVisitors()} className="rounded-lg p-2 text-emerald-700 hover:bg-emerald-100" title="تحديث القائمة" aria-label="تحديث القائمة"><RefreshCw size={15} /></button>
         </div>
         <div className="flex flex-wrap items-center gap-2 border-b border-emerald-100 px-4 py-3">
           <Input value={visitorMessage} onChange={event => setVisitorMessage(event.target.value)} className="min-w-[18rem] flex-1 bg-white text-xs" placeholder="رسالة الدعوة للزائر" />
         </div>
         <div className="flex gap-2 overflow-x-auto p-3">
-          {activeVisitors.filter(visitor => !visitor.conversationId).map(visitor => (
+          {activeVisitors.map(visitor => (
             <div key={visitor.sessionId} className="min-w-[14rem] rounded-xl border border-emerald-100 bg-white p-3 shadow-sm">
               <div className="flex items-center justify-between gap-2">
                 <p className="truncate text-sm font-bold text-gray-800">{visitor.clientName || "زائر مجهول"}</p>
                 <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
               </div>
               <p className="mt-1 truncate text-[11px] text-gray-500" dir="ltr">{visitor.phone || "لم يسجل بياناته"} · {visitor.page || "/"}</p>
-              <Button size="sm" onClick={() => void inviteVisitor(visitor.sessionId)} disabled={invitingVisitor === visitor.sessionId || visitor.hasPendingInvitation} className="mt-3 h-8 w-full gap-1.5 rounded-lg bg-emerald-600 text-xs hover:bg-emerald-700">
-                <Send size={13} /> {visitor.hasPendingInvitation ? "تم إرسال الدعوة" : invitingVisitor === visitor.sessionId ? "جارٍ الإرسال..." : "دعوة للمحادثة"}
-              </Button>
+              {visitor.conversationId ? (
+                <Button size="sm" variant="outline" onClick={() => setSelectedId(visitor.conversationId ?? null)} className="mt-3 h-8 w-full gap-1.5 rounded-lg border-blue-200 text-xs text-blue-700 hover:bg-blue-50">
+                  <MessageSquare size={13} /> مرتبط بمحادثة — فتح
+                </Button>
+              ) : (
+                <Button size="sm" onClick={() => void inviteVisitor(visitor.sessionId)} disabled={invitingVisitor === visitor.sessionId || visitor.hasPendingInvitation} className="mt-3 h-8 w-full gap-1.5 rounded-lg bg-emerald-600 text-xs hover:bg-emerald-700">
+                  <Send size={13} /> {visitor.hasPendingInvitation ? "تم إرسال الدعوة" : invitingVisitor === visitor.sessionId ? "جارٍ الإرسال..." : "دعوة للمحادثة"}
+                </Button>
+              )}
             </div>
           ))}
-          {activeVisitors.filter(visitor => !visitor.conversationId).length === 0 && (
-            <p className="px-2 py-3 text-xs text-emerald-900/60">لا يوجد زوار جدد بدون محادثة حالياً.</p>
+          {activeVisitors.length === 0 && (
+            <p className="px-2 py-3 text-xs text-emerald-900/60">
+              لا يوجد زوار نشطون حالياً.
+            </p>
           )}
         </div>
       </Card>

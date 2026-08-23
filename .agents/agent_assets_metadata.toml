@@ -35,14 +35,14 @@ content_type = "application/octet-stream"
 id = "RTo70OttJokFRCRKOlWig"
 uri = "file://hawiat-update-patch.zip"
 type = "unspecified"
-title = "باتش تحديث أرقام الحاويات"
-description = "حزمة تحديث شاملة جاهزة للرفع إلى Hostinger، تتضمن الواجهة وملفات PHP وقاعدة البيانات بأرقام CNT-101 إلى CNT-120."
+title = "باتش تحديث نظام الزوار والحاويات"
+description = "النسخة النهائية الجاهزة للرفع، تشمل إظهار كل الزوار النشطين، فتح المحادثة المرتبطة، وترقيم الحاويات CNT-101 إلى CNT-120 مع قاعدة البيانات."
 logical_id = "da5e0650-6b63-4e98-9652-3d02a75fa1ad"
-content_hash = "sha256:e4603e4e33ae5aa57f2f0036570ca92c496e26027c93e0c290cf052cb66fd8f5"
-size = 2788300
-mtime_ms = 1787527765835
-storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:d4af8f3a-f81b-450b-a6d5-1b54ebbf1b28/da5e0650-6b63-4e98-9652-3d02a75fa1ad/7b437d3d-9860-40f4-84dc-1e1c7c8b0cb1"
-storage_version_token = "1787527778779899"
+content_hash = "sha256:3d06f6a661d81f1790c0e23c4797fbdbe429c5a006a4366b4cdecc592890b044"
+size = 2788428
+mtime_ms = 1787528628936
+storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:d4af8f3a-f81b-450b-a6d5-1b54ebbf1b28/da5e0650-6b63-4e98-9652-3d02a75fa1ad/195934e3-d893-4e71-ae01-dc8b93165c95"
+storage_version_token = "1787528633176836"
 content_type = "application/octet-stream"
 
 [[outputs]]
