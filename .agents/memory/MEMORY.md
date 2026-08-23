@@ -17,3 +17,4 @@
 - [Documentation roadmap](documentation-roadmap.md) — root README and dated audit are the shared reference for product scope and UX priorities.
 - [Hostinger preflight headers](hostinger-preflight-headers.md) — PHP CORS headers must include every custom browser header used by financial/idempotent workflows.
 - [Financial posting boundary](financial-posting-boundary.md) — financial totals must use posted records only, with receipt/payment deduplication and explicit reversal entries for cancellations.
+- [Financial final certification](financial-final-certification.md) — code checks alone cannot certify finance; require a full safe transaction cycle and cross-report reconciliation.
