@@ -223,6 +223,109 @@ sqlite.exec(`
     ON container_system_audit(created_at);
 `);
 
+// Typed financial core. The legacy container record remains readable during
+// migration, but all newly posted financial sources receive a typed ledger
+// projection with database uniqueness constraints.
+sqlite.exec(`
+  CREATE TABLE IF NOT EXISTS financial_accounts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    code TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    category TEXT NOT NULL,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE TABLE IF NOT EXISTS financial_periods (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    period_key TEXT NOT NULL UNIQUE,
+    starts_on TEXT NOT NULL,
+    ends_on TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'open',
+    closed_by INTEGER,
+    closed_at TEXT
+  );
+  CREATE TABLE IF NOT EXISTS financial_transactions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    transaction_number TEXT NOT NULL,
+    transaction_type TEXT NOT NULL,
+    source_kind TEXT NOT NULL,
+    source_id INTEGER NOT NULL,
+    reference TEXT NOT NULL DEFAULT '',
+    transaction_date TEXT NOT NULL,
+    amount REAL NOT NULL DEFAULT 0,
+    currency TEXT NOT NULL DEFAULT 'SAR',
+    status TEXT NOT NULL DEFAULT 'posted',
+    operation_key TEXT UNIQUE,
+    created_by INTEGER,
+    approved_by INTEGER,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    posted_at TEXT,
+    cancelled_at TEXT,
+    cancellation_reason TEXT,
+    UNIQUE(source_kind, source_id)
+  );
+  CREATE TABLE IF NOT EXISTS financial_journal_entries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    transaction_id INTEGER NOT NULL UNIQUE,
+    entry_number TEXT NOT NULL,
+    total_debit REAL NOT NULL DEFAULT 0,
+    total_credit REAL NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'posted',
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    CHECK (abs(total_debit - total_credit) < 0.011)
+  );
+  CREATE TABLE IF NOT EXISTS financial_journal_lines (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    journal_entry_id INTEGER NOT NULL,
+    account_code TEXT NOT NULL,
+    debit REAL NOT NULL DEFAULT 0,
+    credit REAL NOT NULL DEFAULT 0,
+    description TEXT NOT NULL DEFAULT '',
+    CHECK (debit >= 0 AND credit >= 0 AND NOT (debit > 0 AND credit > 0))
+  );
+  CREATE TABLE IF NOT EXISTS financial_allocations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    transaction_id INTEGER NOT NULL,
+    contract_id INTEGER,
+    invoice_id INTEGER,
+    amount REAL NOT NULL CHECK (amount > 0)
+  );
+  CREATE TABLE IF NOT EXISTS bank_reconciliations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    deposit_record_id INTEGER NOT NULL,
+    bank_account_code TEXT NOT NULL DEFAULT 'BANK-001',
+    deposit_reference TEXT NOT NULL DEFAULT '',
+    deposit_date TEXT NOT NULL,
+    amount REAL NOT NULL,
+    linked_transaction_id INTEGER,
+    bank_fee REAL NOT NULL DEFAULT 0,
+    difference REAL NOT NULL DEFAULT 0,
+    difference_reason TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'unmatched',
+    approved_by INTEGER,
+    approved_at TEXT
+  );
+`);
+const financialAccounts = [
+  ["CASH-001", "الخزينة الرئيسية", "cash"],
+  ["BANK-001", "الحساب البنكي الرئيسي", "bank"],
+  ["AR-001", "ذمم العملاء", "receivable"],
+  ["AP-001", "ذمم الموردين", "payable"],
+  ["REV-001", "إيرادات الخدمات", "revenue"],
+  ["REV-OTHER", "إيرادات أخرى", "other_revenue"],
+  ["EXP-001", "المصروفات العامة", "expense"],
+  ["EXP-MAINT", "مصروفات الصيانة", "maintenance"],
+  ["INV-001", "المخزون", "inventory"],
+  ["COGS-001", "تكلفة المبيعات", "cogs"],
+  ["COMM-001", "العمولات", "commission"],
+  ["BANK-FEE", "رسوم بنكية", "bank_fee"],
+  ["TRANSFER-001", "تحويلات داخلية", "transfer"],
+  ["REFUND-001", "المرتجعات", "refund"],
+  ["ADJ-001", "التسويات", "adjustment"],
+] as const;
+const accountInsert = sqlite.prepare("INSERT OR IGNORE INTO financial_accounts (code, name, category) VALUES (?, ?, ?)");
+for (const account of financialAccounts) accountInsert.run(...account);
+
 try { sqlite.exec("ALTER TABLE container_system_records ADD COLUMN operation_key TEXT"); } catch { /* already exists */ }
 try {
   sqlite.exec(`
@@ -241,3 +344,4 @@ sqlite.exec(`
 export const db = drizzle(sqlite, { schema });
 export { sqlite };
 export * from "./schema";
+export * from "./financial-core";

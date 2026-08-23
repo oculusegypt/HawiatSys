@@ -17,3 +17,4 @@ export * from "./posts";
 export * from "./seoPages";
 export * from "./reviews";
 export * from "./containerSystem";
+export * from "./financial";

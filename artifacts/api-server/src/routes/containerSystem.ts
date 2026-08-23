@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { and, desc, eq, like } from "drizzle-orm";
-import { db, containerSystemAuditTable, containerSystemRecordsTable, serviceRequestsTable } from "@workspace/db";
+import { db, containerSystemAuditTable, containerSystemRecordsTable, serviceRequestsTable, financialTruth, financialPeriods, closeFinancialPeriod, postToFinancialCore, reverseInFinancialCore } from "@workspace/db";
 import type { AdminRequest } from "../middleware/adminAuth";
 import { getSetting } from "./settings";
 
@@ -1077,7 +1077,31 @@ router.post("/admin/container-system/financial/settle", requireContainerPermissi
       }
       return { payment, ledger };
     });
-    return res.status(201).json({ payment: formatRecord(result.payment), ledgerEntry: formatRecord(result.ledger), idempotent: false });
+     const paymentPayload = parsePayload(result.payment.payload);
+     postToFinancialCore({
+       sourceKind: "payment",
+       sourceId: result.payment.id,
+       reference: result.payment.reference,
+       amount,
+       date: String(paymentPayload.date ?? new Date().toISOString().slice(0, 10)),
+       operationKey,
+       createdBy: adminReq.adminId,
+       paymentMethod,
+       allocations: allocations.map(item => ({ contractId: item.contractId, invoiceId: item.invoiceId, amount: item.amount })),
+     });
+     if (body.depositId) {
+       const depositPayload = parsePayload((await db.select().from(containerSystemRecordsTable).where(eq(containerSystemRecordsTable.id, Number(body.depositId))).get())?.payload ?? "{}");
+       const depositAmount = Number(depositPayload.amount ?? depositPayload.total ?? 0);
+       const difference = depositAmount - amount;
+       // The reconciliation row is the typed, auditable link for this deposit.
+       const { sqlite } = await import("@workspace/db");
+       sqlite.prepare(`
+         INSERT OR IGNORE INTO bank_reconciliations
+           (deposit_record_id, deposit_reference, deposit_date, amount, linked_transaction_id, difference, status)
+         VALUES (?, ?, ?, ?, (SELECT id FROM financial_transactions WHERE source_kind = 'payment' AND source_id = ?), ?, ?)
+       `).run(Number(body.depositId), String(depositPayload.reference ?? ""), String(depositPayload.date ?? paymentPayload.date), depositAmount || amount, result.payment.id, difference, Math.abs(difference) < 0.01 ? "matched" : "difference");
+     }
+     return res.status(201).json({ payment: formatRecord(result.payment), ledgerEntry: formatRecord(result.ledger), idempotent: false });
   } catch (error) {
     if (operationKey && error instanceof Error && error.message.includes("UNIQUE constraint failed")) {
       const raced = await findByOperationKey("payment", operationKey);
@@ -1495,6 +1519,26 @@ router.post("/admin/container-system/records", async (req, res) => {
       }),
       createdBy: adminReq.adminId,
     });
+     try {
+       postToFinancialCore({
+         sourceKind: kind,
+         sourceId: created.id,
+         reference: created.reference,
+         amount: Number(payload.amount ?? payload.total ?? 0),
+         date: String(payload.date ?? new Date().toISOString().slice(0, 10)),
+         operationKey: requestOperationKey,
+         createdBy: adminReq.adminId,
+         paymentMethod: String(payload.paymentMethod ?? ""),
+         allocations: Array.isArray(payload.allocations) ? payload.allocations.map((item: any) => ({
+           contractId: Number(item.contractId) || null,
+           invoiceId: Number(item.invoiceId) || null,
+           amount: Number(item.amount),
+         })) : undefined,
+       });
+     } catch (error) {
+       await db.update(containerSystemRecordsTable).set({ status: "archived", updatedAt: new Date().toISOString() }).where(eq(containerSystemRecordsTable.id, created.id));
+       return res.status(422).json({ error: error instanceof Error ? error.message : "تعذر ترحيل الحركة إلى النواة المالية" });
+     }
   }
   return res.status(201).json(formatRecord(created));
 });
@@ -1658,9 +1702,40 @@ router.patch("/admin/container-system/records/:id", async (req, res) => {
           createdBy: adminReq.adminId,
         }).run();
       }
+      try {
+        postToFinancialCore({
+          sourceKind: current.kind,
+          sourceId: id,
+          reference: current.reference,
+          amount: Number(nextPayload.amount ?? nextPayload.total ?? 0),
+          date: String(nextPayload.date ?? new Date().toISOString().slice(0, 10)),
+          operationKey: current.operationKey,
+          createdBy: current.createdBy,
+          paymentMethod: String(nextPayload.paymentMethod ?? ""),
+          allocations: Array.isArray(nextPayload.allocations) ? nextPayload.allocations.map((item: any) => ({
+            contractId: Number(item.contractId) || null,
+            invoiceId: Number(item.invoiceId) || null,
+            amount: Number(item.amount),
+          })) : undefined,
+        });
+      } catch (error) {
+        throw new Error(error instanceof Error ? error.message : "تعذر ترحيل الحركة إلى النواة المالية");
+      }
     }
     return next;
   });
+  if (financialLifecycleKinds.has(current.kind) && current.status === "posted" && nextStatus === "cancelled") {
+    const amount = Number(nextPayload.amount ?? nextPayload.total ?? 0);
+    if (amount > 0) {
+      reverseInFinancialCore({
+        sourceKind: current.kind,
+        sourceId: id,
+        amount,
+        reference: current.reference,
+        createdBy: current.createdBy,
+      }, String(nextPayload.reason ?? nextPayload.cancellationReason ?? "إلغاء حركة مالية مرحّلة"), adminReq.adminId);
+    }
+  }
   if (current.kind === "container_movement") await syncMovement(nextPayload, adminReq.adminId);
   if (current.kind === "contract" && nextPayload.requestId) {
     try {
@@ -1670,6 +1745,37 @@ router.patch("/admin/container-system/records/:id", async (req, res) => {
     }
   }
   return res.json(formatRecord(updated));
+});
+
+router.get("/admin/container-system/financial/core", requireContainerPermission("financial_reports"), async (_req, res) => {
+  return res.json(financialTruth());
+});
+
+router.get("/admin/container-system/financial/reconciliation", requireContainerPermission("financial_reports"), async (_req, res) => {
+  const { sqlite } = await import("@workspace/db");
+  const rows = sqlite.prepare(`
+    SELECT br.*, ft.transaction_number, ft.transaction_type
+    FROM bank_reconciliations br
+    LEFT JOIN financial_transactions ft ON ft.id = br.linked_transaction_id
+    ORDER BY br.deposit_date DESC, br.id DESC
+  `).all();
+  return res.json(rows);
+});
+
+router.get("/admin/container-system/financial/periods", requireContainerPermission("financial_reports"), async (_req, res) => {
+  return res.json(financialPeriods());
+});
+
+router.post("/admin/container-system/financial/periods/:periodKey/close", requireContainerPermission("financial_reports"), async (req, res) => {
+  const adminReq = req as unknown as AdminRequest;
+  const periodKey = String(req.params.periodKey);
+  if (!/^\d{4}-\d{2}$/.test(periodKey)) return res.status(422).json({ error: "صيغة الفترة يجب أن تكون YYYY-MM" });
+  try {
+    closeFinancialPeriod(periodKey, adminReq.adminId);
+    return res.json({ success: true, periodKey, status: "closed" });
+  } catch (error) {
+    return res.status(422).json({ error: error instanceof Error ? error.message : "تعذر إغلاق الفترة المالية" });
+  }
 });
 
 router.delete("/admin/container-system/records/:id", async (req, res) => {
