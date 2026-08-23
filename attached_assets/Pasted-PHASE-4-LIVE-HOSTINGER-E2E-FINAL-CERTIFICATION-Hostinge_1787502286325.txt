@@ -1,0 +1,570 @@
+PHASE 4 — LIVE HOSTINGER E2E FINAL CERTIFICATION
+
+تم رفع التحديث الجديد بالفعل إلى Hostinger.
+
+المطلوب الآن: لا تعدّل الكود، ولا تبنِ نسخة جديدة، ولا تنشئ خطة جديدة.
+ابدأ مباشرة باختبار النسخة المنشورة فعلياً على Hostinger.
+
+الهدف هو إغلاق آخر مرحلة: Live Hostinger E2E Certification.
+
+1. البيئة الصحيحة — مهم جداً
+
+اختبر هذا الدومين فقط:
+
+https://hawiat.aiservx.com
+
+ولا تستخدم أي دومين آخر، خصوصاً:
+
+sabaik-almasa.com
+أي localhost
+أي Preview
+أي SQLite محلي
+
+هذه هي البيئة المطلوب اعتمادها.
+
+2. بيانات دخول Admin
+
+Admin URL:
+
+https://hawiat.aiservx.com/admin
+
+Username:
+
+admin
+
+Password:
+
+taqi2020
+
+هذه بيانات بيئة اختبار، ومصرح لك باستخدامها لتنفيذ الاختبار الحي.
+
+3. بيانات Hostinger FTP
+
+استخدمها إذا احتجت للتحقق من الملفات أو التأكد من أن التحديث الذي تم رفعه هو النسخة الصحيحة.
+
+FTP Host:
+
+92.113.19.25
+
+FTP Port:
+
+21
+
+FTP Username:
+
+u130428819.hawiat.aiservx.com
+
+FTP Password:
+
+3691475+*Hh@!
+
+Remote directory:
+
+public_html
+
+لديك تصريح صريح باستخدام هذه البيانات على بيئة الاختبار.
+
+لكن لا ترفع أو تحذف أو تستبدل أي ملف الآن.
+
+التحديث تم رفعه بالفعل.
+
+استخدم FTP للقراءة والتحقق فقط إذا لزم الأمر.
+
+4. المطلوب الأول — Verify Deployment
+
+قبل الاختبارات الوظيفية، تأكد أن Hostinger يشغّل النسخة الجديدة.
+
+تحقق من:
+
+https://hawiat.aiservx.com
+https://hawiat.aiservx.com/admin
+https://hawiat.aiservx.com/api/healthz
+
+وتحقق من:
+
+HTTP status
+PHP runtime
+API response
+database availability
+deployment version إن كان هناك fingerprint/version
+عدم وجود PHP fatal errors
+
+لا تعتمد على نجاح local build.
+
+الاختبار يجب أن يكون على الخادم الحي.
+
+5. Security Smoke Test
+
+تحقق من:
+
+/data
+/data/sabaik.db
+/.env
+/api/.env
+
+المطلوب:
+
+403 / protected
+
+وتحقق من عدم وجود Directory Listing.
+
+ثم:
+
+/admin
+
+بدون جلسة مصادقة يجب أن يكون محمياً.
+
+بعد ذلك سجل الدخول باستخدام:
+
+admin
+taqi2020
+
+وتحقق من:
+
+/api/auth/me
+6. BLOCKER TEST #1 — Bank Reconciliation
+
+هذه إحدى المشاكل التي تم إصلاحها في التحديث الحالي.
+
+لا تكتفِ بقراءة الكود.
+
+أنشئ دورة حقيقية على Hostinger باستخدام بادئة:
+
+HOSTINGER-PHASE4-E2E-2026
+
+نفذ:
+
+Payment
+↓
+Deposit
+↓
+Post Deposit
+↓
+Financial Transaction
+↓
+Journal Entry
+↓
+Bank Reconciliation
+
+ثم افحص:
+
+GET /api/admin/container-system/financial/reconciliation
+
+يجب أن يظهر سجل المطابقة الخاص بالإيداع.
+
+تحقق من:
+
+depositId
+depositReference
+amount
+paymentId
+difference
+status
+audit information
+
+ثم أعد العملية بنفس idempotency key.
+
+يجب ألا يتم إنشاء reconciliation مكرر.
+
+النتيجة المطلوبة:
+
+Bank Deposit Posting: PASS
+Financial Transaction: PASS
+Journal Entry: PASS
+Bank Reconciliation: PASS
+Duplicate Reconciliation: PREVENTED
+7. BLOCKER TEST #2 — PHP Other Revenue Idempotency
+
+هذه أيضاً تم إصلاحها في التحديث.
+
+أنشئ:
+
+Other Revenue
+
+باستخدام:
+
+Idempotency-Key:
+HOSTINGER-PHASE4-OTHER-REVENUE-001
+
+نفذ نفس الطلب مرتين بنفس المفتاح.
+
+الطلب الأول
+
+المطلوب:
+
+Created: YES
+idempotent: false
+Financial Transaction: +1
+Journal Entry: +1
+الطلب الثاني
+
+المطلوب:
+
+HTTP: 200 أو النتيجة المناسبة
+idempotent: true
+Same Record: YES
+New Draft: NO
+New Financial Transaction: NO
+New Journal Entry: NO
+
+تحقق مباشرة من قاعدة البيانات/Financial Core إن أمكن.
+
+يجب أن يكون:
+
+Other Revenue Records = +1
+Financial Transactions = +1
+Journal Entries = +1
+
+وليس +2.
+
+8. BLOCKER TEST #3 — Financial Period Lock
+
+أنشئ أو استخدم فترة اختبار مستقلة.
+
+مثلاً:
+
+2026-11
+
+أغلق الفترة.
+
+تحقق:
+
+GET /api/admin/container-system/financial/periods
+
+ثم حاول تنفيذ عملية مالية داخل الفترة المغلقة.
+
+المطلوب:
+
+HTTP 422
+
+وليس:
+
+HTTP 500
+
+والاستجابة يجب أن تكون قريبة من:
+
+{
+  "error": "FINANCIAL_PERIOD_CLOSED",
+  "message": "Cannot post financial transaction into a closed period."
+}
+
+الأهم:
+
+Financial Transaction: NOT CREATED
+Journal Entry: NOT CREATED
+Balance: UNCHANGED
+Database Mutation: NONE
+
+إذن الاختبار يجب أن يتحقق من HTTP status + عدم حدوث mutation.
+
+9. Full Financial Regression
+
+إذا نجحت الإصلاحات الثلاثة، لا تتوقف.
+
+نفذ دورة مالية حقيقية شاملة على Hostinger:
+
+Website Order
+↓
+Customer
+↓
+Service Request
+↓
+Contract
+↓
+Invoice
+↓
+Payment
+↓
+Allocation
+↓
+Receipt
+↓
+Deposit
+↓
+Bank Reconciliation
+↓
+Financial Core
+↓
+Reports
+
+ثم اختبر:
+
+Expense
+→ Approval
+→ Post
+→ Reverse
+
+ثم:
+
+Purchase
+→ Post
+→ Inventory
+
+ثم:
+
+Commission
+→ Post
+
+ثم:
+
+Bank Fee
+→ Post
+
+ثم:
+
+Other Revenue
+→ Post
+→ Idempotency
+
+ثم:
+
+Refund
+→ Post
+
+ثم:
+
+Transfer
+→ Post
+10. Order → Contract Regression
+
+اختبر المسار الحقيقي من الموقع:
+
+Website
+→ Create Customer automatically
+→ Create Service Request
+→ Admin receives request
+→ Convert existing request to Contract
+
+يجب:
+
+Customer: reused
+Service Request: reused
+Contract: created once
+
+ثم أعد نفس العملية بنفس idempotency key.
+
+المطلوب:
+
+Same Contract
+Same Request
+Same Customer
+idempotent = true
+No duplicate Contract
+No duplicate Request
+No duplicate Customer
+11. Financial Truth
+
+بعد جميع العمليات، اقرأ Financial Core من API.
+
+تحقق من:
+
+Gross Revenue
+Refunds
+Net Revenue
+Gross Collections
+Returned Collections
+Net Collections
+Receivables
+Expenses
+Purchases
+Inventory
+Commissions
+Bank Fees
+Other Revenue
+Transfers
+Cash
+Bank
+Profit
+
+ثم تحقق:
+
+Total Debit = Total Credit
+
+ولا تقبل مجرد أن الصفحة تعرض أرقاماً.
+
+يجب أن تأتي الأرقام من Financial Core.
+
+12. Cross-Report Verification
+
+اختبر على Hostinger:
+
+Financial Control Center
+Financial Cycle Workspace
+ReportPage
+
+وتحقق أن النتائج الرئيسية متطابقة مع Financial Core.
+
+خصوصاً:
+
+Revenue
+Collections
+Expenses
+Receivables
+Profit
+Cash
+Bank
+Refunds
+Commissions
+Purchases
+
+أي اختلاف بين تقرير وFinancial Core = FAIL.
+
+13. Database Verification
+
+إذا كانت أدوات الإدارة توفر عرض قاعدة البيانات، استخدمها للتحقق من العمليات الحية.
+
+تحقق من الجداول:
+
+financial_accounts
+financial_periods
+financial_transactions
+financial_journal_entries
+financial_journal_lines
+financial_allocations
+bank_reconciliations
+
+تحقق خصوصاً من:
+
+No duplicate financial transaction
+No duplicate journal entry
+No duplicate reversal
+No duplicate reconciliation
+No duplicate other revenue
+
+ولا تحذف بيانات الاختبار أثناء الاختبار.
+
+14. Production Safety
+
+أثناء الاختبار:
+
+ممنوع:
+
+حذف بيانات العملاء الحقيقية.
+حذف عقود حقيقية.
+حذف فواتير حقيقية.
+تعديل عمليات حقيقية غير مرتبطة بالاختبار.
+حذف قاعدة البيانات.
+استبدال public_html.
+تغيير DNS.
+تغيير إعدادات Hostinger.
+إعادة بناء أو نشر نسخة جديدة.
+
+استخدم فقط بيانات الاختبار:
+
+HOSTINGER-PHASE4-E2E-2026
+15. إذا فشل أي اختبار
+
+لا تعدّل الكود مباشرة.
+
+أولاً:
+
+Reproduce
+↓
+Capture HTTP status
+↓
+Capture response
+↓
+Identify exact route
+↓
+Identify source of failure
+↓
+Determine whether it is deployment/cache/database issue
+
+ثم أوقف الاختبار وأبلغني.
+
+لا تصلح شيئاً في المصدر ولا تبنِ Patch جديداً في هذه المرحلة إلا إذا طلبت منك ذلك صراحة.
+
+هذه المرحلة هي Verification فقط.
+
+16. معيار الاعتماد النهائي
+
+لا تعلن:
+
+10/10
+
+إلا إذا أصبحت:
+
+Bank Reconciliation: PASS
+Other Revenue Idempotency: PASS
+Financial Period Lock: PASS
+Expense Reversal: PASS
+Financial Core: PASS
+Double Entry: PASS
+Golden Dataset: PASS
+Cross-Report: PASS
+Order → Contract: PASS
+Node/PHP Parity: PASS
+Hostinger E2E: PASS
+Security: PASS
+Production Regression: PASS
+
+ولا يوجد:
+
+FAIL
+BLOCKED
+PARTIAL
+
+في أي مسار أساسي.
+
+17. التقرير النهائي
+
+في النهاية أرسل تقريراً دقيقاً بهذا الشكل:
+
+========================================
+FINAL HOSTINGER LIVE CERTIFICATION
+========================================
+
+Deployment Verification: PASS/FAIL
+DNS: PASS/FAIL
+HTTPS: PASS/FAIL
+PHP Runtime: PASS/FAIL
+Database: PASS/FAIL
+Authentication: PASS/FAIL
+Security: PASS/FAIL
+
+Order → Customer: PASS/FAIL
+Order → Service Request: PASS/FAIL
+Order → Contract: PASS/FAIL
+
+Invoice → Financial Core: PASS/FAIL
+Payment: PASS/FAIL
+Payment Idempotency: PASS/FAIL
+Receipt: PASS/FAIL
+Deposit: PASS/FAIL
+Bank Reconciliation: PASS/FAIL
+
+Expense: PASS/FAIL
+Expense Reversal: PASS/FAIL
+Purchase: PASS/FAIL
+Inventory: PASS/FAIL
+Commission: PASS/FAIL
+Bank Fee: PASS/FAIL
+Other Revenue: PASS/FAIL
+Other Revenue Idempotency: PASS/FAIL
+Refund: PASS/FAIL
+Transfer: PASS/FAIL
+
+Financial Period Close: PASS/FAIL
+Financial Period Lock: PASS/FAIL
+HTTP Error Handling: PASS/FAIL
+
+Financial Core: PASS/FAIL
+Double Entry: PASS/FAIL
+Golden Dataset: PASS/FAIL
+Cross-Report Consistency: PASS/FAIL
+Node/PHP Parity: PASS/FAIL
+
+Security: PASS/FAIL
+Production Regression: PASS/FAIL
+
+========================================
+HOSTINGER E2E: PASS/FAIL
+FINAL PRODUCTION CERTIFICATION: PASS/FAIL
+FINAL SCORE: X/10
+========================================
+
+مهم جداً: التحديث تم رفعه بالفعل، لذلك لا تقم بأي Deployment الآن. المطلوب هو اختبار النسخة الحالية الموجودة فعلياً على:
+
+https://hawiat.aiservx.com
+
+باستخدام بيانات الدخول المذكورة أعلاه، وإغلاق مرحلة الاعتماد بالأدلة الفعلية فقط.
