@@ -808,6 +808,7 @@ export function RecordDialog({
         customerAddress: invoiceCustomerAddress,
       }
     : payload
+  const invoiceCustomerId = invoiceCustomer?.id ? String(invoiceCustomer.id) : ""
   const invoiceContracts = isInvoice
     ? records.filter(item => item.kind === "contract" && item.status !== "archived" && (
         !invoiceCustomer ||
@@ -823,6 +824,27 @@ export function RecordDialog({
           (!(request as ServiceRequest & { customerRecordId?: number }).customerRecordId && request.clientName.trim() === String(invoiceCustomerPayload?.name ?? "").trim())),
       )
     : [], [invoiceCustomer, invoiceCustomerPayload?.name, isInvoice, serviceRequests])
+  const invoiceContractNumbers = useMemo(() => new Map(
+    records.filter(item => item.kind === "invoice").map(item => {
+      const invoicePayload = item.payload as Record<string, unknown>
+      return [String(invoicePayload.invoiceNumber ?? item.reference ?? ""), String(invoicePayload.contractNumber ?? "")] as [string, string]
+    }).filter(([invoiceNumber, contractNumber]) => invoiceNumber && contractNumber),
+  ), [records])
+  const paidForContract = (contractNumber: string) => records
+    .filter(item => item.kind === "payment" || item.kind === "receipt")
+    .filter(item => {
+      const paymentPayload = item.payload as Record<string, unknown>
+      return String(paymentPayload.contractNumber ?? "").trim() === contractNumber ||
+        invoiceContractNumbers.get(String(paymentPayload.invoiceNumber ?? "").trim()) === contractNumber
+    })
+    .reduce((sum, item) => sum + Number((item.payload as Record<string, unknown>).amount ?? 0), 0)
+  const remainingForContract = (item: ContainerSystemRecord) => {
+    const contractPayload = item.payload as Record<string, unknown>
+    const total = Number(contractPayload.total ?? contractPayload.amount ?? 0)
+    const storedRemaining = Number(contractPayload.remaining)
+    const computedRemaining = total - paidForContract(String(contractPayload.contractNumber ?? item.reference ?? ""))
+    return Math.max(Number.isFinite(computedRemaining) ? computedRemaining : (Number.isFinite(storedRemaining) ? storedRemaining : 0), 0)
+  }
   const openContractsForPayment = records.filter(item => {
     if (item.kind !== "contract" || item.status === "archived") return false
     if (!customerIdForPayment) return false
@@ -833,7 +855,7 @@ export function RecordDialog({
     const belongsToCustomer = contractCustomerId === customerIdForPayment ||
       (!contractCustomerId && Boolean(selectedCustomerName) && customerName === selectedCustomerName)
     const openStatuses = ["active", "issued", "scheduled", "delivered", "due", "overdue", "delinquent", "pending", "draft"]
-    return belongsToCustomer && openStatuses.includes(String(item.status).toLowerCase())
+    return belongsToCustomer && openStatuses.includes(String(item.status).toLowerCase()) && remainingForContract(item) > 0.009
   })
   const paymentCustomerOptions = customers.map(item => ({
     value: String(item.id),
@@ -951,7 +973,7 @@ export function RecordDialog({
                 {field.type === "textarea" ? (
                   <Textarea id={`record-${field.key}`} value={payload[field.key] ?? ""} onChange={event => setValue(field.key, event.target.value)} placeholder={field.placeholder} required={field.required} rows={3} className="min-h-20 resize-y border-slate-200 bg-white" data-testid={`textarea-record-${field.key}`} />
                 ) : optionsFor(field.key).length > 0 ? (
-                  <select id={`record-${field.key}`} value={isCustomerLinkedFinancial && field.key === "customerName" ? String(payload.customerRecordId ?? "") : payload[field.key] ?? ""} onChange={event => {
+                    <select id={`record-${field.key}`} value={isCustomerLinkedFinancial && field.key === "customerName" ? String(payload.customerRecordId ?? (isInvoice ? invoiceCustomerId : "")) : payload[field.key] ?? ""} onChange={event => {
                     if (isCustomerLinkedFinancial && field.key === "customerName") {
                       const customer = customers.find(item => String(item.id) === event.target.value)
                       const customerPayload = customer?.payload as Record<string, unknown> | undefined
@@ -1073,7 +1095,10 @@ export function RecordDialog({
                          (!p?.customerRecordId && String(item.payload.name ?? "").trim() === String(p?.customerName ?? "").trim()),
                        )
                        const contractCustomerPayload = contractCustomer?.payload as Record<string, unknown> | undefined
-                       setPayload(current => ({ ...current, contractNumber: event.target.value, contractRecordId: contract?.id ? String(contract.id) : "", description: String(p?.description ?? p?.rentType ?? current.description ?? ""), ...(contractCustomer ? {
+                       const contractAmount = Number(p?.total ?? p?.amount ?? p?.lineTotal ?? 0)
+                       const contractTaxRate = Number(p?.taxRate ?? 15)
+                       const contractTaxAmount = Number(p?.taxAmount ?? (contractAmount * contractTaxRate / 100))
+                       setPayload(current => ({ ...current, contractNumber: event.target.value, contractRecordId: contract?.id ? String(contract.id) : "", description: String(p?.description ?? p?.rentType ?? p?.containerType ?? current.description ?? ""), quantity: String(p?.quantity ?? 1), unitPrice: String(p?.unitPrice ?? contractAmount), amount: String(Math.max(contractAmount - (p?.taxIncluded ? contractTaxAmount : 0), 0)), taxRate: String(contractTaxRate), ...(contractAmount > 0 ? { total: String(p?.total ?? contractAmount + contractTaxAmount) } : {}), ...(contractCustomer ? {
                          customerRecordId: String(contractCustomer.id),
                          customerName: String(contractCustomerPayload?.name ?? p?.customerName ?? ""),
                          customerTaxNumber: String(contractCustomerPayload?.taxNumber ?? contractCustomerPayload?.vatNumber ?? ""),
@@ -1081,10 +1106,10 @@ export function RecordDialog({
                        } : {}) }))
                     }} className="flex h-11 w-full rounded-lg border border-cyan-200 bg-white px-3 text-sm" data-testid="select-invoice-contract">
                       <option value="">بدون عقد مرتبط</option>
-                      {invoiceContracts.filter(item => Number((item.payload as Record<string, unknown>).remaining ?? 1) > 0).map(item => {
+                       {invoiceContracts.filter(item => remainingForContract(item) > 0.009).map(item => {
                         const p = item.payload as Record<string, unknown>
                         const number = String(p.contractNumber ?? item.reference ?? "")
-                        return <option key={item.id} value={number}>{number} · المتبقي {Number(p.remaining ?? p.total ?? p.amount ?? 0).toLocaleString("ar-SA")} ر.س</option>
+                         return <option key={item.id} value={number}>{number} · المتبقي {remainingForContract(item).toLocaleString("ar-SA")} ر.س</option>
                       })}
                     </select>
                   </div>
@@ -1127,44 +1152,74 @@ export function RecordDialog({
                   </select>
                 </div>
                 <div className="order-2 min-h-[82px] rounded-xl border border-cyan-100 bg-cyan-50/40 p-3">
-                  <Label htmlFor="record-payment-contract" className="mb-1.5 block text-xs font-bold text-slate-600">العقد</Label>
-                  <select
-                    id="record-payment-contract"
-                    multiple
-                    value={selectedPaymentContractIds}
-                    onChange={event => {
-                      const selectedIds = Array.from(event.target.selectedOptions, option => option.value)
-                      const selectedContracts = openContractsForPayment.filter(item => selectedIds.includes(String(item.id)))
-                      const primaryContract = selectedContracts[0]
-                      const primaryPayload = primaryContract?.payload as Record<string, unknown> | undefined
-                      const contractNumbers = selectedContracts.map(item => {
-                        const itemPayload = item.payload as Record<string, unknown>
-                        return String(itemPayload.contractNumber ?? item.reference ?? "")
-                      }).filter(Boolean)
-                      setPayload(current => ({
-                        ...current,
-                        contractNumber: String(primaryPayload?.contractNumber ?? primaryContract?.reference ?? ""),
-                        contractRecordId: primaryContract?.id ? String(primaryContract.id) : "",
-                        contractRecordIds: JSON.stringify(selectedIds),
-                        contractNumbers: JSON.stringify(contractNumbers),
-                      }))
-                    }}
-                    required={!String(payload.invoiceNumber ?? "").trim()}
-                    disabled={!customerIdForPayment}
-                    className="flex h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100 disabled:cursor-not-allowed disabled:bg-slate-100"
-                    data-testid="select-payment-contract"
-                  >
-                    <option value="" disabled>{customerIdForPayment ? "اختر عقداً أو أكثر (Ctrl/⌘ للتحديد المتعدد)" : "اختر العميل أولًا"}</option>
-                    {paymentContractOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-                  </select>
+                  <p className="mb-2 text-xs font-bold text-slate-600">العقود المرتبطة</p>
+                  {!customerIdForPayment ? (
+                    <p className="rounded-lg bg-white px-3 py-3 text-xs text-slate-500">اختر العميل أولاً لعرض عقوده المفتوحة.</p>
+                  ) : paymentContractOptions.length === 0 ? (
+                    <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-xs text-amber-800">لا توجد عقود مفتوحة لهذا العميل.</p>
+                  ) : (
+                    <div className="space-y-2" data-testid="payment-contract-checkboxes">
+                      {paymentContractOptions.map(option => {
+                        const contract = openContractsForPayment.find(item => String(item.id) === option.value)
+                        const contractPayload = contract?.payload as Record<string, unknown> | undefined
+                        const total = Number(contractPayload?.total ?? contractPayload?.amount ?? 0)
+                        const remaining = contract ? remainingForContract(contract) : total
+                        const contractNumber = String(contractPayload?.contractNumber ?? contract?.reference ?? "")
+                        const linkedInvoices = records.filter(item => {
+                          if (item.kind !== "invoice" || item.status === "archived") return false
+                          const invoicePayload = item.payload as Record<string, unknown>
+                          return String(invoicePayload.contractNumber ?? "").trim() === contractNumber
+                        })
+                        const checked = selectedPaymentContractIds.includes(option.value)
+                        return (
+                          <label key={option.value} className={`flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5 transition ${checked ? "border-cyan-500 bg-white shadow-sm" : "border-slate-200 bg-white/70 hover:border-cyan-300"}`}>
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={event => {
+                                const selectedIds = event.target.checked
+                                  ? [...selectedPaymentContractIds, option.value]
+                                  : selectedPaymentContractIds.filter(id => id !== option.value)
+                                const selectedContracts = openContractsForPayment.filter(item => selectedIds.includes(String(item.id)))
+                                const primaryContract = selectedContracts[0]
+                                const primaryPayload = primaryContract?.payload as Record<string, unknown> | undefined
+                                const contractNumbers = selectedContracts.map(item => {
+                                  const itemPayload = item.payload as Record<string, unknown>
+                                  return String(itemPayload.contractNumber ?? item.reference ?? "")
+                                }).filter(Boolean)
+                                setPayload(current => ({
+                                  ...current,
+                                  contractNumber: String(primaryPayload?.contractNumber ?? primaryContract?.reference ?? ""),
+                                  contractRecordId: primaryContract?.id ? String(primaryContract.id) : "",
+                                  contractRecordIds: JSON.stringify(selectedIds),
+                                  contractNumbers: JSON.stringify(contractNumbers),
+                                }))
+                              }}
+                              className="h-4 w-4 accent-cyan-700"
+                              data-testid={`checkbox-payment-contract-${option.value}`}
+                            />
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-xs font-black text-slate-800">{option.label}</span>
+                              <span className="mt-0.5 block text-[11px] text-slate-500">الإجمالي {Number.isFinite(total) ? total.toLocaleString("ar-SA") : "0"} ر.س · المتبقي <b className="text-amber-700">{Number.isFinite(remaining) ? remaining.toLocaleString("ar-SA") : "0"} ر.س</b></span>
+                              {linkedInvoices.length > 0 && (
+                                <span className="mt-1 block text-[10px] text-cyan-800">
+                                  الفواتير المرتبطة: {linkedInvoices.map(invoice => {
+                                    const invoicePayload = invoice.payload as Record<string, unknown>
+                                    return `${String(invoicePayload.invoiceNumber ?? invoice.reference)} (${Number(invoicePayload.total ?? invoicePayload.amount ?? 0).toLocaleString("ar-SA")} ر.س)`
+                                  }).join("، ")}
+                                </span>
+                              )}
+                            </span>
+                          </label>
+                        )
+                      })}
+                    </div>
+                  )}
                   <p className="mt-1 text-[11px] text-slate-500">
                     {selectedPaymentContractIds.length > 1
-                      ? `تم اختيار ${selectedPaymentContractIds.length} عقود؛ سيُستخدم أول عقد كالعقد الأساسي ويُحفظ الباقي كعقود مرتبطة.`
-                      : "يمكن اختيار أكثر من عقد باستخدام Ctrl أو ⌘، أو تركه فارغاً وإدخال رقم الفاتورة يدوياً."}
+                      ? `تم اختيار ${selectedPaymentContractIds.length} عقود. سيُستخدم العقد الأول كالعقد الأساسي، وتُحفظ بقية الروابط للمراجعة.`
+                      : "حدد عقداً أو أكثر، أو اترك العقود فارغة وأدخل رقم الفاتورة يدوياً."}
                   </p>
-                  {customerIdForPayment && paymentContractOptions.length === 0 && (
-                    <p className="mt-1 text-[11px] text-amber-700">لا توجد عقود مفتوحة لهذا العميل.</p>
-                  )}
                 </div>
               </>
             )}

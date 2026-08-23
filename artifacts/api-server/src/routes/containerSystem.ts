@@ -274,6 +274,24 @@ async function validateFinancialPayload(kind: string, payload: Record<string, un
     const amount = Number(payload.amount ?? payload.total ?? 0);
     if (!Number.isFinite(amount) || amount <= 0) throw new Error("القيمة المالية يجب أن تكون أكبر من صفر");
   }
+  const contractRecordId = Number(payload.contractRecordId);
+  if (Number.isInteger(contractRecordId) && contractRecordId > 0 && ["payment", "receipt", "invoice", "invoice_return"].includes(kind)) {
+    const contract = await db.select().from(containerSystemRecordsTable)
+      .where(eq(containerSystemRecordsTable.id, contractRecordId)).get();
+    if (!contract || contract.kind !== "contract" || contract.status === "archived") {
+      throw new Error("العقد المرتبط بالمستند المالي غير موجود");
+    }
+    const contractPayload = parsePayload(contract.payload);
+    payload.contractNumber = String(contractPayload.contractNumber ?? contract.reference ?? "");
+    if (!payload.customerRecordId && contractPayload.customerRecordId) {
+      payload.customerRecordId = contractPayload.customerRecordId;
+    }
+    if (kind === "invoice") {
+      payload.description = payload.description || contractPayload.description || contractPayload.rentType || contractPayload.containerType || "خدمات حاويات";
+      payload.quantity = payload.quantity || contractPayload.quantity || 1;
+      payload.unitPrice = payload.unitPrice || contractPayload.unitPrice || contractPayload.total || contractPayload.amount || 0;
+    }
+  }
   const customerRecordId = Number(payload.customerRecordId);
   if (customerRecordId) {
     const customer = await db.select().from(containerSystemRecordsTable)
