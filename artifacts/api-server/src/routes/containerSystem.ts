@@ -836,6 +836,7 @@ router.get("/admin/container-system/financial/contract-ledgers", requireContaine
   const payments = postedCollections(active);
   const deposits = active.filter(row => (row.kind === "deposit" || row.kind === "bank_deposit") && isPosted(row));
   const invoices = active.filter(row => row.kind === "invoice" && isPosted(row));
+  const returns = active.filter(row => row.kind === "payment_return" && isPosted(row));
   const invoiceContracts = new Map<string, string>();
   invoices.forEach(row => {
     const payload = parsePayload(row.payload);
@@ -858,6 +859,18 @@ router.get("/admin/container-system/financial/contract-ledgers", requireContaine
            (Array.isArray(payment.allocations) && payment.allocations.some((allocation: unknown) =>
              Number((allocation as Record<string, unknown>).contractId) === contract.id));
        });
+       const returnsForContract = returns.filter(row => {
+         const item = parsePayload(row.payload);
+         const directContractId = Number(item.contractRecordId ?? item.contractId ?? 0);
+         if (directContractId === contract.id || String(item.contractNumber ?? "").trim() === contractNumber) return true;
+         const invoiceId = Number(item.originalInvoiceId ?? item.invoiceRecordId ?? 0);
+         return invoiceId > 0 && invoices.some(invoice => {
+           if (invoice.id !== invoiceId) return false;
+           const invoicePayload = parsePayload(invoice.payload);
+           return Number(invoicePayload.contractRecordId ?? 0) === contract.id ||
+             String(invoicePayload.contractNumber ?? "").trim() === contractNumber;
+         });
+       });
       const depositsForContract = deposits.filter(row => {
         const item = parsePayload(row.payload);
         return String(item.contractNumber ?? "").trim() === contractNumber ||
@@ -872,13 +885,18 @@ router.get("/admin/container-system/financial/contract-ledgers", requireContaine
            : null;
          return sum + Number(allocation ? (allocation as Record<string, unknown>).amount : payment.amount ?? 0);
        }, 0);
+       const returned = returnsForContract.reduce((sum, row) => {
+         const item = parsePayload(row.payload);
+         return sum + Number(item.amount ?? item.total ?? 0);
+       }, 0);
+       const netCollected = Math.max(collected - returned, 0);
       const deposited = depositsForContract.reduce((sum, row) => sum + Number(parsePayload(row.payload).amount ?? parsePayload(row.payload).total ?? 0), 0);
       return {
         contract: formatRecord(contract),
         total: Number.isFinite(total) ? total : 0,
-        collected,
+         collected: netCollected,
         deposited,
-        remaining: Math.max((Number.isFinite(total) ? total : 0) - collected, 0),
+         remaining: Math.max((Number.isFinite(total) ? total : 0) - netCollected, 0),
         deposits: depositsForContract.map(formatRecord),
         payments: paymentsForContract.map(formatRecord),
         customerName,
@@ -947,12 +965,13 @@ router.post("/admin/container-system/financial/settle", requireContainerPermissi
         allocations[0].invoiceId = invoice.id;
       }
       const collectionRows = postedCollections(all);
+        const returnRows = all.filter(row => row.kind === "payment_return" && row.status === "posted");
       const contractRows = allocations.map(item => {
         const contract = all.find(row => row.id === item.contractId && row.kind === "contract" && row.status !== "archived");
         if (!contract) throw new Error("أحد العقود غير موجود أو مؤرشف");
         const contractPayload = parsePayload(contract.payload);
         const contractNumber = String(contractPayload.contractNumber ?? contract.reference).trim();
-        const paid = collectionRows.filter(row => matchContractForSettlement(row, all) === contractNumber)
+          const grossPaid = collectionRows.filter(row => matchContractForSettlement(row, all) === contractNumber)
           .reduce((sum, row) => {
             const payment = parsePayload(row.payload);
             const allocated = Array.isArray(payment.allocations)
@@ -960,6 +979,19 @@ router.post("/admin/container-system/financial/settle", requireContainerPermissi
               : null;
             return sum + Number(allocated ? (allocated as Record<string, unknown>).amount : payment.contractId === contract.id ? payment.amount : 0);
           }, 0);
+          const returned = returnRows.filter(row => {
+            const refund = parsePayload(row.payload);
+            if (Number(refund.contractRecordId ?? refund.contractId ?? 0) === contract.id ||
+                String(refund.contractNumber ?? "").trim() === contractNumber) return true;
+            const originalPaymentId = Number(refund.originalPaymentId ?? refund.sourcePaymentId ?? 0);
+            return originalPaymentId > 0 && collectionRows.some(payment =>
+              payment.id === originalPaymentId && matchContractForSettlement(payment, all) === contractNumber,
+            );
+          }).reduce((sum, row) => {
+            const refund = parsePayload(row.payload);
+            return sum + Number(refund.amount ?? refund.total ?? 0);
+          }, 0);
+          const paid = Math.max(grossPaid - returned, 0);
         const total = Number(contractPayload.total ?? contractPayload.amount ?? 0);
         if (Number.isFinite(total) && paid + item.amount > total + 0.01) throw new Error(`قيمة التحصيل تتجاوز المتبقي في العقد ${contractNumber}`);
         if (item.invoiceId) {
@@ -1548,81 +1580,87 @@ router.patch("/admin/container-system/records/:id", async (req, res) => {
   const nextStatus = current.kind === "container" || current.kind === "container_asset"
     ? canonicalAssetStatus(nextPayload.status, String(body.status ?? current.status))
     : body.status ?? current.status;
-  const [updated] = await db.update(containerSystemRecordsTable).set({
-    status: nextStatus,
-    payload: JSON.stringify(nextPayload),
-    updatedAt: new Date().toISOString(),
-  }).where(eq(containerSystemRecordsTable.id, id)).returning();
-  await db.insert(containerSystemAuditTable).values({
-    recordId: id, kind: current.kind, action: "update", beforePayload: current.payload,
-    afterPayload: updated.payload, actorId: adminReq.adminId,
-  });
-  if (financialLifecycleKinds.has(current.kind) && current.status !== nextStatus) {
-    await db.insert(containerSystemAuditTable).values({
-      recordId: id,
-      kind: current.kind,
-      action: nextStatus === "cancelled" ? "financial_cancel" : "financial_status_change",
-      beforePayload: JSON.stringify({ status: current.status }),
-      afterPayload: JSON.stringify({ status: nextStatus, reason: nextPayload.reason ?? nextPayload.cancellationReason ?? "" }),
-      actorId: adminReq.adminId,
-    });
-  }
-  if (financialLifecycleKinds.has(current.kind) && current.status === "posted" && nextStatus === "cancelled") {
-    const existingReversal = (await db.select().from(containerSystemRecordsTable)).find(record => {
-      const payload = parsePayload(record.payload);
-      return record.kind === "ledger_entry" && record.status === "posted" &&
-        Number(payload.originalRecordId) === id && payload.entryType === "reversal";
-    });
-    if (!existingReversal) {
-      const originalLedger = (await db.select().from(containerSystemRecordsTable)).find(record =>
-        record.kind === "ledger_entry" && Number(parsePayload(record.payload).sourceId) === id && record.status === "posted",
+  const updated = db.transaction((tx) => {
+    const next = tx.update(containerSystemRecordsTable).set({
+      status: nextStatus,
+      payload: JSON.stringify(nextPayload),
+      updatedAt: new Date().toISOString(),
+    }).where(eq(containerSystemRecordsTable.id, id)).returning().get();
+    if (!next) throw new Error("تعذر تحديث المستند المالي");
+    tx.insert(containerSystemAuditTable).values({
+      recordId: id, kind: current.kind, action: "update", beforePayload: current.payload,
+      afterPayload: next.payload, actorId: adminReq.adminId,
+    }).run();
+    if (financialLifecycleKinds.has(current.kind) && current.status !== nextStatus) {
+      tx.insert(containerSystemAuditTable).values({
+        recordId: id,
+        kind: current.kind,
+        action: nextStatus === "cancelled" ? "financial_cancel" : "financial_status_change",
+        beforePayload: JSON.stringify({ status: current.status }),
+        afterPayload: JSON.stringify({ status: nextStatus, reason: nextPayload.reason ?? nextPayload.cancellationReason ?? "" }),
+        actorId: adminReq.adminId,
+      }).run();
+    }
+    if (financialLifecycleKinds.has(current.kind) && current.status === "posted" && nextStatus === "cancelled") {
+      const ledgerRows = tx.select().from(containerSystemRecordsTable).all();
+      const existingReversal = ledgerRows.find(record => {
+        const payload = parsePayload(record.payload);
+        return record.kind === "ledger_entry" && record.status === "posted" &&
+          Number(payload.originalRecordId) === id && payload.entryType === "reversal";
+      });
+      if (!existingReversal) {
+        const originalLedger = ledgerRows.find(record =>
+          record.kind === "ledger_entry" && Number(parsePayload(record.payload).sourceId) === id && record.status === "posted",
+        );
+        const originalPayload = originalLedger ? parsePayload(originalLedger.payload) : {};
+        const originalAmount = Number(originalPayload.amount ?? nextPayload.amount ?? nextPayload.total ?? 0);
+        tx.insert(containerSystemRecordsTable).values({
+          kind: "ledger_entry",
+          status: "posted",
+          reference: `REV-${id}`,
+          payload: JSON.stringify({
+            entryType: "reversal",
+            sourceKind: current.kind,
+            sourceId: id,
+            originalRecordId: id,
+            originalLedgerId: originalLedger?.id ?? null,
+            amount: originalAmount,
+            direction: originalPayload.direction === "debit" ? "credit" : "debit",
+            reason: nextPayload.reason ?? nextPayload.cancellationReason ?? "إلغاء حركة مالية مرحّلة",
+            date: new Date().toISOString().slice(0, 10),
+          }),
+          createdBy: adminReq.adminId,
+        }).run();
+      }
+    }
+    if (financialLifecycleKinds.has(current.kind) && nextStatus === "posted" && current.status !== "posted") {
+      const ledgerRows = tx.select().from(containerSystemRecordsTable).all();
+      const existingLedger = ledgerRows.find(record =>
+        record.kind === "ledger_entry" && Number(parsePayload(record.payload).sourceId) === id && record.status !== "archived",
       );
-      const originalPayload = originalLedger ? parsePayload(originalLedger.payload) : {};
-      const originalAmount = Number(originalPayload.amount ?? nextPayload.amount ?? nextPayload.total ?? 0);
-      await db.insert(containerSystemRecordsTable).values({
-        kind: "ledger_entry",
-        status: "posted",
-        reference: `REV-${id}`,
-        payload: JSON.stringify({
-          entryType: "reversal",
-          sourceKind: current.kind,
-          sourceId: id,
-          originalRecordId: id,
-          originalLedgerId: originalLedger?.id ?? null,
-          amount: originalAmount,
-          direction: originalPayload.direction === "debit" ? "credit" : "debit",
-          reason: nextPayload.reason ?? nextPayload.cancellationReason ?? "إلغاء حركة مالية مرحّلة",
-          date: new Date().toISOString().slice(0, 10),
-        }),
-        createdBy: adminReq.adminId,
-      });
+      if (!existingLedger) {
+        tx.insert(containerSystemRecordsTable).values({
+          kind: "ledger_entry",
+          status: "posted",
+          reference: `LED-${id}`,
+          payload: JSON.stringify({
+            sourceKind: current.kind,
+            sourceId: id,
+            contractNumber: nextPayload.contractNumber ?? "",
+            contractRecordId: Number(nextPayload.contractRecordId) || null,
+            invoiceRecordId: Number(nextPayload.invoiceRecordId) || null,
+            customerName: nextPayload.customerName ?? "",
+            customerRecordId: Number(nextPayload.customerRecordId) || null,
+            amount: Number(nextPayload.amount ?? nextPayload.total ?? 0),
+            direction: ["expense", "payment_return", "purchase", "purchase_return"].includes(current.kind) ? "debit" : "credit",
+            date: nextPayload.date ?? new Date().toISOString().slice(0, 10),
+          }),
+          createdBy: adminReq.adminId,
+        }).run();
+      }
     }
-  }
-  if (financialLifecycleKinds.has(current.kind) && nextStatus === "posted" && current.status !== "posted") {
-    const existingLedger = (await db.select().from(containerSystemRecordsTable)).find(record =>
-      record.kind === "ledger_entry" && Number(parsePayload(record.payload).sourceId) === id && record.status !== "archived",
-    );
-    if (!existingLedger) {
-      await db.insert(containerSystemRecordsTable).values({
-        kind: "ledger_entry",
-        status: "posted",
-        reference: `LED-${id}`,
-        payload: JSON.stringify({
-          sourceKind: current.kind,
-          sourceId: id,
-          contractNumber: nextPayload.contractNumber ?? "",
-          contractRecordId: Number(nextPayload.contractRecordId) || null,
-          invoiceRecordId: Number(nextPayload.invoiceRecordId) || null,
-          customerName: nextPayload.customerName ?? "",
-          customerRecordId: Number(nextPayload.customerRecordId) || null,
-          amount: Number(nextPayload.amount ?? nextPayload.total ?? 0),
-          direction: ["expense", "payment_return", "purchase", "purchase_return"].includes(current.kind) ? "debit" : "credit",
-          date: nextPayload.date ?? new Date().toISOString().slice(0, 10),
-        }),
-        createdBy: adminReq.adminId,
-      });
-    }
-  }
+    return next;
+  });
   if (current.kind === "container_movement") await syncMovement(nextPayload, adminReq.adminId);
   if (current.kind === "contract" && nextPayload.requestId) {
     try {

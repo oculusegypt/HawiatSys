@@ -35,6 +35,9 @@ function financialAmount(record: ContainerSystemRecord) {
 }
 
 const financialMoney = (value: number) => `${value.toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س`
+function localMonthKey(date = new Date()) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`
+}
 function postedCollections(records: ContainerSystemRecord[]) {
   const posted = records.filter(record => record.status === "posted" && ["payment", "receipt"].includes(record.kind))
   const payments = posted.filter(record => record.kind === "payment")
@@ -61,11 +64,11 @@ export function FinancialControlCenter({
 }) {
   const active = records.filter(record => record.status !== "archived")
   const [period, setPeriod] = useState<"all" | "current" | "previous">("current")
-  const periodKey = new Date().toISOString().slice(0, 7)
+  const periodKey = localMonthKey()
   const previousPeriodKey = (() => {
     const date = new Date()
-    date.setUTCMonth(date.getUTCMonth() - 1)
-    return date.toISOString().slice(0, 7)
+    date.setMonth(date.getMonth() - 1)
+    return localMonthKey(date)
   })()
   const inPeriod = (record: ContainerSystemRecord) => {
     if (period === "all") return true
@@ -102,11 +105,34 @@ export function FinancialControlCenter({
     }, 0)
     const refunded = scoped.filter(item => item.kind === "payment_return").reduce((sum, refund) => {
       const rp = financialPayload(refund)
-      if (Number(rp.contractId ?? 0) === contract.id || String(rp.contractNumber ?? "") === number) return sum + financialAmount(refund)
+      if (Number(rp.contractRecordId ?? rp.contractId ?? 0) === contract.id || String(rp.contractNumber ?? "") === number) return sum + financialAmount(refund)
       const allocation = Array.isArray(rp.allocations)
         ? rp.allocations.find(item => Number((item as Record<string, unknown>).contractId) === contract.id)
         : null
-      return sum + (allocation ? Number((allocation as Record<string, unknown>).amount ?? 0) : 0)
+      if (allocation) return sum + Number((allocation as Record<string, unknown>).amount ?? 0)
+      const originalPaymentId = Number(rp.originalPaymentId ?? 0)
+      if (originalPaymentId > 0) {
+        const originalPayment = payments.find(item => item.id === originalPaymentId)
+        if (originalPayment) {
+          const opp = financialPayload(originalPayment)
+          const originalAllocation = Array.isArray(opp.allocations)
+            ? opp.allocations.find(item => Number((item as Record<string, unknown>).contractId) === contract.id)
+            : null
+          if (originalAllocation) return sum + financialAmount(refund)
+          if (!Array.isArray(opp.allocations) && String(opp.contractNumber ?? "") === number) return sum + financialAmount(refund)
+        }
+      }
+      const originalInvoiceId = Number(rp.originalInvoiceId ?? rp.invoiceRecordId ?? 0)
+      if (originalInvoiceId > 0) {
+        const originalInvoice = invoices.find(item => item.id === originalInvoiceId)
+        if (originalInvoice) {
+          const oip = financialPayload(originalInvoice)
+          if (Number(oip.contractRecordId ?? 0) === contract.id || String(oip.contractNumber ?? "") === number) {
+            return sum + financialAmount(refund)
+          }
+        }
+      }
+      return sum
     }, 0)
     return collected - refunded
   }
@@ -116,7 +142,8 @@ export function FinancialControlCenter({
     const paid = paidForContract(record)
     return sum + Math.max((Number.isFinite(total) ? total : 0) - (Number.isFinite(paid) ? paid : 0), 0)
   }, 0)
-  const netCash = collected - expenseTotal - returnTotal
+   const paymentReturns = returns.filter(record => record.kind === "payment_return").reduce((sum, record) => sum + financialAmount(record), 0)
+   const netCash = collected - expenseTotal - paymentReturns
   const recent = [...scoped].filter(record => ["invoice", "payment", "receipt", "expense", "invoice_return", "payment_return"].includes(record.kind)).sort((left, right) => String(right.updatedAt).localeCompare(String(left.updatedAt))).slice(0, 7)
   const unmatched = payments.filter(record => {
     const payload = financialPayload(record)

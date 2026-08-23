@@ -74,12 +74,20 @@ export function FinancialCycleWorkspace({
 }) {
   const [tab, setTab] = useState<CycleTab>("reconciliation")
   const [query, setQuery] = useState("")
+  const [from, setFrom] = useState("")
+  const [to, setTo] = useState("")
   const active = records.filter(record => record.status !== "archived")
-  const financial = active.filter(record => ["receipt", "payment", "deposit", "bank_deposit", "invoice", "invoice_return", "payment_return", "treasury", "salary_advance", "salary_payment", "commission", "purchase", "purchase_return", "stock_issue", "stock_issue_return"].includes(record.kind))
+  const inPeriod = (record: ContainerSystemRecord) => {
+    const p = payload(record)
+    const date = String(p.date ?? p.paymentDate ?? p.issueDate ?? record.createdAt).slice(0, 10)
+    return (!from || date >= from) && (!to || date <= to)
+  }
+  const scoped = active.filter(inPeriod)
+  const financial = scoped.filter(record => ["receipt", "payment", "deposit", "bank_deposit", "invoice", "invoice_return", "payment_return", "treasury", "salary_advance", "salary_payment", "commission", "purchase", "purchase_return", "stock_issue", "stock_issue_return"].includes(record.kind))
   const search = query.trim().toLowerCase()
   const visible = useMemo(() => financial.filter(record => !search || `${record.reference} ${JSON.stringify(record.payload)}`.toLowerCase().includes(search)), [financial, search])
-  const posted = active.filter(record => record.status === "posted")
-  const receipts = postedCollections(active).reduce((sum, record) => sum + amount(record), 0) -
+  const posted = scoped.filter(record => record.status === "posted")
+  const receipts = postedCollections(scoped).reduce((sum, record) => sum + amount(record), 0) -
     posted.filter(record => record.kind === "payment_return").reduce((sum, record) => sum + amount(record), 0)
   const deposits = posted.filter(record => ["deposit", "bank_deposit"].includes(record.kind)).reduce((sum, record) => sum + amount(record), 0)
   const openReturns = posted.filter(record => ["invoice_return", "payment_return"].includes(record.kind))
@@ -93,9 +101,14 @@ export function FinancialCycleWorkspace({
     <div className="grid gap-3 md:grid-cols-5">
       {tabs.map(item => { const Icon = item.icon; return <button key={item.id} type="button" onClick={() => setTab(item.id)} className={`flex items-center gap-3 rounded-2xl border p-4 text-right transition ${tab === item.id ? "border-cyan-300 bg-cyan-50 text-cyan-950 shadow-sm" : "border-slate-200 bg-white text-slate-600 hover:border-cyan-200"}`}><Icon size={19} /><span className="text-xs font-black">{item.label}</span></button> })}
     </div>
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div><h3 className="text-lg font-black text-slate-900">{tabs.find(item => item.id === tab)?.label}</h3><p className="mt-1 text-xs text-slate-500">تشغيل مالي مستقل مع ربط كل حركة بمستندها وحالتها وسجل التدقيق.</p></div>
-      <Input value={query} onChange={event => setQuery(event.target.value)} placeholder="ابحث في الرقم أو البيان..." className="h-10 bg-white sm:w-72" />
+       <div className="flex flex-wrap items-center gap-2">
+         <Input type="date" value={from} onChange={event => setFrom(event.target.value)} aria-label="من تاريخ" className="h-10 w-36 bg-white" />
+         <Input type="date" value={to} onChange={event => setTo(event.target.value)} aria-label="إلى تاريخ" className="h-10 w-36 bg-white" />
+         <Input value={query} onChange={event => setQuery(event.target.value)} placeholder="ابحث في الرقم أو البيان..." className="h-10 bg-white sm:w-56" />
+         {(from || to || query) && <Button size="sm" variant="ghost" onClick={() => { setFrom(""); setTo(""); setQuery("") }}>مسح</Button>}
+       </div>
     </div>
 
     {tab === "reconciliation" && <div className="space-y-4">

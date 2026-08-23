@@ -7,4 +7,4 @@ All financial totals, contract balances, settlement validation, bank matching, a
 
 **Why:** Draft, rejected, and cancelled records were previously able to inflate balances, while receipt/payment pairs and silent cancellations could leave misleading accounting totals. Node and Hostinger must remain behaviorally aligned.
 
-**How to apply:** Centralize posted-collection filtering in both runtimes and the UI, preserve legacy relationship fields for reads, and add reversal metadata whenever a posted financial record is cancelled.
+**How to apply:** Centralize posted-collection filtering in both runtimes and the UI, preserve legacy relationship fields for reads, resolve returns through direct, original-payment, and original-invoice links, and add reversal metadata whenever a posted financial record is cancelled.

@@ -699,15 +699,26 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
         foreach ($contracts as $contract) {
             $payload = $contract['payload']; $number = (string)($payload['contractNumber'] ?? $contract['reference']);
             $relatedPayments = array_values(array_filter($payments, static function (array $row) use ($contract, $number): bool {
-                if ((string)($row['payload']['contractNumber'] ?? '') === $number) return true;
+                if ((string)($row['payload']['contractNumber'] ?? '') === $number
+                    || (int)($row['payload']['contractRecordId'] ?? $row['payload']['contractId'] ?? 0) === (int)$contract['id']) return true;
                 foreach (($row['payload']['allocations'] ?? []) as $allocation) {
                     if ((int)($allocation['contractId'] ?? 0) === (int)$contract['id']) return true;
                 }
                 return false;
             }));
-            $relatedReturns = array_values(array_filter($returns, static function (array $row) use ($contract, $number): bool {
-                return (string)($row['payload']['contractNumber'] ?? '') === $number
-                    || (int)($row['payload']['contractId'] ?? 0) === (int)$contract['id'];
+            $relatedReturns = array_values(array_filter($returns, static function (array $row) use ($contract, $number, $rows): bool {
+                $payload = $row['payload'];
+                if ((string)($payload['contractNumber'] ?? '') === $number
+                    || (int)($payload['contractRecordId'] ?? $payload['contractId'] ?? 0) === (int)$contract['id']) return true;
+                $invoiceId = (int)($payload['originalInvoiceId'] ?? $payload['invoiceRecordId'] ?? 0);
+                if ($invoiceId <= 0) return false;
+                foreach ($rows as $invoice) {
+                    if ($invoice['kind'] !== 'invoice' || (int)$invoice['id'] !== $invoiceId) continue;
+                    $invoicePayload = $invoice['payload'];
+                    return (int)($invoicePayload['contractRecordId'] ?? 0) === (int)$contract['id']
+                        || (string)($invoicePayload['contractNumber'] ?? '') === $number;
+                }
+                return false;
             }));
             $relatedDeposits = array_values(array_filter($deposits, static function (array $row) use ($relatedPayments, $contract, $number): bool {
                 $payload = $row['payload'];
@@ -752,6 +763,7 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
             }
         }
         $contractRows = [];
+        $returnRows = array_values(array_filter($rows, static fn(array $row): bool => $row['kind'] === 'payment_return' && $row['status'] === 'posted'));
         foreach ($allocations as $allocation) {
             $contract = null;
             foreach ($rows as $row) if ($row['kind'] === 'contract' && (int)$row['id'] === $allocation['contractId'] && $row['status'] !== 'archived') $contract = $row;
@@ -764,6 +776,23 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
                 }
                 if (!isset($row['payload']['allocations']) && (string)($row['payload']['contractNumber'] ?? '') === $number) $paid += (float)($row['payload']['amount'] ?? 0);
             }
+            foreach ($returnRows as $refund) {
+                $refundPayload = $refund['payload'];
+                $matches = (int)($refundPayload['contractRecordId'] ?? $refundPayload['contractId'] ?? 0) === $allocation['contractId']
+                    || (string)($refundPayload['contractNumber'] ?? '') === $number;
+                if (!$matches && !empty($refundPayload['originalPaymentId'])) {
+                    foreach (hsPostedCollections($rows) as $payment) {
+                        if ((int)$payment['id'] === (int)$refundPayload['originalPaymentId'] &&
+                            ((string)($payment['payload']['contractNumber'] ?? '') === $number ||
+                             (int)($payment['payload']['contractRecordId'] ?? 0) === $allocation['contractId'])) {
+                            $matches = true;
+                            break;
+                        }
+                    }
+                }
+                if ($matches) $paid -= (float)($refundPayload['amount'] ?? $refundPayload['total'] ?? 0);
+            }
+            $paid = max($paid, 0);
             $total = (float)($contract['payload']['total'] ?? $contract['payload']['amount'] ?? 0);
             if ($total > 0 && $paid + $allocation['amount'] > $total + 0.01) hsJson(['error' => 'قيمة التحصيل تتجاوز المتبقي في العقد'], 422);
             if ($allocation['invoiceId']) {
@@ -785,8 +814,15 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
         }
         $first = $contractRows[0]; $now = date('c');
         $paymentPayload = ['operationKey' => $operationKey, 'contractId' => $first['contract']['id'], 'contractNumber' => $first['number'], 'customerRecordId' => $first['contract']['payload']['customerRecordId'] ?? null, 'customerName' => $first['contract']['payload']['customerName'] ?? '', 'amount' => $amount, 'paymentMethod' => $methodName, 'invoiceRecordId' => $allocations[0]['invoiceId'], 'date' => $input['date'] ?? date('Y-m-d'), 'notes' => $input['notes'] ?? '', 'allocations' => array_map(static fn(array $item): array => $item, $allocations)];
-            $customerIds = array_unique(array_filter(array_map(static fn(array $item): string => (string)($item['contract']['payload']['customerRecordId'] ?? ''), $contractRows)));
-            if (count($customerIds) > 1) hsJson(['error' => 'لا يمكن توزيع تحصيل واحد على عقود لعملاء مختلفين'], 422);
+            $customerKeys = array_unique(array_map(static function (array $item): string {
+                $customerId = (int)($item['contract']['payload']['customerRecordId'] ?? 0);
+                return $customerId > 0
+                    ? 'id:' . $customerId
+                    : 'name:' . mb_strtolower(trim((string)($item['contract']['payload']['customerName'] ?? '')));
+            }, $contractRows));
+            if (count($customerKeys) > 1 || in_array('name:', $customerKeys, true)) {
+                hsJson(['error' => 'لا يمكن توزيع تحصيل واحد إلا على عقود العميل نفسه المرتبطة بعميل رسمي'], 422);
+            }
             $deposit = null;
             if (!empty($input['depositId'])) {
                 foreach ($rows as $row) if ((int)$row['id'] === (int)$input['depositId'] && in_array($row['kind'], ['deposit', 'bank_deposit'], true) && $row['status'] !== 'archived') $deposit = $row;
