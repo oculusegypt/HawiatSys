@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import {
   User, Phone, Mail, MapPin, Package, Calendar, Clock,
   FileText, Printer, MessageCircle, ExternalLink, Navigation, FilePlus2, Link2,
-  Hash, CheckCircle2, AlertCircle, Loader2, XCircle, Sparkles, MousePointer2,
+  Hash, CheckCircle2, AlertCircle, Loader2, XCircle, Sparkles, MousePointer2, Copy, ShieldCheck,
 } from "lucide-react"
 import { format } from "date-fns"
 import { arSA } from "date-fns/locale"
@@ -146,6 +146,7 @@ export default function RequestDetailModal({
   const { companyName } = useSiteSettings()
   const [shortDirectionsUrl, setShortDirectionsUrl] = useState<string>("")
   const [selectedDriver, setSelectedDriver] = useState("")
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     if (!open || !request?.location) { setShortDirectionsUrl(""); return }
@@ -188,6 +189,22 @@ export default function RequestDetailModal({
     : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(request.location + "، الرياض")}`
 
   const text        = buildRequestText(request, shortDirectionsUrl || undefined)
+  const readinessItems = [
+    { label: "بيانات العميل", complete: Boolean(request.clientName.trim() && request.phone.trim()) },
+    { label: "الخدمة والحاوية", complete: Boolean(request.serviceType.trim() && request.containerSize.trim()) },
+    { label: "الموقع", complete: Boolean(request.location.trim()) },
+    { label: "الموعد", complete: Boolean(request.scheduledAt || request.appointmentType === "immediate") },
+  ]
+  const readinessScore = Math.round((readinessItems.filter(item => item.complete).length / readinessItems.length) * 100)
+  const copySummary = async () => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1800)
+    } catch {
+      setCopied(false)
+    }
+  }
   const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`
   const emailUrl    = `mailto:?subject=${encodeURIComponent(`طلب خدمة #${request.id} – ${companyName}`)}&body=${encodeURIComponent(text)}`
   const printUrl    = `/admin/requests/${request.id}/print`
@@ -246,6 +263,26 @@ export default function RequestDetailModal({
         {/* ── Scrollable Body ───────────────────────────────────────────── */}
         <div className="flex-1 overflow-y-auto">
           <div className="p-5 space-y-4">
+            <div className={`rounded-2xl border p-4 ${readinessScore === 100 ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"}`}>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  {readinessScore === 100 ? <ShieldCheck className="h-5 w-5 text-emerald-600" /> : <AlertCircle className="h-5 w-5 text-amber-600" />}
+                  <div>
+                    <p className={`text-sm font-black ${readinessScore === 100 ? "text-emerald-900" : "text-amber-900"}`}>جاهزية الطلب للتنفيذ</p>
+                    <p className="text-[11px] text-slate-600">{readinessScore === 100 ? "البيانات الأساسية مكتملة ويمكن بدء الإجراء." : "أكمل البيانات الناقصة قبل إنشاء العقد أو الإسناد."}</p>
+                  </div>
+                </div>
+                <span className={`text-lg font-black ${readinessScore === 100 ? "text-emerald-700" : "text-amber-700"}`}>{readinessScore}%</span>
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {readinessItems.map(item => (
+                  <div key={item.label} className="flex items-center gap-1.5 rounded-lg bg-white/75 px-2 py-1.5 text-[11px] font-bold text-slate-700">
+                    {item.complete ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> : <XCircle className="h-3.5 w-3.5 text-rose-500" />}
+                    <span>{item.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
 
             {/* ── Client Card ── */}
             <SectionCard
@@ -507,6 +544,15 @@ export default function RequestDetailModal({
           >
             <Printer className="w-4 h-4" />
             طباعة
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className={`gap-2 flex-1 sm:flex-none ${copied ? "border-emerald-200 text-emerald-700" : ""}`}
+            onClick={copySummary}
+          >
+            {copied ? <CheckCircle2 className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+            {copied ? "تم النسخ" : "نسخ الملخص"}
           </Button>
           <Button
             variant="ghost"
