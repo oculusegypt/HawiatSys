@@ -107,7 +107,7 @@ try {
 
     if (!$dbFile) {
         http_response_code(500);
-        echo json_encode(['error' => 'قاعدة البيانات غير موجودة على الخادم', 'checked_paths' => array_values($dbPaths)], JSON_UNESCAPED_UNICODE);
+        echo json_encode(['error' => 'قاعدة البيانات غير متاحة', 'status' => 'degraded'], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
@@ -165,7 +165,32 @@ try {
         }
     } catch (PDOException $e) {
         http_response_code(500);
-        echo json_encode(['error' => 'تعذر الاتصال بقاعدة البيانات: ' . $e->getMessage()], JSON_UNESCAPED_UNICODE);
+        echo json_encode(['error' => 'قاعدة البيانات غير متاحة', 'status' => 'degraded'], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    if ($path === '/healthz' && $method === 'GET') {
+        try {
+            $pdo->query('SELECT 1')->fetchColumn();
+            echo json_encode([
+                'status' => 'ok',
+                'checks' => [
+                    'php' => 'ok',
+                    'database' => 'ok',
+                    'application' => 'ok',
+                ],
+            ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        } catch (Throwable) {
+            http_response_code(503);
+            echo json_encode([
+                'status' => 'degraded',
+                'checks' => [
+                    'php' => 'ok',
+                    'database' => 'failed',
+                    'application' => 'degraded',
+                ],
+            ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        }
         exit;
     }
 

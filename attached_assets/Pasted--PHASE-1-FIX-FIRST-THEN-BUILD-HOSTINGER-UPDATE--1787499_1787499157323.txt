@@ -1,0 +1,432 @@
+🔴 PHASE 1 — FIX FIRST, THEN BUILD HOSTINGER UPDATE
+
+المهمة الحالية ليست اختبار الإنتاج بعد.
+
+أريد منك أولاً إصلاح المشاكل الثلاث المؤكدة في نسخة المشروع المحلية، ثم إجراء جميع اختبارات الـRegression، ثم بناء حزمة Hostinger جاهزة للرفع.
+
+لا ترفع أي ملف إلى Hostinger الآن.
+
+بعد أن تنتهي من الإصلاح والبناء، توقف وأرسل لي الحزمة الجاهزة + تقرير الإصلاحات.
+سأقوم برفعها إلى Hostinger، وبعد تأكيدي لك أن التحديث تم رفعه، تبدأ أنت المرحلة الثانية: Live Hostinger E2E.
+
+المرحلة الأولى — الإصلاح المحلي فقط
+المشكلة 1 — Contract Idempotency
+
+الاختبار الحي أثبت:
+
+First request
+→ Contract #435
+
+Same request + SAME idempotency key
+→ HTTP 409
+→ document number already exists
+
+وهذا خطأ.
+
+المطلوب:
+
+First request:
+→ Create Contract
+
+Second identical request:
+→ Return SAME Contract
+→ idempotent = true
+→ HTTP 200
+→ No new Contract
+→ No new Request
+→ No new Customer
+→ No Financial Transaction
+→ No Journal Entry
+الترتيب المطلوب
+
+تحقق من idempotency قبل فحص uniqueness الخاص برقم العقد، بشرط أن تكون العملية السابقة ناجحة ومطابقة لنفس العملية.
+
+لا تضع workaround يخفي المشكلة.
+
+اختبر أيضاً:
+
+Same request
++ Same idempotency key
+= same result
+
+ثم:
+
+Same request
++ Different idempotency key
+= duplicate/conflict according to business rules
+
+ولا تسمح بإنشاء عقد مكرر.
+
+المشكلة 2 — Invoice → Financial Core
+
+الاختبار الحي أثبت:
+
+Invoice:
+draft
+→ pending approval
+→ approved
+→ posted
+
+لكن:
+
+Financial Core revenue = 0
+
+بينما Payment يعمل.
+
+أصلح المصدر الحقيقي للمشكلة.
+
+المطلوب عند ترحيل الفاتورة:
+
+Invoice
+↓
+Financial Transaction
+↓
+Journal Entry
+↓
+Journal Lines
+↓
+AR / Revenue
+
+مثال الفاتورة:
+
+1000
+
+يجب أن يظهر الأثر المحاسبي وفق Chart of Accounts الحالي.
+
+وعند دفع:
+
+600
+
+يصبح منطقياً:
+
+Revenue      = 1000
+Collections  = 600
+Receivable   = 400
+
+لا تغير تعريفات Financial Truth فقط لإظهار الرقم الصحيح في الواجهة.
+
+أريد الحركة المحاسبية الفعلية موجودة في Financial Core.
+
+مهم جداً
+
+يجب منع الحالة التالية:
+
+Invoice = posted
+Financial Transaction = missing
+
+إذا فشل الترحيل المالي، يجب ألا تترك الفاتورة في حالة مالية مضللة.
+
+استخدم transaction/rollback أو الآلية الموجودة في architecture الحالية بما يتوافق مع النظام.
+
+المشكلة 3 — PHP Health Endpoint
+
+أضف أو أصلح Health endpoint المناسب للـPHP/Hostinger الحالي:
+
+GET /api/healthz
+
+بحيث يعيد:
+
+HTTP 200
+
+وJSON واضح وآمن.
+
+يجب ألا يكشف:
+
+Passwords
+Secrets
+Database credentials
+Environment variables
+Sensitive filesystem information
+
+ويجب أن يتحقق على الأقل من:
+
+PHP Runtime
+Database availability
+Application health
+
+إذا كان هناك Health mechanism موجود بالفعل، وحّده بدلاً من إنشاء endpoint مكرر.
+
+ممنوعات المرحلة الأولى
+
+لا تقم بأي من الآتي:
+
+❌ لا ترفع إلى Hostinger
+❌ لا تعدل production
+❌ لا تغير قاعدة بيانات Hostinger
+❌ لا تعيد بناء Financial Core
+❌ لا تعيد تصميم التقارير
+❌ لا تغير UI بدون سبب
+❌ لا تغير Order → Contract إلا في مشكلة Idempotency
+❌ لا تغير Payment flow لأنه ناجح
+❌ لا تغير Golden Dataset إلا إذا احتاج اختبار الإصلاح
+
+Minimal Fix فقط.
+
+بعد الإصلاح — الاختبارات المحلية
+
+شغّل:
+
+pnpm run typecheck
+
+ثم:
+
+Financial Core assertions
+Financial Certification assertions
+Golden Dataset
+Cross-report verification
+Order → Contract
+
+ثم:
+
+PHP lint
+Operational Validation
+Targeted Build
+
+واختبر تحديداً:
+
+Contract
+Create
+→ Repeat same operation
+→ idempotent=true
+Invoice
+Create
+→ Approve
+→ Post
+→ Financial Transaction exists
+→ Journal exists
+→ Debit = Credit
+Payment
+
+تأكد أن الإصلاح لم يكسر:
+
+Payment Idempotency
+Allocation
+Double Entry
+Receipt Double Counting
+Health
+GET /api/healthz
+→ HTTP 200
+Regression إلزامي
+
+بعد الإصلاح، يجب التأكد أن هذه ما زالت PASS:
+
+Financial Core
+Double Entry
+Payment Idempotency
+Receipt Double Counting
+Refunds
+Reversals
+Period Lock
+Bank Reconciliation
+Node/PHP Parity
+Frontend Financial Truth
+Golden Dataset
+Cross-report Consistency
+Order → Contract
+Customer Reuse
+Request Reuse
+
+إذا فشل أي اختبار سابق كان PASS:
+
+توقف ولا تبني الحزمة النهائية.
+
+أصلح الـRegression أولاً.
+
+بناء تحديث Hostinger
+
+بعد نجاح كل الاختبارات فقط:
+
+ابنِ نسخة Production/Hostinger كاملة.
+
+المطلوب:
+
+cleanflow-services-hostinger.zip
+
+ويجب أن تحتوي على الإصلاحات فقط مع الحفاظ على كل الملفات المطلوبة حالياً.
+
+تحقق من:
+
+Archive Integrity
+PHP Files
+SQLite
+API
+Frontend Assets
+CleanFlow Platform
+Permissions/Paths
+No Secrets
+No Temporary Files
+No Test Credentials
+قبل تسليم الحزمة
+
+نفذ فحصاً نهائياً:
+
+git diff --check
+
+ثم تحقق من أن الحزمة لا تحتوي:
+
+.env
+passwords
+FTP credentials
+admin credentials
+debug dumps
+temporary test databases
+
+ولا تضع بيانات الدخول التي أعطيتها لك داخل الكود أو الأرشيف.
+
+لا ترفع الحزمة
+
+توقف هنا.
+
+لا تستخدم FTP.
+
+لا تستبدل:
+
+public_html
+
+ولا تعدل أي ملف في Hostinger.
+
+أريد منك تسليمي:
+
+cleanflow-services-hostinger.zip
+
+مع تقرير:
+
+========================================
+PHASE 1 — FIX & BUILD REPORT
+========================================
+
+Contract Idempotency:
+PASS
+
+Invoice → Financial Core:
+PASS
+
+PHP Health:
+PASS
+
+TypeScript:
+PASS
+
+Financial Core:
+PASS
+
+Financial Certification:
+PASS
+
+Golden Dataset:
+PASS
+
+Cross-Report:
+PASS
+
+Order → Contract:
+PASS
+
+Payment Idempotency:
+PASS
+
+PHP Lint:
+PASS
+
+Operational Validation:
+PASS
+
+Build:
+PASS
+
+Archive Integrity:
+PASS
+
+Secrets Scan:
+PASS
+
+Regression:
+PASS
+
+ثم:
+
+Files Changed:
+- ...
+
+Root Cause:
+- ...
+
+Minimal Fix:
+- ...
+
+Tests:
+- ...
+
+Build Artifact:
+cleanflow-services-hostinger.zip
+
+Production Deployment:
+NOT PERFORMED
+المرحلة الثانية — لا تبدأها الآن
+
+بعد أن ترسل الحزمة والتقرير، انتظر تأكيدي بأنني رفعت النسخة إلى Hostinger.
+
+عندما أقول لك:
+
+HOSTINGER UPDATE DEPLOYED
+
+ابدأ المرحلة الثانية فقط:
+
+LIVE HOSTINGER E2E
+
+على:
+
+https://hawiat.aiservx.com
+
+ثم اختبر من الصفر:
+
+DNS
+HTTPS
+PHP
+SQLite
+Admin
+API
+Website
+Customer
+Order
+Request
+Contract
+Idempotency
+Invoice
+Financial Core
+Payment
+Allocation
+Receipt
+Deposit
+Expense
+Purchase
+Inventory
+Commission
+Bank Fee
+Other Revenue
+Transfer
+Refund
+Reversal
+Period Lock
+Bank Reconciliation
+Reports
+Golden Dataset
+Cross-Report
+Node/PHP/Hostinger Parity
+Security
+Database Integrity
+Production Stability
+
+لكن لا تبدأ هذه المرحلة قبل تسليم الـZIP والإبلاغ بأن الإصلاحات المحلية كلها PASS.
+
+القرار
+NOW:
+FIX → TEST → BUILD → PACKAGE → STOP
+
+THEN:
+USER DEPLOYS ZIP
+
+THEN:
+LIVE HOSTINGER E2E → FINAL CERTIFICATION
+
+لا تعلن 10/10 في المرحلة الأولى. الهدف الآن هو إنتاج تحديث آمن ومثبت، وليس إعلان الاعتماد النهائي.

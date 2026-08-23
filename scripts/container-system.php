@@ -836,6 +836,39 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
             hsJson(['error' => 'مفتاح العملية غير صالح'], 422);
         }
         if ($operationKey !== '') $contract['operationKey'] = $operationKey;
+        if ($operationKey !== '') {
+            $existingOperation = $pdo->prepare("SELECT * FROM container_system_records WHERE kind = 'contract' AND operation_key = :operation_key AND status <> 'archived' LIMIT 1");
+            $existingOperation->execute([':operation_key' => $operationKey]);
+            $existing = $existingOperation->fetch(PDO::FETCH_ASSOC);
+            if ($existing) {
+                $existingPayload = hsPayload($existing['payload']);
+                $requestedNumber = trim((string)($contract['contractNumber'] ?? ''));
+                $existingNumber = trim((string)($existingPayload['contractNumber'] ?? $existing['reference'] ?? ''));
+                if ($requestedNumber !== '' && $existingNumber !== '' && $requestedNumber !== $existingNumber) {
+                    hsJson(['error' => 'مفتاح العملية مستخدم لحمولة عقد مختلفة'], 409);
+                }
+                $allExisting = hsFindRecords($pdo);
+                $related = static function (string $kind) use ($allExisting, $existing): ?array {
+                    foreach ($allExisting as $row) {
+                        if ($row['kind'] !== $kind || $row['status'] === 'archived') continue;
+                        $payload = hsPayload($row['payload']);
+                        if ((int)($payload['contractRecordId'] ?? 0) === (int)$existing['id']) return $row;
+                    }
+                    return null;
+                };
+                $serviceRequest = null;
+                $serviceStmt = $pdo->prepare("SELECT * FROM service_requests WHERE contract_record_id = :contract_id LIMIT 1");
+                $serviceStmt->execute([':contract_id' => (int)$existing['id']]);
+                $serviceRequest = $serviceStmt->fetch(PDO::FETCH_ASSOC) ?: null;
+                hsJson([
+                    'contract' => hsRecord($existing),
+                    'assignment' => ($row = $related('container_assignment')) ? hsRecord($row) : null,
+                    'appointment' => ($row = $related('appointment')) ? hsRecord($row) : null,
+                    'serviceRequest' => $serviceRequest,
+                    'idempotent' => true,
+                ]);
+            }
+        }
         $find = static function (PDO $pdo, int $id): ?array {
             $stmt = $pdo->prepare("SELECT * FROM container_system_records WHERE id = :id LIMIT 1");
             $stmt->execute([':id' => $id]);
@@ -861,6 +894,12 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
             $contract['containerCode'] = hsAssetCode($assetPayload);
         }
         hsValidateRecord($pdo, 'contract', $contract);
+        $contractNumber = trim((string)($contract['contractNumber'] ?? ''));
+        if ($contractNumber !== '') {
+            $duplicateNumber = $pdo->prepare("SELECT id FROM container_system_records WHERE kind = 'contract' AND reference = :reference AND status <> 'archived' LIMIT 1");
+            $duplicateNumber->execute([':reference' => $contractNumber]);
+            if ($duplicateNumber->fetchColumn()) hsJson(['error' => 'رقم المستند مستخدم مسبقًا'], 409);
+        }
         $now = date('c');
         try {
             $pdo->beginTransaction();
@@ -1203,6 +1242,14 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
                     }
                 }
                 if (in_array((string)$current['kind'], hsFinancialLifecycleKinds(), true) && $nextStatus === 'posted' && $current['status'] !== 'posted') {
+                    hsPostFinancialCore(
+                        $pdo,
+                        (string)$current['kind'],
+                        $id,
+                        $payload,
+                        (string)$current['reference'],
+                        $actorId
+                    );
                     $ledger = [
                         'sourceKind' => $current['kind'], 'sourceId' => $id,
                         'contractNumber' => $payload['contractNumber'] ?? '',
