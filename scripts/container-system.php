@@ -453,7 +453,7 @@ function hsSupportedKinds(): array {
         'customer', 'customer_site', 'container_type', 'container', 'container_asset', 'container_assignment', 'vehicle', 'driver',
         'contract', 'contract_line', 'container_movement', 'ledger_entry', 'receipt', 'payment',
         'expense', 'deposit', 'bank_deposit', 'bank_fee', 'maintenance', 'alert', 'setting', 'branch',
-        'employee', 'permit', 'appointment', 'warehouse', 'treasury', 'transfer', 'invoice',
+        'employee', 'permit', 'appointment', 'warehouse', 'supplier', 'treasury', 'transfer', 'invoice',
         'invoice_return', 'category', 'category_size', 'tax', 'commission', 'oil_change',
         'salary_advance', 'salary_payment', 'fuel_expense', 'daily_expense',
         'other_revenue', 'notification', 'payment_return', 'stock_issue', 'stock_issue_return',
@@ -1354,20 +1354,30 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
         if (!in_array($kind, hsSupportedKinds(), true)) hsJson(['error' => 'نوع السجل غير مدعوم'], 400);
         if (!hsCanManage($admin, $kind)) hsJson(['error' => 'ليس لديك صلاحية لهذه العملية'], 403);
         $operationKey = trim((string)($_SERVER['HTTP_IDEMPOTENCY_KEY'] ?? $input['operationKey'] ?? $payload['operationKey'] ?? ''));
-        if (in_array($kind, hsFinancialLifecycleKinds(), true) && $operationKey !== '') {
+        if ((in_array($kind, hsFinancialLifecycleKinds(), true) || $kind === 'contract') && $operationKey !== '') {
             if (strlen($operationKey) < 8 || strlen($operationKey) > 160) hsJson(['error' => 'مفتاح العملية غير صالح'], 422);
             $payload['operationKey'] = $operationKey;
             $existingStmt = $pdo->prepare("SELECT * FROM container_system_records WHERE kind = ? AND operation_key = ? AND status <> 'archived' ORDER BY id DESC LIMIT 1");
-            $existingStmt->execute([$kind, $operationKey]);
+            $existingStmt = $pdo->prepare("SELECT * FROM container_system_records WHERE kind = ? AND status <> 'archived' AND (operation_key = ? OR json_extract(payload, '$.operationKey') = ?) ORDER BY id DESC LIMIT 1");
+            $existingStmt->execute([$kind, $operationKey, $operationKey]);
             $existing = $existingStmt->fetch(PDO::FETCH_ASSOC);
             if ($existing) hsJson(array_merge(hsRecord($existing), ['idempotent' => true]));
         }
         $payload = hsNormalizeFinancial($kind, $payload);
         hsValidateRecord($pdo, $kind, $payload);
+        $requestedStatus = (string)($input['status'] ?? '');
+        if (in_array($kind, hsFinancialLifecycleKinds(), true) && $requestedStatus === 'posted') {
+            $periodKey = substr((string)($payload['date'] ?? date('Y-m-d')), 0, 7);
+            $periodStmt = $pdo->prepare("SELECT status FROM financial_periods WHERE period_key = ? LIMIT 1");
+            $periodStmt->execute([$periodKey]);
+            if ($periodStmt->fetchColumn() === 'closed') {
+                hsJson(['error' => 'FINANCIAL_PERIOD_CLOSED', 'periodKey' => $periodKey], 422);
+            }
+        }
         $status = in_array($kind, ['container', 'container_asset'], true)
             ? hsCanonicalAssetStatus((string)($payload['status'] ?? ''), (string)($input['status'] ?? 'available'))
             : (in_array($kind, hsFinancialLifecycleKinds(), true)
-                ? (in_array((string)($input['status'] ?? ''), ['draft', 'pending_approval'], true) ? (string)$input['status'] : 'draft')
+                ? (in_array($requestedStatus, ['draft', 'pending_approval', 'posted'], true) ? $requestedStatus : 'draft')
                 : (string)($input['status'] ?? 'active'));
         $pdo->beginTransaction();
         try {

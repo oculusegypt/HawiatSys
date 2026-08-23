@@ -8,6 +8,7 @@ const router = Router();
 const supportedKinds = [
   "customer", "customer_site", "container_type", "container", "container_asset", "container_assignment", "vehicle", "driver",
   "contract", "contract_line", "container_movement", "ledger_entry", "receipt", "payment",
+  "supplier",
   "expense", "deposit", "bank_deposit", "bank_fee", "maintenance", "alert", "setting",
   "branch", "employee", "permit", "appointment", "warehouse", "treasury", "transfer",
   "invoice", "invoice_return", "category", "category_size", "tax", "commission",
@@ -1459,8 +1460,16 @@ router.post("/admin/container-system/records", async (req, res) => {
   } catch (error) {
     return res.status(422).json({ error: error instanceof Error ? error.message : "بيانات مالية غير صحيحة" });
   }
+  const requestedStatus = String(status);
+  if (financialLifecycleKinds.has(kind) && requestedStatus === "posted") {
+    const periodKey = String(payload.date ?? new Date().toISOString().slice(0, 10)).slice(0, 7);
+    const period = sqlite.prepare("SELECT status FROM financial_periods WHERE period_key = ?").get(periodKey) as { status?: string } | undefined;
+    if (period?.status === "closed") {
+      return res.status(422).json({ error: "FINANCIAL_PERIOD_CLOSED", periodKey });
+    }
+  }
   const normalizedStatus = financialLifecycleKinds.has(kind)
-    ? (["draft", "pending_approval"].includes(String(status)) ? String(status) : "draft")
+    ? (["draft", "pending_approval"].includes(requestedStatus) ? requestedStatus : requestedStatus === "posted" ? "posted" : "draft")
     : kind === "container" || kind === "container_asset"
     ? canonicalAssetStatus(payload.status, String(status))
     : kind === "container_assignment" ? "reserved" : String(status);

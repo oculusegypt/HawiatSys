@@ -1,0 +1,549 @@
+🚨 FINAL COMMAND — FRESH PRODUCTION DEPLOYMENT + COMPLETE LIVE E2E
+
+لا تتوقف عند Build أو تقرير أو مشكلة سابقة. أنت الآن مسؤول عن إكمال النشر والاختبار حتى النهاية.
+
+أنا رفعت التحديث بالفعل إلى الإنتاج، وبالتالي قاعدة البيانات القديمة وبيانات الاختبارات السابقة ليست مرجعاً.
+يجب التعامل مع البيئة الحالية كـ FRESH PRODUCTION E2E وبناء Dataset جديدة بالكامل، ثم اختبار النظام عليها من البداية للنهاية.
+
+1. PRODUCTION — الموقع الصحيح فقط
+
+استخدم هذا الموقع فقط:
+
+https://hawiat.aiservx.com
+
+ممنوع استخدام أي Domain آخر.
+
+2. ADMIN LOGIN
+Admin URL:
+https://hawiat.aiservx.com/admin
+
+Username:
+admin
+
+Password:
+taqi2020
+
+استخدم تسجيل الدخول الحقيقي، واحصل على Session/Token، ثم استخدمه في جميع الاختبارات.
+
+3. HOSTINGER FTP — بيانات الرفع
+
+استخدم هذه البيانات حرفياً:
+
+FTP Host:
+92.113.19.25
+
+FTP Protocol:
+FTP
+
+FTP Port:
+21
+
+FTP Username:
+u130428819.hawiat.aiservx.com
+
+FTP Password:
+3691475+*Hh@!
+
+Remote Directory:
+/public_html
+
+مهم جداً:
+
+الحساب يدخل إلى public_html.
+لا تبحث عن مجلد فرعي آخر.
+جرّب Passive FTP أولاً.
+إذا فشل، جرّب Active FTP.
+لا تتوقف بمجرد ظهور مشكلة اتصال؛ سجّل الخطأ الفعلي وأعد المحاولة بالطريقة الصحيحة.
+بعد الرفع يجب التحقق فعلياً من الملفات المنشورة.
+4. DEPLOYMENT VERIFICATION
+
+بما أنني رفعت التحديث بالفعل:
+
+تحقق أولاً من أن النسخة المنشورة تحتوي الإصدار الجديد فعلياً.
+
+تحقق من:
+
+api/index.php
+api/container-system.php
+data/sabaik.db
+cleanflow-platform/
+
+واستخدم SHA-256 حيثما أمكن للمقارنة مع الـBuild الحالي.
+
+لا تعتبر Deployment PASS لمجرد أن الموقع يفتح.
+
+يجب إثبات أن التحديث الموجود في الإنتاج هو التحديث المطلوب.
+
+5. IMPORTANT — DATABASE IS FRESH
+
+اعتبر قاعدة البيانات الحالية Fresh Environment.
+
+لا تعتمد على:
+
+Customer سابق
+Contract سابق
+Invoice سابق
+Payment سابق
+Deposit سابق
+Employee سابق
+Warehouse سابق
+Treasury سابق
+Supplier سابق
+أي IDs من الاختبارات القديمة
+
+أنشئ Dataset جديدة بالكامل بالبادئة:
+
+HOSTINGER-FRESH-E2E-2026
+
+واستخدمها في كل الاختبارات.
+
+6. BUILD COMPLETE GOLDEN DATASET
+
+لا تكتفِ بإنشاء Customer وContract فقط.
+
+أنشئ كل الـMaster Data المطلوبة أولاً، ومنها:
+
+Customer
+Customer Site
+Customer Contact
+Employee
+Warehouse
+Supplier
+Cash Treasury
+Bank Treasury
+
+إذا كان النظام يحتاج كيانات إضافية لأي Workflow، أنشئها أيضاً بشكل صحيح.
+
+ممنوع تخطي Workflow بسبب عدم وجود Master Data.
+
+إذا احتاج Purchase إلى Supplier/Warehouse → أنشئهما.
+
+إذا احتاج Commission إلى Employee → أنشئ Employee.
+
+إذا احتاج Transfer إلى Treasury مصدر ووجهة → أنشئ Cash Treasury وBank Treasury.
+
+إذا احتاج Inventory → أنشئ Warehouse صالحاً.
+
+7. COMPLETE LIVE E2E
+
+نفّذ الاختبار الحي الكامل بالترتيب:
+
+Customer
+→ Customer Site
+→ Customer Contact
+→ Service Request
+→ Container / Asset
+→ Assignment
+→ Appointment
+→ Contract
+→ Contract Idempotency
+→ Invoice
+→ Payment
+→ Payment Idempotency
+→ Receipt
+→ Deposit
+→ Deposit Idempotency
+→ Bank Reconciliation
+→ Expense
+→ Expense Reversal
+→ Purchase
+→ Inventory
+→ Commission
+→ Bank Fee
+→ Bank Fee Idempotency
+→ Other Revenue
+→ Other Revenue Idempotency
+→ Transfer
+→ Refund
+→ Refund Reversal
+→ Payment Return
+→ Financial Period
+→ Period Close
+→ Post-after-close rejection
+8. IDempotency — MANDATORY
+
+لكل عملية تدعم Idempotency:
+
+نفذ:
+
+First Request
+Idempotency-Key: HOSTINGER-FRESH-E2E-2026-<operation>
+
+ثم أعد نفس الطلب بنفس المفتاح.
+
+يجب أن تكون النتيجة:
+
+same record
+same transaction
+same journal entry
+idempotent=true
+
+ولا يتم إنشاء duplicate.
+
+اختبر على الأقل:
+
+Contract
+Payment
+Deposit
+Bank Fee
+Other Revenue
+Purchase
+
+وأي عملية أخرى تدعم Idempotency.
+
+9. FINANCIAL VALIDATION
+
+بعد انتهاء كل الحركات اقرأ:
+
+Financial Core
+
+وتحقق من:
+
+Gross Revenue
+Refunds
+Net Revenue
+Gross Collections
+Returned Collections
+Net Collections
+Expenses
+Purchases
+Inventory
+Commissions
+Bank Fees
+Other Revenue
+Transfers
+Cash
+Bank
+Profit
+Total Debit
+Total Credit
+
+شرط أساسي:
+
+Total Debit === Total Credit
+
+أي اختلاف = FAIL.
+
+10. BANK RECONCILIATION
+
+يجب التأكد أن:
+
+Deposit
+→ Financial Transaction
+→ Journal Entry
+→ Bank Reconciliation
+
+ينشئ Reconciliation واحد فقط.
+
+أعد محاولة العملية للتأكد من عدم وجود:
+
+Duplicate Reconciliation
+11. PERIOD LOCK
+
+أنشئ فترة مالية فعلية.
+
+ثم:
+
+POST transaction
+→ CLOSE PERIOD
+→ POST another transaction into closed period
+
+يجب أن تكون النتيجة:
+
+HTTP 422
+FINANCIAL_PERIOD_CLOSED
+
+والأهم:
+
+No Financial Transaction
+No Journal Entry
+No financial mutation
+12. EXPENSE REVERSAL
+
+نفذ:
+
+Expense
+→ Approval
+→ Post
+→ Reverse
+→ Reverse AGAIN
+
+المحاولة الثانية يجب أن تُرفض:
+
+HTTP 409
+
+ولا يتم إنشاء reversal إضافي.
+
+13. PURCHASE + INVENTORY
+
+لا تقل BLOCKED بسبب عدم وجود Warehouse أو Supplier.
+
+لقد طلبت منك إنشاء الـMaster Data.
+
+نفذ:
+
+Supplier
++
+Warehouse
+→ Purchase
+→ Approval
+→ Post
+→ Inventory verification
+
+وتحقق أن الـPurchase والـInventory متوافقان مالياً.
+
+14. COMMISSION
+
+أنشئ Employee فعلياً ثم:
+
+Commission
+→ Approval
+→ Post
+
+وتحقق من Financial Transaction وJournal Entry.
+
+15. BANK FEE
+
+هذا الإصلاح كان أحد أسباب الجولة الأخيرة.
+
+اختبره فعلياً على الإنتاج:
+
+Bank Fee
+→ Approval
+→ Post
+→ Retry with same Idempotency-Key
+
+يجب:
+
+HTTP 200 on retry
+idempotent=true
+same record
+no duplicate Financial Transaction
+no duplicate Journal Entry
+Debit = Credit
+16. OTHER REVENUE
+
+اختبر:
+
+Create
+→ Approve
+→ Post
+→ Retry same Idempotency-Key
+
+ويجب عدم إنشاء Draft أو Financial Transaction أو Journal Entry إضافي.
+
+17. TRANSFER
+
+أنشئ:
+
+Cash Treasury
+Bank Treasury
+
+ثم:
+
+Transfer
+→ Approval
+→ Post
+
+وتحقق أنه يظهر كـTransfer وليس Expense أو Revenue.
+
+18. REFUND + PAYMENT RETURN
+
+نفذ الاثنين بشكل فعلي.
+
+اختبر:
+
+Refund
+→ Approval
+→ Post
+→ Reverse
+→ Reverse again
+
+ثم:
+
+Payment Return
+→ Post
+→ Reverse
+→ Reverse again
+
+وتحقق من عدم وجود duplicates.
+
+19. REPORT CONSISTENCY
+
+لا تكتفِ بـHTTP 200.
+
+افتح فعلياً:
+
+Financial Control Center
+Financial Cycle Workspace
+ReportPage
+
+واستخرج القيم الظاهرة.
+
+أنشئ جدول:
+
+Metric
+Financial Core
+Control Center
+Cycle Workspace
+ReportPage
+Result
+
+وقارن القيم.
+
+أي اختلاف حقيقي = FAIL.
+
+20. DATABASE INTEGRITY
+
+إذا كان الوصول المباشر لقاعدة الإنتاج متاحاً بشكل آمن، نفذ:
+
+PRAGMA quick_check;
+PRAGMA integrity_check;
+
+ويجب:
+
+ok
+
+إذا لم يكن الوصول المباشر متاحاً، لا تدّعي PASS؛ اكتب BLOCKED بوضوح.
+
+21. PRODUCTION SECURITY
+
+تحقق من:
+
+/data/
+/data/sabaik.db
+/.env
+/api/.env
+
+ويجب ألا تكون مكشوفة.
+
+اختبر أيضاً API بدون Token:
+
+401 Unauthorized
+22. CRITICAL RULE — IF A BUG IS FOUND
+
+لا تتوقف عند اكتشاف Bug.
+
+إذا ظهر Bug بسيط أو واضح أثناء الاختبار:
+
+حدد Root Cause.
+أصلح المصدر Node/PHP عند الحاجة.
+شغّل TypeScript.
+شغّل PHP lint.
+شغّل Financial assertions.
+أعد Build.
+ارفع التحديث إلى Hostinger.
+تحقق أن التحديث وصل فعلياً.
+أعد الاختبار الذي فشل.
+أعد الاختبارات المتأثرة.
+استمر حتى PASS.
+
+ممنوع الاكتفاء بعبارة: "Source fix applied locally".
+
+أنا أعطيتك صلاحية إكمال الدورة:
+Fix → Build → Deploy → Verify → Retest.
+
+23. NO MORE STOPPING EARLY
+
+ممنوع التوقف عند:
+
+FTP issue
+Missing master data
+Unsupported prerequisite
+Simple validation error
+Build success
+Local PASS
+HTTP 200
+
+ابحث عن السبب الحقيقي وأكمل.
+
+إذا كانت هناك مشكلة في FTP، استخدم بيانات FTP الموجودة أعلاه حرفياً وتحقق من الاتصال والـRemote Directory.
+
+إذا كانت هناك مشكلة في Master Data، أنشئ البيانات المطلوبة.
+
+إذا كان هناك Bug في الكود، أصلحه وارفعه وأعد الاختبار.
+
+24. FINAL CERTIFICATION
+
+في النهاية أريد تقريراً واحداً فقط يحتوي:
+
+DEPLOYMENT
+FTP
+LIVE SHA-256
+AUTHENTICATION
+SECURITY
+DATABASE INTEGRITY
+
+GOLDEN DATASET
+
+CUSTOMER
+SITE
+CONTACT
+EMPLOYEE
+WAREHOUSE
+SUPPLIER
+TREASURIES
+
+ORDER → CONTRACT
+CONTRACT IDEMPOTENCY
+
+INVOICE
+PAYMENT
+PAYMENT IDEMPOTENCY
+RECEIPT
+DEPOSIT
+DEPOSIT IDEMPOTENCY
+BANK RECONCILIATION
+
+EXPENSE
+EXPENSE REVERSAL
+
+PURCHASE
+INVENTORY
+
+COMMISSION
+
+BANK FEE
+BANK FEE IDEMPOTENCY
+
+OTHER REVENUE
+OTHER REVENUE IDEMPOTENCY
+
+TRANSFER
+
+REFUND
+REFUND REVERSAL
+
+PAYMENT RETURN
+
+FINANCIAL PERIOD
+PERIOD LOCK
+
+FINANCIAL CORE
+DOUBLE ENTRY
+
+FINANCIAL CONTROL CENTER
+FINANCIAL CYCLE WORKSPACE
+REPORTPAGE
+CROSS REPORT
+
+NODE/PHP PARITY
+PRODUCTION STABILITY
+
+ثم:
+
+========================================
+FINAL PRODUCTION CERTIFICATION
+========================================
+
+PASS / FAIL
+
+FINAL SCORE: X/10
+
+لا تعطيني 8/10 لمجرد وجود قيود تحقق إذا كان بإمكانك حلها فعلياً.
+
+الهدف الآن:
+
+COMPLETE FRESH LIVE E2E → FIX → DEPLOY → RETEST → 10/10
+
+ابدأ من النسخة المنشورة الحالية، وابنِ Dataset جديدة بالكامل، وأكمل حتى النهاية.

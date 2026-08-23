@@ -21,3 +21,4 @@
 - [Golden financial verification](golden-financial-verification.md) — derive regression expectations from posted journal behavior and keep Hostinger claims runtime-backed.
 - [Hostinger FTP verification](hostinger-ftp-verification.md) — HTTP health does not prove FTP access or source-to-live file parity.
 - [Active visitors SQLite integrity](sqlite-active-visitors-integrity.md) — WAL-backed copies can make the primary-key index appear corrupt; preserve, repair minimally, and verify row preservation.
+- [Hostinger financial route parity](hostinger-financial-route-parity.md) — PHP generic records must match Node for contract idempotency and closed-period posting.
