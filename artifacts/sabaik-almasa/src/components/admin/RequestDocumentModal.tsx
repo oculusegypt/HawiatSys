@@ -169,7 +169,7 @@ export default function RequestDocumentModal({ request, kind, onClose }: Props) 
 
   return (
     <Dialog open onOpenChange={open => !open && onClose()}>
-      <DialogContent dir="rtl" className="max-w-lg">
+      <DialogContent dir="rtl" className="z-[100] max-w-lg">
         <DialogHeader><DialogTitle>إصدار فاتورة للطلب #{request.id}</DialogTitle></DialogHeader>
         <Card className="border-0 shadow-none">
           <CardContent className="space-y-4 p-0">

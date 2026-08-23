@@ -255,7 +255,7 @@ export function ContractWizard({ open, records, initialCustomerId = null, initia
   const steps = ["العميل", "العقد والأصل", "التسعير", "الجدولة", "المراجعة"]
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-3 sm:p-6" dir="rtl">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/45 p-3 sm:p-6" dir="rtl">
       <Card className="max-h-[94dvh] w-full max-w-3xl overflow-y-auto border-cyan-100 shadow-2xl">
         <CardContent className="p-0">
           <div className="border-b border-slate-100 bg-[#123d4e] p-5 text-white sm:p-7">
