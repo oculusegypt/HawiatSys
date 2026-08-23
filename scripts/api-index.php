@@ -4972,9 +4972,18 @@ PROMPT;
     echo json_encode(['error' => 'Route not found: ' . $method . ' ' . $path], JSON_UNESCAPED_UNICODE);
 
 } catch (\Throwable $fatalError) {
+    $message = $fatalError->getMessage();
+    if (str_contains($message, 'الفترة المالية') && str_contains($message, 'مغلقة')) {
+        http_response_code(422);
+        echo json_encode([
+            'error' => 'FINANCIAL_PERIOD_CLOSED',
+            'message' => 'Cannot post financial transaction into a closed period.',
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
     http_response_code(500);
     echo json_encode([
-        'error' => 'Internal PHP Error: ' . $fatalError->getMessage(),
+        'error' => 'Internal PHP Error: ' . $message,
         'file' => basename($fatalError->getFile()),
         'line' => $fatalError->getLine()
     ], JSON_UNESCAPED_UNICODE);

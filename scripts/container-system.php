@@ -160,6 +160,22 @@ function hsPostFinancialCore(PDO $pdo, string $kind, int $sourceId, array $paylo
     }
 }
 
+function hsEnsureDepositReconciliation(PDO $pdo, int $depositRecordId, string $kind, array $payload, string $reference): void {
+    if (!in_array($kind, ['deposit', 'bank_deposit'], true)) return;
+    $financial = $pdo->prepare("SELECT id FROM financial_transactions WHERE source_kind = ? AND source_id = ? LIMIT 1");
+    $financial->execute([$kind, $depositRecordId]);
+    $financialTransactionId = (int)$financial->fetchColumn();
+    if ($financialTransactionId <= 0) throw new RuntimeException('تعذر ربط الإيداع بالحركة المالية');
+    $amount = (float)($payload['amount'] ?? $payload['total'] ?? 0);
+    $date = (string)($payload['date'] ?? date('Y-m-d'));
+    $depositReference = (string)($payload['reference'] ?? $reference);
+    $pdo->prepare("INSERT OR IGNORE INTO bank_reconciliations
+        (deposit_record_id,deposit_reference,deposit_date,amount,linked_transaction_id,difference,status,audit_trail)
+        VALUES (?,?,?,?,?,?,?,?)")
+        ->execute([$depositRecordId, $depositReference, $date, $amount, $financialTransactionId, 0, 'matched',
+            json_encode([['at' => date('c'), 'action' => 'deposit_posted', 'sourceKind' => $kind, 'sourceId' => $depositRecordId]], JSON_UNESCAPED_UNICODE)]);
+}
+
 function hsReverseFinancialCore(PDO $pdo, string $kind, int $sourceId, float $amount, string $reason, ?int $actorId): void {
     hsFinancialTables($pdo);
     $original = $pdo->prepare("SELECT id FROM financial_transactions WHERE source_kind = ? AND source_id = ? AND status = 'posted' LIMIT 1");
@@ -1314,6 +1330,7 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
                         (string)$current['reference'],
                         $actorId
                     );
+                    hsEnsureDepositReconciliation($pdo, $id, (string)$current['kind'], $payload, (string)$current['reference']);
                     $ledger = [
                         'sourceKind' => $current['kind'], 'sourceId' => $id,
                         'contractNumber' => $payload['contractNumber'] ?? '',
@@ -1344,6 +1361,15 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
         $payload = is_array($input['payload'] ?? null) ? $input['payload'] : [];
         if (!in_array($kind, hsSupportedKinds(), true)) hsJson(['error' => 'نوع السجل غير مدعوم'], 400);
         if (!hsCanManage($admin, $kind)) hsJson(['error' => 'ليس لديك صلاحية لهذه العملية'], 403);
+        $operationKey = trim((string)($_SERVER['HTTP_IDEMPOTENCY_KEY'] ?? $input['operationKey'] ?? $payload['operationKey'] ?? ''));
+        if (in_array($kind, hsFinancialLifecycleKinds(), true) && $operationKey !== '') {
+            if (strlen($operationKey) < 8 || strlen($operationKey) > 160) hsJson(['error' => 'مفتاح العملية غير صالح'], 422);
+            $payload['operationKey'] = $operationKey;
+            $existingStmt = $pdo->prepare("SELECT * FROM container_system_records WHERE kind = ? AND operation_key = ? AND status <> 'archived' ORDER BY id DESC LIMIT 1");
+            $existingStmt->execute([$kind, $operationKey]);
+            $existing = $existingStmt->fetch(PDO::FETCH_ASSOC);
+            if ($existing) hsJson(array_merge(hsRecord($existing), ['idempotent' => true]));
+        }
         $payload = hsNormalizeFinancial($kind, $payload);
         hsValidateRecord($pdo, $kind, $payload);
         $status = in_array($kind, ['container', 'container_asset'], true)
@@ -1354,8 +1380,8 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
         $pdo->beginTransaction();
         try {
             $now = date('c');
-            $stmt = $pdo->prepare("INSERT INTO container_system_records (kind, status, reference, payload, created_by, created_at, updated_at) VALUES (:kind, :status, '', :payload, :created_by, :created_at, :updated_at)");
-            $stmt->execute([':kind' => $kind, ':status' => $status, ':payload' => json_encode($payload, JSON_UNESCAPED_UNICODE), ':created_by' => $actorId, ':created_at' => $now, ':updated_at' => $now]);
+            $stmt = $pdo->prepare("INSERT INTO container_system_records (kind, status, reference, payload, operation_key, created_by, created_at, updated_at) VALUES (:kind, :status, '', :payload, :operation_key, :created_by, :created_at, :updated_at)");
+            $stmt->execute([':kind' => $kind, ':status' => $status, ':payload' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE), ':operation_key' => $operationKey !== '' ? $operationKey : null, ':created_by' => $actorId, ':created_at' => $now, ':updated_at' => $now]);
             $id = (int)$pdo->lastInsertId();
             $reference = hsReference($kind, $payload, $id);
             $pdo->prepare("UPDATE container_system_records SET reference = :reference WHERE id = :id")->execute([':reference' => $reference, ':id' => $id]);
@@ -1364,15 +1390,7 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
             if (in_array($kind, ['payment', 'receipt', 'expense', 'deposit', 'bank_deposit', 'invoice', 'invoice_return', 'payment_return', 'transfer', 'purchase', 'purchase_return', 'other_revenue'], true)
                 && $status === 'posted') {
                 hsPostFinancialCore($pdo, $kind, $id, $payload, $reference, $actorId);
-                if (in_array($kind, ['deposit', 'bank_deposit'], true)) {
-                    $financialPayment = $pdo->prepare("SELECT id FROM financial_transactions WHERE source_kind = ? AND source_id = ? LIMIT 1");
-                    $financialPayment->execute([$kind, $id]);
-                    $financialTransactionId = (int)$financialPayment->fetchColumn();
-                    $depositAmount = (float)($payload['amount'] ?? $payload['total'] ?? 0);
-                    $depositDate = (string)($payload['date'] ?? date('Y-m-d'));
-                    $pdo->prepare("INSERT OR IGNORE INTO bank_reconciliations (deposit_record_id,deposit_reference,deposit_date,amount,linked_transaction_id,difference,status) VALUES (?,?,?,?,?,?,?)")
-                        ->execute([$id, (string)($payload['reference'] ?? $reference), $depositDate, $depositAmount, $financialTransactionId, 0, 'matched']);
-                }
+                hsEnsureDepositReconciliation($pdo, $id, $kind, $payload, $reference);
                 $ledger = [
                     'sourceKind' => $kind,
                     'sourceId' => $id,

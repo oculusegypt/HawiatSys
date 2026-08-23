@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { and, desc, eq, like } from "drizzle-orm";
-import { db, containerSystemAuditTable, containerSystemRecordsTable, serviceRequestsTable, financialTruth, financialPeriods, closeFinancialPeriod, postToFinancialCore, reverseInFinancialCore } from "@workspace/db";
+import { db, sqlite, containerSystemAuditTable, containerSystemRecordsTable, serviceRequestsTable, financialTruth, financialPeriods, closeFinancialPeriod, postToFinancialCore, reverseInFinancialCore } from "@workspace/db";
 import type { AdminRequest } from "../middleware/adminAuth";
 import { getSetting } from "./settings";
 
@@ -1750,6 +1750,24 @@ router.patch("/admin/container-system/records/:id", async (req, res) => {
             amount: Number(item.amount),
           })) : undefined,
         });
+          if (["deposit", "bank_deposit"].includes(current.kind)) {
+            const depositAmount = Number(nextPayload.amount ?? nextPayload.total ?? 0);
+            const depositDate = String(nextPayload.date ?? new Date().toISOString().slice(0, 10));
+            sqlite.prepare(`
+              INSERT OR IGNORE INTO bank_reconciliations
+                (deposit_record_id, deposit_reference, deposit_date, amount, linked_transaction_id, difference, status, audit_trail)
+              VALUES (?, ?, ?, ?, (SELECT id FROM financial_transactions WHERE source_kind = ? AND source_id = ?), ?, 'matched', ?)
+            `).run(
+              id,
+              String(nextPayload.reference ?? current.reference ?? ""),
+              depositDate,
+              depositAmount,
+              current.kind,
+              id,
+              0,
+              JSON.stringify([{ at: new Date().toISOString(), action: "deposit_posted", sourceKind: current.kind, sourceId: id }]),
+            );
+          }
       } catch (error) {
         throw new Error(error instanceof Error ? error.message : "تعذر ترحيل الحركة إلى النواة المالية");
       }
