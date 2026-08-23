@@ -23,6 +23,7 @@ import { arSA } from "date-fns/locale"
 import { Eye, Pencil, Trash2, Plus, TrendingUp, Clock, CheckCircle2, XCircle, ListOrdered, CalendarClock, BarChart2, Star, MessageCircle } from "lucide-react"
 import RequestDetailModal from "@/components/admin/RequestDetailModal"
 import RequestFormModal from "@/components/admin/RequestFormModal"
+import RequestDocumentModal, { type RequestDocumentContext } from "@/components/admin/RequestDocumentModal"
 import { RequestsStatsGrid } from "@/components/admin/requests/RequestsStatsGrid"
 import { useToast } from "@/hooks/use-toast"
 import { useLocation } from "wouter"
@@ -118,6 +119,7 @@ export default function AdminRequests() {
   const [, navigate] = useLocation()
   const [filter, setFilter]               = useState<string>("all")
   const [selectedRequest, setSelected]    = useState<ServiceRequest | null>(null)
+  const [documentAction, setDocumentAction] = useState<{ request: RequestDocumentContext; kind: "contract" | "invoice" } | null>(null)
   const [editRequest, setEdit]            = useState<ServiceRequest | null>(null)
   const [createOpen, setCreateOpen]       = useState(false)
   const [deleteTarget, setDeleteTarget]   = useState<ServiceRequest | null>(null)
@@ -585,14 +587,13 @@ export default function AdminRequests() {
         drivers={drivers}
         assigning={assigning}
         onAssign={driverId => selectedRequest && handleAssignment(selectedRequest, driverId ? String(driverId) : "unassigned")}
-        onCreateContract={request => {
-          window.sessionStorage.setItem("cleanflow_request_context", JSON.stringify(request))
-          navigate(`/admin/container-system?view=contract&requestId=${request.id}`)
-        }}
-        onCreateInvoice={request => {
-          window.sessionStorage.setItem("cleanflow_request_context", JSON.stringify(request))
-          navigate(`/admin/container-system?view=invoice&requestId=${request.id}`)
-        }}
+        onCreateContract={request => setDocumentAction({ request: request as RequestDocumentContext, kind: "contract" })}
+        onCreateInvoice={request => setDocumentAction({ request: request as RequestDocumentContext, kind: "invoice" })}
+      />
+      <RequestDocumentModal
+        request={documentAction?.request ?? null}
+        kind={documentAction?.kind ?? null}
+        onClose={() => setDocumentAction(null)}
       />
       <RequestFormModal
         open={createOpen}

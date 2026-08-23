@@ -58,3 +58,17 @@ mtime_ms = 1787462211209
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:3a1279d6-49d5-4f67-a720-2262ceef4af3/652eb3f2-a468-43eb-b2e5-525fe19ebe33/9a0a5c46-85e3-40ed-ad06-a72971553e47"
 storage_version_token = "1787462219149674"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "c2gut9hykjhOCaKFHyheD"
+uri = "file://hawiat-full-update.zip"
+type = "unspecified"
+title = "التحديث الكامل لإصلاح أزرار العقود والفواتير"
+description = "نسخة جديدة بعد إزالة التحويل إلى container-system من صفحة الطلبات نفسها. تحتوي الواجهة المجمعة الجديدة، ملفات PHP، SQLite، Service Worker، وملفات التوجيه. ارفع المحتويات إلى public_html بعد أخذ نسخة احتياطية من data/sabaik.db مع الحفاظ على uploads/."
+logical_id = "06ec6db6-d29d-427d-ab79-82b679530ea3"
+content_hash = "sha256:69a2581479ef0c2ed2a3ea60c130f5ce8120c202a2b55cce18fef85ea618603a"
+size = 2787014
+mtime_ms = 1787513737801
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:40bddad7-23e3-483a-955a-38e870108617/06ec6db6-d29d-427d-ab79-82b679530ea3/414a04e8-30eb-4477-b2bd-a075c97eb58f"
+storage_version_token = "1787513754318702"
+content_type = "application/octet-stream"
