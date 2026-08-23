@@ -1405,6 +1405,9 @@ router.patch("/admin/container-system/records/:id", async (req, res) => {
   if (current.kind === "container_movement") {
     return res.status(409).json({ error: "حركة التشغيل لا تُعدّل بعد تسجيلها؛ سجّل حركة تصحيحية جديدة للحفاظ على التسلسل والتدقيق" });
   }
+  if (current.kind === "ledger_entry") {
+    return res.status(409).json({ error: "قيد الأستاذ لا يُعدّل مباشرة؛ صحح المستند المالي الأصلي بحركة عكسية موثقة" });
+  }
   const body = req.body as { status?: string; payload?: Record<string, unknown> };
   const nextPayload = body.payload ? { ...parsePayload(current.payload), ...body.payload } : parsePayload(current.payload);
   try {
@@ -1539,6 +1542,9 @@ router.delete("/admin/container-system/records/:id", async (req, res) => {
   }
   if (current.kind === "container_movement") {
     return res.status(409).json({ error: "لا يمكن أرشفة حركة تشغيلية بعد تسجيلها؛ استخدم حركة تصحيحية موثقة" });
+  }
+  if (current.kind === "ledger_entry") {
+    return res.status(409).json({ error: "لا يمكن أرشفة قيد الأستاذ مباشرة؛ صحح المستند المالي الأصلي بحركة عكسية موثقة" });
   }
   await db.update(containerSystemRecordsTable).set({ status: "archived", updatedAt: new Date().toISOString() })
     .where(eq(containerSystemRecordsTable.id, id));

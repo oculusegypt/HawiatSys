@@ -53,7 +53,7 @@ export function FinancialControlCenter({
   const paidForContract = (contract: ContainerSystemRecord) => {
     const p = financialPayload(contract)
     const number = String(p.contractNumber ?? contract.reference)
-    return payments.reduce((sum, payment) => {
+    const collected = payments.reduce((sum, payment) => {
       const pp = financialPayload(payment)
       const allocation = Array.isArray(pp.allocations)
         ? pp.allocations.find(item => Number((item as Record<string, unknown>).contractId) === contract.id)
@@ -61,6 +61,15 @@ export function FinancialControlCenter({
       if (allocation) return sum + Number((allocation as Record<string, unknown>).amount ?? 0)
       return !Array.isArray(pp.allocations) && String(pp.contractNumber ?? "") === number ? sum + Number(pp.amount ?? 0) : sum
     }, 0)
+    const refunded = active.filter(item => item.kind === "payment_return").reduce((sum, refund) => {
+      const rp = financialPayload(refund)
+      if (Number(rp.contractId ?? 0) === contract.id || String(rp.contractNumber ?? "") === number) return sum + financialAmount(refund)
+      const allocation = Array.isArray(rp.allocations)
+        ? rp.allocations.find(item => Number((item as Record<string, unknown>).contractId) === contract.id)
+        : null
+      return sum + (allocation ? Number((allocation as Record<string, unknown>).amount ?? 0) : 0)
+    }, 0)
+    return collected - refunded
   }
   const receivables = contracts.reduce((sum, record) => {
     const payload = financialPayload(record)

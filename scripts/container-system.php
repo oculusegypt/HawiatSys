@@ -743,6 +743,7 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
         if (!hsCanManage($admin, (string)$current['kind'])) hsJson(['error' => 'ليس لديك صلاحية لهذه العملية'], 403);
         if ($method === 'DELETE') {
             if ($current['kind'] === 'container_movement') hsJson(['error' => 'لا يمكن أرشفة حركة تشغيلية بعد تسجيلها'], 409);
+            if ($current['kind'] === 'ledger_entry') hsJson(['error' => 'لا يمكن أرشفة قيد الأستاذ مباشرة؛ صحح المستند المالي الأصلي بحركة عكسية موثقة'], 409);
             $pdo->beginTransaction();
             try {
                 $pdo->prepare("UPDATE container_system_records SET status = 'archived', updated_at = :now WHERE id = :id")->execute([':now' => date('c'), ':id' => $id]);
@@ -756,6 +757,7 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
         }
         if ($method === 'PATCH') {
             if ($current['kind'] === 'container_movement') hsJson(['error' => 'حركة التشغيل لا تُعدّل بعد تسجيلها'], 409);
+            if ($current['kind'] === 'ledger_entry') hsJson(['error' => 'قيد الأستاذ لا يُعدّل مباشرة؛ صحح المستند المالي الأصلي بحركة عكسية موثقة'], 409);
             $payload = array_merge(hsPayload($current['payload']), is_array($input['payload'] ?? null) ? $input['payload'] : []);
             $payload = hsNormalizeFinancial((string)$current['kind'], $payload);
             $nextStatus = (string)($input['status'] ?? $current['status']);
