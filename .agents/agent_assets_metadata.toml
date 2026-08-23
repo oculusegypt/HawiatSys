@@ -50,3 +50,17 @@ mtime_ms = 1787453941720
 storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:9549ba16-fad1-4002-8d2d-59af6a3bc923/da5e0650-6b63-4e98-9652-3d02a75fa1ad/eb5c10f4-e1ea-4410-8adc-85ec8aa5bf0c"
 storage_version_token = "1787453966665070"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "3qCHs-xMKde2AGCQUMI5n"
+uri = "file://cleanflow-financial-cycle-update-full.zip"
+type = "unspecified"
+title = "باتش التحديث المالي الكامل — جاهز للرفع"
+description = "أرشيف كامل جاهز للرفع إلى public_html ويشمل آخر واجهة النظام، صفحات SEO المولدة، PHP API، قاعدة SQLite المحمولة، ملفات التوجيه، CleanFlow Platform، ملفات الإشعارات، والصور المطلوبة."
+logical_id = "652eb3f2-a468-43eb-b2e5-525fe19ebe33"
+content_hash = "sha256:33c8c1cd4e882d0d62840fc0e7ebeb316cb22810b8081b51d8b05e73499f8c19"
+size = 20694983
+mtime_ms = 1787461832473
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:3a1279d6-49d5-4f67-a720-2262ceef4af3/652eb3f2-a468-43eb-b2e5-525fe19ebe33/caa9d277-1fbc-4d31-9836-dd875fd619c7"
+storage_version_token = "1787461848112356"
+content_type = "application/octet-stream"
