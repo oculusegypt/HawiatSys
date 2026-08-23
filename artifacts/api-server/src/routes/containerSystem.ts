@@ -86,8 +86,14 @@ function normalizeContractPayload(payload: Record<string, unknown>) {
   const amount = Number(next.amount ?? 0);
   const taxRate = Number(next.taxRate ?? 15);
   if (Number.isFinite(amount) && Number.isFinite(taxRate)) {
-    next.taxAmount = Math.round(amount * taxRate / 100 * 100) / 100;
-    next.total = Math.round((amount + Number(next.taxAmount)) * 100) / 100;
+    if (next.taxInclusive === true || String(next.taxInclusive).toLowerCase() === "true") {
+      next.total = Math.round(amount * 100) / 100;
+      next.taxAmount = Math.round((amount - amount / (1 + taxRate / 100)) * 100) / 100;
+      next.amount = Math.round((amount - Number(next.taxAmount)) * 100) / 100;
+    } else {
+      next.taxAmount = Math.round(amount * taxRate / 100 * 100) / 100;
+      next.total = Math.round((amount + Number(next.taxAmount)) * 100) / 100;
+    }
   }
   return next;
 }

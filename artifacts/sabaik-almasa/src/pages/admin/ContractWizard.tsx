@@ -25,6 +25,7 @@ type FormState = {
   endDate: string
   amount: string
   taxRate: string
+  taxInclusive: string
   notes: string
   appointmentDate: string
   appointmentTime: string
@@ -40,6 +41,7 @@ const initialForm: FormState = {
   endDate: "",
   amount: "",
   taxRate: "15",
+  taxInclusive: "false",
   notes: "",
   appointmentDate: "",
   appointmentTime: "09:00",
@@ -86,8 +88,12 @@ export function ContractWizard({ open, records, initialCustomerId = null, busy =
   const containerPayload = container ? payloadOf(container) : undefined
   const amount = Number(form.amount || 0)
   const taxRate = Number(form.taxRate || 0)
-  const taxAmount = Math.round(amount * taxRate) / 100
-  const total = amount + taxAmount
+  const taxInclusive = form.taxInclusive === "true"
+  const total = taxInclusive ? amount : amount + Math.round(amount * taxRate) / 100
+  const taxAmount = taxInclusive
+    ? Math.round((amount - amount / (1 + taxRate / 100)) * 100) / 100
+    : Math.round(amount * taxRate * 100) / 100
+  const netAmount = taxInclusive ? Math.round((amount - taxAmount) * 100) / 100 : amount
 
   if (!open) return null
 
@@ -135,10 +141,11 @@ export function ContractWizard({ open, records, initialCustomerId = null, busy =
       contractNumber: form.contractNumber.trim(),
       startDate: form.startDate,
       endDate: form.endDate,
-      amount,
+       amount: netAmount,
       taxRate,
       taxAmount,
       total,
+       taxInclusive,
       status: "active",
       notes: form.notes.trim(),
       location: String(site ? payloadOf(site).address ?? "" : ""),
@@ -189,8 +196,8 @@ export function ContractWizard({ open, records, initialCustomerId = null, busy =
 
             {step === 2 && <section className="space-y-4">
               <div><h3 className="font-black text-slate-900">التسعير والضريبة</h3><p className="mt-1 text-sm text-slate-500">أدخل القيمة الأساسية، وسيحسب النظام الضريبة والإجمالي تلقائيًا.</p></div>
-              <div className="grid gap-4 sm:grid-cols-2"><div><Label htmlFor="contract-amount">قيمة العقد قبل الضريبة</Label><Input id="contract-amount" type="number" min="0" value={form.amount} onChange={event => update("amount", event.target.value)} className="mt-2" dir="ltr" /></div><div><Label htmlFor="contract-tax">نسبة الضريبة %</Label><Input id="contract-tax" type="number" min="0" value={form.taxRate} onChange={event => update("taxRate", event.target.value)} className="mt-2" dir="ltr" /></div></div>
-              <div className="grid grid-cols-3 gap-3 rounded-2xl bg-slate-50 p-4 text-center"><div><p className="text-xs text-slate-500">قبل الضريبة</p><b className="mt-1 block text-lg text-slate-900">{amount.toLocaleString("ar-SA")} ر.س</b></div><div><p className="text-xs text-slate-500">الضريبة</p><b className="mt-1 block text-lg text-amber-700">{taxAmount.toLocaleString("ar-SA")} ر.س</b></div><div><p className="text-xs text-slate-500">الإجمالي</p><b className="mt-1 block text-lg text-emerald-700">{total.toLocaleString("ar-SA")} ر.س</b></div></div>
+               <div className="grid gap-4 sm:grid-cols-3"><div><Label htmlFor="contract-amount">قيمة العقد المدخلة</Label><Input id="contract-amount" type="number" min="0" value={form.amount} onChange={event => update("amount", event.target.value)} className="mt-2" dir="ltr" /><p className="mt-1 text-[11px] text-slate-500">{taxInclusive ? "ستُعامل كقيمة شاملة للضريبة" : "ستُعامل كقيمة قبل الضريبة"}</p></div><div><Label htmlFor="contract-tax">نسبة الضريبة %</Label><Input id="contract-tax" type="number" min="0" value={form.taxRate} onChange={event => update("taxRate", event.target.value)} className="mt-2" dir="ltr" /></div><div><Label htmlFor="contract-tax-inclusive">هل السعر شامل الضريبة؟</Label><select id="contract-tax-inclusive" value={form.taxInclusive} onChange={event => update("taxInclusive", event.target.value)} className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm"><option value="false">لا، قبل الضريبة</option><option value="true">نعم، شامل الضريبة</option></select></div></div>
+               <div className="grid grid-cols-3 gap-3 rounded-2xl bg-slate-50 p-4 text-center"><div><p className="text-xs text-slate-500">قبل الضريبة</p><b className="mt-1 block text-lg text-slate-900">{netAmount.toLocaleString("ar-SA")} ر.س</b></div><div><p className="text-xs text-slate-500">الضريبة</p><b className="mt-1 block text-lg text-amber-700">{taxAmount.toLocaleString("ar-SA")} ر.س</b></div><div><p className="text-xs text-slate-500">الإجمالي</p><b className="mt-1 block text-lg text-emerald-700">{total.toLocaleString("ar-SA")} ر.س</b></div></div>
               <div><Label htmlFor="contract-notes">الشروط والملاحظات</Label><textarea id="contract-notes" value={form.notes} onChange={event => update("notes", event.target.value)} rows={4} className="mt-2 w-full rounded-lg border border-slate-200 p-3 text-sm outline-none focus:border-cyan-600" placeholder="شروط التسليم أو الاستثناءات..." /></div>
             </section>}
 

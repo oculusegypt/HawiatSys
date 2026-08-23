@@ -287,8 +287,14 @@ function hsNormalizeFinancial(string $kind, array $payload): array {
     if ($kind === 'invoice' || $kind === 'contract') {
         $payload['amount'] = $amount;
         $payload['taxRate'] = $taxRate;
-        $payload['taxAmount'] = round($amount * $taxRate / 100, 2);
-        $payload['total'] = round($amount + $payload['taxAmount'], 2);
+        if (($payload['taxInclusive'] ?? false) === true || strtolower((string)($payload['taxInclusive'] ?? '')) === 'true') {
+            $payload['total'] = round($amount, 2);
+            $payload['taxAmount'] = round($amount - ($amount / (1 + $taxRate / 100)), 2);
+            $payload['amount'] = round($amount - $payload['taxAmount'], 2);
+        } else {
+            $payload['taxAmount'] = round($amount * $taxRate / 100, 2);
+            $payload['total'] = round($amount + $payload['taxAmount'], 2);
+        }
     }
     return $payload;
 }

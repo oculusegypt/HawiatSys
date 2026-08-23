@@ -339,9 +339,19 @@ function EmptyState({ kind, onAdd }: { kind: RecordKind; onAdd: () => void }) {
   )
 }
 
-function RecordRow({ record, kind, onDetails, onEdit, onArchive }: { record: ContainerSystemRecord; kind: RecordKind; onDetails: () => void; onEdit: () => void; onArchive: () => void }) {
+function RecordRow({ record, kind, records, onDetails, onEdit, onArchive }: { record: ContainerSystemRecord; kind: RecordKind; records: ContainerSystemRecord[]; onDetails: () => void; onEdit: () => void; onArchive: () => void }) {
   const fields = FIELD_CONFIG[kind].slice(0, 4)
   const primary = String(record.payload[fields[0]?.key] ?? record.reference ?? `#${record.id}`)
+  const relatedLabel = (fieldKey: string) => {
+    const id = Number(record.payload[fieldKey])
+    const related = records.find(item => item.id === id)
+    if (!related) return String(record.payload[fieldKey] ?? "—")
+    const payload = related.payload as Record<string, unknown>
+    if (fieldKey === "customerRecordId") return String(payload.name ?? payload.customerName ?? related.reference ?? `#${related.id}`)
+    if (fieldKey === "siteRecordId") return String(payload.address ?? payload.name ?? related.reference ?? `#${related.id}`)
+    if (fieldKey === "containerRecordId") return String(payload.assetCode ?? payload.code ?? related.reference ?? `#${related.id}`)
+    return String(record.payload[fieldKey] ?? "—")
+  }
   return (
     <div className="group grid grid-cols-[minmax(0,1.4fr)_minmax(0,2fr)_auto] items-center gap-4 border-b border-slate-100 px-4 py-4 last:border-0 hover:bg-cyan-50/30 sm:grid-cols-[minmax(0,1.2fr)_minmax(0,2fr)_minmax(0,1fr)_auto]" data-testid={`row-record-${record.id}`}>
        <div className="min-w-0">
@@ -361,7 +371,7 @@ function RecordRow({ record, kind, onDetails, onEdit, onArchive }: { record: Con
         <p className="mt-0.5 text-[11px] font-mono text-slate-400" dir="ltr">{record.reference || `#${record.id}`}</p>
       </div>
       <div className="hidden min-w-0 gap-2 sm:grid sm:grid-cols-2">
-        {fields.slice(1, 3).map(field => <div key={field.key} className="min-w-0"><p className="text-[10px] text-slate-400">{field.label}</p><p className="truncate text-xs text-slate-700">{String(record.payload[field.key] ?? "—")}</p></div>)}
+         {fields.slice(1, 3).map(field => <div key={field.key} className="min-w-0"><p className="text-[10px] text-slate-400">{field.label}</p><p className="truncate text-xs text-slate-700">{kind === "contract" && ["customerRecordId", "siteRecordId", "containerRecordId"].includes(field.key) ? relatedLabel(field.key) : String(record.payload[field.key] ?? "—")}</p></div>)}
       </div>
       <div className="hidden sm:block"><RecordStatus status={record.status} /><p className="mt-1 text-[10px] text-slate-400">{formatRecordDate(record.updatedAt)}</p></div>
       <div className="flex items-center justify-end gap-1">
@@ -453,7 +463,7 @@ function InvoiceWorkspace({ records, onAdd, onDetails, onEdit, onArchive }: { re
   )
 }
 
-function RecordsPanel({ kind, records, loading, onAdd, onDetails, onEdit, onArchive }: { kind: RecordKind; records: ContainerSystemRecord[]; loading: boolean; onAdd: () => void; onDetails: (record: ContainerSystemRecord) => void; onEdit: (record: ContainerSystemRecord) => void; onArchive: (record: ContainerSystemRecord) => void }) {
+function RecordsPanel({ kind, records, allRecords = records, loading, onAdd, onDetails, onEdit, onArchive }: { kind: RecordKind; records: ContainerSystemRecord[]; allRecords?: ContainerSystemRecord[]; loading: boolean; onAdd: () => void; onDetails: (record: ContainerSystemRecord) => void; onEdit: (record: ContainerSystemRecord) => void; onArchive: (record: ContainerSystemRecord) => void }) {
   return (
     <Card className="border-slate-200/80 shadow-[0_8px_28px_rgba(15,44,58,.05)]">
       <CardHeader className="border-b border-slate-100 px-4 py-4 sm:px-5">
@@ -466,7 +476,7 @@ function RecordsPanel({ kind, records, loading, onAdd, onDetails, onEdit, onArch
         {loading ? <div className="space-y-1 p-4">{[1, 2, 3, 4].map(i => <SkeletonLine key={i} className="h-14 w-full" />)}</div> : records.length === 0 ? <div className="p-4"><EmptyState kind={kind} onAdd={onAdd} /></div> : (
           <div>
             <div className="hidden grid-cols-[minmax(0,1.4fr)_minmax(0,2fr)_minmax(0,1fr)_auto] gap-4 bg-slate-50 px-4 py-2.5 text-[10px] font-bold text-slate-400 sm:grid"><span>السجل</span><span>التفاصيل</span><span>الحالة والتحديث</span><span /></div>
-            {records.map(record => <RecordRow key={record.id} record={record} kind={kind} onDetails={() => onDetails(record)} onEdit={() => onEdit(record)} onArchive={() => onArchive(record)} />)}
+             {records.map(record => <RecordRow key={record.id} record={record} kind={kind} records={allRecords} onDetails={() => onDetails(record)} onEdit={() => onEdit(record)} onArchive={() => onArchive(record)} />)}
           </div>
         )}
       </CardContent>
@@ -1053,7 +1063,7 @@ export default function ContainerSystem() {
                 ? <InvoiceWorkspace records={records} onAdd={() => openCreate("invoice")} onDetails={record => setDetailRecord(record)} onEdit={openEdit} onArchive={archiveRecord} />
               : view === "container"
                ? <ContainerPOS records={records} onAdd={() => openCreate("container")} onDetails={record => setDetailRecord(record)} onEdit={openEdit} />
-                : <RecordsPanel kind={collectionKind ?? "customer"} records={records} loading={loading} onAdd={() => openCreate(collectionKind ?? "customer")} onDetails={record => setDetailRecord(record)} onEdit={openEdit} onArchive={archiveRecord} />}
+                : <RecordsPanel kind={collectionKind ?? "customer"} records={records} allRecords={snapshot?.records ?? records} loading={loading} onAdd={() => openCreate(collectionKind ?? "customer")} onDetails={record => setDetailRecord(record)} onEdit={openEdit} onArchive={archiveRecord} />}
         </main>
       </div>
       <RecordDetails record={detailRecord} allRecords={snapshot?.records ?? records} open={Boolean(detailRecord)} onOpenChange={open => { if (!open) setDetailRecord(null) }} onContractAction={contractAction} />
