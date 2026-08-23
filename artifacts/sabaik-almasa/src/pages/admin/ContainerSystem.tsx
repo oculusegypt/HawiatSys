@@ -916,6 +916,26 @@ export default function ContainerSystem() {
         ? { ...payload, operationKey: crypto.randomUUID() }
         : payload,
     }
+    if (!dialog.record && dialog.kind === "payment" && String(payload.contractRecordIds ?? "").trim()) {
+      let ids: string[] = []
+      let amounts: Record<string, string> = {}
+      let invoices: Record<string, string> = {}
+      try { ids = JSON.parse(String(payload.contractRecordIds)); amounts = JSON.parse(String(payload.allocationAmounts ?? "{}")); invoices = JSON.parse(String(payload.allocationInvoices ?? "{}")) } catch { ids = [] }
+      const allocations = ids.map(id => ({ contractId: Number(id), amount: Number(amounts[id] ?? 0), invoiceId: invoices[id] ? Number(invoices[id]) : null }))
+      if (allocations.length > 0) {
+        const operationKey = String(payload.operationKey ?? crypto.randomUUID())
+        void fetch(`${API_BASE}/api/admin/container-system/financial/settle`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("admin_token") ?? ""}`, "Idempotency-Key": operationKey },
+          body: JSON.stringify({ ...payload, amount: Number(payload.amount ?? 0), operationKey, allocations }),
+        }).then(async response => {
+          const body = await response.json().catch(() => ({}))
+          if (!response.ok) throw new Error(String(body.error ?? "تعذر تسجيل السداد"))
+          invalidate(); setDialog(current => ({ ...current, open: false })); showSuccess(body.idempotent ? "تم تأكيد السداد السابق دون تكراره" : "تم تسجيل السداد وتوزيعه على العقود")
+        }).catch(error => toast({ title: error instanceof Error ? error.message : "تعذر تسجيل السداد", variant: "destructive" }))
+        return
+      }
+    }
     if (dialog.record) {
       updateMutation.mutate({ id: dialog.record.id, data: { status, payload } }, { onSuccess: () => { invalidate(); setDialog(current => ({ ...current, open: false })); showSuccess("تم تحديث السجل") }, onError: error => toast({ title: error instanceof Error ? error.message : "تعذر تحديث السجل", variant: "destructive" }) })
     } else {

@@ -887,6 +887,22 @@ export function RecordDialog({
     (storedPaymentContractIds.length ? storedPaymentContractIds : [legacyPaymentContractId])
       .filter(id => paymentContractOptions.some(option => option.value === id)),
   ))
+  const paymentAllocationAmounts = (() => {
+    try {
+      const parsed = JSON.parse(String(payload.allocationAmounts ?? ""))
+      return parsed && typeof parsed === "object" ? parsed as Record<string, string> : {}
+    } catch {
+      return {}
+    }
+  })()
+  const paymentAllocationInvoices = (() => {
+    try {
+      const parsed = JSON.parse(String(payload.allocationInvoices ?? ""))
+      return parsed && typeof parsed === "object" ? parsed as Record<string, string> : {}
+    } catch {
+      return {}
+    }
+  })()
   const optionsFor = (key: string) => {
     if (kind === "container" && key === "status") return CONTAINER_STATUS_OPTIONS
     if (kind === "invoice" && key === "invoiceType") return INVOICE_TYPE_OPTIONS
@@ -951,10 +967,18 @@ export function RecordDialog({
         </DialogHeader>
         <form onSubmit={event => {
           event.preventDefault()
-          if (isCustomerPayment && !String(payload.contractNumber ?? "").trim() && !String(payload.invoiceNumber ?? "").trim()) {
-            setFormError("اختر عقداً واحداً على الأقل أو أدخل رقم الفاتورة يدوياً.")
+           if (isCustomerPayment && !String(payload.contractNumber ?? "").trim() && !String(payload.invoiceNumber ?? "").trim()) {
+             setFormError("اختر عقداً واحداً على الأقل أو أدخل رقم الفاتورة يدوياً.")
             return
           }
+           if (isCustomerPayment && selectedPaymentContractIds.length > 1) {
+             const total = Number(payload.amount ?? 0)
+             const allocated = selectedPaymentContractIds.reduce((sum, id) => sum + Number(paymentAllocationAmounts[id] ?? 0), 0)
+             if (selectedPaymentContractIds.some(id => Number(paymentAllocationAmounts[id] ?? 0) <= 0) || Math.abs(total - allocated) > 0.01) {
+               setFormError("وزّع مبلغ السداد بالكامل على كل عقد محدد قبل الحفظ.")
+               return
+             }
+           }
           onSubmit(invoicePayload, kind === "container" ? payload.status || status : status)
         }} className="space-y-5 p-6">
           <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
@@ -1193,6 +1217,7 @@ export function RecordDialog({
                                   contractRecordId: primaryContract?.id ? String(primaryContract.id) : "",
                                   contractRecordIds: JSON.stringify(selectedIds),
                                   contractNumbers: JSON.stringify(contractNumbers),
+                                   allocationAmounts: JSON.stringify(Object.fromEntries(selectedIds.map(id => [id, paymentAllocationAmounts[id] ?? ""]))),
                                 }))
                               }}
                               className="h-4 w-4 accent-cyan-700"
@@ -1208,7 +1233,10 @@ export function RecordDialog({
                                     return `${String(invoicePayload.invoiceNumber ?? invoice.reference)} (${Number(invoicePayload.total ?? invoicePayload.amount ?? 0).toLocaleString("ar-SA")} ر.س)`
                                   }).join("، ")}
                                 </span>
-                              )}
+                               )}
+                               {checked && selectedPaymentContractIds.length > 1 && (
+                                 <Input type="number" min="0.01" step="0.01" value={paymentAllocationAmounts[option.value] ?? ""} onChange={event => setPayload(current => ({ ...current, allocationAmounts: JSON.stringify({ ...paymentAllocationAmounts, [option.value]: event.target.value }) }))} onClick={event => event.stopPropagation()} className="mt-2 h-9 bg-white text-xs" placeholder="مبلغ التوزيع لهذا العقد" aria-label={`مبلغ التوزيع للعقد ${option.number}`} />
+                               )}
                             </span>
                           </label>
                         )
@@ -1216,8 +1244,8 @@ export function RecordDialog({
                     </div>
                   )}
                   <p className="mt-1 text-[11px] text-slate-500">
-                    {selectedPaymentContractIds.length > 1
-                      ? `تم اختيار ${selectedPaymentContractIds.length} عقود. سيُستخدم العقد الأول كالعقد الأساسي، وتُحفظ بقية الروابط للمراجعة.`
+                     {selectedPaymentContractIds.length > 1
+                       ? `تم اختيار ${selectedPaymentContractIds.length} عقود. يجب توزيع كامل مبلغ السداد صراحةً قبل الحفظ.`
                       : "حدد عقداً أو أكثر، أو اترك العقود فارغة وأدخل رقم الفاتورة يدوياً."}
                   </p>
                 </div>

@@ -798,6 +798,12 @@ router.post("/admin/container-system/financial/settle", requireContainerPermissi
   try {
     const result = db.transaction((tx) => {
       const all = tx.select().from(containerSystemRecordsTable).all();
+      if (body.invoiceId == null && String((req.body as Record<string, unknown>).invoiceNumber ?? "").trim() && allocations.length === 1) {
+        const invoiceNumber = String((req.body as Record<string, unknown>).invoiceNumber).trim();
+        const invoice = all.find(row => row.kind === "invoice" && String(parsePayload(row.payload).invoiceNumber ?? row.reference).trim() === invoiceNumber);
+        if (!invoice) throw new Error("رقم الفاتورة غير موجود");
+        allocations[0].invoiceId = invoice.id;
+      }
       const contractRows = allocations.map(item => {
         const contract = all.find(row => row.id === item.contractId && row.kind === "contract" && row.status !== "archived");
         if (!contract) throw new Error("أحد العقود غير موجود أو مؤرشف");
