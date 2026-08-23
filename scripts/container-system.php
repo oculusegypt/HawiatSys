@@ -395,8 +395,15 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
         $payments = [];
         foreach ($records as $record) {
             if (in_array($record['kind'], ['payment', 'receipt'], true)) {
-                $key = (string)($record['payload']['contractNumber'] ?? '');
-                if ($key) $payments[$key] = ($payments[$key] ?? 0) + (float)($record['payload']['amount'] ?? 0);
+                if (is_array($record['payload']['allocations'] ?? null)) {
+                    foreach ($record['payload']['allocations'] as $allocation) {
+                        $key = (string)($allocation['contractNumber'] ?? '');
+                        if ($key) $payments[$key] = ($payments[$key] ?? 0) + (float)($allocation['amount'] ?? 0);
+                    }
+                } else {
+                    $key = (string)($record['payload']['contractNumber'] ?? '');
+                    if ($key) $payments[$key] = ($payments[$key] ?? 0) + (float)($record['payload']['amount'] ?? 0);
+                }
             }
         }
         $contracts = [];

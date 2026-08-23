@@ -484,9 +484,17 @@ router.get("/admin/container-system", requireContainerPermission("container_syst
   const paymentsByContract = new Map<string, number>();
   records.filter(r => r.kind === "payment" || r.kind === "receipt").forEach(r => {
     const payload = r.payload as Record<string, unknown>;
-    const contractNumber = String(payload.contractNumber ?? "").trim() ||
-      (invoiceToContract.get(String(payload.invoiceNumber ?? "").trim()) ?? "");
-    if (contractNumber) paymentsByContract.set(contractNumber, (paymentsByContract.get(contractNumber) ?? 0) + Number((r.payload as Record<string, unknown>).amount ?? 0));
+    if (Array.isArray(payload.allocations)) {
+      payload.allocations.forEach((allocation: unknown) => {
+        const item = allocation as Record<string, unknown>;
+        const contractNumber = String(item.contractNumber ?? "").trim();
+        if (contractNumber) paymentsByContract.set(contractNumber, (paymentsByContract.get(contractNumber) ?? 0) + Number(item.amount ?? 0));
+      });
+    } else {
+      const contractNumber = String(payload.contractNumber ?? "").trim() ||
+        (invoiceToContract.get(String(payload.invoiceNumber ?? "").trim()) ?? "");
+      if (contractNumber) paymentsByContract.set(contractNumber, (paymentsByContract.get(contractNumber) ?? 0) + Number(payload.amount ?? 0));
+    }
   });
   const contracts = records.filter(r => r.kind === "contract").map(r => {
     const payload = r.payload as Record<string, unknown>;
