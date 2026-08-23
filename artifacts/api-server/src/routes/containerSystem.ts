@@ -851,6 +851,13 @@ router.post("/admin/container-system/financial/settle", requireContainerPermissi
       if (body.depositId) {
         deposit = all.find(row => row.id === Number(body.depositId) && (row.kind === "deposit" || row.kind === "bank_deposit") && row.status !== "archived");
         if (!deposit) throw new Error("الإيداع المرتبط غير موجود أو مؤرشف");
+        const depositPayload = parsePayload(deposit.payload);
+        const linkedPaymentId = Number(depositPayload.linkedPaymentId ?? 0);
+        if (linkedPaymentId > 0) throw new Error("الإيداع البنكي مرتبط بسداد سابق؛ أنشئ إيداعاً جديداً أو نفّذ تصحيحاً صريحاً");
+        const depositAmount = Number(depositPayload.amount ?? depositPayload.total ?? 0);
+        if (Number.isFinite(depositAmount) && depositAmount > 0 && Math.abs(depositAmount - amount) > 0.01) {
+          throw new Error("مبلغ الإيداع لا يطابق مبلغ السداد");
+        }
       }
       const now = new Date().toISOString();
       const first = contractRows[0];

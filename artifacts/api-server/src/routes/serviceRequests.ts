@@ -11,6 +11,14 @@ const router = Router();
 
 const ONLINE_WINDOW_MS = 90 * 1000;
 
+const requestStatusTransitions: Record<string, Set<string>> = {
+  pending: new Set(["pending", "in_progress", "cancelled", "rejected"]),
+  in_progress: new Set(["in_progress", "completed", "cancelled", "rejected"]),
+  completed: new Set(["completed"]),
+  cancelled: new Set(["cancelled"]),
+  rejected: new Set(["rejected"]),
+};
+
 function parseContainerPayload(payload: string): Record<string, unknown> {
   try {
     const parsed = JSON.parse(payload);
@@ -499,11 +507,36 @@ router.patch("/service-requests/:id", requireAdmin, requireSectionPermission("re
   if (containerRecordId !== undefined) updateData.containerRecordId = containerRecordId === null ? null : Number(containerRecordId);
   if (contractRecordId !== undefined)  updateData.contractRecordId = contractRecordId === null ? null : Number(contractRecordId);
 
+  let previousStatus: string | undefined;
+  if (status !== undefined) {
+    if (!requestStatusTransitions[status]) {
+      return res.status(422).json({ error: "حالة الطلب غير مدعومة" });
+    }
+    const [current] = await db.select({ status: serviceRequestsTable.status })
+      .from(serviceRequestsTable)
+      .where(eq(serviceRequestsTable.id, id));
+    if (!current) return res.status(404).json({ error: "Not found" });
+    previousStatus = current.status;
+    if (!requestStatusTransitions[current.status]?.has(status)) {
+      return res.status(409).json({ error: `لا يمكن نقل الطلب من ${current.status} إلى ${status}` });
+    }
+  }
+
   const [request] = await db.update(serviceRequestsTable)
     .set(updateData)
     .where(eq(serviceRequestsTable.id, id))
     .returning();
   if (!request) return res.status(404).json({ error: "Not found" });
+  if (previousStatus !== undefined && previousStatus !== request.status) {
+    await db.insert(containerSystemAuditTable).values({
+      recordId: id,
+      kind: "service_request",
+      action: "request_status_transition",
+      beforePayload: JSON.stringify({ status: previousStatus }),
+      afterPayload: JSON.stringify({ status: request.status, adminNotes: request.adminNotes }),
+      actorId: adminRequest.adminId,
+    });
+  }
   return res.json(request);
 });
 

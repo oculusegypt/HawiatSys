@@ -837,7 +837,16 @@ export function RecordDialog({
       return String(paymentPayload.contractNumber ?? "").trim() === contractNumber ||
         invoiceContractNumbers.get(String(paymentPayload.invoiceNumber ?? "").trim()) === contractNumber
     })
-    .reduce((sum, item) => sum + Number((item.payload as Record<string, unknown>).amount ?? 0), 0)
+    .reduce((sum, item) => {
+      const paymentPayload = item.payload as Record<string, unknown>
+      if (Array.isArray(paymentPayload.allocations)) {
+        const allocation = paymentPayload.allocations.find(entry =>
+          String((entry as Record<string, unknown>).contractNumber ?? "").trim() === contractNumber,
+        )
+        if (allocation) return sum + Number((allocation as Record<string, unknown>).amount ?? 0)
+      }
+      return sum + Number(paymentPayload.amount ?? 0)
+    }, 0)
   const remainingForContract = (item: ContainerSystemRecord) => {
     const contractPayload = item.payload as Record<string, unknown>
     const total = Number(contractPayload.total ?? contractPayload.amount ?? 0)
@@ -1226,14 +1235,42 @@ export function RecordDialog({
                             <span className="min-w-0 flex-1">
                               <span className="block truncate text-xs font-black text-slate-800">{option.label}</span>
                               <span className="mt-0.5 block text-[11px] text-slate-500">الإجمالي {Number.isFinite(total) ? total.toLocaleString("ar-SA") : "0"} ر.س · المتبقي <b className="text-amber-700">{Number.isFinite(remaining) ? remaining.toLocaleString("ar-SA") : "0"} ر.س</b></span>
-                              {linkedInvoices.length > 0 && (
-                                <span className="mt-1 block text-[10px] text-cyan-800">
-                                  الفواتير المرتبطة: {linkedInvoices.map(invoice => {
-                                    const invoicePayload = invoice.payload as Record<string, unknown>
-                                    return `${String(invoicePayload.invoiceNumber ?? invoice.reference)} (${Number(invoicePayload.total ?? invoicePayload.amount ?? 0).toLocaleString("ar-SA")} ر.س)`
-                                  }).join("، ")}
-                                </span>
-                               )}
+                               {linkedInvoices.length > 0 && (
+                                 <span className="mt-2 block space-y-1.5 text-[10px] text-cyan-900">
+                                   <span className="block font-bold">الفاتورة التي سيُرحّل عليها السداد (اختياري)</span>
+                                   <span className="flex flex-wrap gap-1.5">
+                                     <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1">
+                                       <input
+                                         type="radio"
+                                         name={`payment-invoice-${option.value}`}
+                                         checked={!paymentAllocationInvoices[option.value]}
+                                         onChange={() => setPayload(current => ({ ...current, allocationInvoices: JSON.stringify({ ...paymentAllocationInvoices, [option.value]: "" }) }))}
+                                         onClick={event => event.stopPropagation()}
+                                         className="accent-cyan-700"
+                                       />
+                                       <span>بدون فاتورة محددة</span>
+                                     </label>
+                                     {linkedInvoices.map(invoice => {
+                                       const invoicePayload = invoice.payload as Record<string, unknown>
+                                       const invoiceNumber = String(invoicePayload.invoiceNumber ?? invoice.reference)
+                                       return (
+                                         <label key={invoice.id} className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-cyan-100 bg-white px-2 py-1">
+                                           <input
+                                             type="radio"
+                                             name={`payment-invoice-${option.value}`}
+                                             value={String(invoice.id)}
+                                             checked={paymentAllocationInvoices[option.value] === String(invoice.id)}
+                                             onChange={() => setPayload(current => ({ ...current, allocationInvoices: JSON.stringify({ ...paymentAllocationInvoices, [option.value]: String(invoice.id) }) }))}
+                                             onClick={event => event.stopPropagation()}
+                                             className="accent-cyan-700"
+                                           />
+                                           <span>{invoiceNumber} · {Number(invoicePayload.total ?? invoicePayload.amount ?? 0).toLocaleString("ar-SA")} ر.س</span>
+                                         </label>
+                                       )
+                                     })}
+                                   </span>
+                                 </span>
+                                )}
                                {checked && selectedPaymentContractIds.length > 1 && (
                                  <Input type="number" min="0.01" step="0.01" value={paymentAllocationAmounts[option.value] ?? ""} onChange={event => setPayload(current => ({ ...current, allocationAmounts: JSON.stringify({ ...paymentAllocationAmounts, [option.value]: event.target.value }) }))} onClick={event => event.stopPropagation()} className="mt-2 h-9 bg-white text-xs" placeholder="مبلغ التوزيع لهذا العقد" aria-label={`مبلغ التوزيع للعقد ${option.number}`} />
                                )}

@@ -1,14 +1,30 @@
-import { Router } from "express";
+import { Router, type NextFunction, type Request, type Response } from "express";
 import { db } from "@workspace/db";
 import { conversationsTable, messagesTable, containersTable, activeVisitorsTable } from "@workspace/db";
 import { eq, desc, sql, and } from "drizzle-orm";
 import { createNotification } from "../lib/pushNotifications";
-import { requireAdmin, requireNonDriver } from "../middleware/adminAuth";
+import { requireAdmin, requireNonDriver, requireSectionPermission } from "../middleware/adminAuth";
 
 const router = Router();
 
 const ONLINE_WINDOW_MS = 90 * 1000;
 const TYPING_WINDOW_MS = 7 * 1000;
+
+// Keep the API boundary aligned with the admin navigation permissions. Public
+// conversation routes remain public; only the /admin namespace is restricted.
+router.use("/admin/conversations", requireAdmin, requireNonDriver, requireSectionPermission("conversations"));
+
+function requireAdminSender(req: Request, res: Response, next: NextFunction): void {
+  if (req.body?.senderType !== "admin") {
+    next();
+    return;
+  }
+  requireAdmin(req, res, () => {
+    requireNonDriver(req, res, () => {
+      requireSectionPermission("conversations")(req, res, next);
+    });
+  });
+}
 
 function isRecent(value: string | null | undefined, windowMs: number): boolean {
   if (!value) return false;
@@ -60,11 +76,17 @@ router.get(["/conversations", "/admin/conversations"], requireAdmin, requireNonD
 });
 
 router.post("/conversations", async (req, res) => {
-  const { clientName, phone, email, subject, packageId, packageName } = req.body;
+  const { clientName, phone, email, subject, packageId, packageName } = req.body ?? {};
+  if (typeof clientName !== "string" || !clientName.trim() || typeof phone !== "string" || !phone.trim()) {
+    return res.status(400).json({ error: "الاسم ورقم الجوال مطلوبان لبدء المحادثة" });
+  }
   const [conversation] = await db.insert(conversationsTable).values({
-    clientName, phone, email, subject: subject || null,
+    clientName: clientName.trim(),
+    phone: phone.trim(),
+    email: typeof email === "string" && email.trim() ? email.trim() : null,
+    subject: typeof subject === "string" && subject.trim() ? subject.trim() : null,
     packageId: packageId == null || packageId === "" ? null : Number(packageId),
-    packageName: packageName || null,
+    packageName: typeof packageName === "string" && packageName.trim() ? packageName.trim() : null,
   }).returning();
 
   await createNotification({
@@ -88,7 +110,7 @@ router.get(["/conversations/:id", "/admin/conversations/:id"], async (req, res) 
   return res.json(conversation);
 });
 
-router.post(["/conversations/:id/typing", "/admin/conversations/:id/typing"], async (req, res) => {
+router.post(["/conversations/:id/typing", "/admin/conversations/:id/typing"], requireAdminSender, async (req, res) => {
   const id = parseInt(String(req.params.id), 10);
   if (!Number.isInteger(id) || id <= 0) {
     return res.status(400).json({ error: "معرّف المحادثة غير صحيح" });
@@ -163,7 +185,7 @@ router.post(["/conversations/:id/read", "/admin/conversations/:id/read"], requir
   return res.json({ success: true, conversationId: id });
 });
 
-router.post(["/conversations/:id/messages", "/admin/conversations/:id/messages"], async (req, res) => {
+router.post(["/conversations/:id/messages", "/admin/conversations/:id/messages"], requireAdminSender, async (req, res) => {
   const id = parseInt(String(req.params.id), 10);
   const {
     content,

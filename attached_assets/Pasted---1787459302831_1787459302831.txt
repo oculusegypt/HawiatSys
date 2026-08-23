@@ -1,0 +1,79 @@
+تم تصفير البيانات بنجاح مع بقاء المحتوى التسويقي وحسابات الإدارة والإعدادات. الآن سأكتب وثيقة عربية شاملة تشرح دورة النظام من الطلب حتى التصفية والإغلاق، والمراحل المالية والتشغيلية والأدوار، ثم أضع خطة تطوير مرتبة لتحسين تجربة الإدارة والفواتير والتقارير وكل نقاط العمل.
+
+
+
+Show less
+
+Created system-lifecycle-and-ux-development-plan.md
+
+Edited README.md
+Verifying system restart after DB deletion
+
+Verifying system restart after DB deletion
+Verifying system restart after DB deletion
+
+I need to verify if a restart is necessary after deleting the database. Workflows are running, but I'm seeing new logs in the API, which could indicate a restart is needed. I think no code changes are necessary, but an empty database requires a restart to load properly. I might check the counts and typecheck the documentation, then consider running an admin screenshot to inspect if seeded data reappeared. I can also query local SQLite after the restart.
+
+تمت إضافة الوثيقة الشاملة وربطها بالـREADME. سأجري تحققاً أخيراً بعد التصفير للتأكد من أن إعادة تشغيل النظام لم تُعد أي بيانات تجريبية، وأن المحتوى التسويقي وحسابات الإدارة ما زالت موجودة، ثم أتحقق من سلامة التشغيل.
+
+
+
+Show less
+Restarted workflow artifacts/api-server: API Server
+
+Viewed code changes
+
+Ran a Node.js script
+تم تنفيذ طلبك بنجاح.
+
+ما تم حذفه
+تم تصفير جميع البيانات التشغيلية والمالية:
+
+العملاء والمواقع.
+العقود والفواتير.
+الطلبات وأوامر العمل والتعيينات.
+الحاويات والأصول والحركات والسائقون والموظفون التشغيليون.
+السداد وسندات القبض والمصروفات والإيداعات والمرتجعات والقيود.
+المحادثات والرسائل والإشعارات.
+بيانات التحليلات والزوار والاشتراكات التجريبية.
+سجل التدقيق الخاص بالبيانات المحذوفة.
+ما تم الاحتفاظ به
+الخدمات والباقات.
+المقالات وصفحات SEO.
+الشرائح والصور والشركاء والشهادات وقيم الشركة.
+حسابات الإدارة والصلاحيات.
+إعدادات الشركة والموقع.
+النسخة الاحتياطية
+تم إنشاء نسخة احتياطية كاملة قبل الحذف داخل:
+
+backups/sabaik-before-operational-reset-20260823-042030.db
+
+التوثيق الجديد
+تم إنشاء ملف شامل يشرح:
+
+دورة حياة النظام من استقبال الطلب حتى التصفية والإغلاق.
+مراحل التأهيل وإنشاء العميل والموقع والعقد.
+الجدولة والتنفيذ وإثبات الإنجاز.
+إصدار الفواتير.
+السداد والتوزيع.
+المرتجعات والإيداعات والمطابقة البنكية.
+الأدوار والصلاحيات.
+مصادر الأرقام المالية.
+خطة تحسين تجربة الإدارة والفواتير والتقارير.
+خطة إدخال البيانات الحقيقية.
+معايير التحقق قبل التشغيل الفعلي.
+الملف:
+
+docs/system-lifecycle-and-ux-development-plan.md
+
+كما تم ربطه داخل README.md.
+
+التحقق
+تم التأكد من أن:
+
+بيانات التشغيل والمالية أصبحت فارغة.
+المحتوى التسويقي وحسابات الإدارة ما زالت موجودة.
+جميع الخدمات تعمل.
+فحص TypeScript الكامل ناجح.
+النظام لم يُعد إنشاء بيانات تجريبية بعد إعادة التشغيل.
+النظام الآن جاهز لبدء إدخال البيانات الحقيقية وفق دورة العمل الموثقة.

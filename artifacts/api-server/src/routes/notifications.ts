@@ -2,11 +2,11 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { notificationsTable } from "@workspace/db";
 import { eq, desc, or, isNull } from "drizzle-orm";
-import { requireAdmin, requireNonDriver, type AdminRequest } from "../middleware/adminAuth";
+import { requireAdmin, requireNonDriver, requireSectionPermission, type AdminRequest } from "../middleware/adminAuth";
 
 const router = Router();
 
-router.get("/notifications", requireAdmin, async (req, res) => {
+router.get("/notifications", requireAdmin, requireNonDriver, requireSectionPermission("notifications"), async (req, res) => {
   const adminRequest = req as AdminRequest;
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
   const visibility = adminRequest.adminRole === "driver"
@@ -18,7 +18,7 @@ router.get("/notifications", requireAdmin, async (req, res) => {
   return res.json(notifications);
 });
 
-router.patch("/notifications/:id/read", requireAdmin, requireNonDriver, async (req, res) => {
+router.patch("/notifications/:id/read", requireAdmin, requireNonDriver, requireSectionPermission("notifications"), async (req, res) => {
   const id = parseInt(String(req.params.id), 10);
   const [notification] = await db.update(notificationsTable)
     .set({ isRead: true })
@@ -28,13 +28,13 @@ router.patch("/notifications/:id/read", requireAdmin, requireNonDriver, async (r
   return res.json(notification);
 });
 
-router.patch("/notifications/read-all", requireAdmin, requireNonDriver, async (_req, res) => {
+router.patch("/notifications/read-all", requireAdmin, requireNonDriver, requireSectionPermission("notifications"), async (_req, res) => {
   await db.update(notificationsTable).set({ isRead: true });
   return res.json({ success: true });
 });
 
 // Admin: delete single notification
-router.delete("/admin/notifications/:id", requireAdmin, requireNonDriver, async (req, res) => {
+router.delete("/admin/notifications/:id", requireAdmin, requireNonDriver, requireSectionPermission("notifications"), async (req, res) => {
   const id = parseInt(String(req.params.id), 10);
   const [existing] = await db.select({ id: notificationsTable.id })
     .from(notificationsTable)
@@ -47,7 +47,7 @@ router.delete("/admin/notifications/:id", requireAdmin, requireNonDriver, async 
 });
 
 // Admin: delete ALL notifications
-router.delete("/admin/notifications", requireAdmin, requireNonDriver, async (_req, res) => {
+router.delete("/admin/notifications", requireAdmin, requireNonDriver, requireSectionPermission("notifications"), async (_req, res) => {
   await db.delete(notificationsTable);
   return res.json({ success: true });
 });
