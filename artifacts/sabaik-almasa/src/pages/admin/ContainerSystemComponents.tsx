@@ -779,6 +779,7 @@ export function RecordDialog({
   }
   const fields = FIELD_CONFIG[kind]
   const isCustomerPayment = kind === "payment"
+  const isInvoice = kind === "invoice"
   const customers = records.filter(item => item.kind === "customer" && item.status !== "archived")
   const customerIdForPayment = String(
     payload.customerRecordId ??
@@ -786,6 +787,31 @@ export function RecordDialog({
       "",
   )
   const selectedPaymentCustomer = customers.find(item => String(item.id) === customerIdForPayment)
+  const invoiceCustomer = isInvoice
+    ? customers.find(item =>
+        (payload.customerRecordId && String(item.id) === String(payload.customerRecordId)) ||
+        (!payload.customerRecordId && String(item.payload.name ?? "").trim() === String(payload.customerName ?? "").trim()),
+      )
+    : undefined
+  const invoiceCustomerPayload = invoiceCustomer?.payload as Record<string, unknown> | undefined
+  const invoiceCustomerTaxNumber = String(invoiceCustomerPayload?.taxNumber ?? invoiceCustomerPayload?.vatNumber ?? invoiceCustomerPayload?.taxId ?? "")
+  const invoiceCustomerAddress = String(invoiceCustomerPayload?.address ?? invoiceCustomerPayload?.location ?? "")
+  const invoicePayload = isInvoice && invoiceCustomer
+    ? {
+        ...payload,
+        customerRecordId: String(invoiceCustomer.id),
+        customerName: String(invoiceCustomerPayload?.name ?? invoiceCustomerPayload?.customerName ?? payload.customerName ?? ""),
+        customerTaxNumber: invoiceCustomerTaxNumber,
+        customerAddress: invoiceCustomerAddress,
+      }
+    : payload
+  const invoiceContracts = isInvoice
+    ? records.filter(item => item.kind === "contract" && item.status !== "archived" && (
+        !invoiceCustomer ||
+        String((item.payload as Record<string, unknown>).customerRecordId ?? "") === String(invoiceCustomer.id) ||
+        String((item.payload as Record<string, unknown>).customerName ?? "").trim() === String(invoiceCustomer.payload.name ?? "").trim()
+      ))
+    : []
   const openContractsForPayment = records.filter(item => {
     if (item.kind !== "contract" || item.status === "archived") return false
     if (!customerIdForPayment) return false
@@ -832,6 +858,14 @@ export function RecordDialog({
     if (kind === "container" && key === "status") return CONTAINER_STATUS_OPTIONS
     if (kind === "invoice" && key === "invoiceType") return INVOICE_TYPE_OPTIONS
     if (kind === "invoice" && key === "paymentMethod") return PAYMENT_METHOD_OPTIONS
+    if (isInvoice && key === "contractNumber") {
+      return invoiceContracts.map(item => {
+        const contractPayload = item.payload as Record<string, unknown>
+        const number = String(contractPayload.contractNumber ?? item.reference ?? "")
+        return { value: number, label: `${number} · ${String(contractPayload.customerName ?? "عميل غير محدد")}` }
+      }).filter(option => option.value)
+    }
+    if (isInvoice && (key === "customerTaxNumber" || key === "customerAddress")) return []
     // Operational movements may be entered without a contract number, and
     // movementType intentionally remains free text so the operator can use
     // the exact operational wording used on the job.
@@ -882,7 +916,7 @@ export function RecordDialog({
             setFormError("اختر عقداً واحداً على الأقل أو أدخل رقم الفاتورة يدوياً.")
             return
           }
-          onSubmit(payload, kind === "container" ? payload.status || status : status)
+          onSubmit(invoicePayload, kind === "container" ? payload.status || status : status)
         }} className="space-y-5 p-6">
           <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
             <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
@@ -900,7 +934,33 @@ export function RecordDialog({
                 {field.type === "textarea" ? (
                   <Textarea id={`record-${field.key}`} value={payload[field.key] ?? ""} onChange={event => setValue(field.key, event.target.value)} placeholder={field.placeholder} required={field.required} rows={3} className="min-h-20 resize-y border-slate-200 bg-white" data-testid={`textarea-record-${field.key}`} />
                 ) : optionsFor(field.key).length > 0 ? (
-                  <select id={`record-${field.key}`} value={payload[field.key] ?? ""} onChange={event => setValue(field.key, event.target.value)} required={field.required} className="flex h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100" data-testid={`select-record-${field.key}`}>
+                  <select id={`record-${field.key}`} value={payload[field.key] ?? ""} onChange={event => {
+                    if (isInvoice && field.key === "customerName") {
+                      const customer = customers.find(item => String(item.payload.name ?? "") === event.target.value)
+                      const customerPayload = customer?.payload as Record<string, unknown> | undefined
+                      setPayload(current => ({
+                        ...current,
+                        customerRecordId: customer?.id ? String(customer.id) : "",
+                        customerName: event.target.value,
+                        customerTaxNumber: String(customerPayload?.taxNumber ?? customerPayload?.vatNumber ?? customerPayload?.taxId ?? ""),
+                        customerAddress: String(customerPayload?.address ?? customerPayload?.location ?? ""),
+                        contractNumber: "",
+                        contractRecordId: "",
+                      }))
+                    } else if (isInvoice && field.key === "contractNumber") {
+                      const contract = invoiceContracts.find(item => {
+                        const contractPayload = item.payload as Record<string, unknown>
+                        return String(contractPayload.contractNumber ?? item.reference ?? "") === event.target.value
+                      })
+                      setPayload(current => ({
+                        ...current,
+                        contractNumber: event.target.value,
+                        contractRecordId: contract?.id ? String(contract.id) : "",
+                      }))
+                    } else {
+                      setValue(field.key, event.target.value)
+                    }
+                  }} required={field.required} className="flex h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100" data-testid={`select-record-${field.key}`}>
                      <option value="">اختر {field.label}</option>
                      {optionsFor(field.key).map((option, index) => <option key={`${field.key}-${option.value || index}`} value={option.value}>{option.label}</option>)}
                   </select>
@@ -910,8 +970,13 @@ export function RecordDialog({
                       id={`record-${field.key}`}
                       type={field.type ?? "text"}
                       list={kind === "container_movement" && field.key === "movementType" ? "movement-type-suggestions" : undefined}
-                      value={payload[field.key] ?? ""}
+                      value={isInvoice && invoiceCustomer && field.key === "customerTaxNumber"
+                        ? invoiceCustomerTaxNumber
+                        : isInvoice && invoiceCustomer && field.key === "customerAddress"
+                          ? invoiceCustomerAddress
+                          : payload[field.key] ?? ""}
                       onChange={event => setValue(field.key, event.target.value)}
+                      readOnly={isInvoice && (field.key === "customerTaxNumber" || field.key === "customerAddress") && Boolean(invoiceCustomer)}
                       placeholder={field.placeholder}
                        required={field.required}
                       dir={field.key.toLowerCase().includes("phone") || field.type === "number" ? "ltr" : "rtl"}
