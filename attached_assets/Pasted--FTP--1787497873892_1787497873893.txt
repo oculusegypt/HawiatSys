@@ -1,0 +1,1011 @@
+تمام. بما أنك وفّرت **وصول FTP فعلي + الموقع الحي + إمكانية فحص قاعدة البيانات من لوحة الإدارة**، فهذه هي الرسالة الأنسب للـAgent الجديد.
+
+**لن أعيد كتابة كلمة مرور FTP داخل الرسالة**؛ خليها في Secrets/Environment Variables في Replit أو أدخلها له بشكل آمن. وبعد انتهاء الاختبار غيّرها فوراً كما ذكرت.
+
+انسخ له التالي:
+
+---
+
+# 🔴 FINAL HOSTINGER LIVE E2E — FULL PRODUCTION VERIFICATION
+
+أنت الآن تستلم المشروع بعد اكتمال جميع الاختبارات المحلية والتكاملية السابقة.
+
+**المطلوب الآن ليس تطويراً جديداً ولا إعادة هندسة. المطلوب هو إثبات أن النسخة الفعلية الموجودة على Hostinger تعمل بالكامل من أول طلب العميل حتى المحاسبة والتقارير، باستخدام البيئة الحقيقية.**
+
+لدينا الآن:
+
+* موقع حي على Hostinger.
+* Admin panel حقيقي.
+* FTP access حقيقي.
+* مجلد `public_html`.
+* إمكانية فحص قاعدة البيانات من لوحة الإدارة.
+* نسخة Hostinger مبنية مسبقاً.
+* جميع اختبارات Local / PHP / Financial Core / Golden Dataset السابقة ناجحة.
+
+## 🚨 القاعدة الأساسية
+
+**لا تعدّل أي كود قبل انتهاء مرحلة التشخيص.**
+
+ولا تعيد تنفيذ أي شيء تم اعتماده سابقاً إلا كـRegression Test.
+
+ممنوع:
+
+* Refactor غير ضروري.
+* تغيير Financial Core.
+* تغيير Order → Contract.
+* تغيير Schema.
+* تغيير API لمجرد التحسين.
+* حذف بيانات.
+* تعطيل TLS.
+* تعطيل Authentication.
+* تجاوز صلاحيات السيرفر.
+* استخدام Mock لإثبات نجاح Production.
+
+إذا ظهر Bug حقيقي:
+
+```text
+Detect
+→ Reproduce
+→ Document
+→ Minimal Fix
+→ Deploy
+→ Retest
+→ Regression
+```
+
+---
+
+# PHASE 0 — SECURE ACCESS
+
+بيانات FTP متوفرة لك في بيئة الاختبار.
+
+**لا تضع كلمة المرور داخل source code أو git أو logs أو التقرير النهائي.**
+
+استخدمها فقط من خلال:
+
+```text
+Environment Variable / Secret
+```
+
+بيانات الاتصال:
+
+```text
+FTP Host:
+92.113.19.25
+
+FTP Port:
+21
+
+FTP User:
+[استخدم بيانات الاعتماد التي تم تزويدك بها بشكل آمن]
+
+Remote Directory:
+public_html
+```
+
+إذا كان الاتصال يتطلب TLS، استخدم الاتصال الآمن الصحيح.
+
+**لا تعطل certificate verification لتجاوز المشكلة.**
+
+---
+
+# PHASE 1 — FTP READ-ONLY VERIFICATION
+
+قبل رفع أي شيء:
+
+اتصل بـFTP في وضع قراءة فقط.
+
+تحقق من:
+
+```text
+Connection
+Authentication
+Remote Directory
+public_html
+Existing application files
+PHP files
+Frontend assets
+SQLite database
+.htaccess
+Configuration
+```
+
+أرسل:
+
+```text
+FTP Connection: PASS/FAIL
+FTP Authentication: PASS/FAIL
+public_html Access: PASS/FAIL
+Existing Deployment Detected: PASS/FAIL
+```
+
+**لا ترفع أي ملف حتى تنتهي من هذه المرحلة.**
+
+---
+
+# PHASE 2 — BACKUP BEFORE ANY CHANGE
+
+إذا احتجت إلى نشر نسخة جديدة:
+
+**أولاً خذ Backup كامل للنسخة الموجودة.**
+
+يجب أن يكون لدينا:
+
+```text
+Original Hostinger Files
+Original Database
+Original Configuration
+```
+
+قبل أي Deployment.
+
+إذا لم تكن هناك حاجة إلى تعديل، لا ترفع شيئاً.
+
+---
+
+# PHASE 3 — LIVE WEBSITE SMOKE TEST
+
+افتح:
+
+```text
+https://hawiat.aiservx.com/admin
+```
+
+اختبر:
+
+```text
+HTTPS
+Page Load
+Login
+Admin Session
+Frontend Assets
+API Requests
+Database Connection
+```
+
+راقب:
+
+```text
+HTTP 500
+HTTP 401
+HTTP 403
+HTTP 404
+CORS
+JavaScript errors
+PHP errors
+Failed API requests
+```
+
+يجب أن تكون:
+
+```text
+Live Site: PASS
+Admin Login: PASS
+API: PASS
+Database: PASS
+Console: PASS
+```
+
+---
+
+# PHASE 4 — DATABASE LIVE INSPECTION
+
+استخدم قسم قاعدة البيانات الموجود داخل لوحة الإدارة إذا كان يوفر قراءة المخطط والبيانات.
+
+**لا تعدل البيانات يدوياً.**
+
+تحقق من وجود الجداول المالية الأساسية:
+
+```text
+financial_accounts
+financial_periods
+financial_transactions
+financial_journal_entries
+financial_journal_lines
+financial_allocations
+bank_reconciliations
+```
+
+وتحقق من الجداول التشغيلية المرتبطة:
+
+```text
+customers
+service_requests
+contracts
+invoices
+payments
+expenses
+purchases
+inventory
+...
+```
+
+تحقق أيضاً من:
+
+```text
+Primary Keys
+Foreign Keys
+Unique Constraints
+Indexes
+```
+
+---
+
+# PHASE 5 — CREATE ISOLATED E2E DATA
+
+أنشئ Dataset مخصصاً للاختبار فقط.
+
+استخدم Prefix واضح:
+
+```text
+HOSTINGER-E2E-2026
+```
+
+مثلاً:
+
+```text
+HOSTINGER-E2E-2026-CUSTOMER
+HOSTINGER-E2E-2026-ORDER
+HOSTINGER-E2E-2026-CONTRACT
+```
+
+**لا تستخدم أو تعدل بيانات العملاء الحقيقية.**
+
+---
+
+# PHASE 6 — REAL CUSTOMER → ORDER
+
+نفذ الطلب من **الموقع الحقيقي** وليس من API مباشرة.
+
+المسار:
+
+```text
+Customer
+ ↓
+Website
+ ↓
+Order
+ ↓
+PHP
+ ↓
+SQLite
+```
+
+تحقق من قاعدة البيانات.
+
+المطلوب:
+
+```text
+Customer Created: 1
+Service Request Created: 1
+Duplicate Customer: NONE
+Duplicate Request: NONE
+```
+
+---
+
+# PHASE 7 — ORDER → CONTRACT
+
+استخدم نفس الطلب الذي تم إنشاؤه.
+
+نفذ:
+
+```text
+Existing Order
+      ↓
+Create Contract
+```
+
+المطلوب:
+
+```text
+Existing Order Reused: PASS
+Existing Customer Reused: PASS
+Contract Created: 1
+Duplicate Request: NONE
+Duplicate Customer: NONE
+Duplicate Contract: NONE
+Financial Transaction: 0
+Journal Entry: 0
+```
+
+---
+
+# PHASE 8 — IDEMPOTENCY
+
+أعد نفس العملية بنفس Idempotency Key.
+
+المطلوب:
+
+```text
+Same Contract
+Same Order
+Same Customer
+idempotent = true
+```
+
+ثم اختبر إعادة العملية بمفتاح مختلف.
+
+يجب رفض التكرار وفق قواعد النظام.
+
+**لا يجب أن يظهر Contract إضافي.**
+
+---
+
+# PHASE 9 — CONTRACT-FIRST REGRESSION
+
+اختبر إنشاء عقد بدون `requestId`.
+
+يجب الحفاظ على السلوك الأصلي:
+
+```text
+Contract-first: PASS
+Existing Customer: reused
+Required Request: created exactly once
+```
+
+---
+
+# PHASE 10 — CONTRACT → INVOICE
+
+أنشئ فاتورة من العقد التجريبي.
+
+تحقق:
+
+```text
+Invoice Created: 1
+Duplicate Invoice: NONE
+Contract Link: PASS
+```
+
+---
+
+# PHASE 11 — INVOICE → PAYMENT
+
+أنشئ:
+
+```text
+Invoice = 1000
+Payment = 600
+```
+
+تحقق من قاعدة البيانات ومن الواجهة:
+
+```text
+Collected = 600
+Outstanding = 400
+```
+
+---
+
+# PHASE 12 — PAYMENT → RECEIPT
+
+أنشئ/راجع سند القبض.
+
+المهم:
+
+```text
+Payment = 600
+Receipt = document for Payment
+Collected = 600
+```
+
+وليس:
+
+```text
+600 + 600 = 1200
+```
+
+يجب إثبات:
+
+```text
+Receipt Double Counting: PASS
+```
+
+---
+
+# PHASE 13 — PAYMENT ALLOCATION
+
+اختبر توزيع دفعة.
+
+مثلاً:
+
+```text
+Payment = 1000
+
+Contract A = 600
+Contract B = 400
+```
+
+تحقق:
+
+```text
+Allocation Total = 1000
+```
+
+ويجب رفض:
+
+```text
+Allocation > Payment
+Allocation > Invoice Balance
+Allocation > Contract Balance
+```
+
+---
+
+# PHASE 14 — FINANCIAL CORE
+
+بعد العمليات السابقة، تحقق مباشرة من قاعدة البيانات:
+
+```text
+Financial Transaction
+Journal Entry
+Journal Lines
+Debit
+Credit
+Allocation
+Account
+Financial Period
+```
+
+أثبت:
+
+```text
+SUM(Debit) = SUM(Credit)
+```
+
+ولكل حركة مالية:
+
+```text
+Source
+→ Financial Transaction
+→ Journal Entry
+→ Debit
+→ Credit
+```
+
+---
+
+# PHASE 15 — EXPENSE
+
+أنشئ مصروف اختبار.
+
+تحقق من:
+
+```text
+Expense
+Financial Transaction
+Journal
+Cash
+Expenses
+Net Profit
+Reports
+```
+
+---
+
+# PHASE 16 — PURCHASE + INVENTORY
+
+نفذ شراء اختبارياً.
+
+تحقق:
+
+```text
+Purchase
+Inventory
+Financial Transaction
+Journal
+Reports
+```
+
+ولا تكتفِ بتغير المخزون في الواجهة.
+
+---
+
+# PHASE 17 — COMMISSION
+
+أنشئ عمولة اختبار.
+
+تحقق من:
+
+```text
+Commission
+Financial Transaction
+Journal
+Profit
+Reports
+```
+
+---
+
+# PHASE 18 — BANK FEE
+
+أنشئ رسوم بنكية اختبارية.
+
+تحقق:
+
+```text
+Bank Fee
+Financial Transaction
+Journal
+Bank Balance
+Profit
+Reports
+```
+
+---
+
+# PHASE 19 — OTHER REVENUE
+
+أنشئ إيراداً آخر.
+
+تحقق:
+
+```text
+Other Revenue
+Financial Transaction
+Journal
+Cash
+Profit
+Reports
+```
+
+---
+
+# PHASE 20 — TRANSFER
+
+اختبر:
+
+```text
+Cashbox A
+ ↓
+Transfer
+ ↓
+Cashbox B
+```
+
+يجب ألا يتم احتسابه:
+
+```text
+Revenue ❌
+Expense ❌
+```
+
+---
+
+# PHASE 21 — REFUND
+
+نفذ مرتجع فاتورة.
+
+تحقق:
+
+```text
+Gross Revenue
+Refund
+Net Revenue
+```
+
+بحيث:
+
+```text
+Net Revenue = Gross Revenue - Refund
+```
+
+---
+
+# PHASE 22 — REVERSAL
+
+خذ حركة مرحّلة واختبر العكس.
+
+يجب:
+
+```text
+Original Journal remains
+Reversal Journal created
+Debit ↔ Credit
+Reason preserved
+Reference preserved
+Duplicate Reversal prevented
+```
+
+---
+
+# PHASE 23 — PERIOD LOCK
+
+نفذ:
+
+```text
+Create/Open Period
+ ↓
+Post Transaction
+ ↓
+Close Period
+ ↓
+Attempt New Posting
+```
+
+النتيجة المطلوبة:
+
+```text
+Before Close: PASS
+After Close: REJECTED
+```
+
+---
+
+# PHASE 24 — BANK RECONCILIATION
+
+اختبر:
+
+```text
+Payment
+Deposit
+Bank Fee
+Reconciliation
+```
+
+وتحقق من:
+
+```text
+matched
+difference
+approval
+rejection
+reason
+audit trail
+```
+
+---
+
+# PHASE 25 — FINANCIAL CONTROL CENTER
+
+افتح:
+
+```text
+Financial Control Center
+```
+
+وتحقق من كل الأرقام.
+
+لا تعتمد على العرض فقط.
+
+قارنها مباشرة مع Financial Core.
+
+---
+
+# PHASE 26 — FINANCIAL CYCLE WORKSPACE
+
+اختبر:
+
+```text
+Financial Cycle Workspace
+```
+
+وقارن:
+
+```text
+Revenue
+Collections
+Receivables
+Expenses
+Purchases
+Inventory
+Commissions
+Bank Fees
+Refunds
+Transfers
+Cash
+Bank
+Profit
+```
+
+مع المصدر المالي الموحد.
+
+---
+
+# PHASE 27 — REPORT PAGE
+
+اختبر `ReportPage`.
+
+يجب:
+
+```text
+Financial Core
+=
+API
+=
+ReportPage
+```
+
+أي اختلاف يجب التحقيق فيه.
+
+---
+
+# PHASE 28 — CROSS-REPORT GOLDEN DATASET
+
+بعد اكتمال Dataset:
+
+استخرج النتائج من Financial Core.
+
+ثم قارنها مع:
+
+```text
+Financial Control Center
+Financial Cycle Workspace
+ReportPage
+```
+
+يجب:
+
+```text
+Cross-Report Consistency: PASS
+```
+
+---
+
+# PHASE 29 — LEGACY FINANCIAL CALCULATION AUDIT
+
+ابحث في Frontend/API/PHP عن أي حساب مالي مباشر يعتمد على:
+
+```text
+container_system_records
+```
+
+بدلاً من Financial Core.
+
+الهدف:
+
+```text
+Legacy Financial Calculations = 0
+```
+
+مسموح استخدام السجل القديم للأغراض التشغيلية غير المالية.
+
+---
+
+# PHASE 30 — NODE/PHP PARITY
+
+قارن نفس Dataset بين:
+
+```text
+Node
+PHP
+Hostinger
+```
+
+يجب أن تكون النتائج متطابقة:
+
+```text
+Node = PHP = Hostinger
+```
+
+---
+
+# PHASE 31 — SECURITY
+
+تحقق من:
+
+```text
+Authentication
+Authorization
+Admin permissions
+SQL injection
+XSS
+CSRF where applicable
+Directory listing
+SQLite exposure
+Sensitive files
+Debug mode
+Error leakage
+```
+
+خصوصاً:
+
+**يجب ألا يستطيع المستخدم تحميل ملف SQLite مباشرة من URL.**
+
+---
+
+# PHASE 32 — DATABASE INTEGRITY
+
+من لوحة قاعدة البيانات أو وسيلة القراءة المتاحة:
+
+تحقق:
+
+```text
+No orphan transactions
+No orphan journal entries
+No unbalanced journals
+No duplicate source transactions
+No duplicate idempotency keys
+No duplicate reversals
+No duplicate allocations
+```
+
+---
+
+# PHASE 33 — FULL REGRESSION
+
+بعد انتهاء E2E شغّل:
+
+```text
+TypeScript
+PHP lint
+Build
+Operational Validation
+API Health
+Financial Core Assertions
+Financial Certification
+Golden Dataset
+Cross-Report
+Order → Contract
+```
+
+وأي Test فشل يجب التحقيق فيه.
+
+---
+
+# PHASE 34 — DEPLOYMENT RULE
+
+**لا ترفع أي نسخة جديدة إلى Hostinger إلا إذا احتجت فعلاً لإصلاح Bug مثبت.**
+
+إذا لم توجد مشكلة:
+
+```text
+Code Changes = NONE
+Deployment Changes = NONE
+```
+
+إذا احتجت إصلاحاً:
+
+1. Backup.
+2. Minimal patch.
+3. Deploy.
+4. Verify.
+5. Regression.
+6. Document exact files.
+
+---
+
+# PHASE 35 — FINAL CERTIFICATION
+
+في النهاية أريد تقريراً بهذا الشكل:
+
+```text
+========================================
+FINAL HOSTINGER LIVE E2E CERTIFICATION
+========================================
+
+FTP Access: PASS
+Live Site: PASS
+HTTPS: PASS
+PHP Runtime: PASS
+SQLite Runtime: PASS
+Database: PASS
+
+Admin Login: PASS
+
+Customer: PASS
+Order: PASS
+Order → Contract: PASS
+Customer Reuse: PASS
+Request Reuse: PASS
+Idempotency: PASS
+Contract-first: PASS
+
+Invoice: PASS
+Payment: PASS
+Receipt: PASS
+Allocation: PASS
+
+Financial Core: PASS
+Double Entry: PASS
+Expenses: PASS
+Purchases: PASS
+Inventory: PASS
+Commissions: PASS
+Bank Fees: PASS
+Other Revenue: PASS
+Transfers: PASS
+Refunds: PASS
+Reversals: PASS
+Period Lock: PASS
+Bank Reconciliation: PASS
+
+Financial Control Center: PASS
+Financial Cycle Workspace: PASS
+ReportPage: PASS
+Cross-Report Consistency: PASS
+
+Golden Dataset: PASS
+Legacy Financial Calculations: 0
+Node/PHP/Hostinger Parity: PASS
+
+Security: PASS
+Browser Console: PASS
+API: PASS
+Production Stability: PASS
+
+Database Integrity: PASS
+
+Code Changes:
+NONE / [exact files]
+
+Unexpected Changes:
+NONE
+
+Remaining Blockers:
+NONE
+```
+
+---
+
+# 🔴 أهم شرط
+
+**لا تعلن 10/10 لأن الاختبارات المحلية ناجحة.**
+
+10/10 لا تصبح متاحة إلا بعد إثبات:
+
+```text
+REAL BROWSER
+      ↓
+REAL HOSTINGER
+      ↓
+REAL PHP
+      ↓
+REAL SQLITE
+      ↓
+REAL DATABASE
+      ↓
+REAL BUSINESS FLOW
+      ↓
+REAL FINANCIAL CORE
+      ↓
+REAL REPORTS
+```
+
+إذا نجحت كلها:
+
+```text
+FINAL PRODUCTION CERTIFIED
+10/10
+```
+
+إذا فشل أي شيء:
+
+```text
+FAIL
+```
+
+مع:
+
+```text
+Root Cause
+Evidence
+Impact
+Minimal Fix
+Retest Result
+```
+
+إذا كانت المشكلة مجرد عدم توفر صلاحية لا تمنع اختبار التطبيق نفسه:
+
+```text
+BLOCKED
+```
+
+ولا تحولها إلى PASS.
+
+---
+
+## 🚨 SECURITY CLEANUP بعد انتهاء المهمة
+
+بعد الانتهاء من الاختبار مباشرة:
+
+1. غيّر **FTP password**.
+2. غيّر **Admin password**.
+3. راجع جلسات الدخول النشطة وسجّل خروجها إن أمكن.
+4. تأكد أن بيانات الاعتماد لم تدخل Git أو ملفات المشروع أو logs.
+5. احذف أي ملفات اختبار مؤقتة تم رفعها إلى `public_html`.
+6. احذف بيانات `HOSTINGER-E2E` التجريبية فقط إذا كان ذلك آمناً ومقصوداً.
+7. لا تحذف أي بيانات تشغيلية حقيقية.
+
+**ابدأ الآن بـ FTP Read-Only Verification ثم Live Smoke Test. لا تعدّل أو ترفع أي شيء قبل أن ترسل نتيجة المرحلتين.**
