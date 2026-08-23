@@ -157,7 +157,10 @@ export default function RequestDetailModal({
     let cancelled = false
     fetch(`${API_BASE}/api/admin/shorten-url`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("admin_token") ?? ""}`,
+      },
       credentials: "include",
       body: JSON.stringify({ url: longUrl }),
     })
