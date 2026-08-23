@@ -19,6 +19,47 @@ export interface ContainerSystemRecord {
   updatedAt: string;
 }
 
+export type FinancialTruthTotalsBalances = {
+  accountsReceivable: number;
+  accountsPayable: number;
+  cash: number;
+  bank: number;
+  inventory: number;
+};
+
+export interface FinancialTruthTotals {
+  revenue: number;
+  collected: number;
+  receivables: number;
+  expenses: number;
+  purchases: number;
+  inventory: number;
+  commissions: number;
+  bankFees: number;
+  refunds: number;
+  transfers: number;
+  cashBalance: number;
+  bankBalance: number;
+  netProfit: number;
+  grossRevenue: number;
+  grossCollections: number;
+  netCollections: number;
+  returnedCollections: number;
+  totalDebit: number;
+  totalCredit: number;
+  balances: FinancialTruthTotalsBalances;
+}
+
+export type FinancialTruthResponseCountsItem = {
+  kind: string;
+  count: number;
+};
+
+export interface FinancialTruthResponse {
+  totals: FinancialTruthTotals;
+  counts: FinancialTruthResponseCountsItem[];
+}
+
 export type ContainerSystemRecordInputPayload = { [key: string]: unknown };
 
 export interface ContainerSystemRecordInput {

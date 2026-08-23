@@ -139,6 +139,10 @@ function hsPostFinancialCore(PDO $pdo, string $kind, int $sourceId, array $paylo
     elseif ($kind === 'purchase') [$debit,$credit] = ['INV-001','AP-001'];
     elseif ($kind === 'purchase_return') [$debit,$credit] = ['AP-001','INV-001'];
     elseif ($kind === 'deposit' || $kind === 'bank_deposit') [$debit,$credit] = ['BANK-001','CASH-001'];
+    elseif ($kind === 'other_revenue') [$debit,$credit] = ['CASH-001','REV-OTHER'];
+    elseif ($kind === 'maintenance') [$debit,$credit] = ['EXP-MAINT','CASH-001'];
+    elseif ($kind === 'commission') [$debit,$credit] = ['COMM-001','AP-001'];
+    elseif ($kind === 'transfer') [$debit,$credit] = ['BANK-001','CASH-001'];
     $pdo->prepare("INSERT INTO financial_transactions (transaction_number,transaction_type,source_kind,source_id,reference,transaction_date,amount,status,operation_key,created_by,posted_at) VALUES (?,?,?,?,?,?,?,'posted',?,?,?)")
         ->execute(["FT-{$sourceId}",$kind,$kind,$sourceId,$reference,$date,$amount,(string)($payload['operationKey'] ?? '') ?: null,$actorId,date('c')]);
     $txId = (int)$pdo->lastInsertId();
@@ -154,13 +158,51 @@ function hsPostFinancialCore(PDO $pdo, string $kind, int $sourceId, array $paylo
     }
 }
 
+function hsReverseFinancialCore(PDO $pdo, string $kind, int $sourceId, float $amount, string $reason, ?int $actorId): void {
+    hsFinancialTables($pdo);
+    $original = $pdo->prepare("SELECT id FROM financial_transactions WHERE source_kind = ? AND source_id = ? AND status = 'posted' LIMIT 1");
+    $original->execute([$kind, $sourceId]);
+    $originalId = $original->fetchColumn();
+    if (!$originalId) return;
+    $existing = $pdo->prepare("SELECT id FROM financial_transactions WHERE source_kind = 'reversal' AND source_id = ? LIMIT 1");
+    $existing->execute([$sourceId]);
+    if ($existing->fetchColumn()) return;
+    $date = date('Y-m-d');
+    $period = substr($date, 0, 7);
+    $periodStmt = $pdo->prepare("SELECT status FROM financial_periods WHERE period_key = ?");
+    $periodStmt->execute([$period]);
+    if ($periodStmt->fetchColumn() === 'closed') throw new RuntimeException("الفترة المالية {$period} مغلقة");
+    $pdo->prepare("INSERT OR IGNORE INTO financial_periods (period_key,starts_on,ends_on,status) VALUES (?,?,?,'open')")
+        ->execute([$period, "{$period}-01", "{$period}-31"]);
+    $pdo->prepare("INSERT INTO financial_transactions (transaction_number,transaction_type,source_kind,source_id,reference,transaction_date,amount,status,operation_key,created_by,posted_at,cancellation_reason) VALUES (?,?,?,?,?,?,?,'posted',?,?,?,?,?)")
+        ->execute(["FT-REV-{$sourceId}", 'reversal', 'reversal', $sourceId, "REV-{$sourceId}", $date, $amount, "reversal:{$kind}:{$sourceId}", $actorId, date('c'), $reason]);
+    $reversalId = (int)$pdo->lastInsertId();
+    $originalJournal = $pdo->prepare("SELECT id FROM financial_journal_entries WHERE transaction_id = ? LIMIT 1");
+    $originalJournal->execute([(int)$originalId]);
+    $originalJournalId = $originalJournal->fetchColumn();
+    $pdo->prepare("INSERT INTO financial_journal_entries (transaction_id,entry_number,total_debit,total_credit,status) VALUES (?,?,?,?,'posted')")
+        ->execute([$reversalId, "FJ-REV-{$reversalId}", $amount, $amount]);
+    $reversalJournalId = (int)$pdo->lastInsertId();
+    $lines = $pdo->prepare("SELECT account_code,debit,credit,description FROM financial_journal_lines WHERE journal_entry_id = ?");
+    $lines->execute([(int)$originalJournalId]);
+    $insert = $pdo->prepare("INSERT INTO financial_journal_lines (journal_entry_id,account_code,debit,credit,description) VALUES (?,?,?,?,?)");
+    foreach ($lines->fetchAll(PDO::FETCH_ASSOC) as $line) {
+        $insert->execute([$reversalJournalId, $line['account_code'], (float)$line['credit'], (float)$line['debit'], 'عكس: ' . $line['description']]);
+    }
+}
+
 function hsFinancialTruth(PDO $pdo): array {
     hsFinancialTables($pdo);
     $row = $pdo->query("SELECT
         COALESCE(SUM(CASE WHEN jl.account_code IN ('CASH-001','BANK-001') THEN jl.debit-jl.credit ELSE 0 END),0) cashAndBank,
+        COALESCE(SUM(CASE WHEN jl.account_code='CASH-001' THEN jl.debit-jl.credit ELSE 0 END),0) cashBalance,
+        COALESCE(SUM(CASE WHEN jl.account_code='BANK-001' THEN jl.debit-jl.credit ELSE 0 END),0) bankBalance,
         COALESCE(SUM(CASE WHEN jl.account_code LIKE 'REV%' THEN jl.credit-jl.debit ELSE 0 END),0) grossRevenue,
         COALESCE(SUM(CASE WHEN jl.account_code='REFUND-001' THEN jl.debit-jl.credit ELSE 0 END),0) refunds,
         COALESCE(SUM(CASE WHEN jl.account_code LIKE 'EXP%' OR jl.account_code IN ('COMM-001','COGS-001','BANK-FEE') THEN jl.debit-jl.credit ELSE 0 END),0) expenses,
+        COALESCE(SUM(CASE WHEN jl.account_code='COMM-001' THEN jl.debit-jl.credit ELSE 0 END),0) commissions,
+        COALESCE(SUM(CASE WHEN jl.account_code='BANK-FEE' THEN jl.debit-jl.credit ELSE 0 END),0) bankFees,
+        COALESCE(SUM(CASE WHEN jl.account_code='INV-001' THEN jl.debit-jl.credit ELSE 0 END),0) inventory,
         COALESCE(SUM(CASE WHEN jl.account_code='AR-001' THEN jl.debit-jl.credit ELSE 0 END),0) receivables,
         COALESCE(SUM(CASE WHEN jl.account_code='AP-001' THEN jl.credit-jl.debit ELSE 0 END),0) payables,
         COALESCE(SUM(jl.debit),0) totalDebit, COALESCE(SUM(jl.credit),0) totalCredit
@@ -174,6 +216,17 @@ function hsFinancialTruth(PDO $pdo): array {
     $row['netCollections'] = round((float)($collections['grossCollections'] ?? 0) - (float)($collections['returnedCollections'] ?? 0), 2);
     $row['grossCollections'] = (float)($collections['grossCollections'] ?? 0);
     $row['returnedCollections'] = (float)($collections['returnedCollections'] ?? 0);
+    $row['collected'] = $row['netCollections'];
+    $row['purchases'] = (float)($row['inventory'] ?? 0);
+    $row['transfers'] = 0.0;
+    $row['netProfit'] = round((float)$row['revenue'] - (float)($row['expenses'] ?? 0), 2);
+    $row['balances'] = [
+        'accountsReceivable' => (float)($row['receivables'] ?? 0),
+        'accountsPayable' => (float)($row['payables'] ?? 0),
+        'cash' => (float)($row['cashBalance'] ?? 0),
+        'bank' => (float)($row['bankBalance'] ?? 0),
+        'inventory' => (float)($row['inventory'] ?? 0),
+    ];
     $counts = $pdo->query("SELECT transaction_type kind, COUNT(*) count FROM financial_transactions WHERE status='posted' GROUP BY transaction_type ORDER BY transaction_type")->fetchAll(PDO::FETCH_ASSOC);
     return ['totals' => $row, 'counts' => $counts];
 }
@@ -961,6 +1014,18 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
             $insert->execute([':reference' => 'PAY-' . time(), ':payload' => json_encode($paymentPayload, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE), ':operation_key' => $operationKey, ':created_by' => $actorId, ':created_at' => $now, ':updated_at' => $now]);
             $paymentId = (int)$pdo->lastInsertId();
             hsPostFinancialCore($pdo, 'payment', $paymentId, $paymentPayload, 'PAY-' . $paymentId, $actorId);
+            if ($deposit) {
+                $financialPayment = $pdo->prepare("SELECT id FROM financial_transactions WHERE source_kind = 'payment' AND source_id = ? LIMIT 1");
+                $financialPayment->execute([$paymentId]);
+                $financialPaymentId = (int)$financialPayment->fetchColumn();
+                $depositPayloadForMatch = $deposit['payload'];
+                $depositAmountForMatch = (float)($depositPayloadForMatch['amount'] ?? $depositPayloadForMatch['total'] ?? 0);
+                $depositDateForMatch = (string)($depositPayloadForMatch['date'] ?? $paymentPayload['date']);
+                $depositReferenceForMatch = (string)($depositPayloadForMatch['reference'] ?? $deposit['reference'] ?? '');
+                $differenceForMatch = $depositAmountForMatch - $amount;
+                $pdo->prepare("INSERT OR IGNORE INTO bank_reconciliations (deposit_record_id,deposit_reference,deposit_date,amount,linked_transaction_id,difference,status) VALUES (?,?,?,?,?,?,?)")
+                    ->execute([(int)$deposit['id'], $depositReferenceForMatch, $depositDateForMatch, $depositAmountForMatch ?: $amount, $financialPaymentId, $differenceForMatch, abs($differenceForMatch) < 0.01 ? 'matched' : 'difference']);
+            }
             $ledgerPayload = ['sourceKind' => 'payment', 'sourceId' => $paymentId, 'contractId' => $first['contract']['id'], 'contractNumber' => $first['number'], 'amount' => $amount, 'direction' => 'credit', 'date' => $paymentPayload['date'], 'allocations' => $allocations];
             $ledgerInsert = $pdo->prepare("INSERT INTO container_system_records (kind,status,reference,payload,created_by,created_at,updated_at) VALUES ('ledger_entry','posted',:reference,:payload,:created_by,:created_at,:updated_at)");
             $ledgerInsert->execute([':reference' => 'LED-' . $paymentId, ':payload' => json_encode($ledgerPayload, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE), ':created_by' => $actorId, ':created_at' => $now, ':updated_at' => $now]);
@@ -1060,6 +1125,14 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
                 }
                 if (in_array((string)$current['kind'], hsFinancialLifecycleKinds(), true)
                     && (string)$current['status'] === 'posted' && $nextStatus === 'cancelled') {
+                    hsReverseFinancialCore(
+                        $pdo,
+                        (string)$current['kind'],
+                        $id,
+                        (float)($payload['amount'] ?? $payload['total'] ?? 0),
+                        (string)($payload['reason'] ?? $payload['cancellationReason'] ?? 'إلغاء حركة مالية مرحّلة'),
+                        $actorId
+                    );
                     $reversalExists = $pdo->prepare("SELECT id FROM container_system_records WHERE kind = 'ledger_entry' AND status = 'posted' AND json_extract(payload, '$.entryType') = 'reversal' AND json_extract(payload, '$.originalRecordId') = :id LIMIT 1");
                     $reversalExists->execute([':id' => $id]);
                     if (!$reversalExists->fetchColumn()) {

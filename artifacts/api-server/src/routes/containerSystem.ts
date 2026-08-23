@@ -647,7 +647,7 @@ router.get("/admin/container-system", requireContainerPermission("container_syst
   // Financial values come from the typed ledger. Legacy records remain useful
   // for operations and contract metadata, but never determine final totals.
   const truth = financialTruth();
-  const ledgerTotals = truth.totals as Record<string, number>;
+  const ledgerTotals = truth.totals as unknown as Record<string, number>;
   const fleetCount = records.filter(r => r.kind === "vehicle").length;
   const rentedCount = records.filter(r => ["container", "container_asset"].includes(r.kind) && r.status === "rented").length;
   const organization = {
@@ -1791,6 +1791,19 @@ router.patch("/admin/container-system/financial/reconciliation/:id", requireCont
         reviewed_by = ?, reviewed_at = ?, audit_trail = ?
     WHERE id = ?
   `).run(status, reason, reason, status, reason, adminReq.adminId, now, JSON.stringify(trail), id);
+  const bankFee = Number(current.bank_fee ?? 0);
+  if (status === "bank_fee" && Number.isFinite(bankFee) && bankFee > 0) {
+    postToFinancialCore({
+      sourceKind: "bank_fee",
+      sourceId: id,
+      reference: `BANK-FEE-${id}`,
+      amount: bankFee,
+      date: now.slice(0, 10),
+      operationKey: `bank-fee-reconciliation-${id}`,
+      createdBy: adminReq.adminId,
+      paymentMethod: "بنكي",
+    });
+  }
   return res.json(sqlite.prepare("SELECT * FROM bank_reconciliations WHERE id = ?").get(id));
 });
 

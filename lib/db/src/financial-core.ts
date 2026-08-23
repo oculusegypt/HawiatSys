@@ -15,6 +15,36 @@ export type FinancialSource = {
   sourcePaymentId?: number | null;
 };
 
+export type FinancialTruthContract = {
+  revenue: number;
+  collected: number;
+  receivables: number;
+  expenses: number;
+  purchases: number;
+  inventory: number;
+  commissions: number;
+  bankFees: number;
+  refunds: number;
+  transfers: number;
+  cashBalance: number;
+  bankBalance: number;
+  netProfit: number;
+  balances: {
+    accountsReceivable: number;
+    accountsPayable: number;
+    cash: number;
+    bank: number;
+    inventory: number;
+  };
+  grossRevenue: number;
+  grossCollections: number;
+  netCollections: number;
+  returnedCollections: number;
+  cashAndBank: number;
+  totalDebit: number;
+  totalCredit: number;
+};
+
 const accountFor = (kind: string, paymentMethod = ""): [string, string] => {
   if (kind === "invoice") return ["AR-001", "REV-001"];
   // An invoice return reverses the original revenue and receivable.
@@ -30,6 +60,7 @@ const accountFor = (kind: string, paymentMethod = ""): [string, string] => {
   if (kind === "transfer") return ["BANK-001", "CASH-001"];
   if (kind === "maintenance") return ["EXP-MAINT", "CASH-001"];
   if (kind === "commission") return ["COMM-001", "AP-001"];
+  if (kind === "bank_fee") return ["BANK-FEE", "BANK-001"];
   if (kind === "salary_advance" || kind === "salary_payment" || kind === "expense" || kind === "daily_expense" || kind === "fuel_expense") return ["EXP-001", "CASH-001"];
   return ["ADJ-001", "CASH-001"];
 };
@@ -85,7 +116,7 @@ export function reverseInFinancialCore(source: FinancialSource, reason: string, 
   const original = sqlite.prepare("SELECT id FROM financial_transactions WHERE source_kind = ? AND source_id = ? AND status = 'posted'").get(source.sourceKind, source.sourceId) as { id: number } | undefined;
   if (!original) return null;
   const reversal = sqlite.prepare("SELECT id FROM financial_transactions WHERE source_kind = 'reversal' AND source_id = ?").get(source.sourceId) as { id: number } | undefined;
-  if (reversal) return { id: reversal.id, idempotent: true };
+  if (reversal) return { id: reversal.id, idempotent: true, rejected: true };
   const date = new Date().toISOString().slice(0, 10);
   assertOpenPeriod(date);
   return sqlite.transaction(() => {
@@ -110,9 +141,14 @@ export function financialTruth() {
   const totals = sqlite.prepare(`
     SELECT
       COALESCE(SUM(CASE WHEN jl.account_code IN ('CASH-001','BANK-001') THEN jl.debit - jl.credit ELSE 0 END), 0) AS cashAndBank,
+      COALESCE(SUM(CASE WHEN jl.account_code = 'CASH-001' THEN jl.debit - jl.credit ELSE 0 END), 0) AS cashBalance,
+      COALESCE(SUM(CASE WHEN jl.account_code = 'BANK-001' THEN jl.debit - jl.credit ELSE 0 END), 0) AS bankBalance,
       COALESCE(SUM(CASE WHEN jl.account_code LIKE 'REV%' THEN jl.credit - jl.debit ELSE 0 END), 0) AS grossRevenue,
       COALESCE(SUM(CASE WHEN jl.account_code = 'REFUND-001' THEN jl.debit - jl.credit ELSE 0 END), 0) AS refunds,
       COALESCE(SUM(CASE WHEN jl.account_code LIKE 'EXP%' OR jl.account_code IN ('COMM-001','COGS-001','BANK-FEE') THEN jl.debit - jl.credit ELSE 0 END), 0) AS expenses,
+      COALESCE(SUM(CASE WHEN jl.account_code = 'COMM-001' THEN jl.debit - jl.credit ELSE 0 END), 0) AS commissions,
+      COALESCE(SUM(CASE WHEN jl.account_code = 'BANK-FEE' THEN jl.debit - jl.credit ELSE 0 END), 0) AS bankFees,
+      COALESCE(SUM(CASE WHEN jl.account_code = 'INV-001' THEN jl.debit - jl.credit ELSE 0 END), 0) AS inventory,
       COALESCE(SUM(CASE WHEN jl.account_code = 'AR-001' THEN jl.debit - jl.credit ELSE 0 END), 0) AS receivables,
       COALESCE(SUM(CASE WHEN jl.account_code = 'AP-001' THEN jl.credit - jl.debit ELSE 0 END), 0) AS payables,
       COALESCE(SUM(jl.debit), 0) AS totalDebit,
@@ -130,16 +166,29 @@ export function financialTruth() {
   `).get() as { grossCollections: number; returnedCollections: number };
   const counts = sqlite.prepare("SELECT transaction_type AS kind, COUNT(*) AS count FROM financial_transactions WHERE status = 'posted' GROUP BY transaction_type ORDER BY transaction_type").all();
   const rawTotals = totals as {
-    cashAndBank: number; grossRevenue: number; refunds: number; expenses: number;
+    cashAndBank: number; cashBalance: number; bankBalance: number; grossRevenue: number; refunds: number; expenses: number;
+    inventory: number; commissions: number; bankFees: number;
     receivables: number; payables: number; totalDebit: number; totalCredit: number;
   };
-  const normalizedTotals = {
+  const revenue = Number((Number(rawTotals.grossRevenue) - Number(rawTotals.refunds)).toFixed(2));
+  const normalizedTotals: FinancialTruthContract = {
+    revenue,
+    collected: Number((Number(collectionTotals.grossCollections) - Number(collectionTotals.returnedCollections)).toFixed(2)),
+    purchases: Number(rawTotals.inventory),
+    transfers: 0,
+    netProfit: Number((revenue - Number(rawTotals.expenses)).toFixed(2)),
+    balances: {
+      accountsReceivable: Number(rawTotals.receivables),
+      accountsPayable: Number(rawTotals.payables),
+      cash: Number(rawTotals.cashBalance),
+      bank: Number(rawTotals.bankBalance),
+      inventory: Number(rawTotals.inventory),
+    },
     ...rawTotals,
-    revenue: Number((Number(rawTotals.grossRevenue) - Number(rawTotals.refunds)).toFixed(2)),
     netCollections: Number((Number(collectionTotals.grossCollections) - Number(collectionTotals.returnedCollections)).toFixed(2)),
     grossCollections: Number(collectionTotals.grossCollections),
     returnedCollections: Number(collectionTotals.returnedCollections),
-  };
+  } as FinancialTruthContract;
   return { totals: normalizedTotals, counts };
 }
 

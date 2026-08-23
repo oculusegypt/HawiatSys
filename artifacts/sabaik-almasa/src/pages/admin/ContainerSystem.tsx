@@ -10,6 +10,7 @@ import {
   getGetContainerSystemAuditQueryKey,
   getGetContainerSystemQueryKey,
   getGetContainerSystemRecordsQueryKey,
+  getGetFinancialTruthQueryKey,
   getGetServiceRequestsQueryKey,
   useArchiveContainerSystemRecord,
   useCreateContainerSystemRecord,
@@ -17,6 +18,7 @@ import {
   useGetContainerSystem,
   useGetContainerSystemAudit,
   useGetContainerSystemRecords,
+  useGetFinancialTruth,
   useGetServiceRequests,
   useUpdateContainerSystemRecord,
 } from "@workspace/api-client-react"
@@ -945,6 +947,7 @@ export default function ContainerSystem() {
   const isCollection = Boolean(collectionKind)
   const filterParams = useMemo(() => ({ kind: collectionKind, search: search.trim() || undefined }), [collectionKind, search])
   const snapshotQuery = useGetContainerSystem()
+  const financialTruthQuery = useGetFinancialTruth({ query: { staleTime: 15_000, queryKey: getGetFinancialTruthQueryKey() } })
   const recordsQuery = useGetContainerSystemRecords(filterParams)
   const serviceRequestsQuery = useGetServiceRequests(undefined, { query: { staleTime: 30_000, queryKey: getGetServiceRequestsQueryKey() } })
   const auditQuery = useGetContainerSystemAudit({ query: { enabled: view === "audit", queryKey: getGetContainerSystemAuditQueryKey() } })
@@ -962,6 +965,7 @@ export default function ContainerSystem() {
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: getGetContainerSystemQueryKey() })
+    queryClient.invalidateQueries({ queryKey: getGetFinancialTruthQueryKey() })
     queryClient.invalidateQueries({ queryKey: getGetContainerSystemRecordsQueryKey() })
     queryClient.invalidateQueries({ queryKey: getGetContainerSystemAuditQueryKey() })
   }
@@ -1199,7 +1203,7 @@ export default function ContainerSystem() {
           {notice && <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800" role="status" data-testid="status-container-success"><CheckCircle2 size={17} /> {notice}</div>}
           {error ? <Card className="border-rose-200 bg-rose-50/50"><CardContent className="flex flex-col items-center gap-3 p-12 text-center"><AlertCircle size={27} className="text-rose-500" /><h3 className="font-bold text-rose-900">تعذر تحميل بيانات النظام</h3><p className="text-sm text-rose-700">تحقق من الاتصال ثم حاول مرة أخرى.</p><Button onClick={() => { snapshotQuery.refetch(); recordsQuery.refetch() }} variant="outline" className="gap-2 border-rose-200 bg-white text-rose-800" data-testid="button-retry-container-system"><RefreshCw size={15} /> إعادة المحاولة</Button></CardContent></Card>
                : view === "overview" ? <Overview snapshot={snapshot} records={records} onAdd={openCreate} onOpen={setDetailRecord} onAssign={record => { setDetailRecord(null); setAssignmentContainerId(record.id); setAssignmentWizardOpen(true) }} />
-              : view === "financial_center" ? <FinancialControlCenter records={snapshot?.records ?? records} onAdd={kind => openCreate(kind)} onNavigate={nextView => { setView(nextView); setSearch(""); if (nextView !== "reports") setReportId(null) }} />
+               : view === "financial_center" ? <FinancialControlCenter records={snapshot?.records ?? records} truth={financialTruthQuery.data} onAdd={kind => openCreate(kind)} onNavigate={nextView => { setView(nextView); setSearch(""); if (nextView !== "reports") setReportId(null) }} />
               : view === "reports" ? reportId ? <ReportPage reportId={reportId} records={snapshot?.records ?? records} onBack={() => setReportId(null)} /> : <ReportsHub onOpen={setReportId} />
               : view === "settlements" ? <ContractSettlementWorkspace records={snapshot?.records ?? records} initialCustomerId={requestedCustomerId} />
               : view === "financial_cycle" ? <FinancialCycleWorkspace records={snapshot?.records ?? records} onAdd={openCreate} onOpenSettlements={() => { setView("settlements"); setSearch("") }} />

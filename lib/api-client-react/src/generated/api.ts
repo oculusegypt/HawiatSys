@@ -44,6 +44,7 @@ import type {
   ConversationUpdate,
   DashboardStats,
   DriverWorkOrderUpdate,
+  FinancialTruthResponse,
   GetContainerContractLedgersParams,
   GetContainerSystemRecordsParams,
   GetDriverWorkOrdersParams,
@@ -4668,6 +4669,77 @@ export function useGetContainerContractLedgers<TData = Awaited<ReturnType<typeof
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetContainerContractLedgersQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetFinancialTruthUrl = () => {
+
+
+
+
+  return `/api/admin/container-system/financial/core`
+}
+
+export const getFinancialTruth = async ( options?: RequestInit): Promise<FinancialTruthResponse> => {
+
+  return customFetch<FinancialTruthResponse>(getGetFinancialTruthUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetFinancialTruthQueryKey = () => {
+    return [
+    `/api/admin/container-system/financial/core`
+    ] as const;
+    }
+
+
+export const getGetFinancialTruthQueryOptions = <TData = Awaited<ReturnType<typeof getFinancialTruth>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFinancialTruth>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetFinancialTruthQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getFinancialTruth>>> = ({ signal }) => getFinancialTruth({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getFinancialTruth>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetFinancialTruthQueryResult = NonNullable<Awaited<ReturnType<typeof getFinancialTruth>>>
+export type GetFinancialTruthQueryError = ErrorType<unknown>
+
+
+
+export function useGetFinancialTruth<TData = Awaited<ReturnType<typeof getFinancialTruth>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFinancialTruth>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetFinancialTruthQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

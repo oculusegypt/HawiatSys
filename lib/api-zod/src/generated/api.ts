@@ -1804,6 +1804,42 @@ export const GetContainerContractLedgersResponse = zod.object({
 })
 
 
+export const GetFinancialTruthResponse = zod.object({
+  "totals": zod.object({
+  "revenue": zod.number(),
+  "collected": zod.number(),
+  "receivables": zod.number(),
+  "expenses": zod.number(),
+  "purchases": zod.number(),
+  "inventory": zod.number(),
+  "commissions": zod.number(),
+  "bankFees": zod.number(),
+  "refunds": zod.number(),
+  "transfers": zod.number(),
+  "cashBalance": zod.number(),
+  "bankBalance": zod.number(),
+  "netProfit": zod.number(),
+  "grossRevenue": zod.number(),
+  "grossCollections": zod.number(),
+  "netCollections": zod.number(),
+  "returnedCollections": zod.number(),
+  "totalDebit": zod.number(),
+  "totalCredit": zod.number(),
+  "balances": zod.object({
+  "accountsReceivable": zod.number(),
+  "accountsPayable": zod.number(),
+  "cash": zod.number(),
+  "bank": zod.number(),
+  "inventory": zod.number()
+})
+}),
+  "counts": zod.array(zod.object({
+  "kind": zod.string(),
+  "count": zod.number()
+}))
+})
+
+
 export const settleContainerContractHeaderIdempotencyKeyMin = 8;
 export const settleContainerContractHeaderIdempotencyKeyMax = 160;
 

@@ -20,6 +20,7 @@
     "seed:posts": "tsx ./src/seed-posts.ts",
     "seed:posts2": "tsx ./src/seed-posts-2.ts",
     "test:financial-core": "rm -f /tmp/cleanflow-financial-core-test.db && node -e \"const D=require('better-sqlite3');const d=new D('/tmp/cleanflow-financial-core-test.db');d.exec(\\\"CREATE TABLE service_requests (id INTEGER PRIMARY KEY, appointment_type TEXT NOT NULL DEFAULT 'immediate', driver_status TEXT NOT NULL DEFAULT 'unassigned', status TEXT NOT NULL DEFAULT 'pending', created_at TEXT NOT NULL DEFAULT '')\\\");d.close()\" && DB_PATH=/tmp/cleanflow-financial-core-test.db tsx ./src/financial-core.test.ts"
+    ,"test:financial-certification": "rm -f /tmp/cleanflow-financial-certification.db && node -e \"const D=require('better-sqlite3');const d=new D('/tmp/cleanflow-financial-certification.db');d.exec(\\\"CREATE TABLE service_requests (id INTEGER PRIMARY KEY, appointment_type TEXT NOT NULL DEFAULT 'immediate', driver_status TEXT NOT NULL DEFAULT 'unassigned', status TEXT NOT NULL DEFAULT 'pending', created_at TEXT NOT NULL DEFAULT '')\\\");d.close()\" && DB_PATH=/tmp/cleanflow-financial-certification.db tsx ./src/financial-certification.test.ts"
   },
   "dependencies": {
     "better-sqlite3": "^11.10.0",

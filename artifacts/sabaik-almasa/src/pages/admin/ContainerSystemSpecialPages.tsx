@@ -55,10 +55,12 @@ function postedCollections(records: ContainerSystemRecord[]) {
 
 export function FinancialControlCenter({
   records,
+  truth,
   onNavigate,
   onAdd,
 }: {
   records: ContainerSystemRecord[]
+  truth?: { totals?: { revenue?: number; netCollections?: number; receivables?: number; expenses?: number; netProfit?: number } } | null
   onNavigate: (view: "invoice" | "payment" | "receipt" | "expense" | "settlements" | "reports") => void
   onAdd: (kind: RecordKind) => void
 }) {
@@ -144,6 +146,12 @@ export function FinancialControlCenter({
   }, 0)
    const paymentReturns = returns.filter(record => record.kind === "payment_return").reduce((sum, record) => sum + financialAmount(record), 0)
    const netCash = collected - expenseTotal - paymentReturns
+   const ledger = truth?.totals
+   const reportedRevenue = Number(ledger?.revenue ?? invoiceTotal)
+   const reportedCollected = Number(ledger?.netCollections ?? collected)
+   const reportedReceivables = Number(ledger?.receivables ?? receivables)
+   const reportedExpenses = Number(ledger?.expenses ?? expenseTotal)
+   const reportedNetProfit = Number(ledger?.netProfit ?? (reportedRevenue - reportedExpenses))
   const recent = [...scoped].filter(record => ["invoice", "payment", "receipt", "expense", "invoice_return", "payment_return"].includes(record.kind)).sort((left, right) => String(right.updatedAt).localeCompare(String(left.updatedAt))).slice(0, 7)
   const unmatched = payments.filter(record => {
     const payload = financialPayload(record)
@@ -167,10 +175,10 @@ export function FinancialControlCenter({
       Boolean(invoice && contractNumber && invoiceContractNumber && invoiceContractNumber !== contractNumber)
   })
   const metrics = [
-    ["إجمالي الفواتير", invoiceTotal, "invoice", ReceiptText, "text-cyan-700", "bg-cyan-50", `${invoices.length} فاتورة`],
-    ["التحصيل الفعلي", collected, "payment", Banknote, "text-emerald-700", "bg-emerald-50", `${payments.length} حركة تحصيل`],
-    ["الذمم المتبقية", receivables, "settlements", CircleDollarSign, "text-amber-700", "bg-amber-50", `${contracts.length} عقداً مرتبطاً`],
-    ["صافي التدفق", netCash, "reports", WalletCards, netCash >= 0 ? "text-indigo-700" : "text-rose-700", netCash >= 0 ? "bg-indigo-50" : "bg-rose-50", `مصروفات ${financialMoney(expenseTotal)}`],
+    ["الإيراد الصافي", reportedRevenue, "invoice", ReceiptText, "text-cyan-700", "bg-cyan-50", "من الأستاذ المالي المرحّل"],
+    ["التحصيل الفعلي", reportedCollected, "payment", Banknote, "text-emerald-700", "bg-emerald-50", `${payments.length} حركة تشغيلية`],
+    ["الذمم المتبقية", reportedReceivables, "settlements", CircleDollarSign, "text-amber-700", "bg-amber-50", "من حساب ذمم العملاء"],
+    ["صافي الربح", reportedNetProfit, "reports", WalletCards, reportedNetProfit >= 0 ? "text-indigo-700" : "text-rose-700", reportedNetProfit >= 0 ? "bg-indigo-50" : "bg-rose-50", `مصروفات ${financialMoney(reportedExpenses)}`],
   ] as const
   return <div className="space-y-5" data-testid="financial-control-center">
     <div className="relative overflow-hidden rounded-[1.5rem] bg-gradient-to-l from-[#103c4d] via-[#155467] to-[#0c7181] p-5 text-white shadow-lg sm:p-7"><div className="absolute -left-10 -top-16 h-48 w-48 rounded-full border border-white/10" /><div className="relative flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"><div><div className="mb-2 flex items-center gap-2 text-xs font-bold text-cyan-100"><Sparkles size={14} /> المركز المالي الذكي</div><h3 className="text-2xl font-black">الصورة المالية في لحظة</h3><p className="mt-2 max-w-2xl text-sm leading-7 text-cyan-50/75">لوحة موحدة تربط الفواتير والتحصيل والعقود والمصروفات والتسويات، وتكشف أي سجل يحتاج مراجعة قبل أن يصبح مشكلة.</p></div><div className="flex flex-wrap gap-2"><button type="button" onClick={() => onAdd("invoice")} className="rounded-xl bg-amber-300 px-4 py-2.5 text-xs font-black text-slate-900 transition hover:bg-amber-200">فاتورة جديدة</button><button type="button" onClick={() => onAdd("payment")} className="rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-xs font-black text-white transition hover:bg-white/20">تسجيل تحصيل</button></div></div></div>
