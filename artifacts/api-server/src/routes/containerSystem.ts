@@ -996,8 +996,14 @@ router.post("/admin/container-system/financial/settle", requireContainerPermissi
       }
       const now = new Date().toISOString();
       const first = contractRows[0];
-      const customerIds = new Set(contractRows.map(item => String(item.contractPayload.customerRecordId ?? "")));
-      if (customerIds.size > 1) throw new Error("لا يمكن توزيع تحصيل واحد على عقود لعملاء مختلفين");
+      const customerKeys = new Set(contractRows.map(item => {
+        const customerId = Number(item.contractPayload.customerRecordId ?? 0);
+        if (Number.isInteger(customerId) && customerId > 0) return `id:${customerId}`;
+        return `name:${String(item.contractPayload.customerName ?? "").trim().toLowerCase()}`;
+      }));
+      if (customerKeys.size > 1 || customerKeys.has("name:")) {
+        throw new Error("لا يمكن توزيع تحصيل واحد إلا على عقود العميل نفسه المرتبطة بعميل رسمي");
+      }
       const paymentPayload = {
         operationKey, contractId: first.contract.id, contractNumber: first.contractNumber,
         invoiceRecordId: first.invoiceId ?? null, customerName: first.contractPayload.customerName ?? "",
@@ -1062,6 +1068,14 @@ function matchContractForSettlement(row: typeof containerSystemRecordsTable.$inf
   const payload = parsePayload(row.payload);
   const direct = String(payload.contractNumber ?? "").trim();
   if (direct) return direct;
+  const contractId = Number(payload.contractRecordId ?? payload.contractId ?? 0);
+  if (Number.isInteger(contractId) && contractId > 0) {
+    const contract = all.find(item => item.kind === "contract" && item.id === contractId);
+    if (contract) {
+      const contractPayload = parsePayload(contract.payload);
+      return String(contractPayload.contractNumber ?? contract.reference ?? "").trim();
+    }
+  }
   const invoiceNumber = String(payload.invoiceNumber ?? "").trim();
   if (!invoiceNumber) return "";
   const invoice = all.find(item => item.kind === "invoice" && String(parsePayload(item.payload).invoiceNumber ?? item.reference).trim() === invoiceNumber);

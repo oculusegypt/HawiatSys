@@ -1042,8 +1042,23 @@ export default function ContainerSystem() {
     }
   }
   const contractAction = (record: ContainerSystemRecord, action: string) => {
-    const actionStatus: Record<string, string> = { deliver: "delivered", return: "returned", settle: "settled", debt: "delinquent", close: "closed" }
-    const status = actionStatus[action] ?? record.status
+    if (action === "settle") {
+      setView("settlements")
+      setSearch(String(record.payload.customerName ?? record.reference ?? ""))
+      setDetailRecord(null)
+      showSuccess("تم فتح شاشة التسوية الآمنة؛ سجّل الدفعة من كشف العقد")
+      return
+    }
+    if (action === "debt" || action === "close") {
+      toast({
+        title: action === "debt"
+          ? "تحويل العقد إلى مديونية يتم من خلال قيد مالي مرحّل"
+          : "إغلاق العقد يتطلب إكمال دورة التسليم والاسترجاع والتسوية",
+        description: "لم يتم تغيير حالة العقد حتى لا ينفصل العقد عن كشف الحساب والقيود المالية.",
+        variant: "destructive",
+      })
+      return
+    }
     const now = new Date().toISOString()
     if (["deliver", "return", "approve", "reject"].includes(action)) {
       void fetch(`${API_BASE}/api/admin/container-system/contracts/${record.id}/lifecycle`, {

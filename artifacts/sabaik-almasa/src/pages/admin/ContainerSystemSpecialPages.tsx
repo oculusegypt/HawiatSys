@@ -79,7 +79,10 @@ export function FinancialControlCenter({
   const expenses = scoped.filter(record => ["expense", "daily_expense", "fuel_expense", "salary_payment", "salary_advance"].includes(record.kind) && record.status === "posted")
   const returns = scoped.filter(record => ["invoice_return", "payment_return"].includes(record.kind) && record.status === "posted")
   const deposits = scoped.filter(record => ["deposit", "bank_deposit"].includes(record.kind) && record.status === "posted")
-  const contracts = scoped.filter(record => record.kind === "contract")
+  const contracts = scoped.filter(record =>
+    record.kind === "contract" &&
+    ["active", "issued", "scheduled", "delivered", "due", "overdue", "delinquent", "pending", "settled"].includes(record.status),
+  )
   const invoiceTotal = invoices.reduce((sum, record) => sum + financialAmount(record), 0)
   const collected = payments.reduce((sum, record) => sum + financialAmount(record), 0)
   const expenseTotal = expenses.reduce((sum, record) => sum + financialAmount(record), 0)
@@ -362,7 +365,7 @@ export function ContractSettlementWorkspace({ records, initialCustomerId = null 
   const deposits = records.filter(record => (record.kind === "deposit" || record.kind === "bank_deposit") && record.status === "posted")
   const selectedRows = ledgers.filter(row => selectedIds.includes(row.contract.id))
   const invoicesFor = (contractId: number, contractNumber: string) => records.filter(record => {
-    if (record.kind !== "invoice" || record.status === "archived") return false
+     if (record.kind !== "invoice" || record.status !== "posted") return false
     const payload = record.payload as Record<string, unknown>
     return Number(payload.contractRecordId ?? 0) === contractId || String(payload.contractNumber ?? "").trim() === contractNumber
   })

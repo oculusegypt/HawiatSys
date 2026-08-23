@@ -855,6 +855,7 @@ export function RecordDialog({
   ), [records])
   const paidForContract = (contractNumber: string) => records
     .filter(item => item.kind === "payment" || item.kind === "receipt")
+    .filter(item => item.status === "posted")
     .filter(item => {
       const paymentPayload = item.payload as Record<string, unknown>
       return String(paymentPayload.contractNumber ?? "").trim() === contractNumber ||
@@ -874,7 +875,22 @@ export function RecordDialog({
     const contractPayload = item.payload as Record<string, unknown>
     const total = Number(contractPayload.total ?? contractPayload.amount ?? 0)
     const storedRemaining = Number(contractPayload.remaining)
-    const computedRemaining = total - paidForContract(String(contractPayload.contractNumber ?? item.reference ?? ""))
+    const contractNumber = String(contractPayload.contractNumber ?? item.reference ?? "")
+    const computedRemaining = records
+      .filter(record => (record.kind === "payment" || record.kind === "receipt") && record.status === "posted")
+      .reduce((sum, record) => {
+        const paymentPayload = record.payload as Record<string, unknown>
+        const allocations = Array.isArray(paymentPayload.allocations) ? paymentPayload.allocations : []
+        const allocation = allocations.find(entry => {
+          const value = entry as Record<string, unknown>
+          return Number(value.contractId ?? 0) === item.id ||
+            String(value.contractNumber ?? "").trim() === contractNumber
+        }) as Record<string, unknown> | undefined
+        if (allocation) return sum + Number(allocation.amount ?? 0)
+        const matchesContract = Number(paymentPayload.contractRecordId ?? 0) === item.id ||
+          String(paymentPayload.contractNumber ?? "").trim() === contractNumber
+        return matchesContract ? sum + Number(paymentPayload.amount ?? 0) : sum
+      }, 0)
     return Math.max(Number.isFinite(computedRemaining) ? computedRemaining : (Number.isFinite(storedRemaining) ? storedRemaining : 0), 0)
   }
   const openContractsForPayment = records.filter(item => {
