@@ -1,0 +1,374 @@
+PHASE 10B — LIVE E2E MUST CONTINUE WITHOUT FTP
+
+توقف عن إعادة محاولة FTP وإعادة نفس التقرير.
+
+FTP فشل بالفعل بـ530 Access denied، وتم توثيق ذلك. لا تجعل FTP يمنعك من تنفيذ الاختبارات الحية التي يمكن تنفيذها عبر HTTPS/API.
+
+الموقع الصحيح:
+
+https://hawiat.aiservx.com
+Admin Login
+URL:
+https://hawiat.aiservx.com/admin
+
+Username:
+admin
+
+Password:
+taqi2020
+FTP — معلومة مسجلة فقط
+Host:
+92.113.19.25
+
+Port:
+21
+
+Username:
+u130428819.hawiat.aiservx.com
+
+Password:
+3691475+*Hh@!
+
+Remote:
+public_html
+
+تم بالفعل توثيق:
+
+FTP = 530 Access denied
+FTPS = timeout
+
+لا تعيد الجولة من البداية بسبب FTP.
+
+المطلوب الآن
+1. استخدم الـBuild الموجود كما هو
+
+لا تعدّل المصدر.
+
+لا تعمل Patch.
+
+لا تعيد بناء النظام إلا إذا كان ذلك ضرورياً للتحقق.
+
+لا ترفع أي شيء طالما FTP غير متاح.
+
+2. نفّذ Fresh Live E2E على النسخة المنشورة الحالية
+
+استخدم:
+
+HOSTINGER-FRESH-E2E-2026
+
+وسجّل الدخول فعلياً باستخدام بيانات Admin أعلاه.
+
+لا تستخدم بيانات الاختبارات القديمة كأساس.
+
+3. أنشئ كل الـPrerequisites المطلوبة
+
+لا أريد رؤية:
+
+Purchase = BLOCKED
+Commission = BLOCKED
+Transfer = BLOCKED
+
+بسبب عدم وجود بيانات أساسية.
+
+أنشئ داخل Dataset الجديد كل ما تحتاجه:
+
+Customer
+Site
+Contact
+Service Request
+Container / Asset
+Employee
+Warehouse
+Supplier
+Inventory Item
+Treasury
+Cash Account
+Bank Account
+Contract
+
+واجعل أسماء/مراجع الاختبار تحتوي:
+
+HOSTINGER-FRESH-E2E-2026
+4. نفّذ الدورة المالية كاملة
+
+نفذ فعلياً:
+
+Customer
+→ Site
+→ Contact
+→ Request
+→ Container
+→ Contract
+→ Contract Idempotency
+→ Invoice
+→ Payment
+→ Payment Idempotency
+→ Receipt
+→ Deposit
+→ Deposit Idempotency
+→ Bank Reconciliation
+→ Expense
+→ Expense Reversal
+→ Purchase
+→ Inventory
+→ Commission
+→ Bank Fee
+→ Bank Fee Idempotency
+→ Other Revenue
+→ Other Revenue Idempotency
+→ Transfer
+→ Refund
+→ Refund Reversal
+→ Financial Period
+→ Period Close
+→ Post After Close
+5. لا تتوقف عند Failure
+
+إذا فشل Endpoint:
+
+FAIL
+HTTP status
+Response
+Root Cause
+
+ثم أكمل الاختبارات المستقلة.
+
+ممنوع إيقاف الجولة كلها بسبب Failure واحد.
+
+6. اختبارات Idempotency إلزامية
+
+اختبر فعلياً:
+
+Contract
+Payment
+Deposit
+Bank Fee
+Other Revenue
+Expense Reversal
+Refund Reversal
+
+لكل عملية:
+
+First request
+201
+idempotent=false
+Second request بنفس المفتاح
+200
+idempotent=true
+
+ويجب أن يكون نفس الـrecord بدون Financial Transaction أو Journal أو Reconciliation إضافي.
+
+7. Bank Reconciliation
+
+أنشئ Deposit جديد ثم:
+
+Approve
+→ Post
+→ Financial Transaction
+→ Reconciliation
+
+ثم أعد عملية الإيداع بنفس المفتاح.
+
+المطلوب:
+
+1 Deposit
+1 Financial Transaction
+1 Reconciliation
+
+وليس سجل مطابقة مزدوج.
+
+8. Bank Fee
+
+هذه نقطة مهمة لأن آخر إصلاح كان متعلقاً بها.
+
+اختبر:
+
+Create Bank Fee
+→ Approve
+→ Post
+→ Financial Transaction
+→ Journal Entry
+
+ثم أعد نفس العملية بنفس Idempotency-Key.
+
+تحقق:
+
+1 Bank Fee
+1 Financial Transaction
+1 Journal Entry
+
+وتحقق:
+
+Debit == Credit
+9. Period Lock
+
+أنشئ فترة جديدة، ثم:
+
+Post transaction
+→ Close period
+→ Attempt another Post
+
+المطلوب:
+
+HTTP 422
+FINANCIAL_PERIOD_CLOSED
+
+ويجب ألا يتم إنشاء:
+
+Financial Transaction
+Journal Entry
+
+بسبب محاولة الترحيل المرفوضة.
+
+10. Financial Core
+
+بعد تنفيذ Dataset بالكامل، اقرأ:
+
+/api/admin/container-system/financial/core
+
+وسجل:
+
+Gross Revenue
+Refunds
+Net Revenue
+Gross Collections
+Returned Collections
+Net Collections
+Expenses
+Purchases
+Inventory
+Commissions
+Bank Fees
+Other Revenue
+Transfers
+Cash
+Bank
+Profit
+Total Debit
+Total Credit
+
+والشرط:
+
+Total Debit == Total Credit
+11. التقارير
+
+افتح واختبر فعلياً:
+
+Financial Control Center
+Financial Cycle Workspace
+ReportPage
+
+وقارنها مع Financial Core.
+
+أنشئ:
+
+Metric | Financial Core | Control Center | Cycle Workspace | ReportPage | Result
+
+لا تقل NOT VERIFIED لمجرد أن الشاشة SPA. استخدم جلسة Admin الحقيقية وأكمل التحقق بالطريقة المتاحة.
+
+12. Order → Contract
+
+نفذ:
+
+Order
+→ Customer
+→ Request
+→ Contract
+
+ثم:
+
+Same Idempotency Key
+
+يجب إعادة نفس العقد.
+
+ثم:
+
+Different Idempotency Key
+
+يجب رفض إنشاء عقد ثانٍ.
+
+13. Security
+
+تحقق من:
+
+/data/
+/data/sabaik.db
+/.env
+/api/.env
+
+ويجب أن تكون محمية.
+
+واختبر API بدون Token:
+
+401
+14. Database Integrity
+
+إذا لم يكن هناك وصول مباشر لملف SQLite عبر API أو FTP، لا تدّعِ أنك نفذت PRAGMA integrity_check.
+
+اكتب:
+
+BLOCKED — direct SQLite access unavailable
+
+لكن لا تجعل ذلك يمنع بقية الـE2E.
+
+15. FTP
+
+FTP ليس جزءاً من صلاحية الاختبارات الوظيفية.
+
+سجّل فقط:
+
+Deployment/File SHA Verification:
+BLOCKED — FTP 530
+
+ثم أكمل:
+
+Live Functional E2E:
+RUN
+16. النتيجة المطلوبة
+
+لا أريد تقريراً جديداً يقول:
+
+BLOCKED
+0/10
+
+فقط لأن FTP غير متاح.
+
+أريد فصل النتيجة إلى:
+
+Deployment / FTP Verification
+BLOCKED
+
+Live Application E2E
+PASS / PARTIAL / FAIL
+
+Database Direct Integrity
+BLOCKED
+
+Functional Production Certification
+PASS / FAIL
+
+إذا نجحت كل الاختبارات الوظيفية، فاذكر بوضوح:
+
+Functional Live E2E: PASS
+
+Deployment SHA-256: BLOCKED BY FTP
+
+Database Direct Integrity: BLOCKED BY FTP
+
+Final Certification:
+FUNCTIONALLY PASS — INFRASTRUCTURE VERIFICATION BLOCKED
+
+وإذا وجدت Bug حقيقياً، اذكره بالدليل.
+
+ممنوع مرة أخرى
+لا تعيد محاولة FTP عشر مرات.
+لا تنتظر الرصيد.
+لا تكتب خطة جديدة.
+لا توقف الاختبارات بسبب غياب Warehouse أو Employee.
+لا تستخدم بيانات وهمية خارج Dataset.
+لا تحذف بيانات الإنتاج.
+لا تعدّل الكود.
+لا تعمل Patch أثناء هذه الجولة.
+لا تدّعي PASS بدون اختبار فعلي.
+
+ابدأ الآن من النسخة الحية الحالية، وسجّل الدخول، وأنشئ HOSTINGER-FRESH-E2E-2026، وأكمل كل الاختبارات التي يمكن تنفيذها عبر الموقع/API حتى النهاية.
