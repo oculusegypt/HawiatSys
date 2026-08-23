@@ -897,6 +897,12 @@ export function AIChatbotWidget({ onOpenChange }: { onOpenChange?: (open: boolea
   const [invitationPhone, setInvitationPhone] = useState("")
   const [invitationService, setInvitationService] = useState("")
   const [invitationSubmitting, setInvitationSubmitting] = useState(false)
+  const [acceptedInvitationSession, setAcceptedInvitationSession] = useState<{
+    conversationId: number
+    clientName: string
+    phone: string
+    packageName?: string
+  } | null>(null)
   const lastSeenMsgIdRef = useRef<number>(0)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -959,9 +965,20 @@ export function AIChatbotWidget({ onOpenChange }: { onOpenChange?: (open: boolea
       })
       if (!response.ok) throw new Error("تعذر بدء المحادثة")
       const data = await response.json() as { conversationId: number }
+      const clientName = invitationName.trim()
+      const phone = invitationPhone.trim()
+      const packageName = invitationService.trim()
+      const chatSession = {
+        conversationId: data.conversationId,
+        clientName,
+        phone,
+        packageName: packageName || undefined,
+      }
+      localStorage.setItem("sabaik_live_chat_session", JSON.stringify(chatSession))
       sessionStorage.setItem("support_conversation_id", String(data.conversationId))
-      sessionStorage.setItem("customer_name", invitationName.trim())
-      sessionStorage.setItem("customer_phone", invitationPhone.trim())
+      sessionStorage.setItem("customer_name", clientName)
+      sessionStorage.setItem("customer_phone", phone)
+      setAcceptedInvitationSession(chatSession)
       setVisitorInvitation(null)
       setLiveChatOpen(true)
     } catch {
@@ -1208,14 +1225,17 @@ export function AIChatbotWidget({ onOpenChange }: { onOpenChange?: (open: boolea
     <>
       {/* Live Support Panel */}
       <AnimatePresence>
-        {botDisabled && liveChatOpen && (
-          <LiveSupportChat onClose={() => setLiveChatOpen(false)} />
+        {liveChatOpen && (
+          <LiveSupportChat
+            initialSession={acceptedInvitationSession ?? undefined}
+            onClose={() => setLiveChatOpen(false)}
+          />
         )}
       </AnimatePresence>
 
       {/* AI Bot Panel */}
       <AnimatePresence>
-        {!botDisabled && isOpen && (
+        {!botDisabled && isOpen && !liveChatOpen && (
           <motion.div
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}

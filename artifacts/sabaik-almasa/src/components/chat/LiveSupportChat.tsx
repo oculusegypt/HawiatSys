@@ -53,6 +53,12 @@ interface Message {
 
 interface LiveSupportChatProps {
   onClose: () => void
+  initialSession?: {
+    conversationId: number
+    clientName: string
+    phone: string
+    packageName?: string
+  }
 }
 
 type Stage = "form" | "chat"
@@ -592,17 +598,18 @@ function clearSession() {
 
 // ─── Main Export ──────────────────────────────────────────────────────────────
 
-export function LiveSupportChat({ onClose }: LiveSupportChatProps) {
+export function LiveSupportChat({ onClose, initialSession }: LiveSupportChatProps) {
   const { companyName, phones, phoneCall, phoneWhatsapp, supportHours } = useSiteSettings()
   const contactPhones = Array.from(new Set([...phones, phoneWhatsapp].filter(Boolean)))
   const callNumber = phoneCall || phones.find(number => !isWhatsappNumber(number, phoneWhatsapp)) || phones[0] || ""
   const { data: packages = [] } = useGetContainers()
   const saved = loadSession()
-  const [stage, setStage] = useState<Stage>(saved ? "chat" : "form")
-  const [conversationId, setConversationId] = useState<number | null>(saved?.conversationId ?? null)
-  const [clientName, setClientName] = useState(saved?.clientName ?? "")
-  const [phone, setPhone] = useState(saved?.phone ?? "")
-  const [packageName, setPackageName] = useState(saved?.packageName ?? "")
+  const session = initialSession ?? saved
+  const [stage, setStage] = useState<Stage>(session ? "chat" : "form")
+  const [conversationId, setConversationId] = useState<number | null>(session?.conversationId ?? null)
+  const [clientName, setClientName] = useState(session?.clientName ?? "")
+  const [phone, setPhone] = useState(session?.phone ?? "")
+  const [packageName, setPackageName] = useState(session?.packageName ?? "")
   const [isSoundMuted, setIsSoundMuted] = useState(() => localStorage.getItem("chat_sound_muted") === "true")
   const { data: conversation } = useGetConversation(conversationId as number, {
     query: { enabled: !!conversationId } as any,
