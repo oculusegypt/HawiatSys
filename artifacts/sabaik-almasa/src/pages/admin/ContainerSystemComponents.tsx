@@ -284,7 +284,8 @@ export const FIELD_CONFIG: Record<RecordKind, FieldConfig[]> = {
   ],
   payment: [
     { key: "customerName", label: "العميل", placeholder: "اسم العميل" },
-    { key: "contractNumber", label: "العقد", placeholder: "رقم العقد" },
+    { key: "contractNumber", label: "العقد", placeholder: "اختر العقد المرتبط" },
+    { key: "invoiceNumber", label: "الفاتورة (اختياري)", placeholder: "اختر الفاتورة إذا لم يرتبط السداد بعقد" },
     { key: "amount", label: "المبلغ", type: "number", placeholder: "0" },
     { key: "paymentMethod", label: "طريقة الدفع", placeholder: "تحويل / شبكة / نقدي" },
     { key: "date", label: "التاريخ", type: "date" },
@@ -795,8 +796,16 @@ export function RecordDialog({
     if (!source) return []
     return records.filter(item => item.kind === source && item.status !== "archived").map(item => {
       const p = item.payload as Record<string, unknown>
-      const label = String(p.name ?? p.customerName ?? p.contractNumber ?? p.assetCode ?? p.plate ?? p.code ?? item.reference ?? `#${item.id}`)
-      const value = key.toLowerCase().endsWith("recordid") || key.toLowerCase().endsWith("id") ? String(item.id) : String(p.name ?? p.contractNumber ?? p.assetCode ?? p.plate ?? p.code ?? label)
+      const label = source === "contract"
+        ? `${String(p.customerName ?? "عميل غير محدد")} · ${String(p.contractNumber ?? item.reference ?? `#${item.id}`)}`
+        : String(p.name ?? p.customerName ?? p.contractNumber ?? p.assetCode ?? p.plate ?? p.code ?? item.reference ?? `#${item.id}`)
+      // Financial documents must receive the official document number, never
+      // the customer's display name. The API validates this exact value.
+      const value = key.toLowerCase().endsWith("recordid") || key.toLowerCase().endsWith("id")
+        ? String(item.id)
+        : source === "contract"
+          ? String(p.contractNumber ?? item.reference ?? "")
+          : String(p.name ?? p.contractNumber ?? p.assetCode ?? p.plate ?? p.code ?? label)
       return { value, label }
     })
   }
