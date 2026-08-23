@@ -1,0 +1,1101 @@
+أكيد. بما أن **كل ما سبق تم التحقق منه**، فالرسالة الجديدة يجب أن تمنع الـAgent من إعادة فتح الأجزاء المعتمدة، وتجعله يبدأ من **Hostinger E2E الحقيقي** وينتهي بشهادة اعتماد نهائية.
+
+أرسل له هذه الرسالة كما هي:
+
+---
+
+# HOSTINGER E2E → FINAL PRODUCTION CERTIFICATION
+
+أنت تستلم المشروع بعد إغلاق واعتماد المراحل السابقة.
+
+**لا تعيد بناء ما تم اعتماده. لا تعمل Refactor عشوائي. لا تغيّر Financial Core أو Order → Contract إلا إذا كشف اختبار إنتاجي فعلي عن Bug مثبت.**
+
+المطلوب الآن هو الانتقال من:
+
+```text
+Local / Node / Preview Validation
+```
+
+إلى:
+
+```text
+Hostinger Production-Like / PHP / SQLite E2E
+```
+
+ثم إصدار **Final Production Certification** مبنية على أدلة فعلية.
+
+---
+
+# 0 — الحالة المعتمدة التي يجب الحفاظ عليها
+
+المراحل التالية تم التحقق منها بالفعل:
+
+```text
+Financial Core: PASS
+Double Entry: PASS
+Idempotency: PASS
+Receipt Double Counting: PASS
+Refunds: PASS
+Reversals: PASS
+Period Lock: PASS
+Bank Reconciliation: PASS
+Node/PHP Parity: PASS
+Frontend Financial Truth: PASS
+
+Financial Control Center: PASS
+Financial Cycle Workspace: PASS
+ReportPage: PASS
+Cross-report projections: PASS
+
+Golden Dataset: PASS
+Cross-Report Consistency: PASS
+Legacy Financial Calculations: 0
+
+Order → Contract: VERIFIED
+Customer Reuse: PASS
+Existing Order Reuse: PASS
+Duplicate Service Request: NONE
+Duplicate Customer: NONE
+Duplicate Contract: NONE
+Contract-first Workflow: PASS
+Node/PHP Parity: PASS
+
+TypeScript: PASS
+PHP: PASS
+Operational Validation: PASS
+API Health: PASS
+Frontend Preview: PASS
+```
+
+**اعتبر هذه النتائج Baseline.**
+
+لا تعيد تعديل هذه الأنظمة لمجرد تحسينها.
+
+---
+
+# 1 — الهدف النهائي
+
+أريد إثبات أن النسخة التي سيتم تشغيلها على Hostinger بدون Node تعمل فعلياً من البداية للنهاية.
+
+الهدف:
+
+```text
+Real Browser
+      ↓
+Hostinger
+      ↓
+PHP API
+      ↓
+SQLite / Production DB
+      ↓
+Business Logic
+      ↓
+Financial Core
+      ↓
+Reports
+```
+
+والاختبار يجب أن يكون على **النسخة التي ستُرفع فعلياً إلى Hostinger**، وليس نسخة مختلفة.
+
+---
+
+# 2 — أول خطوة: اكتشف بيئة Hostinger
+
+قبل أي تعديل، افحص:
+
+```text
+PHP version
+PHP extensions
+SQLite support
+SQLite version
+file permissions
+document root
+public directory
+API routing
+.htaccess
+rewrite rules
+CORS
+HTTPS
+static assets
+upload permissions
+database location
+session/auth mechanism
+cron requirements
+environment/configuration
+```
+
+حدد بوضوح:
+
+```text
+Hostinger PHP: AVAILABLE / BLOCKED
+SQLite: AVAILABLE / BLOCKED
+HTTPS: AVAILABLE / BLOCKED
+API routing: AVAILABLE / BLOCKED
+```
+
+**لا تفترض أي شيء.**
+
+---
+
+# 3 — لا ترفع قاعدة التطوير الحقيقية
+
+لا تستخدم بيانات حقيقية للعميل.
+
+أنشئ Dataset مجهّلاً مخصصاً لـ E2E:
+
+```text
+E2E Customer
+E2E Company
+E2E Contract
+E2E Order
+E2E Invoice
+E2E Payment
+```
+
+ويجب أن تكون كل البيانات قابلة للتتبع بعلامة واضحة مثل:
+
+```text
+E2E-2026-08-23
+```
+
+حتى يمكن تنظيفها بعد الاختبار إذا لزم.
+
+---
+
+# 4 — ابنِ نسخة Hostinger مطابقة للإنتاج
+
+استخدم الـbuild الموجود فعلياً.
+
+تحقق من:
+
+```text
+Hostinger archive
+PHP files
+Frontend assets
+SQLite schema
+configuration
+.htaccess
+```
+
+ولا تنشئ مساراً بديلاً مختلفاً عن الـproduction implementation.
+
+قبل الرفع:
+
+```text
+Build: PASS
+PHP lint: PASS
+Archive integrity: PASS
+```
+
+---
+
+# 5 — Smoke Test بعد الرفع
+
+بعد تشغيل النسخة على Hostinger:
+
+اختبر أولاً:
+
+```text
+Homepage
+Login
+Admin Login
+API health
+Database connection
+Static assets
+Frontend routing
+Admin routing
+```
+
+ثم تحقق من:
+
+```text
+HTTP 200
+```
+
+للـendpoints الأساسية.
+
+إذا فشل الـSmoke Test:
+
+**توقف عن اختبار الأعمال المالية.**
+
+أصلح مشكلة البيئة فقط، ثم أعد الاختبار.
+
+---
+
+# 6 — اختبر Customer → Order من المتصفح الحقيقي
+
+استخدم Browser حقيقي على Hostinger.
+
+نفذ:
+
+```text
+Open website
+    ↓
+Create customer/order
+    ↓
+Submit request
+```
+
+تحقق من قاعدة البيانات:
+
+```text
+Customer = 1
+Service Request = 1
+```
+
+ولا تستخدم API مباشرة فقط.
+
+المطلوب إثبات أن المسار الحقيقي:
+
+```text
+Browser → PHP → SQLite
+```
+
+يعمل.
+
+---
+
+# 7 — اختبر Order → Contract
+
+استخدم الطلب الذي تم إنشاؤه فعلياً.
+
+نفذ:
+
+```text
+Order
+ ↓
+Admin
+ ↓
+Convert to Contract
+```
+
+يجب أن يحدث:
+
+```text
+Existing Order
+      ↓
+Existing Customer
+      ↓
+One Contract
+```
+
+ويجب ألا يحدث:
+
+```text
+New Customer ❌
+New Service Request ❌
+Duplicate Contract ❌
+Financial Transaction ❌
+Journal Entry ❌
+```
+
+تحقق من قاعدة البيانات قبل وبعد العملية.
+
+---
+
+# 8 — اختبر Idempotency
+
+نفذ نفس العملية مرتين بنفس مفتاح العملية.
+
+المطلوب:
+
+```text
+First request:
+Contract #X
+
+Second identical request:
+Contract #X
+idempotent = true
+```
+
+ثم اختبر محاولة التحويل بمفتاح مختلف.
+
+يجب رفض التكرار وفق قواعد النظام الحالية.
+
+---
+
+# 9 — اختبر Contract → Invoice
+
+أنشئ الفاتورة من العقد.
+
+تحقق:
+
+```text
+Contract = 1
+Invoice = 1
+```
+
+ولا توجد فاتورة مكررة.
+
+ثم تحقق من Financial Core.
+
+---
+
+# 10 — اختبر Invoice → Payment
+
+نفذ تحصيلاً اختبارياً.
+
+مثلاً:
+
+```text
+Invoice: 1000
+Payment: 600
+```
+
+تحقق من:
+
+```text
+Collected = 600
+Outstanding = 400
+```
+
+ثم اختبر:
+
+```text
+Payment
+ ↓
+Receipt
+```
+
+وتأكد أن الإيصال المرتبط بالدفع **لا يضاعف التحصيل**.
+
+---
+
+# 11 — اختبر Allocation
+
+استخدم دفعة واحدة قابلة للتوزيع.
+
+مثال:
+
+```text
+Payment = 1000
+
+Contract A = 600
+Contract B = 400
+```
+
+تحقق:
+
+```text
+Allocation A = 600
+Allocation B = 400
+Total = 1000
+```
+
+ويجب منع:
+
+```text
+Allocation > Payment
+Allocation > Contract Balance
+Allocation > Invoice Balance
+```
+
+---
+
+# 12 — اختبر Financial Core فعلياً على Hostinger
+
+هنا نقطة الاعتماد الأساسية.
+
+تحقق من:
+
+```text
+Financial Transaction
+Journal Entry
+Debit
+Credit
+Allocation
+Account
+Period
+```
+
+ويجب أن يكون:
+
+```text
+Total Debit = Total Credit
+```
+
+على قاعدة Hostinger نفسها.
+
+---
+
+# 13 — اختبر المصروفات
+
+أنشئ مصروف E2E.
+
+تحقق من:
+
+```text
+Expense
+ ↓
+Financial Transaction
+ ↓
+Journal Entry
+```
+
+ثم تحقق من تأثيره على:
+
+```text
+Cash
+Expenses
+Net Profit
+```
+
+---
+
+# 14 — اختبر المشتريات والمخزون
+
+نفذ دورة اختبار:
+
+```text
+Purchase
+ ↓
+Inventory
+ ↓
+Financial Core
+```
+
+ثم تحقق من الحسابات المرتبطة بها.
+
+لا تكتفِ بأن الشاشة تعرض الرقم.
+
+تحقق من قاعدة البيانات والقيد.
+
+---
+
+# 15 — اختبر العمولات والرسوم البنكية
+
+اختبر:
+
+```text
+Commission
+Bank Fee
+```
+
+وتأكد أن كل واحد يظهر مرة واحدة فقط في:
+
+```text
+Transaction
+Journal
+Reports
+Profit
+Cash
+```
+
+---
+
+# 16 — اختبر الإيرادات الأخرى
+
+أنشئ:
+
+```text
+Other Revenue
+```
+
+ثم تحقق من:
+
+```text
+Financial Transaction
+Journal Entry
+Revenue
+Cash
+Reports
+```
+
+---
+
+# 17 — اختبر التحويلات
+
+نفذ:
+
+```text
+Cashbox A
+    ↓
+Transfer
+    ↓
+Cashbox B
+```
+
+ويجب ألا يتحول إلى:
+
+```text
+Revenue ❌
+Expense ❌
+```
+
+بل يظهر كتأثير تحويل بين الحسابات.
+
+---
+
+# 18 — اختبر المرتجعات
+
+اختبر:
+
+```text
+Invoice
+ ↓
+Refund
+```
+
+ويجب أن يعكس الأثر المالي الصحيح.
+
+تحقق أن:
+
+```text
+Net Revenue
+=
+Gross Revenue - Refunds
+```
+
+ولا يوجد حذف للقيد الأصلي.
+
+---
+
+# 19 — اختبر Reversal
+
+خذ حركة مالية مرحّلة واختبر عكسها.
+
+المطلوب:
+
+```text
+Original Journal
+      +
+Reversal Journal
+```
+
+وليس:
+
+```text
+Delete Original ❌
+```
+
+وتأكد من:
+
+```text
+Debit ↔ Credit
+```
+
+وعدم إمكانية إنشاء reversal مكرر.
+
+---
+
+# 20 — اختبر Period Lock
+
+أنشئ فترة مالية.
+
+رحّل حركة.
+
+أغلق الفترة.
+
+ثم حاول الترحيل مرة أخرى.
+
+المطلوب:
+
+```text
+Before Close:
+Posting = PASS
+
+After Close:
+Posting = REJECTED
+```
+
+---
+
+# 21 — اختبر Bank Reconciliation
+
+أنشئ:
+
+```text
+Payment
+Deposit
+Bank Fee
+```
+
+ثم نفذ المطابقة.
+
+تحقق من:
+
+```text
+matched
+difference
+review
+approval
+rejection
+reason
+audit trail
+```
+
+ولا تعلن نجاح المطابقة بمجرد ظهور الشاشة.
+
+تحقق من البيانات فعلياً.
+
+---
+
+# 22 — اختبر Financial Reports
+
+هذه مرحلة إلزامية.
+
+بعد إنشاء Golden Dataset على Hostinger، افتح كل شاشة مالية:
+
+```text
+Financial Control Center
+Financial Cycle Workspace
+ReportPage
+```
+
+وقارن النتائج مع Financial Core.
+
+يجب أن يكون:
+
+```text
+API Financial Truth
+=
+Database Financial Core
+=
+Financial Reports
+```
+
+لا توجد حسابات محلية قديمة في الواجهة.
+
+---
+
+# 23 — Golden Dataset على Hostinger
+
+شغّل نفس مفهوم الـGolden Dataset الذي تم اعتماده محلياً، لكن على Hostinger.
+
+يجب أن يشمل:
+
+```text
+Customer
+Order
+Contract
+Invoice
+Payment
+Allocation
+Receipt
+Deposit
+Expense
+Purchase
+Inventory
+Commission
+Bank Fee
+Other Revenue
+Transfer
+Refund
+Reversal
+```
+
+ثم قارن:
+
+```text
+Node expected values
+PHP actual values
+Hostinger actual values
+```
+
+المطلوب:
+
+```text
+Node = PHP = Hostinger
+```
+
+مع اختلافات البيئة فقط إذا كانت موثقة ومبررة.
+
+---
+
+# 24 — Cross-Report Golden Verification
+
+خذ نفس Dataset.
+
+استخرج:
+
+```text
+Revenue
+Collected
+Receivables
+Expenses
+Purchases
+Inventory
+Commissions
+Bank Fees
+Refunds
+Transfers
+Cash
+Bank
+Net Profit
+```
+
+ثم قارن كل شاشة.
+
+يجب ألا يكون هناك:
+
+```text
+Report A = 1000
+Report B = 1100 ❌
+Financial Core = 1000
+```
+
+إذا ظهر اختلاف:
+
+**لا تعدّل التقرير لتجعل الرقم يمر.**
+
+اكتشف مصدر الاختلاف أولاً.
+
+---
+
+# 25 — Legacy Calculation Audit
+
+ابحث مرة أخرى عن أي حساب مالي مباشر من:
+
+```text
+container_system_records
+```
+
+داخل الواجهات أو التقارير.
+
+الهدف:
+
+```text
+Legacy Financial Calculations = 0
+```
+
+مع السماح باستخدام السجلات القديمة للعرض التشغيلي غير المالي إذا كان ذلك مقصوداً.
+
+---
+
+# 26 — Security / Production Checks
+
+على Hostinger تحقق من:
+
+```text
+Authentication
+Authorization
+Admin permissions
+Tenant isolation
+Input validation
+SQL injection protection
+XSS protection
+CSRF where applicable
+File access
+SQLite exposure
+Sensitive files
+Environment secrets
+Debug mode
+Error leakage
+Directory listing
+```
+
+خصوصاً:
+
+**يجب ألا تكون SQLite database قابلة للتحميل مباشرة من المتصفح.**
+
+---
+
+# 27 — Production Data Safety
+
+تحقق من:
+
+```text
+Database path
+Permissions
+Backups
+Write permissions
+Concurrent access behavior
+Error handling
+```
+
+ولا تحذف بيانات حقيقية.
+
+---
+
+# 28 — Hostinger API / PHP Stability
+
+اختبر:
+
+```text
+Repeated requests
+Invalid requests
+Unauthorized requests
+Duplicate requests
+Missing parameters
+Malformed IDs
+```
+
+وتأكد من أن API يعيد responses صحيحة ولا يكشف stack traces أو معلومات حساسة.
+
+---
+
+# 29 — Frontend Production Verification
+
+اختبر من Browser حقيقي:
+
+```text
+Login
+Dashboard
+Orders
+Customers
+Contracts
+Invoices
+Payments
+Financial Control Center
+Financial Cycle Workspace
+Reports
+Bank Reconciliation
+```
+
+تحقق من:
+
+```text
+No console errors
+No broken API calls
+No blank screens
+No failed assets
+No incorrect totals
+No duplicate actions
+```
+
+---
+
+# 30 — لا تعتبر Hostinger ناجحاً بمجرد HTTP 200
+
+HTTP 200 وحده لا يعني Production Ready.
+
+الاعتماد يجب أن يكون:
+
+```text
+Browser
++
+PHP
++
+SQLite
++
+Database
++
+Business Logic
++
+Financial Core
++
+Reports
++
+Security
+```
+
+كلها مثبتة.
+
+---
+
+# 31 — إذا لم تتوفر صلاحية معينة في Hostinger
+
+لا تخترع نجاحاً.
+
+استخدم:
+
+```text
+PASS
+FAIL
+BLOCKED
+NOT APPLICABLE
+```
+
+مثلاً:
+
+```text
+Hostinger E2E: BLOCKED
+Reason: no database/server access
+```
+
+لكن إذا كانت الاستضافة متاحة، **لا تستخدم BLOCKED كبديل عن الاختبار.**
+
+---
+
+# 32 — لا تعدل النظام لإخفاء فشل الاختبار
+
+ممنوع:
+
+```text
+Skip test
+Mock production result
+Hardcode totals
+Suppress errors
+Change expected values
+Disable validation
+```
+
+إذا فشل شيء:
+
+```text
+FAIL
+Root Cause
+Evidence
+Minimal Fix
+Retest
+```
+
+---
+
+# 33 — بعد أي إصلاح
+
+أعد على الأقل:
+
+```text
+TypeScript
+PHP lint
+Build
+Operational Validation
+API Health
+Financial Core
+Financial Certification
+Golden Dataset
+Cross-Report
+Order → Contract
+```
+
+ولا تكتفِ بالاختبار الذي فشل فقط.
+
+---
+
+# 34 — Final Production Certification
+
+لا تكتب:
+
+```text
+10/10
+```
+
+إلا إذا كانت كل البوابات التالية PASS:
+
+```text
+HOSTINGER ENVIRONMENT                 PASS
+HOSTINGER E2E                         PASS
+DATABASE                              PASS
+AUTH                                  PASS
+CUSTOMER                              PASS
+ORDER                                 PASS
+ORDER → CONTRACT                      PASS
+INVOICE                               PASS
+PAYMENT                               PASS
+ALLOCATION                            PASS
+RECEIPT                               PASS
+EXPENSE                               PASS
+PURCHASE                              PASS
+INVENTORY                             PASS
+COMMISSION                            PASS
+BANK FEE                              PASS
+OTHER REVENUE                         PASS
+TRANSFER                              PASS
+REFUND                                PASS
+REVERSAL                              PASS
+PERIOD LOCK                           PASS
+BANK RECONCILIATION                   PASS
+FINANCIAL CORE                        PASS
+DOUBLE ENTRY                          PASS
+IDEMPOTENCY                           PASS
+NODE/PHP PARITY                       PASS
+FINANCIAL REPORTS                     PASS
+CROSS-REPORT CONSISTENCY              PASS
+GOLDEN DATASET                        PASS
+SECURITY                              PASS
+FRONTEND                              PASS
+PRODUCTION STABILITY                  PASS
+```
+
+---
+
+# 35 — النتيجة النهائية المطلوبة
+
+في النهاية أريد تقريراً واحداً واضحاً:
+
+```text
+========================================
+FINAL HOSTINGER PRODUCTION CERTIFICATION
+========================================
+
+Environment: PASS
+Deployment: PASS
+PHP Runtime: PASS
+SQLite: PASS
+Database: PASS
+Authentication: PASS
+
+Customer Flow: PASS
+Order Flow: PASS
+Order → Contract: PASS
+Invoice: PASS
+Payment: PASS
+Allocation: PASS
+Receipt: PASS
+
+Financial Core: PASS
+Double Entry: PASS
+Idempotency: PASS
+Refunds: PASS
+Reversals: PASS
+Period Lock: PASS
+Bank Reconciliation: PASS
+
+Purchases: PASS
+Inventory: PASS
+Expenses: PASS
+Commissions: PASS
+Bank Fees: PASS
+Other Revenue: PASS
+Transfers: PASS
+
+Financial Reports: PASS
+Cross-Report Consistency: PASS
+Golden Dataset: PASS
+Legacy Financial Calculations: 0
+
+Node/PHP Parity: PASS
+
+Security: PASS
+Frontend: PASS
+API: PASS
+Production Stability: PASS
+
+Database Evidence:
+...
+
+Golden Dataset Evidence:
+...
+
+Hostinger Evidence:
+...
+
+Files Changed:
+...
+
+Unexpected Changes:
+NONE
+
+Remaining Blockers:
+NONE
+```
+
+---
+
+# 36 — أهم قاعدة
+
+**لا أريد منك الوصول إلى 10/10 بالكلام.**
+
+أريد:
+
+```text
+Evidence
+→ Test
+→ Result
+→ Database Verification
+→ Regression
+→ Certification
+```
+
+إذا كانت هناك مشكلة، أصلحها بأقل تغيير ممكن.
+
+إذا لم توجد مشكلة، **لا تغيّر شيئاً.**
+
+إذا كانت خطوة غير قابلة للاختبار بسبب صلاحية غير متاحة، اكتب `BLOCKED` بوضوح ولا تزيف PASS.
+
+إذا أصبحت كل البوابات PASS فعلياً على Hostinger، عندها فقط يمكن إعلان:
+
+> **FINAL PRODUCTION CERTIFIED**
+
+**ابدأ من اكتشاف بيئة Hostinger الحالية، ثم نفذ الاختبارات بالترتيب من 0 إلى النهاية، ولا تتجاوز أي بوابة قبل نجاح السابقة.**
