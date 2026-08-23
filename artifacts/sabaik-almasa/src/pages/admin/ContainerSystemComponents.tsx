@@ -25,6 +25,7 @@ export type RecordKind =
   | "payment"
   | "expense"
   | "deposit"
+  | "bank_deposit"
   | "alert"
   | "setting"
   | "branch"
@@ -70,6 +71,7 @@ export const KIND_LABELS: Record<RecordKind, string> = {
   payment: "سداد العملاء",
   expense: "الإيرادات والمصروفات",
   deposit: "الإيداعات البنكية",
+  bank_deposit: "الإيداعات البنكية",
   alert: "التنبيهات اليومية",
   setting: "الإعدادات",
   branch: "الفروع",
@@ -116,6 +118,7 @@ export const KIND_ICONS: Record<RecordKind, string> = {
   payment: "تحصيل",
   expense: "مصروف",
   deposit: "إيداع",
+  bank_deposit: "إيداع بنكي",
   alert: "تنبيه",
   setting: "إعداد",
   branch: "فرع",
@@ -303,6 +306,14 @@ export const FIELD_CONFIG: Record<RecordKind, FieldConfig[]> = {
     { key: "amount", label: "المبلغ", type: "number", placeholder: "0" },
     { key: "date", label: "التاريخ", type: "date" },
     { key: "notes", label: "ملاحظات", type: "textarea", wide: true },
+  ],
+  bank_deposit: [
+    { key: "bankName", label: "البنك", placeholder: "اسم البنك" },
+    { key: "referenceNumber", label: "رقم المرجع", placeholder: "رقم الإيداع أو كشف الحساب" },
+    { key: "amount", label: "المبلغ", type: "number", placeholder: "0" },
+    { key: "date", label: "تاريخ الإيداع", type: "date" },
+    { key: "treasury", label: "الخزينة المصدر", placeholder: "الخزينة" },
+    { key: "notes", label: "ملاحظات المطابقة", type: "textarea", wide: true },
   ],
   alert: [
     { key: "title", label: "عنوان التنبيه", placeholder: "انتهاء عقد أو موعد صيانة" },

@@ -35,6 +35,7 @@ import {
 import { ContractSettlementWorkspace, DispatchCalendar, FinancialControlCenter, ReportsHub, ReportPage, SettingsPage, REPORTS, ReportId } from "./ContainerSystemSpecialPages"
 import { ContractWizard } from "./ContractWizard"
 import { ContainerAssignmentWizard } from "./ContainerAssignmentWizard"
+import { FinancialCycleWorkspace } from "./FinancialCycleWorkspace"
 
 const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
 
@@ -43,6 +44,7 @@ type ViewKey =
   | "rental" | "vouchers" | "operations" | "customer_payments" | "bookings"
   | "expenses" | "payroll" | "fleet" | "warehouses" | "system_settings" | "contracts_list"
   | "settlements"
+  | "financial_cycle"
 type NavItem = { key?: ViewKey; href?: string; label: string; icon: typeof LayoutDashboard }
 
 const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
@@ -96,6 +98,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { key: "transfer" as ViewKey, label: "التحويل بين الخزائن", icon: ArrowUpRight },
       { key: "customer_payments" as ViewKey, label: "سداد العملاء", icon: Coins },
       { key: "settlements" as ViewKey, label: "تسوية العقود وكشف الحساب", icon: FileText },
+      { key: "financial_cycle" as ViewKey, label: "دورة الإقفال والمطابقة", icon: ClipboardList },
       { key: "ledger_entry" as ViewKey, label: "كشف مديونية العملاء", icon: FileText },
       { key: "invoice" as ViewKey, label: "الفواتير", icon: FileText },
       { key: "daily_expense" as ViewKey, label: "المصروفات العامة", icon: ArrowDownLeft },
@@ -1107,6 +1110,7 @@ export default function ContainerSystem() {
               : view === "financial_center" ? <FinancialControlCenter records={snapshot?.records ?? records} onAdd={kind => openCreate(kind)} onNavigate={nextView => { setView(nextView); setSearch(""); if (nextView !== "reports") setReportId(null) }} />
               : view === "reports" ? reportId ? <ReportPage reportId={reportId} records={snapshot?.records ?? records} onBack={() => setReportId(null)} /> : <ReportsHub onOpen={setReportId} />
               : view === "settlements" ? <ContractSettlementWorkspace records={snapshot?.records ?? records} initialCustomerId={requestedCustomerId} />
+              : view === "financial_cycle" ? <FinancialCycleWorkspace records={snapshot?.records ?? records} onAdd={openCreate} onOpenSettlements={() => { setView("settlements"); setSearch("") }} />
               : view === "system_settings" ? <SettingsPage records={snapshot?.records ?? records} organization={organization} onSave={saveSettings} />
              : view === "audit" ? <AuditLog audits={auditQuery.data ?? []} loading={auditQuery.isLoading} />
               : view === "container_search" ? <ContainerSearchPanel records={records} loading={loading} onDetails={record => setDetailRecord(record)} onEdit={openEdit} />
