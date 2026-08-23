@@ -8,7 +8,7 @@ const router = Router();
 const supportedKinds = [
   "customer", "customer_site", "container_type", "container", "container_asset", "container_assignment", "vehicle", "driver",
   "contract", "contract_line", "container_movement", "ledger_entry", "receipt", "payment",
-  "expense", "deposit", "bank_deposit", "maintenance", "alert", "setting",
+  "expense", "deposit", "bank_deposit", "bank_fee", "maintenance", "alert", "setting",
   "branch", "employee", "permit", "appointment", "warehouse", "treasury", "transfer",
   "invoice", "invoice_return", "category", "category_size", "tax", "commission",
   "oil_change", "salary_advance", "salary_payment", "fuel_expense", "daily_expense",
@@ -17,12 +17,12 @@ const supportedKinds = [
 ] as const;
 type RecordKind = typeof supportedKinds[number];
 const idempotentKinds = new Set([
-  "container_movement", "receipt", "payment", "expense", "deposit", "bank_deposit",
+  "container_movement", "receipt", "payment", "expense", "deposit", "bank_deposit", "bank_fee",
   "invoice", "invoice_return", "payment_return", "transfer", "purchase", "purchase_return", "contract",
   "other_revenue",
 ]);
 const financialLifecycleKinds = new Set([
-  "receipt", "payment", "expense", "deposit", "bank_deposit", "invoice",
+  "receipt", "payment", "expense", "deposit", "bank_deposit", "bank_fee", "invoice",
   "invoice_return", "payment_return", "transfer", "purchase", "purchase_return",
   "commission", "salary_advance", "salary_payment", "fuel_expense", "daily_expense", "other_revenue",
 ]);
@@ -364,7 +364,7 @@ async function validateContractPayload(payload: Record<string, unknown>, ignored
 }
 
 async function validateFinancialPayload(kind: string, payload: Record<string, unknown>) {
-  if (["payment", "receipt", "expense", "deposit", "bank_deposit", "invoice", "invoice_return", "payment_return", "transfer", "purchase", "purchase_return", "other_revenue"].includes(kind)) {
+  if (["payment", "receipt", "expense", "deposit", "bank_deposit", "bank_fee", "invoice", "invoice_return", "payment_return", "transfer", "purchase", "purchase_return", "other_revenue"].includes(kind)) {
     const amount = Number(payload.amount ?? payload.total ?? 0);
     if (!Number.isFinite(amount) || amount <= 0) throw new Error("القيمة المالية يجب أن تكون أكبر من صفر");
   }
@@ -1542,7 +1542,7 @@ router.post("/admin/container-system/records", async (req, res) => {
       return res.status(422).json({ error: error instanceof Error ? error.message : "تعذر ربط العقد بالطلب" });
     }
   }
-   if (["payment", "receipt", "expense", "deposit", "bank_deposit", "invoice", "invoice_return", "payment_return", "transfer", "purchase", "purchase_return", "other_revenue"].includes(kind) && normalizedStatus === "posted") {
+   if (["payment", "receipt", "expense", "deposit", "bank_deposit", "bank_fee", "invoice", "invoice_return", "payment_return", "transfer", "purchase", "purchase_return", "other_revenue"].includes(kind) && normalizedStatus === "posted") {
     await db.insert(containerSystemRecordsTable).values({
       kind: "ledger_entry",
       status: "posted",
@@ -1556,7 +1556,7 @@ router.post("/admin/container-system/records", async (req, res) => {
         customerName: payload.customerName ?? "",
         customerRecordId: Number(payload.customerRecordId) || null,
           amount: Number(payload.amount ?? payload.total ?? 0),
-         direction: ["expense", "payment_return", "purchase", "purchase_return"].includes(kind) ? "debit" : ["invoice", "invoice_return"].includes(kind) ? "debit" : "credit",
+           direction: ["expense", "payment_return", "purchase", "purchase_return", "bank_fee"].includes(kind) ? "debit" : ["invoice", "invoice_return"].includes(kind) ? "debit" : "credit",
         date: payload.date ?? new Date().toISOString().slice(0, 10),
         ...(Array.isArray(payload.allocations) ? { allocations: payload.allocations } : {}),
       }),
@@ -1754,7 +1754,7 @@ router.patch("/admin/container-system/records/:id", async (req, res) => {
             customerName: nextPayload.customerName ?? "",
             customerRecordId: Number(nextPayload.customerRecordId) || null,
             amount: Number(nextPayload.amount ?? nextPayload.total ?? 0),
-            direction: ["expense", "payment_return", "purchase", "purchase_return"].includes(current.kind) ? "debit" : "credit",
+             direction: ["expense", "payment_return", "purchase", "purchase_return", "bank_fee"].includes(current.kind) ? "debit" : "credit",
             date: nextPayload.date ?? new Date().toISOString().slice(0, 10),
           }),
           createdBy: adminReq.adminId,

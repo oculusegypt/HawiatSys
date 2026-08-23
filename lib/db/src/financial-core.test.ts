@@ -17,6 +17,22 @@ assert.equal(postToFinancialCore({
   date: "2026-08-11", operationKey: "test-payment-91002", createdBy: 1,
 }).idempotent, true);
 
+const bankFee = postToFinancialCore({
+  sourceKind: "bank_fee", sourceId: 91004, reference: "BANK-FEE-TEST-01", amount: 12,
+  date: "2026-08-12", operationKey: "test-bank-fee-91004", createdBy: 1,
+  paymentMethod: "بنكي",
+});
+assert.equal(bankFee.idempotent, false);
+assert.equal(postToFinancialCore({
+  sourceKind: "bank_fee", sourceId: 91004, reference: "BANK-FEE-TEST-01", amount: 12,
+  date: "2026-08-12", operationKey: "test-bank-fee-91004", createdBy: 1,
+}).idempotent, true);
+const totalsAfterBankFee = financialTruth().totals as {
+  bankFees: number; totalDebit: number; totalCredit: number;
+};
+assert.equal(Number(totalsAfterBankFee.bankFees), 12);
+assert.ok(Math.abs(Number(totalsAfterBankFee.totalDebit) - Number(totalsAfterBankFee.totalCredit)) < 0.01);
+
 const totalsBeforeReverse = financialTruth().totals as { totalDebit: number; totalCredit: number };
 assert.ok(Math.abs(Number(totalsBeforeReverse.totalDebit) - Number(totalsBeforeReverse.totalCredit)) < 0.01);
 assert.equal(reverseInFinancialCore({ sourceKind: "payment", sourceId: 91002, amount: 100 }, "اختبار العكس", 1)?.idempotent, false);

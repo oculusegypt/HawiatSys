@@ -1,0 +1,812 @@
+============================================================
+PHASE 9 — FINAL HOSTINGER DEPLOYMENT + COMPLETE FRESH E2E
+============================================================
+
+أنت Agent جديد وتبدأ من هذه الرسالة فقط.
+
+الهدف: نشر آخر Build ثم تنفيذ اختبار حي كامل من الصفر على Hostinger، وعدم التوقف بسبب نقص Master Data.
+
+============================================================
+1. الموقع — مهم جداً
+============================================================
+
+استخدم هذا الدومين فقط:
+
+https://hawiat.aiservx.com
+
+ممنوع استخدام:
+sabaik-almasa.com
+أو أي Domain آخر.
+
+============================================================
+2. ADMIN LOGIN
+============================================================
+
+Admin URL:
+https://hawiat.aiservx.com/admin
+
+Username:
+admin
+
+Password:
+taqi2020
+
+استخدم هذه البيانات فعلياً لتسجيل الدخول واختبار الجلسة.
+
+============================================================
+3. HOSTINGER FTP
+============================================================
+
+FTP Host:
+92.113.19.25
+
+FTP Port:
+21
+
+FTP Username:
+u130428819.hawiat.aiservx.com
+
+FTP Password:
+3691475+*Hh@!
+
+Remote Directory:
+public_html
+
+يجب الدخول إلى:
+public_html
+
+وليس إنشاء مجلد فرعي جديد.
+
+============================================================
+4. DEPLOYMENT
+============================================================
+
+يوجد Build حديث جاهز:
+
+cleanflow-services-hostinger.zip
+
+قم برفعه إلى:
+
+/public_html
+
+قبل الاستبدال:
+
+1. تحقق من الملفات الحالية.
+2. خذ Backup آمن للنسخة الحالية إذا كانت الأدوات تسمح بذلك.
+3. لا تحذف قاعدة بيانات الإنتاج قبل التأكد من أن الـBuild يحتوي النسخة المقصودة.
+4. فك الأرشيف مباشرة داخل:
+   /public_html
+
+وليس:
+
+/public_html/cleanflow-services-hostinger/
+
+أو أي مجلد فرعي.
+
+بعد فك الضغط تأكد فعلياً من وجود:
+
+/public_html/api/index.php
+/public_html/api/container-system.php
+/public_html/data/sabaik.db
+/public_html/cleanflow-platform/
+
+وتأكد أن:
+
+https://hawiat.aiservx.com/api/healthz
+
+يعمل بعد النشر.
+
+إذا كان الأرشيف يحتوي قاعدة البيانات المقصودة ضمن الـBuild، اعتبر بيانات الاختبار السابقة غير موجودة وابدأ Dataset جديد بالكامل.
+
+============================================================
+5. DEPLOYMENT VERIFICATION
+============================================================
+
+بعد الرفع تحقق من:
+
+DNS
+HTTPS
+PHP
+Database
+Application
+API Health
+Authentication
+
+ثم تحقق من أن API يعمل من النسخة المنشورة فعلياً.
+
+لا تعتمد على نتائج Local Build.
+
+============================================================
+6. FRESH TEST DATA
+============================================================
+
+مهم جداً:
+
+رفع الـBuild قد يستبدل قاعدة البيانات.
+
+لذلك لا تعتمد على أي IDs من الجولات السابقة.
+
+ابدأ Dataset جديداً بالكامل باستخدام:
+
+HOSTINGER-FRESH-E2E-2026
+
+كل سجل جديد يجب أن يحمل هذه البادئة حيثما يسمح النظام.
+
+لا تستخدم بيانات الاختبارات القديمة كدليل على نجاح الجولة الجديدة.
+
+============================================================
+7. CREATE ALL MASTER DATA
+============================================================
+
+ممنوع التوقف بسبب:
+
+Warehouse
+Supplier
+Employee
+Treasury
+Bank Account
+
+إذا كانت غير موجودة، أنشئ بيانات اختبار رسمية صالحة لها باستخدام الـAPI/schema الفعلي.
+
+أنشئ:
+
+A. Customer
+- Customer
+- Site
+- Contact information
+
+B. Service Request
+
+C. Container / Asset
+
+D. Employee
+لاستخدام:
+- Commission
+- Assignment
+- أي Approval يتطلب Employee
+
+E. Warehouse
+لاستخدام:
+- Purchase
+- Inventory
+
+F. Supplier
+لاستخدام:
+- Purchase
+
+G. Treasury / Cash Account
+لاستخدام:
+- Cash
+- Transfer
+
+H. Bank Account
+لاستخدام:
+- Deposit
+- Reconciliation
+- Bank Fee
+- Transfer
+
+لا تخترع Master Data غير مدعومة.
+افحص الـAPI والـschema الفعلي أولاً.
+
+بعد إنشاء كل Master Data:
+احفظ الـID وتأكد أن GET يعيده بشكل صحيح.
+
+============================================================
+8. COMPLETE ORDER → CONTRACT
+============================================================
+
+نفذ:
+
+Customer
+→ Customer Site
+→ Service Request
+→ Container
+→ Contract
+→ Assignment
+→ Appointment
+
+ثم اختبر Contract Idempotency:
+
+المحاولة الأولى:
+Idempotency-Key = KEY-1
+
+المحاولة الثانية:
+نفس KEY-1
+
+المتوقع:
+
+same contract
+idempotent=true
+no duplicate
+
+ثم استخدم KEY-2 لنفس الطلب.
+
+المتوقع:
+رفض إنشاء عقد ثانٍ
+ولا يتم إنشاء Contract جديد.
+
+============================================================
+9. INVOICE
+============================================================
+
+أنشئ Invoice مرتبطة بالعقد.
+
+نفذ:
+
+draft
+→ pending_approval
+→ approved
+→ posted
+
+تحقق من:
+
+Financial Transaction
+Journal Entry
+Financial Core
+
+وتأكد:
+
+Debit = Credit
+
+============================================================
+10. PAYMENT
+============================================================
+
+أنشئ Payment على الفاتورة.
+
+اختبر:
+
+Payment #1
+ثم نفس العملية بنفس Idempotency-Key.
+
+المتوقع:
+
+same Payment
+same Financial Transaction
+same Journal Entry
+idempotent=true
+no duplicate
+
+ثم تحقق من Allocation.
+
+============================================================
+11. RECEIPT
+============================================================
+
+أنشئ Receipt مرتبطة بالسداد.
+
+نفذ دورة:
+
+draft
+→ approval
+→ posted
+
+وتحقق أن Receipt لا تضاعف الـPayment في Financial Core.
+
+============================================================
+12. DEPOSIT + BANK RECONCILIATION
+============================================================
+
+أنشئ Deposit باستخدام Bank Account صالح.
+
+نفذ:
+
+draft
+→ approval
+→ posted
+
+اختبر Deposit Idempotency:
+
+نفس Idempotency-Key مرة ثانية.
+
+المتوقع:
+
+same Deposit
+idempotent=true
+no duplicate
+
+ثم تحقق:
+
+Financial Transaction
+Journal Entry
+Bank Reconciliation
+
+المتوقع:
+
+1 Deposit
+1 Financial Transaction
+1 Reconciliation
+0 duplicate reconciliation
+
+============================================================
+13. EXPENSE + REVERSAL
+============================================================
+
+أنشئ Expense.
+
+نفذ:
+
+draft
+→ approval
+→ posted
+
+ثم Reverse.
+
+المحاولة الأولى:
+PASS
+
+المحاولة الثانية:
+يجب رفضها، مثل HTTP 409 أو الاستجابة المعتمدة.
+
+تحقق:
+no duplicate reversal
+no duplicate journal
+Debit = Credit
+
+============================================================
+14. PURCHASE + INVENTORY
+============================================================
+
+استخدم:
+
+Supplier
+Warehouse
+
+اللذين تم إنشاؤهما في البداية.
+
+نفذ:
+
+Purchase
+→ approval
+→ posted
+
+ثم Inventory movement.
+
+تحقق من:
+
+Purchase
+Inventory
+Financial Transaction
+Journal Entry
+Financial Core
+
+وتأكد من:
+
+Debit = Credit
+
+============================================================
+15. COMMISSION
+============================================================
+
+استخدم Employee الاختباري.
+
+أنشئ Commission مرتبطة بالموظف.
+
+نفذ:
+
+draft
+→ approval
+→ posted
+
+تحقق:
+
+Employee linkage
+Financial Transaction
+Journal Entry
+Financial Core
+Debit = Credit
+
+============================================================
+16. BANK FEE — الإصلاح الأخير
+============================================================
+
+هذا اختبار حرج.
+
+النسخة الجديدة تحتوي إصلاح bank_fee.
+
+أنشئ Bank Fee حقيقي.
+
+نفذ:
+
+draft
+→ approval
+→ posted
+
+تحقق من:
+
+Bank Fee record
+Financial Transaction
+Journal Entry
+BANK-FEE account
+Financial Core
+Debit = Credit
+
+ثم أعد نفس العملية بنفس Idempotency-Key.
+
+المتوقع:
+
+HTTP 200
+idempotent=true
+same Bank Fee
+no duplicate Financial Transaction
+no duplicate Journal Entry
+
+إذا ظهر:
+
+"نوع السجل غير مدعوم"
+
+فهذا FAIL حقيقي ويجب تسجيله بالتفصيل.
+
+لا تعدل الكود أثناء هذه الجولة.
+
+============================================================
+17. OTHER REVENUE
+============================================================
+
+أنشئ Other Revenue.
+
+نفذ:
+
+draft
+→ approval
+→ posted
+
+ثم أعد نفس العملية بنفس Idempotency-Key.
+
+المتوقع:
+
+idempotent=true
+same record
+no duplicate transaction
+no duplicate journal
+
+تحقق من ظهور الإيراد في Financial Core.
+
+============================================================
+18. TRANSFER
+============================================================
+
+استخدم:
+
+Treasury
++
+Bank Account
+
+نفذ Transfer بين حسابين مختلفين.
+
+تحقق:
+
+source != destination
+Transfer record
+Financial Transaction
+Journal Entry
+
+والأهم:
+
+Transfer لا يظهر كـRevenue
+Transfer لا يظهر كـExpense
+
+Debit = Credit
+
+============================================================
+19. REFUND
+============================================================
+
+أنشئ Refund / Invoice Return على Invoice الموجودة.
+
+نفذ:
+
+draft
+→ approval
+→ posted
+
+تحقق:
+
+Gross Revenue
+Refunds
+Net Revenue
+
+ثم اختبر Reversal إذا كان مدعوماً.
+
+يجب منع reversal مكرر.
+
+============================================================
+20. FINANCIAL PERIOD
+============================================================
+
+أنشئ Financial Period اختبارية، مثلاً:
+
+2026-10
+
+نفذ حركة مالية داخل الفترة.
+
+ثم Close Period.
+
+بعد الإغلاق حاول Post حركة جديدة.
+
+المتوقع:
+
+HTTP 422
+
+error:
+FINANCIAL_PERIOD_CLOSED
+
+ولا يجب إنشاء:
+
+Financial Transaction
+Journal Entry
+
+ويجب أن تبقى Financial Core بدون mutation مالية.
+
+============================================================
+21. FINANCIAL CORE
+============================================================
+
+بعد اكتمال الدورة اقرأ:
+
+/api/admin/container-system/financial/core
+
+وسجل:
+
+Gross Revenue
+Refunds
+Net Revenue
+Gross Collections
+Returned Collections
+Net Collections
+Expenses
+Purchases
+Inventory
+Commissions
+Bank Fees
+Other Revenue
+Transfers
+Cash
+Bank
+Profit
+Total Debit
+Total Credit
+
+يجب:
+
+Total Debit = Total Credit
+
+============================================================
+22. REPORTS
+============================================================
+
+تحقق من:
+
+Financial Core
+Financial Control Center
+Financial Cycle Workspace
+ReportPage
+
+أنشئ جدول:
+
+Metric | Financial Core | Control Center | Cycle Workspace | ReportPage | Result
+
+لـ:
+
+Revenue
+Refunds
+Net Revenue
+Collections
+Expenses
+Purchases
+Inventory
+Commissions
+Bank Fees
+Other Revenue
+Transfers
+Cash
+Bank
+Profit
+Debit
+Credit
+
+لا تعتبر PASS لمجرد HTTP 200.
+
+============================================================
+23. DATABASE INTEGRITY
+============================================================
+
+إذا كان الوصول المباشر الآمن إلى SQLite متاحاً:
+
+نفذ:
+
+PRAGMA quick_check;
+PRAGMA integrity_check;
+
+Expected:
+
+ok
+
+إذا لم يمكن الوصول:
+BLOCKED — لا تدّعي PASS.
+
+============================================================
+24. SECURITY
+============================================================
+
+اختبر:
+
+/data/
+/data/sabaik.db
+/.env
+/api/.env
+
+Expected:
+
+403
+
+واختبر Financial API بدون Token.
+
+Expected:
+
+401
+
+واختبر Login ببيانات خاطئة.
+
+Expected:
+
+401
+
+============================================================
+25. NODE / PHP PARITY
+============================================================
+
+قارن المصدر الحالي لـNode وPHP في:
+
+Invoice
+Payment
+Deposit
+Reconciliation
+Expense
+Reversal
+Refund
+Other Revenue
+Bank Fee
+Period Lock
+Idempotency
+
+ركز بشكل خاص على:
+
+Bank Fee
+Reconciliation
+Other Revenue
+Period Lock
+Reversal
+
+============================================================
+26. DO NOT STOP AT FIRST FAILURE
+============================================================
+
+هذه أهم قاعدة.
+
+إذا فشل أي اختبار:
+
+لا تتوقف.
+
+سجل:
+
+Endpoint
+HTTP status
+Request
+Response
+Root Cause
+Impact
+
+ثم أكمل جميع الاختبارات المستقلة.
+
+إذا احتاج اختبار إلى Master Data:
+أنشئ الـMaster Data أولاً.
+
+============================================================
+27. DATA SAFETY
+============================================================
+
+لا تحذف بيانات Production يدوياً.
+
+استخدم:
+
+HOSTINGER-FRESH-E2E-2026
+
+لبيانات الاختبار.
+
+لا تحذف بيانات الاختبارات السابقة إلا إذا كان ذلك ضرورياً جداً ومصرحاً به.
+
+============================================================
+28. NO SOURCE MODIFICATION
+============================================================
+
+هذه الجولة ليست Coding Round.
+
+بعد رفع الـBuild:
+
+ممنوع:
+
+- تعديل source
+- تعديل PHP
+- تعديل Node
+- migration
+- patch
+- rebuild
+
+إذا وجدت Bug:
+سجله فقط.
+
+============================================================
+29. FINAL REPORT
+============================================================
+
+في النهاية أرسل تقريراً نهائياً بهذا الشكل:
+
+Deployment
+Authentication
+Security
+Database Integrity
+Golden Dataset
+Order → Customer
+Order → Request
+Request → Contract
+Contract Idempotency
+Invoice
+Payment
+Payment Idempotency
+Receipt
+Deposit
+Deposit Idempotency
+Bank Reconciliation
+Expense
+Expense Reversal
+Purchase
+Inventory
+Commission
+Bank Fee
+Bank Fee Idempotency
+Other Revenue
+Other Revenue Idempotency
+Transfer
+Refund
+Refund Reversal
+Financial Period
+Period Lock
+Financial Core
+Double Entry
+Financial Control Center
+Financial Cycle Workspace
+ReportPage
+Cross Report
+Node/PHP Parity
+Production Stability
+
+لكل عنصر:
+
+PASS
+FAIL
+BLOCKED
+NOT VERIFIED
+
+مع Evidence مختصر.
+
+ثم:
+
+============================================================
+FINAL PRODUCTION CERTIFICATION
+============================================================
+
+PASS / FAIL
+
+FINAL SCORE:
+X/10
+
+10/10 فقط إذا تم إثبات النظام بالكامل حياً.
+
+لا تعتمد على نتائج الجولات السابقة إذا تم استبدال قاعدة البيانات.
+
+هذه الجولة هي Fresh Full Production E2E بعد آخر Deployment.
+
+نفذ الرفع أولاً، ثم الاختبار الكامل من الصفر، ولا تتوقف عند أول مشكلة.
+============================================================

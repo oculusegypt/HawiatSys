@@ -452,7 +452,7 @@ function hsSupportedKinds(): array {
     return [
         'customer', 'customer_site', 'container_type', 'container', 'container_asset', 'container_assignment', 'vehicle', 'driver',
         'contract', 'contract_line', 'container_movement', 'ledger_entry', 'receipt', 'payment',
-        'expense', 'deposit', 'bank_deposit', 'maintenance', 'alert', 'setting', 'branch',
+        'expense', 'deposit', 'bank_deposit', 'bank_fee', 'maintenance', 'alert', 'setting', 'branch',
         'employee', 'permit', 'appointment', 'warehouse', 'treasury', 'transfer', 'invoice',
         'invoice_return', 'category', 'category_size', 'tax', 'commission', 'oil_change',
         'salary_advance', 'salary_payment', 'fuel_expense', 'daily_expense',
@@ -462,7 +462,7 @@ function hsSupportedKinds(): array {
 }
 
 function hsFinancialLifecycleKinds(): array {
-    return ['receipt', 'payment', 'expense', 'deposit', 'bank_deposit', 'invoice', 'invoice_return',
+    return ['receipt', 'payment', 'expense', 'deposit', 'bank_deposit', 'bank_fee', 'invoice', 'invoice_return',
         'payment_return', 'transfer', 'purchase', 'purchase_return', 'commission', 'salary_advance',
         'salary_payment', 'fuel_expense', 'daily_expense', 'other_revenue'];
 }
@@ -585,7 +585,7 @@ function hsNormalizeFinancial(string $kind, array $payload): array {
 }
 
 function hsValidateRecord(PDO $pdo, string $kind, array $payload, ?int $ignoreId = null): void {
-    $financial = ['payment', 'receipt', 'expense', 'deposit', 'bank_deposit', 'invoice', 'invoice_return',
+    $financial = ['payment', 'receipt', 'expense', 'deposit', 'bank_deposit', 'bank_fee', 'invoice', 'invoice_return',
         'payment_return', 'transfer', 'purchase', 'purchase_return', 'commission', 'salary_advance',
         'salary_payment', 'fuel_expense', 'daily_expense'];
     if (in_array($kind, $financial, true)) {
@@ -1379,7 +1379,7 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
             $pdo->prepare("UPDATE container_system_records SET reference = :reference WHERE id = :id")->execute([':reference' => $reference, ':id' => $id]);
             hsAudit($pdo, $id, $kind, 'create', null, json_encode($payload, JSON_UNESCAPED_UNICODE), $actorId);
             if ($kind === 'container_movement') hsSyncMovement($pdo, $payload, $actorId);
-            if (in_array($kind, ['payment', 'receipt', 'expense', 'deposit', 'bank_deposit', 'invoice', 'invoice_return', 'payment_return', 'transfer', 'purchase', 'purchase_return', 'other_revenue'], true)
+            if (in_array($kind, ['payment', 'receipt', 'expense', 'deposit', 'bank_deposit', 'bank_fee', 'invoice', 'invoice_return', 'payment_return', 'transfer', 'purchase', 'purchase_return', 'other_revenue'], true)
                 && $status === 'posted') {
                 hsPostFinancialCore($pdo, $kind, $id, $payload, $reference, $actorId);
                 hsEnsureDepositReconciliation($pdo, $id, $kind, $payload, $reference);
@@ -1392,7 +1392,7 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
                     'customerName' => $payload['customerName'] ?? '',
                     'customerRecordId' => isset($payload['customerRecordId']) ? (int)$payload['customerRecordId'] : null,
                     'amount' => (float)($payload['amount'] ?? $payload['total'] ?? 0),
-                    'direction' => in_array($kind, ['expense', 'payment_return', 'purchase', 'purchase_return'], true) ? 'debit' : 'credit',
+                    'direction' => in_array($kind, ['expense', 'payment_return', 'purchase', 'purchase_return', 'bank_fee'], true) ? 'debit' : 'credit',
                     'date' => $payload['date'] ?? date('Y-m-d'),
                 ];
                 if (isset($payload['allocations']) && is_array($payload['allocations'])) $ledger['allocations'] = $payload['allocations'];
