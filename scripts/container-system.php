@@ -824,6 +824,7 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
         $appointment = is_array($input['appointment'] ?? null) ? $input['appointment'] : [];
         $service = is_array($input['serviceRequest'] ?? null) ? $input['serviceRequest'] : [];
         $contract = hsNormalizeFinancial('contract', $contract);
+        $existingServiceRequestId = (int)($service['requestId'] ?? $contract['requestId'] ?? 0);
         $customerId = (int)($contract['customerRecordId'] ?? 0);
         $siteId = (int)($assignment['siteRecordId'] ?? $contract['siteRecordId'] ?? 0);
         $assetId = (int)($assignment['containerRecordId'] ?? $contract['containerRecordId'] ?? 0);
@@ -884,9 +885,22 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
             // Hostinger databases may have service_requests timestamps without
             // a SQLite default. Always provide both values explicitly so the
             // workflow remains valid across old and new schemas.
-            $serviceStmt = $pdo->prepare("INSERT INTO service_requests (client_name, phone, email, service_type, container_size, property_type, area_size, location, duration, notes, appointment_type, scheduled_at, customer_record_id, container_record_id, contract_record_id, created_at, updated_at) VALUES (:client_name, :phone, :email, :service_type, :container_size, :property_type, :area_size, :location, :duration, :notes, :appointment_type, :scheduled_at, :customer_record_id, :container_record_id, :contract_record_id, :created_at, :updated_at)");
-            $serviceStmt->execute([':client_name' => (string)($service['clientName'] ?? $customerPayload['name'] ?? ''), ':phone' => (string)($service['phone'] ?? $customerPayload['phone'] ?? ''), ':email' => (string)($service['email'] ?? $customerPayload['email'] ?? ''), ':service_type' => (string)($service['serviceType'] ?? 'تسليم حاوية'), ':container_size' => (string)($service['containerSize'] ?? $contract['containerCode'] ?? ''), ':property_type' => (string)($service['propertyType'] ?? ''), ':area_size' => (string)($service['areaSize'] ?? ''), ':location' => (string)($service['location'] ?? $contract['location'] ?? 'يحدد لاحقًا'), ':duration' => (string)($service['duration'] ?? $contract['duration'] ?? ''), ':notes' => (string)($service['notes'] ?? $contract['notes'] ?? ''), ':appointment_type' => 'scheduled', ':scheduled_at' => (string)($service['scheduledAt'] ?? $appointment['scheduledAt'] ?? ''), ':customer_record_id' => $customerId, ':container_record_id' => $assetId, ':contract_record_id' => $contractId, ':created_at' => $now, ':updated_at' => $now]);
-            $serviceId = (int)$pdo->lastInsertId();
+            if ($existingServiceRequestId > 0) {
+                $existingServiceStmt = $pdo->prepare("SELECT id, contract_record_id FROM service_requests WHERE id = :id LIMIT 1");
+                $existingServiceStmt->execute([':id' => $existingServiceRequestId]);
+                $existingService = $existingServiceStmt->fetch(PDO::FETCH_ASSOC);
+                if (!$existingService) throw new RuntimeException('طلب الخدمة المرتبط غير موجود');
+                if (!empty($existingService['contract_record_id']) && (int)$existingService['contract_record_id'] !== $contractId) {
+                    throw new RuntimeException('طلب الخدمة مرتبط بعقد آخر بالفعل');
+                }
+                $pdo->prepare("UPDATE service_requests SET customer_record_id = :customer_record_id, container_record_id = :container_record_id, contract_record_id = :contract_record_id, updated_at = :updated_at WHERE id = :id")
+                    ->execute([':customer_record_id' => $customerId, ':container_record_id' => $assetId, ':contract_record_id' => $contractId, ':updated_at' => $now, ':id' => $existingServiceRequestId]);
+                $serviceId = $existingServiceRequestId;
+            } else {
+                $serviceStmt = $pdo->prepare("INSERT INTO service_requests (client_name, phone, email, service_type, container_size, property_type, area_size, location, duration, notes, appointment_type, scheduled_at, customer_record_id, container_record_id, contract_record_id, created_at, updated_at) VALUES (:client_name, :phone, :email, :service_type, :container_size, :property_type, :area_size, :location, :duration, :notes, :appointment_type, :scheduled_at, :customer_record_id, :container_record_id, :contract_record_id, :created_at, :updated_at)");
+                $serviceStmt->execute([':client_name' => (string)($service['clientName'] ?? $customerPayload['name'] ?? ''), ':phone' => (string)($service['phone'] ?? $customerPayload['phone'] ?? ''), ':email' => (string)($service['email'] ?? $customerPayload['email'] ?? ''), ':service_type' => (string)($service['serviceType'] ?? 'تسليم حاوية'), ':container_size' => (string)($service['containerSize'] ?? $contract['containerCode'] ?? ''), ':property_type' => (string)($service['propertyType'] ?? ''), ':area_size' => (string)($service['areaSize'] ?? ''), ':location' => (string)($service['location'] ?? $contract['location'] ?? 'يحدد لاحقًا'), ':duration' => (string)($service['duration'] ?? $contract['duration'] ?? ''), ':notes' => (string)($service['notes'] ?? $contract['notes'] ?? ''), ':appointment_type' => 'scheduled', ':scheduled_at' => (string)($service['scheduledAt'] ?? $appointment['scheduledAt'] ?? ''), ':customer_record_id' => $customerId, ':container_record_id' => $assetId, ':contract_record_id' => $contractId, ':created_at' => $now, ':updated_at' => $now]);
+                $serviceId = (int)$pdo->lastInsertId();
+            }
             $pdo->commit();
             $contractRow = $find($pdo, $contractId); $assignmentRow = $find($pdo, $assignmentId); $appointmentRow = $find($pdo, $appointmentId);
             hsJson(['contract' => hsRecord($contractRow), 'assignment' => hsRecord($assignmentRow), 'appointment' => hsRecord($appointmentRow), 'serviceRequest' => ['id' => $serviceId], 'idempotent' => false], 201);

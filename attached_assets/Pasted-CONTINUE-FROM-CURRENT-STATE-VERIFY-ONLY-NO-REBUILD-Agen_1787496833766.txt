@@ -1,0 +1,361 @@
+CONTINUE FROM CURRENT STATE — VERIFY ONLY, NO REBUILD
+
+أنت تستلم المشروع من Agent سابق قام بالفعل بالتحقيق في مشكلة Website Order → Contract وطبّق إصلاحاً محدوداً.
+
+المشكلة التي تم إثباتها
+
+كان السيناريو:
+
+Website
+  ↓
+Customer
+  ↓
+Service Request / Order #X
+  ↓
+Contract Wizard
+  ↓
+Create Contract
+
+لكن عند إنشاء العقد كان النظام في بعض الحالات يقوم بإنشاء service_request جديد بدلاً من إعادة استخدام الطلب الأصلي.
+
+أي أن النتيجة كانت قد تصبح:
+
+Original Order #X
+      ↓
+New Service Request #Y   ❌
+      ↓
+Contract
+
+بدلاً من:
+
+Original Order #X
+      ↓
+Contract
+
+وقد تم بالفعل تعديل المسار بحيث يتم تمرير requestId من الـContract Wizard، وإعادة استخدام الطلب الموجود عندما يكون requestId موجوداً.
+
+لا تعيد تصميم هذا الجزء ولا تبدأ من الصفر.
+
+مهم جداً
+
+المطلوب منك الآن:
+
+VERIFY → TEST → FIX ONLY IF A REAL FAILURE EXISTS → STOP
+
+لا أريد Refactor.
+
+لا أريد تحسينات إضافية.
+
+لا أريد إعادة بناء الـworkflow.
+
+لا تلمس أي نظام غير متعلق مباشرة بالتحقق من هذا الإصلاح.
+
+1. ابدأ بفحص الحالة الحالية
+
+نفذ أولاً:
+
+git status
+git diff --check
+git diff
+
+راجع التعديلات الموجودة بالفعل.
+
+لا تستخدم:
+
+git reset
+git restore
+git checkout .
+
+ولا تحذف أي تعديل سابق.
+
+2. افحص الإصلاح الموجود قبل تغييره
+
+تحقق من الملفات التي عدلها الـAgent السابق، خصوصاً:
+
+ContainerSystem.tsx
+containerSystem.ts
+container-system.php
+
+وتحقق من:
+
+requestId
+
+وكيف ينتقل:
+
+Contract Wizard
+      ↓
+API
+      ↓
+Existing Service Request
+      ↓
+Contract
+
+إذا كان المنطق الموجود صحيحاً، لا تعدله.
+
+3. الاختبار الحقيقي الأهم
+
+أريد اختباراً فعلياً وليس مجرد قراءة للكود.
+
+أنشئ بيانات اختبار معزولة أو استخدم Dataset آمن موجود بالفعل.
+
+ابدأ بـ:
+
+Customer
+   ↓
+Website Order / Service Request
+
+وسجل عدد الطلبات قبل إنشاء العقد:
+
+service_requests = 1
+
+ثم نفذ:
+
+Create Contract from existing Order
+
+ثم تحقق من قاعدة البيانات.
+
+المطلوب:
+
+service_requests BEFORE = 1
+service_requests AFTER  = 1
+
+والنتيجة يجب أن تكون:
+
+Order #X
+    ↓
+Contract #Y
+
+وليس:
+
+Order #X
+    ↓
+Order #Z ❌
+    ↓
+Contract #Y
+4. تحقق من Customer
+
+يجب ألا يؤدي تحويل الطلب إلى عقد إلى إنشاء Customer جديد.
+
+أثبت:
+
+Customer BEFORE = 1
+Customer AFTER  = 1
+
+والـContract يجب أن يستخدم نفس customerId.
+
+5. اختبر Duplicate Conversion
+
+نفذ تحويل نفس الطلب إلى عقد مرة ثانية.
+
+يجب ألا ينتج:
+
+Contract #1
+Contract #2 ❌
+
+ولا:
+
+Service Request #1
+Service Request #2 ❌
+
+إذا كان الطلب مرتبطاً بعقد بالفعل، يجب استخدام السلوك الحالي المناسب للنظام، مثل:
+
+Already converted
+
+أو فتح العقد الموجود.
+
+لا تخترع UX جديداً.
+
+6. اختبر المسار العكسي
+
+يجب ألا يكسر الإصلاح الـContract-first workflow.
+
+اختبر حالة:
+
+Create Contract
+بدون requestId
+
+وفي هذه الحالة فقط يجب أن يبقى السلوك الحالي الذي ينشئ Service Request جديداً إذا كان هذا هو السلوك الأصلي المقصود.
+
+نريد إثبات الحالتين:
+
+requestId موجود
+      ↓
+Reuse existing request
+
+و:
+
+requestId غير موجود
+      ↓
+Existing contract-first behavior
+7. Node / PHP Parity
+
+تحقق من أن Node وPHP يتصرفان بنفس المنطق:
+
+Existing request + requestId
+        ↓
+Reuse existing request
+
+ولا تغير PHP أو Node إلا إذا وجدت اختلافاً حقيقياً.
+
+8. Financial Safety
+
+هذه نقطة حرجة.
+
+تحويل:
+
+Order → Contract
+
+لا يجب أن ينتج حركة مالية مكررة.
+
+تحقق أن عملية التحويل نفسها لا تنشئ:
+
+Financial Transaction ❌
+Journal Entry ❌
+Revenue ❌
+Payment ❌
+
+إلا إذا كان ذلك موجوداً أصلاً ومقصوداً في الـworkflow.
+
+يجب ألا يتأثر:
+
+Financial Core
+Financial Truth
+Idempotency
+Journal Entries
+Allocations
+Reversals
+Bank Reconciliation
+9. شغّل الاختبارات الموجودة
+
+بعد إثبات الـworkflow شغّل الاختبارات الحالية، بدون تعديلها لتجعلها تمر:
+
+TypeScript
+PHP lint
+Operational Validation
+API Health
+Frontend Preview
+Financial Core
+Financial Certification
+Golden Dataset
+Cross-Report Consistency
+
+استخدم أوامر المشروع الموجودة فعلياً ولا تفترض أسماء commands.
+
+10. Regression Check
+
+أثبت أن:
+
+Website Order Creation        PASS
+Customer Creation/Matching    PASS
+Order Creation                PASS
+Order → Contract              PASS
+Duplicate Order               NONE
+Duplicate Customer            NONE
+Duplicate Contract            NONE
+Contract-first workflow       PASS
+Node/PHP parity               PASS
+Financial regression          PASS
+11. لا تلمس أي شيء خارج النطاق
+
+ممنوع أثناء هذه المهمة:
+
+Financial Core redesign
+Database redesign
+Report redesign
+UI redesign
+Architecture refactor
+Hostinger redesign
+New features
+Performance refactor
+Unrelated cleanup
+
+إذا وجدت مشكلة أخرى غير مرتبطة مباشرة بهذا الـworkflow:
+
+لا تصلحها الآن.
+
+سجلها فقط.
+
+12. إذا فشل الاختبار
+
+لا تبدأ بإصلاحات عشوائية.
+
+أوقف التنفيذ واكتب:
+
+FAILURE FOUND
+
+Test:
+Expected:
+Actual:
+Root Cause:
+Affected Files:
+Proposed Minimal Fix:
+
+ثم نفذ أقل إصلاح ممكن فقط.
+
+بعده أعد جميع اختبارات الـRegression.
+
+13. إذا نجح كل شيء
+
+لا تستمر في التطوير.
+
+توقف وأعطني تقريراً نهائياً بهذا الشكل:
+
+ORDER → CONTRACT FINAL VERIFICATION
+
+Root Cause: CONFIRMED
+Minimal Fix: VERIFIED
+
+Website Order Creation: PASS
+Customer Reuse: PASS
+Existing Order Reuse: PASS
+Contract Creation: PASS
+
+Duplicate Service Request: NONE
+Duplicate Customer: NONE
+Duplicate Contract: NONE
+
+Contract-first Workflow: PASS
+
+Node/PHP Parity: PASS
+
+Financial Regression: PASS
+Financial Core: PASS
+Financial Certification: PASS
+Golden Dataset: PASS
+Cross-Report Consistency: PASS
+
+TypeScript: PASS
+PHP: PASS
+Operational Validation: PASS
+API Health: PASS
+Frontend Preview: PASS
+
+Files Changed:
+...
+
+Unexpected Changes:
+NONE
+
+Status:
+VERIFIED
+القاعدة الأخيرة والأهم
+
+لا تعتبر نجاح TypeScript أو Build دليلاً على إصلاح المشكلة.
+
+الدليل المطلوب هو:
+
+1 Website Order
+       ↓
+1 Existing Customer
+       ↓
+1 Contract
+
+مع إثبات من البيانات أن عدد الـService Requests لم يزداد عند تحويل الطلب إلى عقد.
+
+وفي نفس الوقت:
+
+Contract-first
+
+يظل يعمل كما كان.
+
+إذا كان الإصلاح الحالي صحيحاً، لا تلمسه. مهمتك الآن إثباته فقط ثم التوقف.

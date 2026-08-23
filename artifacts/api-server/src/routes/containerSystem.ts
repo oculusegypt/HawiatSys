@@ -746,6 +746,7 @@ router.post("/admin/container-system/contracts/workflow", requireContainerPermis
   const assignmentPayload = { ...(body.assignment ?? {}) };
   const appointmentPayload = { ...(body.appointment ?? {}) };
   const servicePayload = { ...(body.serviceRequest ?? {}) };
+  const existingRequestId = Number(servicePayload.requestId ?? contractPayload.requestId ?? 0);
   const customerId = Number(contractPayload.customerRecordId);
   const siteId = Number(assignmentPayload.siteRecordId ?? contractPayload.siteRecordId);
   const assetId = Number(assignmentPayload.containerRecordId ?? contractPayload.containerRecordId);
@@ -806,19 +807,34 @@ router.post("/admin/container-system/contracts/workflow", requireContainerPermis
         createdBy: adminReq.adminId,
       }).returning().get();
       const customerPayload = parsePayload(customer.payload);
-      const serviceRequest = tx.insert(serviceRequestsTable).values({
-        clientName: String(servicePayload.clientName ?? customerPayload.name ?? ""),
-        phone: String(servicePayload.phone ?? customerPayload.phone ?? ""),
-        email: String(servicePayload.email ?? customerPayload.email ?? ""),
-        serviceType: String(servicePayload.serviceType ?? "تسليم حاوية"),
-        containerSize: String(servicePayload.containerSize ?? contractPayload.containerCode ?? ""),
-        propertyType: String(servicePayload.propertyType ?? ""), areaSize: String(servicePayload.areaSize ?? ""),
-        location: String(servicePayload.location ?? contractPayload.location ?? "يحدد لاحقًا"),
-        duration: String(servicePayload.duration ?? contractPayload.duration ?? ""),
-        notes: String(servicePayload.notes ?? contractPayload.notes ?? ""),
-        appointmentType: "scheduled", scheduledAt: String(servicePayload.scheduledAt ?? appointmentPayload.scheduledAt ?? ""),
-        customerRecordId: customerId, containerRecordId: assetId, contractRecordId: contract.id,
-      }).returning().get();
+      let serviceRequest;
+      if (existingRequestId > 0) {
+        serviceRequest = tx.select().from(serviceRequestsTable).where(eq(serviceRequestsTable.id, existingRequestId)).get();
+        if (!serviceRequest) throw new Error("طلب الخدمة المرتبط غير موجود");
+        if (serviceRequest.contractRecordId && serviceRequest.contractRecordId !== contract.id) {
+          throw new Error("طلب الخدمة مرتبط بعقد آخر بالفعل");
+        }
+        serviceRequest = tx.update(serviceRequestsTable).set({
+          customerRecordId: customerId,
+          containerRecordId: assetId,
+          contractRecordId: contract.id,
+          updatedAt: now,
+        }).where(eq(serviceRequestsTable.id, existingRequestId)).returning().get();
+      } else {
+        serviceRequest = tx.insert(serviceRequestsTable).values({
+          clientName: String(servicePayload.clientName ?? customerPayload.name ?? ""),
+          phone: String(servicePayload.phone ?? customerPayload.phone ?? ""),
+          email: String(servicePayload.email ?? customerPayload.email ?? ""),
+          serviceType: String(servicePayload.serviceType ?? "تسليم حاوية"),
+          containerSize: String(servicePayload.containerSize ?? contractPayload.containerCode ?? ""),
+          propertyType: String(servicePayload.propertyType ?? ""), areaSize: String(servicePayload.areaSize ?? ""),
+          location: String(servicePayload.location ?? contractPayload.location ?? "يحدد لاحقًا"),
+          duration: String(servicePayload.duration ?? contractPayload.duration ?? ""),
+          notes: String(servicePayload.notes ?? contractPayload.notes ?? ""),
+          appointmentType: "scheduled", scheduledAt: String(servicePayload.scheduledAt ?? appointmentPayload.scheduledAt ?? ""),
+          customerRecordId: customerId, containerRecordId: assetId, contractRecordId: contract.id,
+        }).returning().get();
+      }
       for (const record of [finalizedContract, assignment, appointment]) {
         tx.insert(containerSystemAuditTable).values({ recordId: record.id, kind: record.kind, action: "workflow_create", afterPayload: record.payload, actorId: adminReq.adminId }).run();
       }

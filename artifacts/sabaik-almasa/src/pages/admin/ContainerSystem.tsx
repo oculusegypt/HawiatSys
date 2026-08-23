@@ -1059,6 +1059,7 @@ export default function ContainerSystem() {
           source: "contract_workflow",
         },
         serviceRequest: {
+          requestId: contractPayload.requestId ?? null,
           clientName: contractPayload.customerName,
           phone: contractPayload.customerPhone,
           email: contractPayload.customerEmail,
