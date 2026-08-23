@@ -417,6 +417,7 @@ export const FIELD_CONFIG: Record<RecordKind, FieldConfig[]> = {
   ],
   commission: [
     { key: "name", label: "اسم العمولة", placeholder: "عمولة الوسيط" },
+    { key: "employeeRecordId", label: "رقم الموظف الرسمي", type: "number", placeholder: "معرّف الموظف" },
     { key: "basis", label: "أساس الاحتساب", placeholder: "نسبة / مبلغ ثابت" },
     { key: "rate", label: "القيمة", type: "number", placeholder: "0" },
     { key: "notes", label: "ملاحظات", type: "textarea", wide: true },
@@ -431,6 +432,7 @@ export const FIELD_CONFIG: Record<RecordKind, FieldConfig[]> = {
   ],
   salary_advance: [
     { key: "employeeName", label: "الموظف", placeholder: "اسم الموظف" },
+    { key: "employeeRecordId", label: "رقم الموظف الرسمي", type: "number", placeholder: "معرّف الموظف" },
     { key: "amount", label: "المبلغ", type: "number", placeholder: "0" },
     { key: "date", label: "التاريخ", type: "date" },
     { key: "deductionDate", label: "تاريخ الخصم", type: "date" },
@@ -438,6 +440,7 @@ export const FIELD_CONFIG: Record<RecordKind, FieldConfig[]> = {
   ],
   salary_payment: [
     { key: "employeeName", label: "الموظف", placeholder: "اسم الموظف" },
+    { key: "employeeRecordId", label: "رقم الموظف الرسمي", type: "number", placeholder: "معرّف الموظف" },
     { key: "month", label: "الشهر", placeholder: "2026-08" },
     { key: "amount", label: "المبلغ", type: "number", placeholder: "0" },
     { key: "paymentDate", label: "تاريخ الدفع", type: "date" },
@@ -449,6 +452,7 @@ export const FIELD_CONFIG: Record<RecordKind, FieldConfig[]> = {
     { key: "fuelType", label: "نوع الوقود", placeholder: "ديزل / بنزين" },
     { key: "quantity", label: "الكمية", type: "number", placeholder: "0" },
     { key: "amount", label: "المبلغ", type: "number", placeholder: "0" },
+    { key: "vehicleRecordId", label: "رقم المركبة الرسمي", type: "number", placeholder: "معرّف المركبة" },
     { key: "date", label: "التاريخ", type: "date" },
   ],
   daily_expense: [
@@ -475,6 +479,7 @@ export const FIELD_CONFIG: Record<RecordKind, FieldConfig[]> = {
     { key: "notes", label: "ملاحظات", type: "textarea", wide: true },
   ],
   payment_return: [
+    { key: "originalPaymentId", label: "رقم سجل السداد الأصلي", type: "number", placeholder: "معرّف السداد الأصلي" },
     { key: "receiptNumber", label: "رقم السند الأصلي", placeholder: "REC-001" },
     { key: "customerName", label: "العميل", placeholder: "اسم العميل" },
     { key: "contractNumber", label: "العقد", placeholder: "رقم العقد" },
@@ -484,6 +489,7 @@ export const FIELD_CONFIG: Record<RecordKind, FieldConfig[]> = {
   ],
   stock_issue: [
     { key: "warehouseName", label: "المخزن", placeholder: "المخزن الرئيسي" },
+    { key: "warehouseRecordId", label: "رقم المستودع الرسمي", type: "number", placeholder: "معرّف المستودع" },
     { key: "itemName", label: "الصنف", placeholder: "اسم الصنف" },
     { key: "quantity", label: "الكمية", type: "number", placeholder: "0" },
     { key: "issuedTo", label: "الجهة المستلمة", placeholder: "شاحنة أو موظف" },
@@ -492,6 +498,8 @@ export const FIELD_CONFIG: Record<RecordKind, FieldConfig[]> = {
   ],
   stock_issue_return: [
     { key: "warehouseName", label: "المخزن", placeholder: "المخزن الرئيسي" },
+    { key: "warehouseRecordId", label: "رقم المستودع الرسمي", type: "number", placeholder: "معرّف المستودع" },
+    { key: "originalStockIssueId", label: "رقم سجل الصرف الأصلي", type: "number", placeholder: "معرّف سجل الصرف" },
     { key: "itemName", label: "الصنف", placeholder: "اسم الصنف" },
     { key: "quantity", label: "الكمية", type: "number", placeholder: "0" },
     { key: "vehiclePlate", label: "الشاحنة", placeholder: "لوحة المركبة" },
@@ -501,6 +509,7 @@ export const FIELD_CONFIG: Record<RecordKind, FieldConfig[]> = {
   purchase: [
     { key: "invoiceNumber", label: "رقم الفاتورة", placeholder: "PUR-001" },
     { key: "warehouseName", label: "المخزن", placeholder: "المخزن الرئيسي" },
+    { key: "warehouseRecordId", label: "رقم المستودع الرسمي", type: "number", placeholder: "معرّف المستودع" },
     { key: "itemName", label: "الصنف", placeholder: "اسم الصنف" },
     { key: "quantity", label: "الكمية", type: "number", placeholder: "0" },
     { key: "unitPrice", label: "السعر", type: "number", placeholder: "0" },
@@ -510,6 +519,8 @@ export const FIELD_CONFIG: Record<RecordKind, FieldConfig[]> = {
   purchase_return: [
     { key: "invoiceNumber", label: "رقم الفاتورة", placeholder: "PUR-001" },
     { key: "warehouseName", label: "المخزن", placeholder: "المخزن الرئيسي" },
+    { key: "warehouseRecordId", label: "رقم المستودع الرسمي", type: "number", placeholder: "معرّف المستودع" },
+    { key: "originalPurchaseId", label: "رقم سجل الشراء الأصلي", type: "number", placeholder: "معرّف سجل الشراء" },
     { key: "amount", label: "الإجمالي", type: "number", placeholder: "0" },
     { key: "date", label: "التاريخ", type: "date" },
     { key: "notes", label: "ملاحظات", type: "textarea", wide: true },

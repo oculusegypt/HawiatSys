@@ -203,6 +203,8 @@ function hsSupportedKinds(): array {
         'employee', 'permit', 'appointment', 'warehouse', 'treasury', 'transfer', 'invoice',
         'invoice_return', 'category', 'category_size', 'tax', 'commission', 'oil_change',
         'salary_advance', 'salary_payment', 'fuel_expense', 'daily_expense',
+        'other_revenue', 'notification', 'payment_return', 'stock_issue', 'stock_issue_return',
+        'purchase', 'purchase_return',
     ];
 }
 
@@ -328,13 +330,62 @@ function hsNormalizeFinancial(string $kind, array $payload): array {
 }
 
 function hsValidateRecord(PDO $pdo, string $kind, array $payload, ?int $ignoreId = null): void {
-    $financial = ['payment', 'receipt', 'expense', 'deposit', 'bank_deposit', 'invoice', 'invoice_return'];
+    $financial = ['payment', 'receipt', 'expense', 'deposit', 'bank_deposit', 'invoice', 'invoice_return',
+        'payment_return', 'transfer', 'purchase', 'purchase_return', 'commission', 'salary_advance',
+        'salary_payment', 'fuel_expense', 'daily_expense'];
     if (in_array($kind, $financial, true)) {
         $amount = (float)($payload['amount'] ?? $payload['total'] ?? 0);
         if (!is_finite($amount) || $amount <= 0) hsJson(['error' => 'القيمة المالية يجب أن تكون أكبر من صفر'], 422);
     }
     if (in_array($kind, ['payment', 'receipt'], true) && trim((string)($payload['contractNumber'] ?? '')) === '' && trim((string)($payload['invoiceNumber'] ?? '')) === '') {
         hsJson(['error' => 'سند التحصيل يجب أن يرتبط برقم عقد أو فاتورة'], 422);
+    }
+    if ($kind === 'transfer') {
+        $from = trim((string)($payload['fromTreasury'] ?? $payload['fromTreasuryId'] ?? ''));
+        $to = trim((string)($payload['toTreasury'] ?? $payload['toTreasuryId'] ?? ''));
+        if ($from === '' || $to === '') hsJson(['error' => 'الخزينة المصدر والخزينة المستلمة مطلوبتان'], 422);
+        if ($from === $to) hsJson(['error' => 'لا يمكن التحويل إلى نفس الخزينة'], 422);
+        $treasuries = hsFindRecords($pdo, 'treasury');
+        foreach ([$from, $to] as $treasuryId) {
+            $found = false;
+            foreach ($treasuries as $treasury) {
+                $tp = hsPayload($treasury['payload']);
+                if ((string)$treasury['id'] === $treasuryId || (string)($tp['code'] ?? $treasury['reference']) === $treasuryId) { $found = true; break; }
+            }
+            if (!$found) hsJson(['error' => 'الخزينة المرتبطة بالتحويل غير موجودة'], 422);
+        }
+    }
+    if ($kind === 'invoice_return' && trim((string)($payload['invoiceNumber'] ?? $payload['originalInvoiceNumber'] ?? '')) === '') {
+        hsJson(['error' => 'يجب تحديد الفاتورة الأصلية قبل تسجيل المرتجع'], 422);
+    }
+    if ($kind === 'payment_return') {
+        $originalId = (int)($payload['originalPaymentId'] ?? 0);
+        if ($originalId <= 0) hsJson(['error' => 'يجب تحديد السداد الأصلي قبل تسجيل مرتجع السداد'], 422);
+        $originals = hsFindRecords($pdo);
+        $original = array_filter($originals, static fn(array $row): bool =>
+            (int)$row['id'] === $originalId && in_array($row['kind'], ['payment', 'receipt'], true) && $row['status'] !== 'archived');
+        if (!$original) hsJson(['error' => 'السداد الأصلي للمرتجع غير موجود'], 422);
+    }
+    if (in_array($kind, ['purchase_return', 'stock_issue_return'], true)) {
+        $originalId = (int)($payload['originalPurchaseId'] ?? $payload['originalStockIssueId'] ?? 0);
+        $expectedKind = $kind === 'purchase_return' ? 'purchase' : 'stock_issue';
+        if ($originalId <= 0) hsJson(['error' => 'يجب تحديد المستند الأصلي قبل تسجيل المرتجع'], 422);
+        $originals = hsFindRecords($pdo, $expectedKind);
+        if (!array_filter($originals, static fn(array $row): bool => (int)$row['id'] === $originalId && $row['status'] !== 'archived')) {
+            hsJson(['error' => 'المستند الأصلي للمرتجع غير موجود أو مؤرشف'], 422);
+        }
+    }
+    if (in_array($kind, ['salary_advance', 'salary_payment', 'commission'], true)) {
+        $employeeId = (int)($payload['employeeRecordId'] ?? $payload['employeeId'] ?? 0);
+        if ($employeeId <= 0 || !array_filter(hsFindRecords($pdo, 'employee'), static fn(array $row): bool => (int)$row['id'] === $employeeId && $row['status'] !== 'archived')) {
+            hsJson(['error' => 'يجب ربط الحركة المالية بموظف رسمي'], 422);
+        }
+    }
+    if (in_array($kind, ['stock_issue', 'stock_issue_return', 'purchase'], true)) {
+        $warehouseId = (int)($payload['warehouseRecordId'] ?? $payload['warehouseId'] ?? 0);
+        if ($warehouseId <= 0 || !array_filter(hsFindRecords($pdo, 'warehouse'), static fn(array $row): bool => (int)$row['id'] === $warehouseId && $row['status'] !== 'archived')) {
+            hsJson(['error' => 'يجب ربط حركة المخزون بمستودع رسمي'], 422);
+        }
     }
     if (in_array($kind, ['container', 'container_asset'], true)) {
         $code = hsAssetCode($payload);

@@ -315,6 +315,14 @@ async function validateFinancialPayload(kind: string, payload: Record<string, un
     const toTreasury = String(payload.toTreasury ?? payload.toTreasuryId ?? "").trim();
     if (!fromTreasury || !toTreasury) throw new Error("الخزينة المصدر والخزينة المستلمة مطلوبتان");
     if (fromTreasury === toTreasury) throw new Error("لا يمكن التحويل إلى نفس الخزينة");
+    const treasuries = await db.select().from(containerSystemRecordsTable);
+    for (const treasuryId of [fromTreasury, toTreasury]) {
+      const treasury = treasuries.find(record =>
+        record.kind === "treasury" && record.status !== "archived" &&
+        (String(record.id) === treasuryId || String(parsePayload(record.payload).code ?? record.reference) === treasuryId),
+      );
+      if (!treasury) throw new Error("الخزينة المرتبطة بالتحويل غير موجودة");
+    }
   }
   const contractRecordId = Number(payload.contractRecordId);
   if (Number.isInteger(contractRecordId) && contractRecordId > 0 && ["payment", "receipt", "invoice", "invoice_return"].includes(kind)) {
@@ -393,6 +401,7 @@ async function validateFinancialPayload(kind: string, payload: Record<string, un
     }
     if (kind === "payment_return") {
       const originalPaymentId = Number(payload.originalPaymentId ?? 0);
+      if (originalPaymentId <= 0) throw new Error("يجب تحديد السداد الأصلي قبل تسجيل مرتجع السداد");
       if (originalPaymentId > 0) {
         const originalPayment = records.find(record =>
           record.id === originalPaymentId && ["payment", "receipt"].includes(record.kind) && record.status !== "archived",
@@ -408,6 +417,30 @@ async function validateFinancialPayload(kind: string, payload: Record<string, un
         }
       }
     }
+  }
+  if (kind === "invoice_return" && !invoiceNumber) {
+    throw new Error("يجب تحديد الفاتورة الأصلية قبل تسجيل المرتجع");
+  }
+  if (["purchase_return", "stock_issue_return"].includes(kind)) {
+    const originalId = Number(payload.originalPurchaseId ?? payload.originalStockIssueId ?? 0);
+    if (originalId <= 0) throw new Error("يجب تحديد المستند الأصلي قبل تسجيل المرتجع");
+    const records = await db.select().from(containerSystemRecordsTable);
+    const expectedKind = kind === "purchase_return" ? "purchase" : "stock_issue";
+    if (!records.some(record => record.id === originalId && record.kind === expectedKind && record.status !== "archived")) {
+      throw new Error("المستند الأصلي للمرتجع غير موجود أو مؤرشف");
+    }
+  }
+  if (["salary_advance", "salary_payment", "commission"].includes(kind)) {
+    const employeeId = Number(payload.employeeRecordId ?? payload.employeeId ?? 0);
+    if (employeeId <= 0) throw new Error("يجب ربط الحركة المالية بموظف رسمي");
+    const employee = await db.select().from(containerSystemRecordsTable).where(eq(containerSystemRecordsTable.id, employeeId)).get();
+    if (!employee || employee.kind !== "employee" || employee.status === "archived") throw new Error("الموظف المرتبط بالحركة غير موجود");
+  }
+  if (["stock_issue", "stock_issue_return", "purchase"].includes(kind)) {
+    const warehouseId = Number(payload.warehouseRecordId ?? payload.warehouseId ?? 0);
+    if (warehouseId <= 0) throw new Error("يجب ربط حركة المخزون بمستودع رسمي");
+    const warehouse = await db.select().from(containerSystemRecordsTable).where(eq(containerSystemRecordsTable.id, warehouseId)).get();
+    if (!warehouse || warehouse.kind !== "warehouse" || warehouse.status === "archived") throw new Error("المستودع المرتبط غير موجود");
   }
 }
 
@@ -1352,7 +1385,7 @@ router.post("/admin/container-system/records", async (req, res) => {
         invoiceRecordId: Number(payload.invoiceRecordId) || null,
         customerName: payload.customerName ?? "",
         customerRecordId: Number(payload.customerRecordId) || null,
-        amount: Number(payload.amount ?? 0),
+          amount: Number(payload.amount ?? payload.total ?? 0),
          direction: ["expense", "payment_return", "purchase", "purchase_return"].includes(kind) ? "debit" : ["invoice", "invoice_return"].includes(kind) ? "debit" : "credit",
         date: payload.date ?? new Date().toISOString().slice(0, 10),
         ...(Array.isArray(payload.allocations) ? { allocations: payload.allocations } : {}),
