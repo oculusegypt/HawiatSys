@@ -580,6 +580,17 @@ export default function AdminRequests() {
         request={selectedRequest}
         open={!!selectedRequest}
         onClose={() => setSelected(null)}
+        drivers={drivers}
+        assigning={assigning}
+        onAssign={driverId => selectedRequest && handleAssignment(selectedRequest, driverId ? String(driverId) : "unassigned")}
+        onCreateContract={request => {
+          window.sessionStorage.setItem("cleanflow_request_context", JSON.stringify(request))
+          window.location.assign(`/admin/container-system?view=contract&requestId=${request.id}`)
+        }}
+        onCreateInvoice={request => {
+          window.sessionStorage.setItem("cleanflow_request_context", JSON.stringify(request))
+          window.location.assign(`/admin/container-system?view=invoice&requestId=${request.id}`)
+        }}
       />
       <RequestFormModal
         open={createOpen}

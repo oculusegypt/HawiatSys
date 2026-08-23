@@ -34,10 +34,40 @@ import {
 } from "./ContainerSystemComponents"
 import { ContractSettlementWorkspace, DispatchCalendar, FinancialControlCenter, ReportsHub, ReportPage, SettingsPage, REPORTS, ReportId } from "./ContainerSystemSpecialPages"
 import { ContractWizard } from "./ContractWizard"
+import type { ServiceRequest } from "@workspace/api-client-react"
 import { ContainerAssignmentWizard } from "./ContainerAssignmentWizard"
 import { FinancialCycleWorkspace } from "./FinancialCycleWorkspace"
 
 const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
+
+function requestContextFromStorage(requestId: number | null): ServiceRequest | null {
+  if (!requestId || typeof window === "undefined") return null
+  try {
+    const parsed = JSON.parse(window.sessionStorage.getItem("cleanflow_request_context") ?? "null") as ServiceRequest | null
+    if (parsed?.id === requestId) return parsed
+  } catch {
+    // Ignore malformed context and let the normal forms continue to work.
+  }
+  return null
+}
+
+function invoicePayloadFromRequest(request: ServiceRequest | null): Record<string, string> | undefined {
+  if (!request) return undefined
+  return {
+    serviceRequestId: String(request.id),
+    customerName: request.clientName,
+    customerPhone: request.phone,
+    customerEmail: request.email ?? "",
+    description: `${request.serviceType}${request.containerSize ? ` — ${request.containerSize}` : ""}`,
+    serviceAddress: request.location,
+    containerCode: request.containerSize,
+    quantity: "1",
+    unitPrice: "",
+    amount: "",
+    notes: request.notes ?? "",
+    date: new Date().toISOString().slice(0, 10),
+  }
+}
 
 type ViewKey =
   | "overview" | "financial_center" | RecordKind | "reports" | "audit" | "container_search"
@@ -850,6 +880,8 @@ export default function ContainerSystem() {
   const [location] = useLocation()
   const requestedView = new URLSearchParams(location.split("?")[1] ?? "").get("view") as ViewKey | null
   const requestedCustomerId = Number(new URLSearchParams(location.split("?")[1] ?? "").get("customerId") ?? 0) || null
+  const requestedRequestId = Number(new URLSearchParams(location.split("?")[1] ?? "").get("requestId") ?? 0) || null
+  const requestContext = useMemo(() => requestContextFromStorage(requestedRequestId), [requestedRequestId])
   const [view, setView] = useState<ViewKey>("overview")
   const [search, setSearch] = useState("")
   const [dialog, setDialog] = useState<{ open: boolean; kind: RecordKind; record?: ContainerSystemRecord | null }>({ open: false, kind: "customer" })
@@ -864,7 +896,10 @@ export default function ContainerSystem() {
     setView(requestedView)
     if (requestedView === "contract") setContractWizardOpen(true)
     if (requestedView === "customer_site") setDialog({ open: true, kind: "customer_site", record: null })
-  }, [requestedCustomerId, requestedView])
+    if (requestedView === "invoice" && requestContext) {
+      setDialog({ open: true, kind: "invoice", record: null })
+    }
+  }, [requestContext, requestedCustomerId, requestedView])
   const collectionKind = viewKind[view] ?? (allKinds.includes(view as RecordKind) ? view as RecordKind : undefined)
   const isCollection = Boolean(collectionKind)
   const filterParams = useMemo(() => ({ kind: collectionKind, search: search.trim() || undefined }), [collectionKind, search])
@@ -1138,9 +1173,25 @@ export default function ContainerSystem() {
         </main>
       </div>
       <RecordDetails record={detailRecord} allRecords={snapshot?.records ?? records} open={Boolean(detailRecord)} onOpenChange={open => { if (!open) setDetailRecord(null) }} onContractAction={contractAction} />
-      <ContractWizard open={contractWizardOpen} records={snapshot?.records ?? records} initialCustomerId={requestedCustomerId} busy={busy} onClose={() => { if (!contractFlowBusy) setContractWizardOpen(false) }} onSubmit={submitContract} />
+      <ContractWizard open={contractWizardOpen} records={snapshot?.records ?? records} initialCustomerId={requestedCustomerId} initialRequest={requestContext} busy={busy} onClose={() => { if (!contractFlowBusy) setContractWizardOpen(false) }} onSubmit={submitContract} />
       <ContainerAssignmentWizard open={assignmentWizardOpen} records={snapshot?.records ?? records} busy={createMutation.isPending} onClose={() => { if (!createMutation.isPending) setAssignmentWizardOpen(false) }} onSubmit={submitAssignment} />
-      <RecordDialog open={dialog.open} kind={dialog.kind} record={dialog.record} serviceRequests={serviceRequestsQuery.data ?? []} initialPayload={dialog.kind === "customer_site" && requestedCustomerId ? { customerRecordId: String(requestedCustomerId) } : undefined} records={snapshot?.records ?? records} busy={busy} onOpenChange={open => setDialog(current => ({ ...current, open }))} onSubmit={submitRecord} />
+      <RecordDialog
+        open={dialog.open}
+        kind={dialog.kind}
+        record={dialog.record}
+        serviceRequests={serviceRequestsQuery.data ?? []}
+        initialPayload={
+          dialog.kind === "invoice" && requestContext
+            ? invoicePayloadFromRequest(requestContext)
+            : dialog.kind === "customer_site" && requestedCustomerId
+              ? { customerRecordId: String(requestedCustomerId) }
+              : undefined
+        }
+        records={snapshot?.records ?? records}
+        busy={busy}
+        onOpenChange={open => setDialog(current => ({ ...current, open }))}
+        onSubmit={submitRecord}
+      />
       {archiveMutation.isPending && <div className="fixed bottom-5 left-5 z-50 flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-xs font-bold text-white shadow-xl" data-testid="status-archive-loading"><Loader2 size={14} className="animate-spin" /> جارٍ أرشفة السجل...</div>}
     </div>
   )

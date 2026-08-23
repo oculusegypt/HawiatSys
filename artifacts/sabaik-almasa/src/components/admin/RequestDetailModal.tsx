@@ -5,7 +5,7 @@ import {
 import { Button } from "@/components/ui/button"
 import {
   User, Phone, Mail, MapPin, Package, Calendar, Clock,
-  FileText, Printer, MessageCircle, ExternalLink, Navigation,
+  FileText, Printer, MessageCircle, ExternalLink, Navigation, FilePlus2, Link2,
   Hash, CheckCircle2, AlertCircle, Loader2, XCircle, Sparkles, MousePointer2,
 } from "lucide-react"
 import { format } from "date-fns"
@@ -35,12 +35,19 @@ interface ServiceRequest {
   activePage?: string | null
   createdAt: string
   updatedAt?: string
+  assignedDriverId?: number | null
+  driverStatus?: string | null
 }
 
 interface Props {
   request: ServiceRequest | null
   open: boolean
   onClose: () => void
+  drivers?: { id: number; name: string; role: string; isActive: number }[]
+  assigning?: boolean
+  onAssign?: (driverId: number | null) => void
+  onCreateContract?: (request: ServiceRequest) => void
+  onCreateInvoice?: (request: ServiceRequest) => void
 }
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -126,9 +133,19 @@ function buildRequestText(req: ServiceRequest, shortDirectionsUrl?: string): str
 }
 
 // ─── component ────────────────────────────────────────────────────────────────
-export default function RequestDetailModal({ request, open, onClose }: Props) {
+export default function RequestDetailModal({
+  request,
+  open,
+  onClose,
+  drivers = [],
+  assigning = false,
+  onAssign,
+  onCreateContract,
+  onCreateInvoice,
+}: Props) {
   const { companyName } = useSiteSettings()
   const [shortDirectionsUrl, setShortDirectionsUrl] = useState<string>("")
+  const [selectedDriver, setSelectedDriver] = useState("")
 
   useEffect(() => {
     if (!open || !request?.location) { setShortDirectionsUrl(""); return }
@@ -148,6 +165,10 @@ export default function RequestDetailModal({ request, open, onClose }: Props) {
       .catch(() => { if (!cancelled) setShortDirectionsUrl(longUrl) })
     return () => { cancelled = true }
   }, [open, request?.id])
+
+  useEffect(() => {
+    setSelectedDriver(request?.assignedDriverId ? String(request.assignedDriverId) : "")
+  }, [request?.id, request?.assignedDriverId])
 
   if (!request) return null
 
@@ -424,6 +445,43 @@ export default function RequestDetailModal({ request, open, onClose }: Props) {
 
         {/* ── Footer Actions ─────────────────────────────────────────────── */}
         <div className="border-t border-gray-100 bg-white px-5 py-3 flex flex-wrap gap-2 flex-shrink-0">
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-2 flex-1 sm:flex-none border-cyan-200 text-cyan-800 hover:bg-cyan-50"
+            onClick={() => onCreateContract?.(request)}
+          >
+            <FilePlus2 className="w-4 h-4" />
+            إنشاء عقد
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-2 flex-1 sm:flex-none border-amber-200 text-amber-800 hover:bg-amber-50"
+            onClick={() => onCreateInvoice?.(request)}
+          >
+            <FileText className="w-4 h-4" />
+            إصدار فاتورة
+          </Button>
+          {onAssign && (
+            <div className="flex min-w-[190px] flex-1 items-center gap-1.5 sm:flex-none">
+              <select
+                value={selectedDriver}
+                disabled={assigning}
+                onChange={event => {
+                  const value = event.target.value
+                  setSelectedDriver(value)
+                  onAssign(value ? Number(value) : null)
+                }}
+                aria-label={`إسناد الطلب ${request.id}`}
+                className="h-9 min-w-0 flex-1 rounded-lg border border-indigo-200 bg-indigo-50 px-2 text-xs font-semibold text-indigo-800 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+              >
+                <option value="">غير مسند</option>
+                {drivers.map(driver => <option key={driver.id} value={driver.id}>{driver.name}</option>)}
+              </select>
+              <Link2 className="h-4 w-4 shrink-0 text-indigo-500" aria-hidden="true" />
+            </div>
+          )}
           <Button
             size="sm"
             className="gap-2 bg-green-600 hover:bg-green-700 text-white border-0 flex-1 sm:flex-none"

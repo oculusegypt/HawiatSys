@@ -11,6 +11,18 @@ type ContractWizardProps = {
   open: boolean
   records: ContainerSystemRecord[]
   initialCustomerId?: number | null
+  initialRequest?: {
+    id: number
+    clientName: string
+    phone: string
+    email?: string | null
+    serviceType: string
+    containerSize: string
+    location: string
+    duration?: string | null
+    notes?: string | null
+    scheduledAt?: string | null
+  } | null
   busy?: boolean
   onClose: () => void
   onSubmit: (payload: Record<string, unknown>) => void
@@ -30,6 +42,13 @@ type FormState = {
   appointmentDate: string
   appointmentTime: string
   appointmentType: string
+  requestId: string
+  customerPhone: string
+  customerEmail: string
+  serviceType: string
+  containerSize: string
+  location: string
+  duration: string
 }
 
 const initialForm: FormState = {
@@ -46,6 +65,13 @@ const initialForm: FormState = {
   appointmentDate: "",
   appointmentTime: "09:00",
   appointmentType: "delivery",
+  requestId: "",
+  customerPhone: "",
+  customerEmail: "",
+  serviceType: "",
+  containerSize: "",
+  location: "",
+  duration: "",
 }
 
 function payloadOf(record: ContainerSystemRecord) {
@@ -57,7 +83,7 @@ function labelOf(record: ContainerSystemRecord) {
   return String(payload.name ?? payload.customerName ?? payload.assetCode ?? record.reference ?? `#${record.id}`)
 }
 
-export function ContractWizard({ open, records, initialCustomerId = null, busy = false, onClose, onSubmit }: ContractWizardProps) {
+export function ContractWizard({ open, records, initialCustomerId = null, initialRequest = null, busy = false, onClose, onSubmit }: ContractWizardProps) {
   const [step, setStep] = useState(0)
   const [form, setForm] = useState<FormState>(initialForm)
   const [error, setError] = useState("")
@@ -66,8 +92,50 @@ export function ContractWizard({ open, records, initialCustomerId = null, busy =
     if (!open) return
     setStep(0)
     setError("")
-    setForm(current => ({ ...initialForm, customerRecordId: initialCustomerId ? String(initialCustomerId) : current.customerRecordId }))
-  }, [initialCustomerId, open])
+    const requestCustomer = initialRequest
+      ? records.find(record => {
+          if (record.kind !== "customer" || record.status === "archived") return false
+          const payload = payloadOf(record)
+          return String(payload.name ?? payload.customerName ?? "").trim() === initialRequest.clientName.trim() ||
+            String(payload.phone ?? "").replace(/\D/g, "") === initialRequest.phone.replace(/\D/g, "")
+        })
+      : undefined
+    const customerId = initialCustomerId ? String(initialCustomerId) : requestCustomer?.id ? String(requestCustomer.id) : ""
+    const requestSite = initialRequest
+      ? records.find(record => {
+          if (record.kind !== "customer_site" || record.status === "archived") return false
+          const payload = payloadOf(record)
+          const sameCustomer = !customerId || String(payload.customerRecordId) === customerId
+          const address = String(payload.address ?? payload.name ?? "")
+          return sameCustomer && Boolean(address) && initialRequest.location.includes(address)
+        })
+      : undefined
+    const requestContainer = initialRequest
+      ? records.find(record => {
+          if (!["container", "container_asset"].includes(record.kind) || record.status === "archived") return false
+          const payload = payloadOf(record)
+          const type = String(payload.typeName ?? payload.containerType ?? payload.size ?? "")
+          return ["available", "متاح", "active"].includes(record.status) &&
+            Boolean(initialRequest.containerSize) && (type.includes(initialRequest.containerSize) || initialRequest.containerSize.includes(type))
+        })
+      : undefined
+    const scheduledDate = initialRequest?.scheduledAt ? new Date(initialRequest.scheduledAt).toISOString().slice(0, 10) : ""
+    setForm({
+      ...initialForm,
+      customerRecordId: customerId,
+      siteRecordId: requestSite?.id ? String(requestSite.id) : "",
+      containerRecordId: requestContainer?.id ? String(requestContainer.id) : "",
+      requestId: initialRequest ? String(initialRequest.id) : "",
+      customerPhone: initialRequest?.phone ?? "",
+      customerEmail: initialRequest?.email ?? "",
+      serviceType: initialRequest?.serviceType ?? "",
+      containerSize: initialRequest?.containerSize ?? "",
+      location: initialRequest?.location ?? "",
+      duration: initialRequest?.duration ?? "",
+      notes: initialRequest?.notes ?? "",
+      appointmentDate: scheduledDate,
+    })
+  }, [initialCustomerId, initialRequest, open, records])
 
   const customers = useMemo(
     () => records.filter(record => record.kind === "customer" && record.status !== "archived"),
@@ -131,11 +199,12 @@ export function ContractWizard({ open, records, initialCustomerId = null, busy =
       return
     }
     onSubmit({
-      requestId: null,
+      requestId: form.requestId ? Number(form.requestId) : null,
       customerRecordId: customer?.id,
       siteRecordId: site?.id,
       customerName: String(customerPayload?.name ?? customerPayload?.customerName ?? ""),
-      customerPhone: String(customerPayload?.phone ?? ""),
+      customerPhone: String(customerPayload?.phone ?? form.customerPhone ?? ""),
+      customerEmail: String(customerPayload?.email ?? form.customerEmail ?? ""),
       containerRecordId: container?.id,
       containerCode: String(containerPayload?.assetCode ?? containerPayload?.code ?? ""),
       contractNumber: form.contractNumber.trim(),
@@ -148,7 +217,10 @@ export function ContractWizard({ open, records, initialCustomerId = null, busy =
        taxInclusive,
       status: "active",
       notes: form.notes.trim(),
-      location: String(site ? payloadOf(site).address ?? "" : ""),
+       location: String(site ? payloadOf(site).address ?? "" : form.location),
+       serviceType: form.serviceType,
+       containerSize: form.containerSize,
+       duration: form.duration,
       createdFrom: "contract_workflow",
       appointmentDate: form.appointmentDate,
       appointmentTime: form.appointmentTime,
@@ -179,7 +251,8 @@ export function ContractWizard({ open, records, initialCustomerId = null, busy =
             {step === 0 && <section className="space-y-4">
               <div><h3 className="font-black text-slate-900">من هو العميل؟</h3><p className="mt-1 text-sm text-slate-500">اختر طرفًا تجاريًا موجودًا حتى ترتبط به الفاتورة والتحصيل لاحقًا.</p></div>
               <div><Label htmlFor="contract-customer">العميل</Label><select id="contract-customer" value={form.customerRecordId} onChange={event => update("customerRecordId", event.target.value)} className="mt-2 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm"><option value="">اختر العميل</option>{customers.map(record => <option key={record.id} value={record.id}>{labelOf(record)}{payloadOf(record).phone ? ` · ${String(payloadOf(record).phone)}` : ""}</option>)}</select></div>
-              {customer && <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4"><div className="flex items-center gap-2 text-sm font-black text-emerald-900"><ShieldCheck size={17} /> سياق العميل جاهز</div><div className="mt-3 grid grid-cols-2 gap-3 text-xs text-emerald-900"><span>الاسم: <b>{labelOf(customer)}</b></span><span>الجوال: <b dir="ltr">{String(customerPayload?.phone ?? "—")}</b></span><span>المدينة: <b>{String(customerPayload?.city ?? "—")}</b></span><span>العقود الحالية: <b>{records.filter(record => record.kind === "contract" && String(payloadOf(record).customerRecordId) === String(customer.id) && record.status !== "archived").length}</b></span></div></div>}
+              {initialRequest && <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-4 text-xs leading-6 text-indigo-950"><div className="font-black">تم تحميل بيانات الطلب #{initialRequest.id}</div><div className="mt-1">الاسم: <b>{initialRequest.clientName}</b> · الجوال: <b dir="ltr">{initialRequest.phone}</b></div><div>الخدمة: <b>{initialRequest.serviceType}</b> · نوع الحاوية: <b>{initialRequest.containerSize || "غير محدد"}</b></div><div>الموقع: <b>{initialRequest.location}</b></div></div>}
+              {customer && <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4"><div className="flex items-center gap-2 text-sm font-black text-emerald-900"><ShieldCheck size={17} /> سياق العميل جاهز</div><div className="mt-3 grid grid-cols-2 gap-3 text-xs text-emerald-900"><span>الاسم: <b>{labelOf(customer)}</b></span><span>الجوال: <b dir="ltr">{String(customerPayload?.phone ?? form.customerPhone ?? "—")}</b></span><span>المدينة: <b>{String(customerPayload?.city ?? "—")}</b></span><span>العقود الحالية: <b>{records.filter(record => record.kind === "contract" && String(payloadOf(record).customerRecordId) === String(customer.id) && record.status !== "archived").length}</b></span></div></div>}
             </section>}
 
             {step === 1 && <section className="space-y-4">
