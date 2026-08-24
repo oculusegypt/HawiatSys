@@ -1383,7 +1383,7 @@ export default function ContainerSystem() {
               : view === "container_search" ? <ContainerSearchPanel records={records} loading={loading} onDetails={record => setDetailRecord(record)} onEdit={openEdit} />
               : view === "bookings" ? <DispatchCalendar records={snapshot?.records ?? records} onOpenAppointment={record => setDetailRecord(record)} />
               : view === "invoice"
-                ? <InvoiceWorkspace records={records} onAdd={() => openCreate("invoice")} onDetails={record => setDetailRecord(record)} onEdit={openEdit} onArchive={archiveRecord} />
+                ? <InvoiceWorkspace records={records} onAdd={() => openCreate("invoice")} onDetails={record => navigate(`/admin/container-system/invoice/${record.id}/print`)} onEdit={openEdit} onArchive={archiveRecord} />
               : view === "container"
                ? <ContainerPOS records={records} onAdd={() => openCreate("container")} onDetails={record => setDetailRecord(record)} onEdit={openEdit} />
                 : <RecordsPanel kind={collectionKind ?? "customer"} records={records} allRecords={snapshot?.records ?? records} loading={loading} onAdd={() => openCreate(collectionKind ?? "customer")} onDetails={record => setDetailRecord(record)} onEdit={openEdit} onArchive={archiveRecord} />}

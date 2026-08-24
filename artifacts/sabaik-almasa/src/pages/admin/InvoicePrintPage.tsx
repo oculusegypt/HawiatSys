@@ -58,8 +58,9 @@ export default function InvoicePrintPage() {
   const containerCode = value(p.containerCode ?? payloadOf(container).assetCode ?? payloadOf(container).code)
   const contractNumber = value(p.contractNumber ?? payloadOf(contract).contractNumber ?? contract?.reference)
 
-  return <div dir="rtl" className="min-h-screen bg-slate-100 p-4 sm:p-8">
-    <div className="mx-auto mb-4 flex max-w-6xl flex-wrap items-center justify-between gap-3">
+  return <div dir="rtl" className="invoice-details-view min-h-screen bg-slate-100 p-4 sm:p-8">
+    <style>{`@page{size:A4;margin:0}@media print{.invoice-details-view{padding:0!important;background:white!important}.screen-only{display:none!important}.invoice-print-view{display:block!important}.invoice-print-paper{box-shadow:none!important;margin:0!important}}.invoice-print-view{display:none}.invoice-print-paper{width:210mm;min-height:297mm}`}</style>
+    <div className="screen-only mx-auto mb-4 flex max-w-6xl flex-wrap items-center justify-between gap-3">
       <Button variant="ghost" onClick={() => navigate("/admin/container-system")} className="gap-2"><ArrowRight size={16} /> العودة إلى الفواتير</Button>
       <div className="flex flex-wrap gap-2">
         <Button variant="outline" onClick={() => window.print()} className="gap-2"><Printer size={15} /> طباعة</Button>
@@ -67,7 +68,7 @@ export default function InvoicePrintPage() {
         <Button variant="outline" onClick={() => { window.location.href = `mailto:?subject=${encodeURIComponent(`الفاتورة ${invoiceNumber}`)}&body=${encodeURIComponent(`الفاتورة ${invoiceNumber} بإجمالي ${money(total)}`)}` }} className="gap-2"><Send size={15} /> إرسال</Button>
       </div>
     </div>
-    <main className="mx-auto max-w-6xl space-y-5">
+     <main className="screen-only mx-auto max-w-6xl space-y-5">
       <Card className="overflow-hidden border-cyan-100 shadow-sm">
         <CardContent className="bg-gradient-to-l from-cyan-950 to-cyan-800 p-6 text-white">
           <div className="flex flex-wrap items-start justify-between gap-5">
@@ -91,6 +92,21 @@ export default function InvoicePrintPage() {
       <Card className="border-slate-200 shadow-sm"><CardHeader><CardTitle>الحاوية / الأصل المفوتر</CardTitle></CardHeader><CardContent><div className="overflow-x-auto"><table className="w-full min-w-[680px] text-sm"><thead><tr className="border-b bg-slate-50 text-right text-xs text-slate-500"><th className="p-3">الحاوية</th><th className="p-3">الخدمة</th><th className="p-3">الفترة</th><th className="p-3">الكمية</th><th className="p-3">السعر</th><th className="p-3">الضريبة</th><th className="p-3">الإجمالي</th></tr></thead><tbody><tr><td className="p-3 font-black text-cyan-800">#{containerCode}</td><td className="p-3">{value(p.description, "خدمات الحاوية")}</td><td className="p-3">{dateOnly(p.startDate)} → {dateOnly(p.endDate)}</td><td className="p-3">{value(p.quantity, "1")}</td><td className="p-3">{money(Number(p.unitPrice ?? subtotal))}</td><td className="p-3">{money(tax)}</td><td className="p-3 font-black">{money(total)}</td></tr></tbody></table></div></CardContent></Card>
       <Card className="border-slate-200 shadow-sm"><CardHeader><div className="flex items-center justify-between gap-3"><CardTitle>الدفعات المرحّلة</CardTitle><Button size="sm" onClick={() => customerId && navigate(`/admin/container-system/profile/customer/${customerId}`)} className="gap-2 bg-emerald-700 hover:bg-emerald-800"><HandCoins size={14} /> تسجيل دفعة</Button></div></CardHeader><CardContent>{payments.length === 0 ? <p className="py-6 text-center text-sm text-slate-500">لا توجد دفعات مرحّلة مرتبطة بهذه الفاتورة.</p> : <div className="space-y-2">{payments.map(payment => <div key={payment.id} className="flex items-center justify-between rounded-xl bg-emerald-50 p-3 text-sm"><span>{dateOnly(payloadOf(payment).date ?? payment.createdAt)} · {value(payloadOf(payment).paymentMethod, "تحويل/تحصيل")}</span><b className="text-emerald-800">{money(Number(payloadOf(payment).amount ?? 0))}</b></div>)}</div>}</CardContent></Card>
       <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div><p className="font-black text-slate-800">المستند المالي المرتبط</p><p className="mt-1 text-xs text-slate-500">تُحسب الحالة من الدفعات المرحّلة فقط، ولا يمكن تغييرها كنص مستقل.</p></div><img src={qrUrl} alt="رمز الفاتورة" className="h-20 w-20" /></div>
-    </main>
-  </div>
+     </main>
+     <article className="invoice-print-view invoice-print-paper mx-auto bg-white px-[16mm] py-[14mm] text-slate-900 shadow-2xl">
+       <header className="flex items-start justify-between border-b-2 border-cyan-800 pb-5">
+         <div><p className="text-xs font-bold text-cyan-800">فاتورة إلكترونية</p><h1 className="mt-2 text-3xl font-black">فاتورة ضريبية</h1><p className="mt-2 text-xs text-slate-500">مستند رسمي صادر من نظام إدارة الخدمات</p></div>
+         <div className="text-left text-xs leading-7"><p><b>رقم الفاتورة:</b> <span dir="ltr">{invoiceNumber}</span></p><p><b>التاريخ:</b> {dateOnly(p.date ?? record.createdAt)}</p><p><b>الحالة:</b> {status.label}</p></div>
+       </header>
+       <section className="mt-8 grid grid-cols-2 gap-4 rounded-2xl border border-slate-200 p-5 text-sm">
+         <div><p className="text-xs font-bold text-slate-400">العميل</p><p className="mt-1 font-black">{value(p.customerName ?? payloadOf(customer).name)}</p></div>
+         <div><p className="text-xs font-bold text-slate-400">الرقم الضريبي</p><p className="mt-1 font-bold" dir="ltr">{value(p.customerTaxNumber)}</p></div>
+         <div><p className="text-xs font-bold text-slate-400">عنوان العميل</p><p className="mt-1 font-bold">{value(p.customerAddress ?? payloadOf(customer).address)}</p></div>
+         <div><p className="text-xs font-bold text-slate-400">عنوان الخدمة</p><p className="mt-1 font-bold">{value(p.serviceAddress ?? p.location ?? payloadOf(site).address)}</p></div>
+       </section>
+       <table className="mt-8 w-full border-collapse text-sm"><thead><tr className="bg-cyan-50 text-right"><th className="border border-cyan-100 p-3">البيان</th><th className="border border-cyan-100 p-3">الكمية</th><th className="border border-cyan-100 p-3">السعر</th><th className="border border-cyan-100 p-3">الإجمالي</th></tr></thead><tbody><tr><td className="border border-slate-200 p-4 font-bold">{value(p.description, "خدمات حاويات")}</td><td className="border border-slate-200 p-4">{value(p.quantity, "1")}</td><td className="border border-slate-200 p-4">{money(Number(p.unitPrice ?? p.amount ?? subtotal))}</td><td className="border border-slate-200 p-4 font-black">{money(subtotal)}</td></tr></tbody></table>
+       <div className="mt-6 ml-auto grid max-w-sm gap-2 text-sm"><div className="flex justify-between"><span>قبل الضريبة</span><b>{money(subtotal)}</b></div><div className="flex justify-between"><span>ضريبة القيمة المضافة ({value(p.taxRate, "15")}%)</span><b>{money(tax)}</b></div><div className="flex justify-between border-t-2 border-cyan-800 pt-2 text-lg"><span>الإجمالي</span><b>{money(total)}</b></div></div>
+       <footer className="mt-16 flex items-end justify-between border-t border-slate-200 pt-6 text-xs text-slate-500"><div><p>طريقة السداد: {value(p.paymentMethod)}</p><p className="mt-2">العقد المرتبط: {contractNumber}</p><p className="mt-2">مصدر البند: {p.requestId ? `طلب الخدمة #${p.requestId}` : contractId ? `العقد #${contractId}` : "إدخال مستقل"}</p></div><img src={qrUrl} alt="QR الفاتورة" className="h-28 w-28" /><div className="text-left">تم إنشاء الفاتورة إلكترونياً<br />رقم السجل: {record.id}</div></footer>
+     </article>
+   </div>
 }
