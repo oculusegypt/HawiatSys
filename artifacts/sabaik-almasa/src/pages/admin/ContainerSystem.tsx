@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { Link, useLocation } from "wouter"
 import {
-  AlertCircle, Archive, ArrowDownLeft, ArrowLeftRight, ArrowUpRight, BellRing, BookOpenCheck, Box, CalendarDays, CarFront, CheckCircle2,
+  AlertCircle, Archive, ArrowDownLeft, ArrowLeftRight, ArrowUpRight, BellRing, BookOpenCheck, Box, CalendarDays, CarFront, CheckCircle2, CircleDollarSign,
   ChevronDown, ChevronLeft, ClipboardList, Coins, FileCheck2, FileDown, FilePenLine, FileText, FolderSearch, Gauge, HandCoins, Landmark, LayoutDashboard, ReceiptText, Trash2, Truck,
   ExternalLink, Link2, Loader2, MapPin, Plus, RefreshCw, Search, Settings2, ShieldCheck, SlidersHorizontal, UserCog, UserRound, Users, WalletCards, Wrench, X,
 } from "lucide-react"
@@ -463,21 +463,62 @@ function RecordRow({ record, kind, records, onDetails, onEdit, onArchive }: { re
 }
 
 function InvoiceWorkspace({ records, onAdd, onDetails, onEdit, onArchive }: { records: ContainerSystemRecord[]; onAdd: () => void; onDetails: (record: ContainerSystemRecord) => void; onEdit: (record: ContainerSystemRecord) => void; onArchive: (record: ContainerSystemRecord) => void }) {
-  const [filter, setFilter] = useState<"all" | "draft" | "issued" | "paid">("all")
-  const activeRecords = records.filter(record => record.status !== "archived")
-  const visibleRecords = filter === "all" ? activeRecords : activeRecords.filter(record => record.status === filter)
-  const total = activeRecords.reduce((sum, record) => sum + amountOf(record), 0)
-  const paid = activeRecords.filter(record => ["paid", "settled"].includes(record.status)).length
-  const draft = activeRecords.filter(record => ["draft", "pending"].includes(record.status)).length
+  type InvoiceFilter = "all" | "draft" | "due" | "partial" | "paid" | "overdue"
+  const [filter, setFilter] = useState<InvoiceFilter>("all")
+  const activeRecords = records.filter(record => record.kind === "invoice" && record.status !== "archived")
+  const payments = records.filter(record => record.kind === "payment" && record.status === "posted")
   const money = (value: number) => `${value.toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س`
+  const invoiceData = (record: ContainerSystemRecord) => {
+    const payload = record.payload as Record<string, unknown>
+    const number = String(payload.invoiceNumber ?? record.reference ?? "")
+    const linkedPayments = payments.filter(payment => {
+      const p = payment.payload as Record<string, unknown>
+      return Number(p.invoiceRecordId ?? 0) === record.id || String(p.invoiceNumber ?? "") === number
+    })
+    const paid = linkedPayments.reduce((sum, payment) => {
+      const p = payment.payload as Record<string, unknown>
+      return sum + Number(p.amount ?? p.total ?? 0)
+    }, Number(payload.paid ?? 0))
+    const total = Number(payload.total ?? payload.amount ?? 0) || 0
+    const remaining = Math.max(total - paid, 0)
+    const dueDate = String(payload.dueDate ?? payload.paymentDueDate ?? payload.endDate ?? payload.date ?? "").slice(0, 10)
+    const baseStatus = String(payload.invoiceStatus ?? payload.lifecycleStatus ?? record.status).toLowerCase()
+    const status: InvoiceFilter = remaining <= 0 && total > 0 ? "paid" :
+      baseStatus === "draft" || record.status === "draft" ? "draft" :
+      remaining < total && paid > 0 ? "partial" :
+      dueDate && dueDate < new Date().toISOString().slice(0, 10) ? "overdue" : "due"
+    return { payload, number, paid, total, remaining, dueDate, status }
+  }
+  const rows = activeRecords.map(record => ({ record, ...invoiceData(record) }))
+  const visibleRecords = filter === "all" ? rows : rows.filter(row => row.status === filter)
+  const total = rows.reduce((sum, row) => sum + row.total, 0)
+  const paidAmount = rows.reduce((sum, row) => sum + row.paid, 0)
+  const outstanding = rows.reduce((sum, row) => sum + row.remaining, 0)
+  const counts = {
+    draft: rows.filter(row => row.status === "draft").length,
+    due: rows.filter(row => row.status === "due").length,
+    partial: rows.filter(row => row.status === "partial").length,
+    paid: rows.filter(row => row.status === "paid").length,
+    overdue: rows.filter(row => row.status === "overdue").length,
+  }
+  const statusText: Record<InvoiceFilter, string> = { all: "كل الفواتير", draft: "مسودة", due: "مستحقة", partial: "مدفوعة جزئياً", paid: "مدفوعة", overdue: "متأخرة" }
+  const statusClass: Record<InvoiceFilter, string> = {
+    all: "border-slate-200 bg-slate-50 text-slate-600",
+    draft: "border-slate-200 bg-slate-50 text-slate-600",
+    due: "border-amber-200 bg-amber-50 text-amber-800",
+    partial: "border-indigo-200 bg-indigo-50 text-indigo-800",
+    paid: "border-emerald-200 bg-emerald-50 text-emerald-800",
+    overdue: "border-rose-200 bg-rose-50 text-rose-800",
+  }
 
   return (
     <div className="space-y-5">
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="إجمالي الفواتير" value={activeRecords.length} icon={FileText} tone="bg-cyan-600" hint="الفواتير المحفوظة غير المؤرشفة" />
-        <MetricCard label="إجمالي قيمة الفواتير" value={money(total)} icon={Coins} tone="bg-emerald-600" hint="بعد احتساب ضريبة القيمة المضافة" />
-        <MetricCard label="فواتير مسودة" value={draft} icon={FilePenLine} tone="bg-amber-500" hint="تحتاج مراجعة قبل الإصدار" />
-        <MetricCard label="فواتير مسددة" value={paid} icon={CheckCircle2} tone="bg-emerald-600" hint="مرتبطة بتحصيل مكتمل" />
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <MetricCard label="إجمالي الفواتير" value={rows.length} icon={FileText} tone="bg-cyan-600" hint="الفواتير غير المؤرشفة" />
+        <MetricCard label="إجمالي الفواتير" value={money(total)} icon={Coins} tone="bg-indigo-600" hint="قبل التحصيل" />
+        <MetricCard label="المحصّل" value={money(paidAmount)} icon={HandCoins} tone="bg-emerald-600" hint="من الدفعات المرحّلة فقط" />
+        <MetricCard label="المستحق" value={money(outstanding)} icon={CircleDollarSign} tone="bg-amber-500" hint="الرصيد المتبقي" />
+        <MetricCard label="متأخرة" value={counts.overdue} icon={AlertCircle} tone="bg-rose-600" hint="تجاوزت تاريخ الاستحقاق" />
       </div>
       <Card className="overflow-hidden border-cyan-100 shadow-[0_10px_30px_rgba(15,44,58,.06)]">
         <CardHeader className="border-b border-slate-100 bg-gradient-to-l from-cyan-50/80 to-white px-5 py-5">
@@ -487,16 +528,18 @@ function InvoiceWorkspace({ records, onAdd, onDetails, onEdit, onArchive }: { re
                 <CardTitle className="text-lg text-slate-900">الفواتير الإلكترونية</CardTitle>
                 <Badge className="border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-50">مهيأة للفوترة الإلكترونية</Badge>
               </div>
-              <p className="mt-1 max-w-2xl text-xs leading-6 text-slate-500">أنشئ فاتورة ضريبية واضحة، احسب الضريبة تلقائيًا، واربطها بالعميل والعقد والحاوية. تجهيز الإرسال الرسمي يتطلب بيانات المنشأة وشهادة الربط من الهيئة.</p>
+              <p className="mt-1 max-w-2xl text-xs leading-6 text-slate-500">الفاتورة تبدأ من العقد والحاوية تلقائيًا، وتعرض دورة التحصيل كاملة دون تكرار بيانات العميل أو السعر.</p>
             </div>
             <Button onClick={onAdd} className="gap-2 bg-cyan-800 px-5 hover:bg-cyan-900" data-testid="button-create-electronic-invoice"><Plus size={16} /> إنشاء فاتورة إلكترونية</Button>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
             {([
-              ["all", `كل الفواتير (${activeRecords.length})`],
-              ["draft", `مسودات المراجعة (${draft})`],
-              ["issued", `مصدرة (${activeRecords.filter(record => record.status === "issued").length})`],
-              ["paid", `مسددة (${paid})`],
+              ["all", `${statusText.all} (${rows.length})`],
+              ["draft", `${statusText.draft} (${counts.draft})`],
+              ["due", `${statusText.due} (${counts.due})`],
+              ["partial", `${statusText.partial} (${counts.partial})`],
+              ["paid", `${statusText.paid} (${counts.paid})`],
+              ["overdue", `${statusText.overdue} (${counts.overdue})`],
             ] as const).map(([value, label]) => (
               <button key={value} type="button" onClick={() => setFilter(value)} className={`rounded-full border px-3 py-1.5 text-xs font-bold transition ${filter === value ? "border-cyan-700 bg-cyan-800 text-white" : "border-slate-200 bg-white text-slate-600 hover:border-cyan-300"}`}>{label}</button>
             ))}
@@ -516,17 +559,18 @@ function InvoiceWorkspace({ records, onAdd, onDetails, onEdit, onArchive }: { re
                 <div className="grid grid-cols-[1.1fr_1.4fr_1.2fr_1fr_1fr_auto] gap-3 bg-slate-50 px-5 py-3 text-[10px] font-black text-slate-400">
                   <span>رقم الفاتورة</span><span>العميل</span><span>البيان</span><span>تاريخ الإصدار</span><span>الإجمالي</span><span>الحالة</span>
                 </div>
-                {visibleRecords.map(record => {
-                  const payload = record.payload as Record<string, unknown>
+                {visibleRecords.map(({ record, payload, number, paid, total, remaining, status, dueDate }) => {
+                  const contract = records.find(item => item.kind === "contract" && (item.id === Number(payload.contractRecordId) || String((item.payload as Record<string, unknown>).contractNumber ?? item.reference) === String(payload.contractNumber ?? "")))
                   return (
                     <div key={record.id} className="grid grid-cols-[1.1fr_1.4fr_1.2fr_1fr_1fr_auto] items-center gap-3 border-t border-slate-100 px-5 py-4 text-xs transition hover:bg-cyan-50/30" data-testid={`row-invoice-${record.id}`}>
-                      <button type="button" onClick={() => onDetails(record)} className="text-right font-black text-cyan-800 hover:underline" dir="ltr">{String(payload.invoiceNumber ?? record.reference ?? `#${record.id}`)}</button>
+                      <div><button type="button" onClick={() => onDetails(record)} className="text-right font-black text-cyan-800 hover:underline" dir="ltr">{number || `#${record.id}`}</button><span className="mt-1 block text-[10px] text-slate-400">{String(payload.billingPeriod ?? dueDate ?? "—")}</span></div>
                       <span className="truncate font-bold text-slate-700">{String(payload.customerName ?? "عميل غير محدد")}</span>
-                      <span className="truncate text-slate-600">{String(payload.description ?? "خدمات حاويات")}</span>
+                      <span className="truncate text-slate-600">{String(payload.containerCode ?? payload.description ?? "خدمات الحاوية")}{contract ? ` · ${String((contract.payload as Record<string, unknown>).contractNumber ?? contract.reference)}` : ""}</span>
                       <span className="text-slate-600">{String(payload.date ?? "غير محدد")}</span>
-                      <span className="font-black text-slate-800">{money(amountOf(record))}</span>
+                      <div><span className="font-black text-slate-800">{money(total)}</span><span className="mt-1 block text-[10px] text-slate-400">مدفوع {money(paid)} · متبقٍ {money(remaining)}</span></div>
                       <div className="flex items-center justify-end gap-1">
-                        <RecordStatus status={record.status} />
+                        <Badge variant="outline" className={`whitespace-nowrap ${statusClass[status]}`}>{statusText[status]}</Badge>
+                        <Link href={`/admin/container-system/invoice/${record.id}/print`} className="flex h-8 w-8 items-center justify-center rounded-md text-slate-500 hover:bg-cyan-50 hover:text-cyan-800" title="طباعة / PDF"><FileDown size={14} /></Link>
                         <Button variant="ghost" size="icon" onClick={() => onEdit(record)} className="h-8 w-8 text-slate-500 hover:bg-cyan-50 hover:text-cyan-800" title="تعديل الفاتورة"><FilePenLine size={14} /></Button>
                         <Button variant="ghost" size="icon" onClick={() => onArchive(record)} className="h-8 w-8 text-slate-400 hover:bg-rose-50 hover:text-rose-600" title="أرشفة الفاتورة"><Archive size={14} /></Button>
                       </div>
@@ -1173,7 +1217,9 @@ export default function ContainerSystem() {
         invalidate()
         setContractWizardOpen(false)
         setContractFlowBusy(false)
-        showSuccess("تم إصدار العقد وإنشاء الموعد وأمر العمل وربطهما بالأصل")
+        showSuccess((result as { invoice?: unknown } | undefined)?.invoice
+          ? "تم إنشاء العقد والفاتورة الأولى تلقائياً مع الموعد وأمر العمل"
+          : "تم إصدار العقد وإنشاء الموعد وأمر العمل وربطهما بالأصل")
         const contractId = (result as { contract?: { id?: number } } | undefined)?.contract?.id
         if (contractId) navigate(`/admin/container-system/contract/${contractId}/print`)
       },

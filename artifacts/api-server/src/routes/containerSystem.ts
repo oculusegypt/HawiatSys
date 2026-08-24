@@ -769,11 +769,17 @@ router.post("/admin/container-system/contracts/workflow", requireContainerPermis
     }) ?? null;
     const serviceRequest = await db.select().from(serviceRequestsTable)
       .where(eq(serviceRequestsTable.contractRecordId, existingContract.id)).get();
+    const invoice = rows.find(row => {
+      if (row.kind !== "invoice" || row.status === "archived") return false;
+      const payload = parsePayload(row.payload);
+      return Number(payload.contractRecordId ?? 0) === existingContract.id;
+    });
     return res.status(200).json({
       contract: formatRecord(existingContract),
       assignment: related("container_assignment") ? formatRecord(related("container_assignment")!) : null,
       appointment: related("appointment") ? formatRecord(related("appointment")!) : null,
       serviceRequest: serviceRequest ?? null,
+      invoice: invoice ? formatRecord(invoice) : null,
       idempotent: true,
     });
   }
@@ -870,12 +876,92 @@ router.post("/admin/container-system/contracts/workflow", requireContainerPermis
           customerRecordId: customerId, containerRecordId: assetId, contractRecordId: contract.id,
         }).returning().get();
       }
+      // Contract is the billing source of truth. Create the first billing-period
+      // invoice inside the same transaction so retries cannot leave half a cycle.
+      // Keep the record in the financial draft lifecycle while exposing the
+      // customer-facing invoice lifecycle as DUE until it is posted.
+      const billingEnabled = !["false", "0", "no", "نعم لا"].includes(String(contractPayload.billingEnabled ?? "true").trim().toLowerCase());
+      const contractState = String(contract.status).toLowerCase();
+      const billable = billingEnabled && !["draft", "cancelled", "rejected", "free", "non_billable"].includes(contractState) &&
+        !["false", "0", "no", "free", "non_billable"].includes(String(contractPayload.billable ?? "true").trim().toLowerCase());
+      let invoice: typeof containerSystemRecordsTable.$inferSelect | null = null;
+      if (billable) {
+        const billingPeriod = String(contractPayload.billingPeriod ?? contractPayload.startDate ?? now).slice(0, 7);
+        const invoiceOperationKey = `contract-${contract.id}-period-${billingPeriod}`;
+        const existingInvoice = tx.select().from(containerSystemRecordsTable).all().find(row => {
+          if (row.kind !== "invoice" || row.status === "archived") return false;
+          const payload = parsePayload(row.payload);
+          return String(payload.contractRecordId ?? "") === String(contract.id) &&
+            String(payload.billingPeriod ?? "") === billingPeriod;
+        });
+        if (existingInvoice) {
+          invoice = existingInvoice;
+        } else {
+          const subtotal = Number(contractPayload.amount ?? 0);
+          const taxRate = Number(contractPayload.taxRate ?? 15);
+          const taxAmount = Math.round(subtotal * taxRate / 100 * 100) / 100;
+          const total = Math.round((subtotal + taxAmount) * 100) / 100;
+          const invoicePayload = {
+            invoiceType: "standard",
+            invoiceStatus: "due",
+            lifecycleStatus: "due",
+            paymentStatus: "unpaid",
+            source: "contract_billing",
+            contractRecordId: contract.id,
+            contractNumber,
+            customerRecordId: customerId,
+            customerName: String(customerPayload.name ?? customerPayload.customerName ?? ""),
+            customerPhone: String(customerPayload.phone ?? customerPayload.mobile ?? ""),
+            customerTaxNumber: String(customerPayload.taxNumber ?? customerPayload.vatNumber ?? ""),
+            customerAddress: String(customerPayload.address ?? customerPayload.location ?? ""),
+            siteRecordId: siteId,
+            containerRecordId: assetId,
+            containerCode: String(contractPayload.containerCode ?? ""),
+            containerType: String(contractPayload.containerType ?? contractPayload.typeName ?? ""),
+            billingPeriod,
+            billingFrequency: String(contractPayload.billingFrequency ?? "monthly"),
+            startDate: contractPayload.startDate ?? billingPeriod,
+            endDate: contractPayload.endDate ?? billingPeriod,
+            amount: subtotal,
+            subtotal,
+            taxRate,
+            taxAmount,
+            total,
+            paid: 0,
+            remaining: total,
+            operationKey: invoiceOperationKey,
+            date: String(contractPayload.issueDate ?? now).slice(0, 10),
+            description: String(contractPayload.description ?? "خدمات الحاوية"),
+          };
+          const insertedInvoice = tx.insert(containerSystemRecordsTable).values({
+            kind: "invoice",
+            status: "draft",
+            reference: referenceFor("invoice", invoicePayload, Date.now()),
+            payload: JSON.stringify(invoicePayload),
+            operationKey: invoiceOperationKey,
+            createdBy: adminReq.adminId,
+          }).returning().get();
+          const invoiceNumber = generatedDocumentNumber("invoice", insertedInvoice.id);
+          invoice = tx.update(containerSystemRecordsTable).set({
+            reference: invoiceNumber,
+            payload: JSON.stringify({ ...invoicePayload, invoiceNumber, qrCodeData: JSON.stringify({ invoiceNumber, recordId: insertedInvoice.id, total, date: invoicePayload.date }) }),
+            updatedAt: now,
+          }).where(eq(containerSystemRecordsTable.id, insertedInvoice.id)).returning().get();
+          tx.insert(containerSystemAuditTable).values({
+            recordId: invoice.id,
+            kind: "invoice",
+            action: "automatic_contract_invoice_created",
+            afterPayload: invoice.payload,
+            actorId: adminReq.adminId,
+          }).run();
+        }
+      }
       for (const record of [finalizedContract, assignment, appointment]) {
         tx.insert(containerSystemAuditTable).values({ recordId: record.id, kind: record.kind, action: "workflow_create", afterPayload: record.payload, actorId: adminReq.adminId }).run();
       }
-      return { contract: finalizedContract, assignment, appointment, serviceRequest };
+      return { contract: finalizedContract, assignment, appointment, serviceRequest, invoice };
     });
-    return res.status(201).json({ contract: formatRecord(result.contract), assignment: formatRecord(result.assignment), appointment: formatRecord(result.appointment), serviceRequest: result.serviceRequest, idempotent: false });
+    return res.status(201).json({ contract: formatRecord(result.contract), assignment: formatRecord(result.assignment), appointment: formatRecord(result.appointment), serviceRequest: result.serviceRequest, invoice: result.invoice ? formatRecord(result.invoice) : null, idempotent: false });
   } catch (error) {
     return res.status(422).json({ error: error instanceof Error ? error.message : "تعذر إنشاء دورة العقد كاملة" });
   }
