@@ -13,28 +13,28 @@ logical_id = "2d4a7433-8698-4c44-9aa7-312b089d3a9c"
 id = "M455l1c0gprcp62URuZhP"
 uri = "file://sabaik-update.zip"
 type = "unspecified"
-title = "حزمة التحديث البرمجية الآمنة لـ Hostinger"
-description = "حزمة كود وأصول فقط لإصلاح احتساب الدفعات؛ لا تحتوي على data/ أو uploads/، ومصممة للرفع مع الحفاظ على قاعدة البيانات والملفات الحالية."
+title = "حزمة التحديث الآمنة بعد إصلاح تفاصيل الفاتورة"
+description = "الحزمة الموصى بها للنسخة الحية؛ تحتوي على الكود والأصول فقط ولا تستبدل data/ أو uploads/."
 logical_id = "dd2f77f0-5f7e-42ad-893d-b823952e1890"
-content_hash = "sha256:9577979972eb0ca84c542b92bfd5f1356fbd8e3777b49c238692de2997ed2255"
-size = 2339378
-mtime_ms = 1787547075103
-storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:4b4f4174-b0ea-4a4b-a977-8e6750b3d16e/dd2f77f0-5f7e-42ad-893d-b823952e1890/9531f0f4-99bc-472c-8a1d-d8cc3dff411c"
-storage_version_token = "1787547088035781"
+content_hash = "sha256:0fa1d288fa0359879092c7b7ba79f504f0efa7dfbc397c5bf8104d60d3253424"
+size = 2339543
+mtime_ms = 1787547533342
+storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:4b4f4174-b0ea-4a4b-a977-8e6750b3d16e/dd2f77f0-5f7e-42ad-893d-b823952e1890/80160591-ca3e-4e63-ab3b-96b3dd6d544f"
+storage_version_token = "1787547541940711"
 content_type = "application/octet-stream"
 
 [[outputs]]
 id = "e7Hwi4c_9VUpSkVoGq2Ul"
 uri = "file://cleanflow-services-hostinger.zip"
 type = "unspecified"
-title = "حزمة Hostinger بعد إصلاح احتساب الدفعات"
-description = "أرشيف الرفع الكامل بعد إصلاح احتساب الدفعات وتوحيد التوزيعات المنشورة ومنع تكرار الإيصالات المرتبطة، مع الواجهة ولوحة الإدارة وCleanFlow Platform وPHP API وقاعدة SQLite والأصول."
+title = "الأرشيف الكامل بعد إصلاح تفاصيل الفاتورة"
+description = "نسخة كاملة محدثة تشمل الواجهة العامة ولوحة الإدارة وCleanFlow Platform وPHP API وقاعدة SQLite والأصول."
 logical_id = "c612380d-19d8-4641-8c29-e5ac4a484245"
-content_hash = "sha256:8b993641ba7198d87e9d6a6b4a6f8bfc5fa1450bc75ef6d9df893c1c83a1e90e"
-size = 20652972
-mtime_ms = 1787547034510
-storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:4b4f4174-b0ea-4a4b-a977-8e6750b3d16e/c612380d-19d8-4641-8c29-e5ac4a484245/8d21cd18-2730-44da-a00a-0ed33a6e480d"
-storage_version_token = "1787547047385614"
+content_hash = "sha256:5bff2605240c729daa15129f85299c4b569ef10474138f69ff317d59c69a7a63"
+size = 20653231
+mtime_ms = 1787547521341
+storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:4b4f4174-b0ea-4a4b-a977-8e6750b3d16e/c612380d-19d8-4641-8c29-e5ac4a484245/a8994c35-bb2f-4594-8d23-2464ee4de7ef"
+storage_version_token = "1787547541337911"
 content_type = "application/octet-stream"
 
 [[outputs]]

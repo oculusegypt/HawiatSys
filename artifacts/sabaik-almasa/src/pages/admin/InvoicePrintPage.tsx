@@ -11,6 +11,14 @@ const money = (value: number) => `${value.toLocaleString("ar-SA", { minimumFract
 const payloadOf = (record?: ContainerSystemRecord) => (record?.payload ?? {}) as Record<string, unknown>
 const value = (input: unknown, fallback = "غير مسجل") => String(input ?? "").trim() || fallback
 const dateOnly = (input: unknown) => value(input, "—").slice(0, 10)
+const allocatedAmount = (record: ContainerSystemRecord, invoiceId: number) => {
+  const allocations = payloadOf(record).allocations
+  if (!Array.isArray(allocations)) return 0
+  return allocations.reduce((sum, entry) => {
+    const allocation = entry as Record<string, unknown>
+    return Number(allocation.invoiceId) === invoiceId ? sum + Number(allocation.amount ?? 0) : sum
+  }, 0)
+}
 
 function statusInfo(status: string, total: number, paid: number, dueDate: string) {
   if (status === "cancelled") return { label: "ملغاة", className: "border-rose-200 bg-rose-50 text-rose-800" }
@@ -40,8 +48,18 @@ export default function InvoicePrintPage() {
   const customer = records.find(item => item.kind === "customer" && item.id === Number(p.customerRecordId))
   const site = records.find(item => item.kind === "customer_site" && item.id === Number(p.siteRecordId))
   const container = records.find(item => ["container", "container_asset"].includes(item.kind) && item.id === Number(p.containerRecordId))
-  const payments = records.filter(item => item.kind === "payment" && item.status === "posted" && (Number(payloadOf(item).invoiceRecordId) === id || value(payloadOf(item).invoiceNumber, "") === value(p.invoiceNumber ?? record?.reference, "")))
-  const paid = payments.reduce((sum, item) => sum + Number(payloadOf(item).amount ?? payloadOf(item).total ?? 0), Number(p.paid ?? 0))
+  const payments = records.filter(item => {
+    if (item.kind !== "payment" || item.status !== "posted") return false
+    const payment = payloadOf(item)
+    return allocatedAmount(item, id) > 0 ||
+      Number(payment.invoiceRecordId) === id ||
+      value(payment.invoiceNumber, "") === value(p.invoiceNumber ?? record?.reference, "")
+  })
+  const paid = payments.reduce((sum, item) => {
+    const payment = payloadOf(item)
+    const allocated = allocatedAmount(item, id)
+    return sum + (allocated > 0 ? allocated : Number(payment.amount ?? 0))
+  }, 0)
   const subtotal = Number(p.subtotal ?? p.amount ?? 0)
   const tax = Number(p.taxAmount ?? 0)
   const total = Number(p.total ?? subtotal + tax)
