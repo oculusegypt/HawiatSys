@@ -794,6 +794,10 @@ export function RecordDialog({
       if (!initial.quantity) initial.quantity = "1"
       if (!initial.date) initial.date = new Date().toISOString().slice(0, 10)
     }
+    if (kind === "payment") {
+      if (!initial.date) initial.date = new Date().toISOString().slice(0, 10)
+      if (!initial.paymentMethod) initial.paymentMethod = "cash"
+    }
     for (const field of FIELD_CONFIG[kind]) {
       if (field.type === "date") initial[field.key] = dateInputValue(initial[field.key])
     }
@@ -1010,6 +1014,51 @@ export function RecordDialog({
       return {}
     }
   })()
+  const paymentInvoice = isCustomerPayment
+    ? records.find(item => {
+        if (item.kind !== "invoice" || item.status === "archived") return false
+        const invoicePayload = item.payload as Record<string, unknown>
+        return (payload.invoiceRecordId && String(item.id) === String(payload.invoiceRecordId)) ||
+          (String(invoicePayload.invoiceNumber ?? item.reference ?? "").trim() === String(payload.invoiceNumber ?? "").trim() &&
+            Boolean(String(payload.invoiceNumber ?? "").trim()))
+      })
+    : undefined
+  const paymentInvoicePayload = paymentInvoice?.payload as Record<string, unknown> | undefined
+  const paymentInvoiceContract = paymentInvoice
+    ? records.find(item => {
+        if (item.kind !== "contract" || item.status === "archived") return false
+        const contractPayload = item.payload as Record<string, unknown>
+        return (paymentInvoicePayload?.contractRecordId && Number(contractPayload.customerRecordId ?? 0) === Number(paymentInvoicePayload.customerRecordId ?? 0) &&
+          Number(item.id) === Number(paymentInvoicePayload.contractRecordId)) ||
+          (String(contractPayload.contractNumber ?? item.reference ?? "").trim() === String(paymentInvoicePayload?.contractNumber ?? "").trim() &&
+            Boolean(String(paymentInvoicePayload?.contractNumber ?? "").trim()))
+      })
+    : undefined
+  const paymentSubmitPayload = isCustomerPayment
+    ? (() => {
+        const ids = selectedPaymentContractIds.length
+          ? selectedPaymentContractIds
+          : paymentInvoiceContract?.id ? [String(paymentInvoiceContract.id)] : []
+        const existingAmounts = paymentAllocationAmounts
+        const amount = Number(payload.amount ?? 0)
+        const allocations = ids.map(id => ({
+          contractId: Number(id),
+          invoiceId: paymentInvoice?.id
+            ? Number(paymentInvoice.id)
+            : paymentAllocationInvoices[id] ? Number(paymentAllocationInvoices[id]) : null,
+          amount: ids.length === 1 ? amount : Number(existingAmounts[id] ?? 0),
+        })).filter(item => item.contractId > 0 && item.amount > 0)
+        return {
+          ...invoicePayload,
+          ...(paymentInvoiceContract ? {
+            contractRecordId: String(paymentInvoiceContract.id),
+            contractNumber: String((paymentInvoiceContract.payload as Record<string, unknown>).contractNumber ?? paymentInvoiceContract.reference ?? ""),
+          } : {}),
+          ...(paymentInvoice ? { invoiceRecordId: String(paymentInvoice.id) } : {}),
+          allocations,
+        }
+      })()
+    : invoicePayload
   const optionsFor = (key: string) => {
     if (kind === "container" && key === "status") return CONTAINER_STATUS_OPTIONS
     if (kind === "invoice" && key === "invoiceType") return INVOICE_TYPE_OPTIONS
@@ -1104,7 +1153,7 @@ export function RecordDialog({
              setFormError("سبب الإلغاء مطلوب قبل إلغاء الحركة المالية.")
              return
            }
-          onSubmit(invoicePayload, kind === "container" ? payload.status || status : status)
+           onSubmit(paymentSubmitPayload, kind === "container" ? payload.status || status : status)
         }} className="space-y-5 p-6">
           <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
             <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
@@ -1346,9 +1395,10 @@ export function RecordDialog({
                           return String(invoicePayload.contractNumber ?? "").trim() === contractNumber
                         })
                         const checked = selectedPaymentContractIds.includes(option.value)
-                        return (
-                          <label key={option.value} className={`flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5 transition ${checked ? "border-cyan-500 bg-white shadow-sm" : "border-slate-200 bg-white/70 hover:border-cyan-300"}`}>
+                          return (
+                           <div key={option.value} className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 transition ${checked ? "border-cyan-500 bg-white shadow-sm" : "border-slate-200 bg-white/70 hover:border-cyan-300"}`}>
                             <input
+                              id={`payment-contract-${option.value}`}
                               type="checkbox"
                               checked={checked}
                               onChange={event => {
@@ -1375,7 +1425,7 @@ export function RecordDialog({
                               data-testid={`checkbox-payment-contract-${option.value}`}
                             />
                             <span className="min-w-0 flex-1">
-                              <span className="block truncate text-xs font-black text-slate-800">{option.label}</span>
+                              <label htmlFor={`payment-contract-${option.value}`} className="block cursor-pointer truncate text-xs font-black text-slate-800">{option.label}</label>
                               <span className="mt-0.5 block text-[11px] text-slate-500">الإجمالي {Number.isFinite(total) ? total.toLocaleString("ar-SA") : "0"} ر.س · المتبقي <b className="text-amber-700">{Number.isFinite(remaining) ? remaining.toLocaleString("ar-SA") : "0"} ر.س</b></span>
                                {linkedInvoices.length > 0 && (
                                  <span className="mt-2 block space-y-1.5 text-[10px] text-cyan-900">
@@ -1396,7 +1446,7 @@ export function RecordDialog({
                                          className="accent-cyan-700"
                                        />
                                        <span>بدون فاتورة محددة</span>
-                                     </label>
+                                      </label>
                                      {linkedInvoices.map(invoice => {
                                        const invoicePayload = invoice.payload as Record<string, unknown>
                                        const invoiceNumber = String(invoicePayload.invoiceNumber ?? invoice.reference)
@@ -1427,7 +1477,7 @@ export function RecordDialog({
                                  <Input type="number" min="0.01" step="0.01" value={paymentAllocationAmounts[option.value] ?? ""} onChange={event => setPayload(current => ({ ...current, allocationAmounts: JSON.stringify({ ...paymentAllocationAmounts, [option.value]: event.target.value }) }))} onClick={event => event.stopPropagation()} className="mt-2 h-9 bg-white text-xs" placeholder="مبلغ التوزيع لهذا العقد" aria-label={`مبلغ التوزيع للعقد ${option.number}`} />
                                )}
                             </span>
-                          </label>
+                           </div>
                         )
                       })}
                     </div>

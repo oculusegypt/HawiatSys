@@ -186,6 +186,34 @@ function CustomerProfile({ record, records }: { record: ContainerSystemRecord; r
     })
   }
   const submitPayment = (payload: Record<string, unknown>) => {
+    if (Array.isArray(payload.allocations) && payload.allocations.length > 0) {
+      const operationKey = crypto.randomUUID()
+      setBusy(true)
+      void fetch(`${API_BASE}/api/admin/container-system/financial/settle`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("admin_token") ?? ""}`,
+          "Idempotency-Key": operationKey,
+        },
+        body: JSON.stringify({
+          ...payload,
+          customerRecordId: String(record.id),
+          customerName: name,
+          amount: Number(payload.amount ?? 0),
+          operationKey,
+        }),
+      }).then(async response => {
+        const body = await response.json().catch(() => ({}))
+        if (!response.ok) throw new Error(String(body.error ?? "تعذر تسجيل الدفعة"))
+        refreshProfile()
+        setAction(null)
+        toast({ title: body.idempotent ? "تم تأكيد الدفعة السابقة دون تكرارها" : "تم تسجيل الدفعة وتحديث كشف العميل" })
+      }).catch(error => {
+        toast({ title: error instanceof Error ? error.message : "تعذر تسجيل الدفعة", variant: "destructive" })
+      }).finally(() => setBusy(false))
+      return
+    }
     let ids: string[] = []
     let amounts: Record<string, string> = {}
     let invoices: Record<string, string> = {}

@@ -1090,13 +1090,28 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
         $amount = (float)($input['amount'] ?? 0);
         $methodName = trim((string)($input['paymentMethod'] ?? ''));
         $operationKey = trim((string)($_SERVER['HTTP_IDEMPOTENCY_KEY'] ?? $input['operationKey'] ?? ''));
+        $rows = array_map('hsRecord', hsFindRecords($pdo));
+        $requestedInvoiceId = (int)($input['invoiceId'] ?? $input['invoiceRecordId'] ?? 0);
+        $requestedInvoice = null;
+        foreach ($rows as $row) {
+            if ($row['kind'] !== 'invoice' || $row['status'] === 'archived') continue;
+            $invoiceNumber = trim((string)($row['payload']['invoiceNumber'] ?? $row['reference'] ?? ''));
+            if (($requestedInvoiceId > 0 && (int)$row['id'] === $requestedInvoiceId)
+                || ($requestedInvoiceId <= 0 && trim((string)($input['invoiceNumber'] ?? '')) !== ''
+                    && $invoiceNumber === trim((string)$input['invoiceNumber']))) {
+                $requestedInvoice = $row;
+                break;
+            }
+        }
+        $requestedInvoicePayload = $requestedInvoice['payload'] ?? [];
+        $requestedContractId = (int)($input['contractId'] ?? $requestedInvoicePayload['contractRecordId'] ?? 0);
         $requested = is_array($input['allocations'] ?? null) && count($input['allocations']) > 0
             ? $input['allocations']
-            : (isset($input['contractId']) ? [['contractId' => $input['contractId'], 'amount' => $amount, 'invoiceId' => $input['invoiceId'] ?? null]] : []);
+            : ($requestedContractId > 0 ? [['contractId' => $requestedContractId, 'amount' => $amount, 'invoiceId' => $requestedInvoice['id'] ?? $input['invoiceId'] ?? $input['invoiceRecordId'] ?? null]] : []);
         if ($amount <= 0 || $methodName === '' || strlen($operationKey) < 8 || strlen($operationKey) > 160 || count($requested) === 0) hsJson(['error' => 'بيانات التحصيل أو التوزيع غير صحيحة'], 422);
         $allocations = array_map(static fn(array $item): array => ['contractId' => (int)($item['contractId'] ?? 0), 'amount' => (float)($item['amount'] ?? 0), 'invoiceId' => isset($item['invoiceId']) && $item['invoiceId'] !== null ? (int)$item['invoiceId'] : null], $requested);
+        if ($requestedInvoice && count($allocations) === 1 && $allocations[0]['invoiceId'] === null) $allocations[0]['invoiceId'] = (int)$requestedInvoice['id'];
         if (abs(array_sum(array_column($allocations, 'amount')) - $amount) > 0.01 || count(array_unique(array_column($allocations, 'contractId'))) !== count($allocations) || array_filter($allocations, static fn(array $item): bool => $item['contractId'] <= 0 || $item['amount'] <= 0) !== []) hsJson(['error' => 'يجب أن يساوي مجموع التوزيعات مبلغ التحصيل دون تكرار العقود'], 422);
-        $rows = array_map('hsRecord', hsFindRecords($pdo));
         foreach ($rows as $row) {
             if ($row['kind'] === 'payment' && (string)($row['payload']['operationKey'] ?? '') === $operationKey) {
                 if ((float)($row['payload']['amount'] ?? 0) !== $amount || json_encode($row['payload']['allocations'] ?? [], JSON_UNESCAPED_UNICODE) !== json_encode($allocations, JSON_UNESCAPED_UNICODE)) hsJson(['error' => 'مفتاح العملية مستخدم لحمولة مختلفة'], 409);
@@ -1140,7 +1155,7 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
             if ($total > 0 && $paid + $allocation['amount'] > $total + 0.01) hsJson(['error' => 'قيمة التحصيل تتجاوز المتبقي في العقد'], 422);
             if ($allocation['invoiceId']) {
                 $invoice = null; foreach ($rows as $row) if ($row['kind'] === 'invoice' && (int)$row['id'] === $allocation['invoiceId']) $invoice = $row;
-                 if (!$invoice || $invoice['status'] !== 'posted' || ((int)($invoice['payload']['contractRecordId'] ?? 0) !== $allocation['contractId'] && (string)($invoice['payload']['contractNumber'] ?? '') !== $number)) hsJson(['error' => 'الفاتورة لا تتبع العقد المحدد أو غير مرحّلة'], 422);
+                  if (!$invoice || $invoice['status'] === 'archived' || ((int)($invoice['payload']['contractRecordId'] ?? 0) !== $allocation['contractId'] && (string)($invoice['payload']['contractNumber'] ?? '') !== $number)) hsJson(['error' => 'الفاتورة لا تتبع العقد المحدد'], 422);
                  $invoiceTotal = (float)($invoice['payload']['total'] ?? $invoice['payload']['amount'] ?? 0);
                  $invoicePaid = 0.0;
                  foreach (hsPostedCollections($rows) as $payment) {
@@ -1189,6 +1204,30 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
             foreach ($contractRows as $index => $item) {
                 $next = $item['contract']['payload']; $next['paid'] = $item['paid'] + $allocations[$index]['amount']; $next['remaining'] = max($item['total'] - $next['paid'], 0);
                 $pdo->prepare("UPDATE container_system_records SET payload=:payload,status=:status,updated_at=:updated_at WHERE id=:id")->execute([':payload' => json_encode($next, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE), ':status' => $next['remaining'] <= 0.01 && $item['total'] > 0 ? 'settled' : $item['contract']['status'], ':updated_at' => $now, ':id' => $item['contract']['id']]);
+                $invoiceId = (int)($allocations[$index]['invoiceId'] ?? 0);
+                if ($invoiceId > 0) {
+                    foreach ($rows as $invoice) {
+                        if ($invoice['kind'] !== 'invoice' || (int)$invoice['id'] !== $invoiceId || $invoice['status'] === 'archived') continue;
+                        $invoicePayload = $invoice['payload'];
+                        $invoiceTotal = (float)($invoicePayload['total'] ?? $invoicePayload['amount'] ?? 0);
+                        $invoicePaid = 0.0;
+                        foreach (hsPostedCollections($rows) as $payment) {
+                            foreach (($payment['payload']['allocations'] ?? []) as $existingAllocation) {
+                                if ((int)($existingAllocation['invoiceId'] ?? 0) === $invoiceId) $invoicePaid += (float)($existingAllocation['amount'] ?? 0);
+                            }
+                            if (!isset($payment['payload']['allocations']) && (int)($payment['payload']['invoiceRecordId'] ?? 0) === $invoiceId) $invoicePaid += (float)($payment['payload']['amount'] ?? 0);
+                        }
+                        $invoicePaid += $allocations[$index]['amount'];
+                        $invoiceRemaining = max($invoiceTotal - $invoicePaid, 0);
+                        $dueDate = (string)($invoicePayload['dueDate'] ?? $invoicePayload['date'] ?? '');
+                        $invoiceStatus = $invoiceRemaining <= 0.01 ? 'paid' : ($dueDate !== '' && strtotime($dueDate) < time() ? 'overdue' : ($invoicePaid > 0 ? 'partially_paid' : 'due'));
+                        $invoicePayload['paid'] = $invoicePaid;
+                        $invoicePayload['remaining'] = $invoiceRemaining;
+                        $invoicePayload['invoiceStatus'] = $invoiceStatus;
+                        $pdo->prepare("UPDATE container_system_records SET payload=:payload,status=:status,updated_at=:updated_at WHERE id=:id")->execute([':payload' => json_encode($invoicePayload, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE), ':status' => $invoiceStatus, ':updated_at' => $now, ':id' => $invoiceId]);
+                        break;
+                    }
+                }
             }
             if ($deposit) {
                 $depositPayload = $deposit['payload'];

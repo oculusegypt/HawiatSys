@@ -280,7 +280,7 @@ export function AdminToastPortal() {
   }, [])
 
   return (
-    <div className="fixed bottom-6 left-6 z-[200] flex flex-col gap-3 pointer-events-none">
+    <div className="fixed left-1/2 top-4 z-[200] flex -translate-x-1/2 flex-col gap-3 pointer-events-none">
       <AnimatePresence>
         {toasts.map(t => (
           <FloatingToast key={t.id} toast={t} onClose={() => removeToast(t.id)} />

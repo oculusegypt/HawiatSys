@@ -1057,7 +1057,8 @@ router.post("/admin/container-system/financial/settle", requireContainerPermissi
   const adminReq = req as unknown as AdminRequest;
   if (!canManage(adminReq, "payment")) return res.status(403).json({ error: "ليس لديك صلاحية تسجيل تحصيل العقود" });
   const body = req.body as {
-    contractId?: number; invoiceId?: number | null; amount?: number; paymentMethod?: string; operationKey?: string;
+    contractId?: number; invoiceId?: number | null; invoiceRecordId?: number | null; invoiceNumber?: string;
+    customerRecordId?: number | string | null; amount?: number; paymentMethod?: string; operationKey?: string;
     depositId?: number | null; date?: string; notes?: string;
     allocations?: Array<{ contractId?: number; amount?: number; invoiceId?: number | null }>;
   };
@@ -1067,15 +1068,25 @@ router.post("/admin/container-system/financial/settle", requireContainerPermissi
   if (!Number.isFinite(amount) || amount <= 0) return res.status(422).json({ error: "قيمة التحصيل يجب أن تكون أكبر من صفر" });
   if (!paymentMethod) return res.status(422).json({ error: "طريقة الدفع مطلوبة" });
   if (operationKey.length < 8 || operationKey.length > 160) return res.status(422).json({ error: "مفتاح العملية غير صالح" });
+  const allRecords = await db.select().from(containerSystemRecordsTable);
+  const requestedInvoiceId = Number(body.invoiceId ?? body.invoiceRecordId ?? 0) || null;
+  const requestedInvoice = requestedInvoiceId
+    ? allRecords.find(row => row.id === requestedInvoiceId && row.kind === "invoice" && row.status !== "archived")
+    : allRecords.find(row => row.kind === "invoice" && String(parsePayload(row.payload).invoiceNumber ?? row.reference).trim() === String(body.invoiceNumber ?? "").trim() && String(body.invoiceNumber ?? "").trim());
+  const requestedInvoicePayload = requestedInvoice ? parsePayload(requestedInvoice.payload) : null;
+  const requestedContractId = Number(body.contractId ?? requestedInvoicePayload?.contractRecordId ?? 0) || null;
   const requestedAllocations = Array.isArray(body.allocations) && body.allocations.length > 0
     ? body.allocations
-    : body.contractId ? [{ contractId: body.contractId, amount, invoiceId: body.invoiceId ?? null }] : [];
+    : requestedContractId ? [{ contractId: requestedContractId, amount, invoiceId: requestedInvoice?.id ?? body.invoiceId ?? body.invoiceRecordId ?? null }] : [];
   if (!requestedAllocations.length) return res.status(422).json({ error: "حدد عقداً واحداً على الأقل لتوزيع التحصيل" });
   const allocations = requestedAllocations.map(item => ({
     contractId: Number(item.contractId),
     amount: Number(item.amount),
     invoiceId: item.invoiceId == null ? null : Number(item.invoiceId),
   }));
+  if (requestedInvoice && allocations.length === 1 && allocations[0].invoiceId == null) {
+    allocations[0].invoiceId = requestedInvoice.id;
+  }
   if (allocations.some(item => !Number.isInteger(item.contractId) || item.contractId <= 0 || !Number.isFinite(item.amount) || item.amount <= 0)) {
     return res.status(422).json({ error: "توزيع التحصيل غير صحيح" });
   }
@@ -1098,11 +1109,8 @@ router.post("/admin/container-system/financial/settle", requireContainerPermissi
   try {
     const result = db.transaction((tx) => {
       const all = tx.select().from(containerSystemRecordsTable).all();
-      if (body.invoiceId == null && String((req.body as Record<string, unknown>).invoiceNumber ?? "").trim() && allocations.length === 1) {
-        const invoiceNumber = String((req.body as Record<string, unknown>).invoiceNumber).trim();
-        const invoice = all.find(row => row.kind === "invoice" && String(parsePayload(row.payload).invoiceNumber ?? row.reference).trim() === invoiceNumber);
-        if (!invoice) throw new Error("رقم الفاتورة غير موجود");
-        allocations[0].invoiceId = invoice.id;
+      if (allocations.length === 1 && allocations[0].invoiceId == null && requestedInvoice) {
+        allocations[0].invoiceId = requestedInvoice.id;
       }
       const collectionRows = postedCollections(all);
         const returnRows = all.filter(row => row.kind === "payment_return" && row.status === "posted");
@@ -1203,6 +1211,33 @@ router.post("/admin/container-system/financial/settle", requireContainerPermissi
         const nextStatus = Number.isFinite(item.total) && nextPaid >= item.total - 0.01 ? "settled" : item.contract.status;
         tx.update(containerSystemRecordsTable).set({ payload: JSON.stringify(nextContract), status: nextStatus, updatedAt: now })
           .where(eq(containerSystemRecordsTable.id, item.contract.id)).run();
+        if (item.invoiceId) {
+          const invoice = all.find(row => row.id === item.invoiceId && row.kind === "invoice" && row.status !== "archived");
+          if (invoice) {
+            const invoicePayload = parsePayload(invoice.payload);
+            const invoiceTotal = Number(invoicePayload.total ?? invoicePayload.amount ?? 0);
+            const invoicePaidBefore = collectionRows.reduce((sum, row) => {
+              const paymentPayload = parsePayload(row.payload);
+              const allocation = Array.isArray(paymentPayload.allocations)
+                ? paymentPayload.allocations.find((entry: unknown) => Number((entry as Record<string, unknown>).invoiceId) === invoice.id)
+                : Number(paymentPayload.invoiceRecordId ?? 0) === invoice.id ? { amount: paymentPayload.amount } : null;
+              return sum + Number((allocation as Record<string, unknown> | null)?.amount ?? 0);
+            }, 0);
+            const invoicePaid = invoicePaidBefore + item.amount;
+            const invoiceRemaining = Math.max(invoiceTotal - invoicePaid, 0);
+            const dueDate = String(invoicePayload.dueDate ?? invoicePayload.date ?? "");
+            const nextInvoiceStatus = invoiceRemaining <= 0.01
+              ? "paid"
+              : dueDate && Date.parse(dueDate) < Date.now()
+                ? "overdue"
+                : invoicePaid > 0 ? "partially_paid" : "due";
+            tx.update(containerSystemRecordsTable).set({
+              status: nextInvoiceStatus,
+              payload: JSON.stringify({ ...invoicePayload, paid: invoicePaid, remaining: invoiceRemaining, invoiceStatus: nextInvoiceStatus }),
+              updatedAt: now,
+            }).where(eq(containerSystemRecordsTable.id, invoice.id)).run();
+          }
+        }
       }
       tx.insert(containerSystemAuditTable).values([
         { recordId: payment.id, kind: "payment", action: "contract_settlement", afterPayload: payment.payload, actorId: adminReq.adminId },

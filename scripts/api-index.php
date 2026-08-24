@@ -4497,7 +4497,7 @@ try {
 
     if ($path === '/admin/work-orders' && $method === 'GET') {
         try {
-            $stmt = $pdo->query("SELECT r.*, a.name as assigned_driver_name FROM service_requests r LEFT JOIN admins a ON r.assigned_driver_id = a.id WHERE r.assigned_driver_id IS NOT NULL ORDER BY r.assigned_at DESC, r.created_at DESC");
+             $stmt = $pdo->query("SELECT r.*, a.name as assigned_driver_name FROM service_requests r LEFT JOIN admins a ON r.assigned_driver_id = a.id WHERE COALESCE(r.status, '') NOT IN ('cancelled', 'completed') ORDER BY r.assigned_at DESC, r.created_at DESC");
             $rows = $stmt->fetchAll();
             $formatted = array_map(function($r) {
                 return [

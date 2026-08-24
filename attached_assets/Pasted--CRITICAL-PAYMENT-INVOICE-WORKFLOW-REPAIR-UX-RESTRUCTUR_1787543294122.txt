@@ -1,0 +1,754 @@
+🚨 CRITICAL — PAYMENT & INVOICE WORKFLOW REPAIR / UX RESTRUCTURE
+الحالة الحالية
+
+النظام حاليًا يحتوي على خلل يمنع العمليات المالية الأساسية من العمل بشكل طبيعي.
+
+المشكلة ظهرت في نافذة:
+
+إضافة سداد العملاء
+
+رغم أن المستخدم قام فعليًا باختيار:
+
+العميل
+العقد
+الفاتورة
+المبلغ
+التاريخ
+طريقة الدفع
+
+ويتم عرض هذه البيانات داخل الواجهة، إلا أن النظام يعيد:
+
+اختر عقداً واحداً على الأقل وحدد مبلغ التوزيع
+
+وهذا يعني أن هناك عدم تطابق بين State الـUI والـPayload الفعلي المرسل إلى Backend أو أن طبقة الـvalidation تعتمد على بنية بيانات مختلفة عن التي تنتجها الواجهة.
+
+هذه المشكلة BLOCKER لأن المستخدم حاليًا لا يستطيع إكمال:
+
+Invoice → Payment
+
+ولا:
+
+Customer → Payment
+
+ولا إنشاء دورة مالية سليمة من واجهات السداد.
+
+1. أصلح مشكلة السداد من الجذر
+
+لا تقم بإخفاء رسالة الخطأ أو تغيير نصها.
+
+أريدك أن تتتبع العملية كاملة:
+
+Payment UI
+   ↓
+Form State
+   ↓
+Validation
+   ↓
+Payload
+   ↓
+API
+   ↓
+Backend Validation
+   ↓
+Payment Record
+   ↓
+Invoice Allocation
+   ↓
+Financial Transaction
+   ↓
+Journal Entry
+   ↓
+Financial Core
+
+واكتشف أين تضيع بيانات:
+
+Contract ID
+Invoice ID
+Allocation Amount / Distribution Amount
+Customer ID
+2. الحالة التي أمامك Acceptance Test
+
+استخدم الحالة الحالية كاختبار إلزامي.
+
+الواجهة تعرض:
+
+Customer
+
+شركة دار اعمار
+
+Contract
+
+العقد المرتبط
+
+الإجمالي:
+
+1,000 SAR
+
+المتبقي:
+
+1,000 SAR
+
+Invoice
+
+INV-2026-000438
+
+Payment Amount
+
+1,000 SAR
+
+لكن عند الحفظ يظهر:
+
+اختر عقداً واحداً على الأقل وحدد مبلغ التوزيع
+
+هذا غير مقبول.
+
+إذا كانت الفاتورة والعقد محددين بالفعل، يجب أن يقوم النظام تلقائيًا بإنشاء Allocation:
+
+Contract #435
+Invoice #438
+Allocation = 1000
+
+ولا يجب إجبار المستخدم على إدخال نفس المعلومة مرة أخرى.
+
+3. لا تعتمد على UI State فقط
+
+تأكد أن الـpayload الفعلي يحتوي على البيانات المطلوبة.
+
+مثلاً بشكل منطقي:
+
+customerId
+contractId
+invoiceId
+amount
+allocations[]
+
+ويجب أن تحتوي allocations على العقد والفاتورة والمبلغ الفعلي.
+
+لا أريد أن تكون الواجهة تعرض:
+
+شركة دار اعمار
+INV-2026-000438
+1,000 SAR
+
+بينما الـAPI يستقبل:
+
+contracts: []
+allocations: []
+
+هذا تحديدًا يجب فحصه وإصلاحه.
+
+4. وحّد كل نوافذ السداد
+
+هذه نقطة إلزامية.
+
+لا أريد إصلاح نافذة واحدة وترك بقية النظام بنفس المشكلة.
+
+ابحث عن جميع أماكن إنشاء السداد:
+
+من ملف العميل
+Customer → Payments → Add Payment
+من صفحة الفاتورة
+Invoice → Record Payment
+من صفحة العقد
+Contract → Payment
+من شاشة المدفوعات
+Payments → Add Payment
+من أي Quick Action / Dashboard
+
+وأي Modal أو Dialog أو Form آخر يستخدم نفس العملية.
+
+يجب أن تستخدم جميعها نفس Payment Form / Payment Domain Logic أو على الأقل نفس الـvalidation والـpayload contract.
+
+5. السداد من الفاتورة يجب أن يكون أسهل سيناريو
+
+إذا دخل المستخدم من:
+
+Invoice → تسجيل سداد
+
+فلا تسأله:
+
+اختر عقدًا
+
+لأن الفاتورة تعرف بالفعل:
+
+Invoice
+→ Customer
+→ Contract
+→ Container
+
+لذلك يجب أن يتم تعبئة:
+
+Customer = تلقائي
+Contract = تلقائي
+Invoice = تلقائي
+Outstanding Amount = تلقائي
+
+والمستخدم يدخل فقط:
+
+Amount
+Payment Method
+Date
+Reference / Notes
+
+ثم:
+
+تسجيل السداد
+
+6. السداد من العقد
+
+إذا دخل المستخدم من:
+
+Contract → إضافة سداد
+
+يجب أن يعرض النظام الفواتير المفتوحة لهذا العقد:
+
+Contract RNT-00435
+
+Invoices
+
+INV-2026-000438
+Total       1,000
+Paid            0
+Outstanding 1,000
+Status      Due
+
+ثم المستخدم يحدد:
+
+الفاتورة
+
+و:
+
+المبلغ
+
+ويتم إنشاء Allocation تلقائيًا.
+
+7. السداد من ملف العميل
+
+إذا دخل من:
+
+Customer → Add Payment
+
+اعرض:
+
+الفواتير المستحقة
+
+مثلاً:
+
+Invoice	Contract	Total	Paid	Outstanding
+INV-2026-000438	RNT-00435	1,000	0	1,000
+
+وعند اختيار الفاتورة:
+
+Customer → Contract → Invoice
+
+يتم الربط تلقائيًا.
+
+8. دعم السداد الجزئي
+
+يجب أن يعمل:
+
+Full Payment
+Invoice = 1000
+Payment = 1000
+
+Outstanding = 0
+Status = Paid
+Partial Payment
+Invoice = 1000
+Payment = 400
+
+Paid = 400
+Outstanding = 600
+Status = Partially Paid
+Second Payment
+Payment = 600
+
+Paid = 1000
+Outstanding = 0
+Status = Paid
+
+ولا يتم السماح بتجاوز الرصيد المستحق إلا إذا كان النظام المحاسبي الحالي يدعم ذلك صراحة.
+
+9. لا تجعل حالة الفاتورة Manual
+
+الحالة يجب أن تنتج من البيانات المالية:
+
+Total
+-
+Posted Payments
+=
+Outstanding
+
+وبناءً عليها:
+
+0 payments
+→ Due
+
+0 < paid < total
+→ Partially Paid
+
+paid >= total
+→ Paid
+
+due date passed + outstanding > 0
+→ Overdue
+
+مع احترام الـFinancial Core الحالي.
+
+10. Allocation هو أساس المشكلة
+
+راجع مفهوم:
+
+Payment Allocation / Distribution
+
+واجعله واضحًا في النظام.
+
+السداد يمكن أن يكون:
+
+Invoice Payment
+Payment
+  ↓
+Invoice Allocation
+  ↓
+Contract
+
+وإذا كان هناك أكثر من فاتورة:
+
+Payment 2000
+
+Invoice A → 1000
+Invoice B → 1000
+
+لكن إذا كانت فاتورة واحدة محددة:
+
+لا تطلب من المستخدم إدخال توزيع يدوي مرة أخرى.
+
+النظام ينشئه تلقائيًا.
+
+11. رسائل النجاح والفشل
+
+أريد توحيد جميع Toast / Notifications في النظام.
+
+لا تظهر الرسائل في:
+
+أسفل اليمين
+أعلى اليمين
+أماكن مختلفة حسب الصفحة
+
+أريد النظام بالكامل يستخدم:
+
+Top Center Notification
+
+في أعلى الشاشة بالمنتصف.
+
+Success
+
+مثلاً:
+
+✓ تم تسجيل السداد بنجاح
+تم تسجيل سداد بقيمة 1,000 ر.س على الفاتورة INV-2026-000438.
+
+Error
+
+✕ تعذر تسجيل السداد
+المبلغ يتجاوز الرصيد المستحق.
+
+Validation
+
+✕ البيانات غير مكتملة
+يرجى تحديد الفاتورة وإدخال مبلغ السداد.
+
+Server Error
+
+✕ تعذر تنفيذ العملية
+حدث خطأ أثناء الاتصال بالخادم. لم يتم إنشاء أي حركة مالية.
+
+12. ممنوع Duplicate Notifications
+
+لا أريد:
+
+Toast من Form
++
+Toast من API wrapper
++
+Toast من Page
+
+لنفس العملية.
+
+يجب أن يكون هناك Notification Manager مركزي.
+
+عملية واحدة = رسالة واحدة.
+
+13. إعادة هيكلة نافذة إنشاء الفاتورة
+
+النموذج الحالي ما زال غير مناسب للنظام.
+
+لا أريد المستخدم يدخل بيانات يعرفها النظام بالفعل.
+
+أريد Workflow:
+
+اختيار العميل
+      ↓
+عرض العقود المؤهلة للفوترة
+      ↓
+اختيار العقد
+      ↓
+تحميل بيانات العقد تلقائيًا
+      ↓
+تحميل الحاوية تلقائيًا
+      ↓
+تحميل السعر والفترة
+      ↓
+تكوين Invoice
+      ↓
+Preview
+      ↓
+Create Invoice
+14. اختيار العميل
+
+عند اختيار:
+
+شركة دار اعمار
+
+يجب تحميل تلقائيًا:
+
+بيانات العميل
+الاسم
+الجوال
+الرقم الضريبي
+العنوان
+المواقع
+العقود
+
+فقط العقود المناسبة للفاتورة.
+
+مثلاً:
+
+RNT-00435
+شركة دار اعمار
+الحاوية #CNT-102
+1,000 SAR
+شهري
+24/08/2026 → 30/08/2026
+15. اختيار العقد
+
+عند اختيار العقد:
+
+لا تجعل المستخدم يدخل:
+
+الحاوية
+السعر
+نوع الخدمة
+فترة الخدمة
+
+مرة أخرى.
+
+يجب أن تأتي من العقد.
+
+16. Invoice Items يجب أن تكون Containers
+
+هذه نقطة مهمة جدًا.
+
+Invoice Items ليست بنودًا نصية عامة.
+
+في هذا النظام:
+
+الحاوية هي الأصل المفوتر الأساسي.
+
+لذلك إذا كان العقد:
+
+Contract RNT-00435
+
+Container #CNT-102
+
+Container Type:
+10 Yard
+
+Monthly Price:
+1,000 SAR
+
+يجب أن تتحول تلقائيًا إلى Invoice Line:
+
+الحاوية #CNT-102
+نوع الحاوية: 10 Yard
+الفترة: أغسطس 2026
+الكمية: 1
+السعر: 1,000
+17. إذا كان العقد يحتوي أكثر من حاوية
+
+مثلاً:
+
+Contract RNT-00500
+
+Container #101 → 1000
+Container #102 → 1200
+Container #103 → 800
+
+الفاتورة تصبح:
+
+الحاوية	النوع	الفترة	السعر
+#101	10 Yard	أغسطس	1,000
+#102	20 Yard	أغسطس	1,200
+#103	5 Yard	أغسطس	800
+
+Subtotal:
+
+3,000
+
+VAT:
+
+450
+
+Total:
+
+3,450 SAR
+
+بدون إعادة إدخال هذه البيانات يدويًا.
+
+18. Invoice Creation يجب أن يكون سريعًا
+
+أريد UX:
+
+Step 1
+
+العميل
+
+Step 2
+
+العقد
+
+Step 3
+
+مراجعة الحاويات والفترة
+
+Step 4
+
+Preview
+
+Step 5
+
+إنشاء الفاتورة
+
+ولا أريد Form ضخم مليء بـ15 حقلًا.
+
+19. Existing Invoice Acceptance Test
+
+استخدم:
+
+Customer #433
+Contract #435
+Invoice #438
+Container #414
+
+كحالة اختبار.
+
+يجب أن تظهر العلاقة:
+
+Customer
+   ↓
+Contract
+   ↓
+Container
+   ↓
+Invoice
+   ↓
+Payment
+   ↓
+Financial Transaction
+   ↓
+Journal
+   ↓
+Financial Core
+20. الاختبارات الإلزامية بعد الإصلاح
+
+لا تكتفِ بـTypeScript.
+
+نفّذ:
+
+Payment
+Payment from Invoice
+Payment from Customer
+Payment from Contract
+Full Payment
+Partial Payment
+Second Payment
+Payment Idempotency
+Invoice Balance
+Invoice Status
+Invoice
+Create from Contract
+Create from Customer
+Container-based lines
+Multi-container invoice
+VAT
+Duplicate Invoice Prevention
+Invoice → Customer
+Invoice → Contract
+Invoice → Container
+Invoice → Payments
+UX
+Success Toast
+Error Toast
+Validation Toast
+No duplicate Toast
+Top Center position
+21. Regression Protection
+
+ممنوع أن يؤدي إصلاح السداد والفواتير إلى كسر ما تم اعتماده سابقًا.
+
+يجب إعادة تشغيل:
+
+Financial Core
+Double Entry
+Payment Idempotency
+Deposit Idempotency
+Bank Reconciliation
+Expense Reversal
+Refund Reversal
+Period Lock
+Bank Fee
+Other Revenue
+Purchase
+Commission
+Transfer
+Node/PHP parity
+
+والنتيجة يجب أن تظل:
+
+Debit = Credit
+22. Production Deployment
+
+بعد نجاح الاختبارات المحلية:
+
+Build
+↓
+Backup Production
+↓
+Deploy
+↓
+Verify SHA-256
+↓
+Health Check
+↓
+Login
+↓
+Live Invoice Test
+↓
+Live Payment Test
+↓
+Live Partial Payment
+↓
+Live Full Payment
+↓
+Verify Invoice Status
+↓
+Verify Customer Profile
+↓
+Verify Contract
+↓
+Verify Financial Core
+↓
+Verify Journal
+↓
+Verify Debit = Credit
+
+لا تعتبر المهمة مكتملة قبل الاختبار الحي.
+
+🚨 IMPORTANT
+
+لا تقم بعمل workaround مثل:
+
+"إذا فشل الـallocation تجاهل الخطأ."
+
+ولا:
+
+"غيّر رسالة الخطأ."
+
+ولا:
+
+"اعتبر السداد ناجحًا إذا تم إنشاء Payment فقط."
+
+هذا نظام مالي.
+
+يجب أن تكون:
+
+Payment + Allocation + Invoice + Financial Transaction + Journal
+
+متسقة مع بعضها.
+
+DEFINITION OF DONE
+
+لن أعتبر المهمة مكتملة إلا عندما أستطيع فعليًا:
+
+السيناريو 1
+Customer
+→ Contract
+→ Invoice
+→ Payment
+
+ويعمل بالكامل.
+
+السيناريو 2
+Invoice
+→ Record Payment
+→ 50% Payment
+→ Partially Paid
+
+ثم:
+
+Invoice
+→ Record Payment
+→ Remaining 50%
+→ Paid
+السيناريو 3
+Customer
+→ Add Payment
+→ Select Invoice
+→ Enter Amount
+→ Save
+
+ويعمل بدون:
+
+اختر عقداً واحداً على الأقل وحدد مبلغ التوزيع
+
+طالما العقد والفاتورة محددان بالفعل.
+
+السيناريو 4
+Customer
+→ Select Contract
+→ Invoice
+
+تُملأ بيانات الحاويات والأسعار والفترة تلقائيًا.
+
+السيناريو 5
+Contract
+→ 2 Containers
+→ Create Invoice
+
+تظهر الحاويتان كبنود Invoice حقيقية، كل واحدة بسعرها وتفاصيلها.
+
+🔴 الأمر النهائي
+
+لا تتوقف عند تشخيص المشكلة. أصلحها.
+
+افحص الـUI والـAPI والـvalidation والـallocation والـfinancial posting، ثم أصلح السبب الجذري.
+
+بعدها:
+
+Test → Build → Deploy → Live Test → Fix any discovered issue → Retest
+
+ولا تكتفِ بتقرير يقول:
+
+Build PASS
+
+أو:
+
+API PASS
+
+أريد أن تفتح النظام فعليًا وتنفذ:
+
+إنشاء فاتورة → تسجيل سداد جزئي → تسجيل السداد المتبقي → التأكد أن الفاتورة أصبحت مدفوعة → التأكد من ظهورها في العميل والعقد → التأكد من Financial Core → التأكد من Debit = Credit.
+
+والأهم: لا تحذف أو تستبدل بيانات الإنتاج الحالية، ولا تستبدل قاعدة الإنتاج بقاعدة محلية أثناء الـdeployment.
+
+هذه المهمة تعتبر BLOCKER حتى تعمل الفاتورة والسداد من جميع نقاط الدخول فعليًا.

@@ -25,3 +25,4 @@
 - [Request document action boundary](request-document-action-boundary.md) — test document buttons at their originating request page; destination-page fixes cannot remove a stale source redirect.
 - [Hostinger FTP upload compatibility](hostinger-ftp-upload-compatibility.md) — upload extraction must preserve Unicode paths and tolerate legacy encrypted FTP settings.
 - [Settlement selection identity](settlement-selection-identity.md) — payment validation must use selected contract IDs, not only display-number fields.
+- [Invoice payment auto-allocation](invoice-payment-auto-allocation.md) — a single invoice selection must resolve its contract allocation consistently in Node and Hostinger PHP.
