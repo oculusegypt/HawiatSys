@@ -1001,6 +1001,19 @@ export function RecordDialog({
     if (kind === "container" && key === "status") return CONTAINER_STATUS_OPTIONS
     if (kind === "invoice" && key === "invoiceType") return INVOICE_TYPE_OPTIONS
     if (kind === "invoice" && key === "paymentMethod") return PAYMENT_METHOD_OPTIONS
+    const employeeSelectionKeys = ["employeeName", "employeeRecordId", "driverName", "supervisorName", "staffName", "createdByName"]
+    if (employeeSelectionKeys.includes(key)) {
+      return records
+        .filter(item => ["employee", "driver"].includes(item.kind) && item.status !== "archived")
+        .map(item => {
+          const p = item.payload as Record<string, unknown>
+          const name = String(p.name ?? p.employeeName ?? p.driverName ?? item.reference ?? `موظف #${item.id}`)
+          return {
+            value: key.endsWith("RecordId") ? String(item.id) : name,
+            label: `${name}${p.phone ? ` · ${String(p.phone)}` : ""}`,
+          }
+        })
+    }
     if (isInvoice && key === "contractNumber") {
       return invoiceContracts.map(item => {
         const contractPayload = item.payload as Record<string, unknown>
