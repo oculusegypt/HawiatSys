@@ -27,14 +27,14 @@ content_type = "application/octet-stream"
 id = "e7Hwi4c_9VUpSkVoGq2Ul"
 uri = "file://cleanflow-services-hostinger.zip"
 type = "unspecified"
-title = "حزمة Hostinger النهائية — إصلاح ربط رقم الفاتورة"
-description = "أرشيف شامل محدث لنسخة Node وPHP، يحفظ رقم الفاتورة المرتبطة بالسداد ويستعيده تلقائيًا عند تعديل الدفعات القديمة."
+title = "حزمة Hostinger الكاملة — CleanFlow Services"
+description = "أرشيف كامل جاهز للاستخراج مباشرة داخل public_html، ويتضمن تعديلات نموذج العقود، PHP API، SQLite، الواجهة المجمعة، صفحات SEO، الأصول، وملفات Apache."
 logical_id = "c612380d-19d8-4641-8c29-e5ac4a484245"
-content_hash = "sha256:a6f4fdc697916d317c637fcc6e194705933248c967a78e53743c5e52a111ce93"
-size = 20653955
-mtime_ms = 1787549298449
-storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:0240d221-b4ec-4c0a-b734-0378244ae65e/c612380d-19d8-4641-8c29-e5ac4a484245/1b0f4208-5136-4685-a501-d561b8028455"
-storage_version_token = "1787549301758687"
+content_hash = "sha256:17cad2474c4f7fe0ce86808071a320282d8785cf4a61625c75f5ca3677375db9"
+size = 20662018
+mtime_ms = 1787555327680
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:8c28bfd9-88d5-4fb6-8e38-bca1f13c55e2/c612380d-19d8-4641-8c29-e5ac4a484245/848abe6f-807e-4179-8b8b-d86a7fffb825"
+storage_version_token = "1787555353927970"
 content_type = "application/octet-stream"
 
 [[outputs]]
