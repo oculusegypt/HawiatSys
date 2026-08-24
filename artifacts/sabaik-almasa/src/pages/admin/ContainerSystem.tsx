@@ -4,7 +4,7 @@ import { Link, useLocation } from "wouter"
 import {
   AlertCircle, Archive, ArrowDownLeft, ArrowLeftRight, ArrowUpRight, BellRing, BookOpenCheck, Box, CalendarDays, CarFront, CheckCircle2, CircleDollarSign,
   ChevronDown, ChevronLeft, ClipboardList, Coins, FileCheck2, FileDown, FilePenLine, FileText, FolderSearch, Gauge, HandCoins, Landmark, LayoutDashboard, ReceiptText, Trash2, Truck,
-  ExternalLink, Link2, Loader2, MapPin, Plus, RefreshCw, Search, Settings2, ShieldCheck, SlidersHorizontal, UserCog, UserRound, Users, WalletCards, Wrench, X,
+  ExternalLink, Link2, Loader2, MapPin, Plus, RefreshCw, Search, Settings2, ShieldCheck, SlidersHorizontal, UserCog, UserRound, Users, Wallet, WalletCards, Wrench, X,
 } from "lucide-react"
 import {
   getGetContainerSystemAuditQueryKey,
@@ -828,7 +828,8 @@ const DETAIL_LABELS: Record<string, string> = {
   sourceKind: "نوع السجل المصدر", sourceId: "رقم السجل المصدر", contractId: "العقد المرتبط",
   invoiceRecordId: "الفاتورة المرتبطة", invoiceNumber: "رقم الفاتورة", amount: "المبلغ",
   paymentMethod: "طريقة الدفع", direction: "اتجاه القيد", date: "التاريخ", allocations: "توزيعات السداد",
-  operationKey: "مفتاح العملية", source: "مصدر العملية",
+  operationKey: "مفتاح العملية", source: "مصدر العملية", customerEmail: "البريد الإلكتروني", customerAddress: "عنوان العميل",
+  contractRecordId: "العقد المرتبط",
 }
 
 function detailLabel(key: string) {
@@ -853,6 +854,7 @@ function RecordDetails({ record, allRecords, serviceRequests = [], open, onOpenC
   const [, navigate] = useLocation()
   if (!record) return null
   const isContainer = ["container", "container_asset"].includes(record.kind)
+  const isPaymentRecord = ["payment", "receipt", "payment_return", "ledger_entry"].includes(record.kind)
   const sourcePayment = record.kind === "ledger_entry"
     ? allRecords.find(item => item.kind === "payment" && item.id === Number(record.payload.sourceId ?? 0))
     : undefined
@@ -1030,10 +1032,35 @@ function RecordDetails({ record, allRecords, serviceRequests = [], open, onOpenC
             </div>
           </div>
         )}
-        <div className="grid gap-3 sm:grid-cols-2">
+         {isPaymentRecord && <div className="mb-4 rounded-2xl border border-emerald-100 bg-gradient-to-l from-emerald-50 to-white p-4">
+           <div className="flex items-start justify-between gap-3">
+             <div><p className="text-xs font-bold text-emerald-700">السجل المالي</p><h3 className="mt-1 text-lg font-black text-slate-900">سداد العملاء</h3><p className="mt-1 text-xs text-slate-500">بيانات الدفع والربط المالي بشكل واضح وقابل للمراجعة.</p></div>
+             <Wallet className="text-emerald-700" size={24} />
+           </div>
+           <div className="mt-4 grid gap-3 sm:grid-cols-4">
+             <div className="rounded-xl bg-white p-3"><p className="text-[10px] font-bold text-slate-400">رقم السجل</p><p className="mt-1 font-mono text-xs font-black text-slate-800" dir="ltr">{record.reference || `PAY-${record.id}`}</p></div>
+             <div className="rounded-xl bg-white p-3"><p className="text-[10px] font-bold text-slate-400">العميل</p><p className="mt-1 text-sm font-black text-slate-800">{String(detailPayload.customerName ?? "غير محدد")}</p></div>
+             <div className="rounded-xl bg-white p-3"><p className="text-[10px] font-bold text-slate-400">المبلغ</p><p className="mt-1 text-sm font-black text-emerald-700">{Number(detailPayload.amount ?? 0).toLocaleString("ar-SA")} ر.س</p></div>
+             <div className="rounded-xl bg-white p-3"><p className="text-[10px] font-bold text-slate-400">الحالة</p><div className="mt-1"><RecordStatus status={String(record.payload.status ?? record.status)} /></div></div>
+           </div>
+         </div>}
+         <div className="grid gap-3 sm:grid-cols-2">
             {!isContainer && <div className="rounded-xl bg-slate-50 p-3"><p className="text-[11px] text-slate-500">الحالة</p><div className="mt-1"><RecordStatus status={String(record.payload.status ?? record.status)} /></div></div>}
-          {displayEntries.map(([label, value]) => <div key={label} className="rounded-xl border border-slate-100 bg-white p-3"><p className="text-[11px] text-slate-500">{label}</p><p className="mt-1 break-words text-sm font-bold text-slate-800">{value}</p></div>)}
+           {!isPaymentRecord && displayEntries.map(([label, value]) => <div key={label} className="rounded-xl border border-slate-100 bg-white p-3"><p className="text-[11px] text-slate-500">{label}</p><p className="mt-1 break-words text-sm font-bold text-slate-800">{value}</p></div>)}
         </div>
+         {isPaymentRecord && <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
+           <h4 className="mb-3 text-sm font-black text-slate-900">تفاصيل السداد</h4>
+           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+             {([
+               ["اسم العميل", detailPayload.customerName],
+               ["جوال العميل", detailPayload.customerPhone],
+               ["رقم العقد", detailPayload.contractNumber],
+               ["رقم الفاتورة", detailPayload.invoiceNumber],
+               ["طريقة الدفع", detailPayload.paymentMethod === "cash" ? "نقدي" : detailPayload.paymentMethod === "card" ? "بطاقة / شبكة" : detailPayload.paymentMethod === "bank_transfer" ? "تحويل بنكي" : detailPayload.paymentMethod],
+               ["تاريخ السداد", detailPayload.date],
+              ] as Array<[string, unknown]>).filter(([, value]) => value !== undefined && value !== null && String(value).trim()).map(([label, value]) => <div key={label} className="rounded-xl border border-slate-200 bg-white p-3"><p className="text-[10px] font-bold text-slate-400">{label}</p><p className="mt-1 break-words text-sm font-bold text-slate-800">{String(value)}</p></div>)}
+           </div>
+         </div>}
         {isContainer && <div className="mt-2 flex justify-end border-t border-slate-100 pt-4"><Button onClick={() => { onOpenChange(false); navigate(`/admin/container-system/profile/container/${record.id}`) }} className="gap-2 bg-cyan-800 hover:bg-cyan-900"><Box size={15} /> فتح ملف الحاوية الكامل</Button></div>}
           {record.kind === "customer" && <div className="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4"><h4 className="mb-3 text-sm font-black text-emerald-950">ملف العميل وكشف الحساب</h4><div className="grid grid-cols-2 gap-2 sm:grid-cols-5"><div className="rounded-xl bg-white p-3"><p className="text-[10px] text-slate-500">العقود</p><p className="mt-1 text-lg font-black text-slate-900">{customerContracts.length}</p></div><div className="rounded-xl bg-white p-3"><p className="text-[10px] text-slate-500">إجمالي المطالبات</p><p className="mt-1 text-lg font-black text-slate-900">{customerCharges.toLocaleString("ar-SA")} ر.س</p></div><div className="rounded-xl bg-white p-3"><p className="text-[10px] text-slate-500">المدفوع</p><p className="mt-1 text-lg font-black text-emerald-700">{customerPayments.toLocaleString("ar-SA")} ر.س</p></div><div className="rounded-xl bg-white p-3"><p className="text-[10px] text-slate-500">تكلفة التشغيل</p><p className="mt-1 text-lg font-black text-amber-700">{customerExpenses.toLocaleString("ar-SA")} ر.س</p></div><div className="rounded-xl bg-white p-3"><p className="text-[10px] text-slate-500">ربحية العملية</p><p className={`mt-1 text-lg font-black ${customerProfit >= 0 ? "text-emerald-700" : "text-rose-700"}`}>{customerProfit.toLocaleString("ar-SA")} ر.س</p></div></div><div className="mt-3 rounded-xl bg-white px-3 py-2 text-sm font-black text-rose-700">الرصيد المستحق: {Math.max(customerCharges - customerPayments, 0).toLocaleString("ar-SA")} ر.س</div></div>}
            {record.kind === "contract" && <div className="mt-5 space-y-4">

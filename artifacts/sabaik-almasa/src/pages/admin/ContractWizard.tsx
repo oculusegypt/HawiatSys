@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react"
 import type { ContainerSystemRecord } from "@workspace/api-client-react"
-import { ArrowLeft, ArrowRight, CheckCircle2, FileCheck2, Plus, ShieldCheck, Trash2 } from "lucide-react"
+import { ArrowLeft, ArrowRight, CheckCircle2, FileCheck2, LocateFixed, MapPin, Plus, ShieldCheck, Trash2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { getHighAccuracyPosition, reverseGeocode } from "@/lib/reverseGeocode"
 
 type ContractWizardProps = {
   open: boolean
@@ -49,6 +50,8 @@ type FormState = {
   serviceType: string
   containerSize: string
   location: string
+  locationCoordinates: string
+  locationMode: "manual" | "map"
   duration: string
   tripDuration: string
   contractType: string
@@ -91,6 +94,8 @@ const initialForm: FormState = {
   serviceType: "",
   containerSize: "",
   location: "",
+  locationCoordinates: "",
+  locationMode: "manual",
   duration: "",
   tripDuration: "",
   contractType: "أنقاض",
@@ -136,11 +141,15 @@ export function ContractWizard({ open, records, initialCustomerId = null, initia
   const [step, setStep] = useState(0)
   const [form, setForm] = useState<FormState>(initialForm)
   const [error, setError] = useState("")
+  const [locating, setLocating] = useState(false)
+  const [priceConfirmed, setPriceConfirmed] = useState(false)
 
   useEffect(() => {
     if (!open) return
     setStep(0)
     setError("")
+    setLocating(false)
+    setPriceConfirmed(false)
     const requestCustomer = initialRequest
       ? records.find(record => {
           if (record.kind !== "customer" || record.status === "archived") return false
@@ -206,6 +215,19 @@ export function ContractWizard({ open, records, initialCustomerId = null, initia
   const container = containers.find(record => String(record.id) === form.containerRecordId)
   const customerPayload = customer ? payloadOf(customer) : undefined
   const containerPayload = container ? payloadOf(container) : undefined
+  const containerCategory = String(containerPayload?.category ?? containerPayload?.classification ?? containerPayload?.categoryName ?? "")
+  const containerSize = String(containerPayload?.size ?? containerPayload?.containerSize ?? containerPayload?.capacity ?? containerPayload?.typeName ?? "")
+  const categoryOptions = Array.from(new Set([
+    "أنقاض",
+    "نفايات",
+    ...records.filter(record => ["category", "category_size", "container", "container_asset"].includes(record.kind))
+      .flatMap(record => {
+        const payload = payloadOf(record)
+        return [payload.name, payload.category, payload.categoryName, payload.classification]
+      })
+      .map(value => String(value ?? "").trim())
+      .filter(value => value && /أنقاض|نفايات/i.test(value)),
+  ]))
   const amount = Number(form.amount || 0)
   const taxRate = Number(form.taxRate || 0)
   const taxInclusive = form.taxInclusive === "true"
@@ -219,17 +241,66 @@ export function ContractWizard({ open, records, initialCustomerId = null, initia
 
   const update = (key: keyof FormState, value: string) => {
     setError("")
+    if (key === "unitPrice" || key === "trips") setPriceConfirmed(false)
     setForm(current => ({ ...current, [key]: value, ...(key === "customerRecordId" ? { siteRecordId: "" } : {}) }))
+  }
+
+  const selectContainer = (value: string) => {
+    const selected = containers.find(record => String(record.id) === value)
+    const selectedPayload = selected ? payloadOf(selected) : {}
+    const selectedCategory = String(selectedPayload.category ?? selectedPayload.classification ?? selectedPayload.categoryName ?? "")
+    const selectedSize = String(selectedPayload.size ?? selectedPayload.containerSize ?? selectedPayload.capacity ?? selectedPayload.typeName ?? "")
+    setError("")
+    setForm(current => ({
+      ...current,
+      containerRecordId: value,
+      classification: selectedCategory || current.classification,
+      containerSize: selectedSize,
+    }))
+  }
+
+  const chooseMapLocation = async () => {
+    setLocating(true)
+    setError("")
+    try {
+      const position = await getHighAccuracyPosition()
+      const coordinates = `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`
+      const address = await reverseGeocode(position.coords.latitude, position.coords.longitude)
+      setForm(current => ({
+        ...current,
+        locationMode: "map",
+        locationCoordinates: coordinates,
+        location: address.full || coordinates,
+        propertyNumber: "",
+        planNumber: "",
+      }))
+    } catch {
+      setError("تعذر تحديد الموقع من الخريطة. اسمح بالوصول إلى الموقع أو أدخل العنوان يدويًا.")
+    } finally {
+      setLocating(false)
+    }
+  }
+
+  const calculatePricing = () => {
+    const trips = Number(form.trips || 0)
+    const unitPrice = Number(form.unitPrice || 0)
+    if (!form.unitPrice || unitPrice < 0 || trips <= 0) {
+      setError("أدخل عدد الرحلات وسعر الرحلة أولاً لاحتساب قيمة التعاقد.")
+      return
+    }
+    setForm(current => ({ ...current, amount: String(Math.round(trips * unitPrice * 100) / 100) }))
+    setPriceConfirmed(true)
+    setError("")
   }
 
   const validateStep = (targetStep = step) => {
     if (targetStep === 0 && !customer) return "اختر عميلاً مسجلاً قبل المتابعة"
-    if (targetStep === 1 && !site) return "اختر موقع العميل قبل المتابعة"
+    if (targetStep === 1 && !form.location.trim()) return "أدخل الموقع يدويًا أو حدده من الخريطة"
     if (targetStep === 1 && !container) return "اختر أصلاً متاحاً للتخصيص قبل المتابعة"
     if (targetStep === 1 && !form.startDate) return "تاريخ بداية العقد مطلوب"
     if (targetStep === 1 && !form.endDate) return "تاريخ نهاية العقد مطلوب"
     if (targetStep === 1 && form.endDate < form.startDate) return "نهاية العقد يجب أن تكون بعد بدايته"
-    if (targetStep === 2 && (!form.amount || amount <= 0)) return "أدخل قيمة العقد قبل المتابعة"
+    if (targetStep === 2 && form.unitPrice && !priceConfirmed) return "اضغط «إضافة السعر واحتساب القيمة» لتأكيد السعر"
     if (targetStep === 3 && !form.appointmentDate) return "حدد موعد العملية الأولى قبل المتابعة"
     return ""
   }
@@ -283,6 +354,8 @@ export function ContractWizard({ open, records, initialCustomerId = null, initia
        unitPrice: form.unitPrice ? Number(form.unitPrice) : null,
        contractTerms: form.clauses.filter(Boolean),
        location: form.location.trim() || String(site ? payloadOf(site).address ?? "" : ""),
+       locationCoordinates: form.locationCoordinates,
+       locationMode: form.locationMode,
        serviceType: form.serviceType,
        containerSize: form.containerSize,
        duration: form.duration,
@@ -325,14 +398,13 @@ export function ContractWizard({ open, records, initialCustomerId = null, initia
                <div><h3 className="font-black text-slate-900">بيانات العقد والتخصيص</h3><p className="mt-1 text-sm text-slate-500">لا يمكن إصدار عقد تشغيلي دون موقع عميل وأصل متاح وفترة واضحة.</p></div>
                {initialRequest && <div className="rounded-2xl border border-indigo-100 bg-indigo-50/70 p-4 text-xs leading-6 text-indigo-950"><div className="mb-2 font-black">بيانات الطلب المحملة تلقائياً</div><div className="grid gap-x-4 sm:grid-cols-2"><span>العميل: <b>{initialRequest.clientName}</b></span><span>الجوال: <b dir="ltr">{initialRequest.phone}</b></span><span>الخدمة: <b>{initialRequest.serviceType}</b></span><span>الحاوية المطلوبة: <b>{initialRequest.containerSize || "غير محدد"}</b></span><span className="sm:col-span-2">العنوان: <b>{initialRequest.location}</b></span>{initialRequest.duration && <span>المدة: <b>{initialRequest.duration}</b></span>}{initialRequest.notes && <span className="sm:col-span-2">الملاحظات: <b>{initialRequest.notes}</b></span>}</div></div>}
                <div className="grid gap-4 sm:grid-cols-2">
-                 <div><Label htmlFor="contract-type">نوع العقد</Label><select id="contract-type" value={form.contractType} onChange={event => update("contractType", event.target.value)} className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm"><option value="أنقاض">أنقاض</option><option value="تأجير حاوية">تأجير حاوية</option><option value="نقل مخلفات">نقل مخلفات</option></select></div>
+                  <div><Label htmlFor="contract-type">نوع العقد</Label><select id="contract-type" value={form.contractType} onChange={event => update("contractType", event.target.value)} className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm"><option value="نفايات">نفايات</option><option value="أنقاض">أنقاض</option></select></div>
                 <div><Label htmlFor="contract-number">رقم العقد</Label><Input id="contract-number" value={form.contractNumber} onChange={event => update("contractNumber", event.target.value)} placeholder="سيولد تلقائياً عند الحفظ" className="mt-2" dir="ltr" /><p className="mt-1 text-[11px] text-slate-500">اتركه فارغاً ليولد النظام رقماً فريداً تلقائياً.</p></div>
-                <div><Label htmlFor="contract-container">الأصل المتاح</Label><select id="contract-container" value={form.containerRecordId} onChange={event => update("containerRecordId", event.target.value)} className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm"><option value="">اختر الأصل</option>{containers.map(record => <option key={record.id} value={record.id}>{labelOf(record)} · {String(payloadOf(record).typeName ?? "نوع غير محدد")}</option>)}</select></div>
-                 <div><Label htmlFor="contract-site">موقع العميل</Label><select id="contract-site" value={form.siteRecordId} onChange={event => update("siteRecordId", event.target.value)} className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm"><option value="">{sites.length ? "اختر موقع العميل" : "لا توجد مواقع لهذا العميل"}</option>{sites.map(record => <option key={record.id} value={record.id}>{labelOf(record)} · {String(payloadOf(record).address ?? "")}</option>)}</select></div>
-                 <div><Label htmlFor="contract-property-number">رقم القطعة</Label><Input id="contract-property-number" value={form.propertyNumber} onChange={event => update("propertyNumber", event.target.value)} placeholder="رقم القطعة" className="mt-2" /></div>
-                 <div><Label htmlFor="contract-plan-number">رقم المخطط</Label><Input id="contract-plan-number" value={form.planNumber} onChange={event => update("planNumber", event.target.value)} placeholder="رقم المخطط" className="mt-2" /></div>
-                 <div><Label htmlFor="contract-classification">التصنيف</Label><Input id="contract-classification" value={form.classification} onChange={event => update("classification", event.target.value)} placeholder="برجاء اختر التصنيف" className="mt-2" /></div>
-                 <div><Label htmlFor="contract-size">حجم الحاوية</Label><Input id="contract-size" value={form.containerSize} onChange={event => update("containerSize", event.target.value)} placeholder="برجاء اختر الحجم" className="mt-2" /></div>
+                 <div><Label htmlFor="contract-container">أصل الحاوية</Label><select id="contract-container" value={form.containerRecordId} onChange={event => selectContainer(event.target.value)} className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm"><option value="">اختر الأصل</option>{containers.map(record => <option key={record.id} value={record.id}>{labelOf(record)} · {String(payloadOf(record).typeName ?? payloadOf(record).size ?? "نوع غير محدد")}</option>)}</select></div>
+                  <div className="sm:col-span-2"><Label htmlFor="contract-location">الموقع</Label><div className="mt-2 flex flex-col gap-2 sm:flex-row"><Input id="contract-location" value={form.location} onChange={event => setForm(current => ({ ...current, location: event.target.value, locationMode: "manual", locationCoordinates: "" }))} placeholder="أدخل العنوان يدويًا" className="flex-1" /><Button type="button" variant="outline" onClick={() => void chooseMapLocation()} disabled={locating} className="gap-2 border-cyan-200 text-cyan-800">{locating ? "جارٍ التحديد..." : <><MapPin size={16} /> تحديد من الخريطة</>}</Button></div>{form.locationMode === "map" && <p className="mt-1 flex items-center gap-1 text-[11px] font-bold text-emerald-700"><LocateFixed size={13} /> تم تحديد الموقع بالإحداثيات: {form.locationCoordinates}</p>}</div>
+                  {form.locationMode === "manual" && <><div><Label htmlFor="contract-site">موقع العميل المسجل</Label><select id="contract-site" value={form.siteRecordId} onChange={event => update("siteRecordId", event.target.value)} className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm"><option value="">{sites.length ? "اختر موقع العميل" : "لا توجد مواقع لهذا العميل"}</option>{sites.map(record => <option key={record.id} value={record.id}>{labelOf(record)} · {String(payloadOf(record).address ?? "")}</option>)}</select></div><div><Label htmlFor="contract-property-number">رقم القطعة</Label><Input id="contract-property-number" value={form.propertyNumber} onChange={event => update("propertyNumber", event.target.value)} placeholder="رقم القطعة" className="mt-2" /></div><div><Label htmlFor="contract-plan-number">رقم المخطط</Label><Input id="contract-plan-number" value={form.planNumber} onChange={event => update("planNumber", event.target.value)} placeholder="رقم المخطط" className="mt-2" /></div></>}
+                  <div><Label htmlFor="contract-classification">التصنيف</Label><select id="contract-classification" value={form.classification || containerCategory} onChange={event => update("classification", event.target.value)} className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm"><option value="">اختر التصنيف</option>{categoryOptions.map(option => <option key={option} value={option}>{option}</option>)}</select></div>
+                  <div><Label htmlFor="contract-size">حجم الحاوية</Label><Input id="contract-size" value={form.containerSize || containerSize} readOnly placeholder="يُحدد تلقائيًا من الأصل" className="mt-2 bg-slate-50" /></div>
                  <div><Label htmlFor="contract-trips">عدد الرحلات</Label><Input id="contract-trips" type="number" min="0" value={form.trips} onChange={event => update("trips", event.target.value)} placeholder="عدد الرحلات" className="mt-2" dir="ltr" /></div>
                  <div className="sm:col-span-2"><Label htmlFor="contract-location">العنوان</Label><Input id="contract-location" value={form.location} onChange={event => update("location", event.target.value)} placeholder="ادخل العنوان الأول" className="mt-2" /></div>
                  <div><Label htmlFor="contract-trip-duration">مدة الرحلة</Label><Input id="contract-trip-duration" value={form.tripDuration} onChange={event => update("tripDuration", event.target.value)} placeholder="مثال: 3 ساعات" className="mt-2" /></div>
@@ -345,11 +417,11 @@ export function ContractWizard({ open, records, initialCustomerId = null, initia
 
             {step === 2 && <section className="space-y-4">
               <div><h3 className="font-black text-slate-900">التسعير والضريبة</h3><p className="mt-1 text-sm text-slate-500">أدخل القيمة الأساسية، وسيحسب النظام الضريبة والإجمالي تلقائيًا.</p></div>
-               <div className="grid gap-4 sm:grid-cols-4"><div><Label htmlFor="contract-unit-price">السعر</Label><Input id="contract-unit-price" type="number" min="0" value={form.unitPrice} onChange={event => update("unitPrice", event.target.value)} className="mt-2" dir="ltr" placeholder="0" /></div><div><Label htmlFor="contract-amount">قيمة التعاقد</Label><Input id="contract-amount" type="number" min="0" value={form.amount} onChange={event => update("amount", event.target.value)} className="mt-2" dir="ltr" placeholder="0" /><p className="mt-1 text-[11px] text-slate-500">{taxInclusive ? "شاملة الضريبة" : "قبل الضريبة"}</p></div><div><Label htmlFor="contract-tax">نسبة الضريبة %</Label><Input id="contract-tax" type="number" min="0" value={form.taxRate} onChange={event => update("taxRate", event.target.value)} className="mt-2" dir="ltr" /></div><div><Label htmlFor="contract-tax-inclusive">هل السعر شامل الضريبة؟</Label><select id="contract-tax-inclusive" value={form.taxInclusive} onChange={event => update("taxInclusive", event.target.value)} className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm"><option value="false">لا، قبل الضريبة</option><option value="true">نعم، شامل الضريبة</option></select></div></div>
+                <div className="grid gap-4 sm:grid-cols-3"><div><Label htmlFor="contract-unit-price">سعر الرحلة (اختياري)</Label><Input id="contract-unit-price" type="number" min="0" value={form.unitPrice} onChange={event => update("unitPrice", event.target.value)} className="mt-2" dir="ltr" placeholder="0" /><p className="mt-1 text-[11px] text-slate-500">يُحتسب مقابل كل رحلة / رد</p></div><div><Label htmlFor="contract-amount">قيمة التعاقد</Label><Input id="contract-amount" value={form.amount || "0"} readOnly className="mt-2 bg-slate-50 font-black" dir="ltr" /><p className="mt-1 text-[11px] text-slate-500">عدد الرحلات × سعر الرحلة</p></div><div><Label htmlFor="contract-tax">نسبة الضريبة %</Label><Input id="contract-tax" type="number" min="0" value={form.taxRate} onChange={event => update("taxRate", event.target.value)} className="mt-2" dir="ltr" /></div></div>
                <div className="grid grid-cols-3 gap-3 rounded-2xl bg-slate-50 p-4 text-center"><div><p className="text-xs text-slate-500">قبل الضريبة</p><b className="mt-1 block text-lg text-slate-900">{netAmount.toLocaleString("ar-SA")} ر.س</b></div><div><p className="text-xs text-slate-500">الضريبة</p><b className="mt-1 block text-lg text-amber-700">{taxAmount.toLocaleString("ar-SA")} ر.س</b></div><div><p className="text-xs text-slate-500">الإجمالي</p><b className="mt-1 block text-lg text-emerald-700">{total.toLocaleString("ar-SA")} ر.س</b></div></div>
                <div><Label htmlFor="contract-notes">ملاحظات</Label><textarea id="contract-notes" value={form.notes} onChange={event => update("notes", event.target.value)} rows={3} className="mt-2 w-full rounded-lg border border-slate-200 p-3 text-sm outline-none focus:border-cyan-600" placeholder="شروط التسليم أو الاستثناءات..." /></div>
                <div className="rounded-2xl border border-amber-100 bg-amber-50/60 p-4"><div><h4 className="font-black text-slate-900">بنود العقد</h4><p className="mt-1 text-xs text-slate-600">البنود الموجودة محفوظة تلقائياً، ويمكنك إضافة أي بند خاص بالعقد.</p></div><ol className="mt-3 space-y-2 pr-5 text-sm leading-6">{form.clauses.map((clause, index) => <li key={`${clause}-${index}`} className="flex items-start gap-2"><span className="flex-1">{clause}</span><button type="button" onClick={() => setForm(current => ({ ...current, clauses: current.clauses.filter((_, clauseIndex) => clauseIndex !== index) }))} className="mt-1 text-rose-600 hover:text-rose-800" aria-label="حذف البند"><Trash2 size={15} /></button></li>)}</ol><div className="mt-4 flex flex-col gap-2 sm:flex-row"><Input value={form.newClause} onChange={event => update("newClause", event.target.value)} onKeyDown={event => { if (event.key === "Enter") { event.preventDefault(); addClause() } }} placeholder="اكتب بنداً جديداً" /><Button type="button" variant="outline" onClick={addClause} className="gap-2 border-amber-300 text-amber-900 hover:bg-amber-100"><Plus size={16} /> إضافة البند</Button></div></div>
-            </section>}
+               <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="font-black text-emerald-950">تأكيد التسعير</p><p className="mt-1 text-xs text-emerald-800">اضغط الإضافة بعد إدخال السعر حتى تُستخرج قيمة العقد حسب عدد الرحلات.</p></div><Button type="button" onClick={calculatePricing} className="gap-2 bg-emerald-700 hover:bg-emerald-800"><CheckCircle2 size={16} /> إضافة السعر واحتساب القيمة</Button></div>{priceConfirmed && <p className="mt-3 text-xs font-bold text-emerald-700">تم اعتماد السعر: {amount.toLocaleString("ar-SA")} ر.س قبل الضريبة</p>}</div></section>}
 
             {step === 3 && <section className="space-y-4">
               <div><h3 className="font-black text-slate-900">العملية الأولى والموعد</h3><p className="mt-1 text-sm text-slate-500">اربط العقد بموعد حقيقي حتى يظهر مباشرة في مركز التشغيل.</p></div>
