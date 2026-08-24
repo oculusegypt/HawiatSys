@@ -21,14 +21,14 @@ logical_id = "dd2f77f0-5f7e-42ad-893d-b823952e1890"
 id = "e7Hwi4c_9VUpSkVoGq2Ul"
 uri = "file://cleanflow-services-hostinger.zip"
 type = "unspecified"
-title = "CleanFlow Hostinger update"
-description = "Production upload archive containing the duplicate bank reconciliation fix for Node/PHP parity."
+title = "CleanFlow Services — Full Hostinger Archive"
+description = "Full Hostinger archive ready for direct extraction into public_html. Includes the frontend, PHP API, CleanFlow Platform, uploads, and data/sabaik.db."
 logical_id = "c612380d-19d8-4641-8c29-e5ac4a484245"
-content_hash = "sha256:4691a87c6c7d39afc1575a00a60cae4c6a49d4e6339db3d0b0623ba04110060a"
-size = 20631592
-mtime_ms = 1787502898097
-storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:eb2bdfd1-1d9c-46fb-aeaf-96e47d83351a/c612380d-19d8-4641-8c29-e5ac4a484245/44743eb8-21eb-4443-a02d-c3471e1dc203"
-storage_version_token = "1787502903524772"
+content_hash = "sha256:ca67b08a2d873dab95492d05a32f0ddadfca39b179e1d2e94440e760af30e4fe"
+size = 20652271
+mtime_ms = 1787545246886
+storage_uri = "gcs://replit-rams-assets-worf/rams/assets/repl:7e4edf74-e5dd-4318-86ba-b088852ac0c0/c612380d-19d8-4641-8c29-e5ac4a484245/df84a0bd-9a56-4295-b433-662291282887"
+storage_version_token = "1787545253728887"
 content_type = "application/octet-stream"
 
 [[outputs]]
