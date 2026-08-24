@@ -4,7 +4,7 @@ import { Link, useLocation } from "wouter"
 import {
   AlertCircle, Archive, ArrowDownLeft, ArrowLeftRight, ArrowUpRight, BellRing, BookOpenCheck, Box, CalendarDays, CarFront, CheckCircle2,
   ChevronDown, ChevronLeft, ClipboardList, Coins, FileCheck2, FileDown, FilePenLine, FileText, FolderSearch, Gauge, HandCoins, Landmark, LayoutDashboard, ReceiptText, Trash2, Truck,
-  Link2, Loader2, MapPin, Plus, RefreshCw, Search, Settings2, ShieldCheck, SlidersHorizontal, UserCog, UserRound, Users, WalletCards, Wrench, X,
+  ExternalLink, Link2, Loader2, MapPin, Plus, RefreshCw, Search, Settings2, ShieldCheck, SlidersHorizontal, UserCog, UserRound, Users, WalletCards, Wrench, X,
 } from "lucide-react"
 import {
   getGetContainerSystemAuditQueryKey,
@@ -761,7 +761,37 @@ function AuditLog({ audits, loading }: { audits: any[]; loading: boolean }) {
   return <Card className="border-slate-200/80 shadow-sm"><CardHeader className="border-b border-slate-100 px-5 py-4"><CardTitle className="flex items-center gap-2 text-base"><BookOpenCheck size={18} className="text-cyan-800" /> سجل التدقيق</CardTitle><p className="mt-1 text-xs text-slate-500">أثر قابل للمراجعة لكل إضافة وتعديل وأرشفة</p></CardHeader><CardContent className="p-0">{loading ? <div className="space-y-2 p-5">{[1, 2, 3].map(i => <SkeletonLine key={i} className="h-14" />)}</div> : audits.length === 0 ? <div className="p-12 text-center text-sm text-slate-500">لا توجد حركات تدقيق بعد.</div> : audits.map(audit => <div key={audit.id} className="flex items-start gap-3 border-b border-slate-100 px-5 py-4 last:border-0" data-testid={`audit-row-${audit.id}`}><div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500"><ShieldCheck size={15} /></div><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><Badge variant="outline" className="border-cyan-200 bg-cyan-50 text-cyan-800">{formatAuditAction(audit.action)}</Badge><span className="text-xs font-bold text-slate-700">{KIND_LABELS[audit.kind as RecordKind] ?? audit.kind}</span><span className="text-[11px] text-slate-400">#{audit.recordId ?? "—"}</span></div><p className="mt-1 text-[11px] text-slate-400">{formatRecordDate(audit.createdAt)}</p></div></div>)}</CardContent></Card>
 }
 
-function RecordDetails({ record, allRecords, open, onOpenChange, onContractAction }: { record?: ContainerSystemRecord | null; allRecords: ContainerSystemRecord[]; open: boolean; onOpenChange: (open: boolean) => void; onContractAction: (record: ContainerSystemRecord, action: string) => void }) {
+const DETAIL_LABELS: Record<string, string> = {
+  assetCode: "رقم الأصل", containerCode: "رقم الحاوية", typeName: "نوع الحاوية", containerType: "نوع الحاوية",
+  size: "الحجم", capacity: "السعة", location: "الموقع", address: "العنوان", lastInspection: "آخر فحص",
+  notes: "ملاحظات التشغيل", testData: "بيانات تجريبية", sequence: "الترتيب", status: "الحالة",
+  assignmentRecordId: "رقم سجل التخصيص", assignedContractRecordId: "رقم سجل العقد", assignedSiteRecordId: "رقم سجل الموقع",
+  contractNumber: "رقم العقد", customerName: "اسم العميل", customerPhone: "جوال العميل",
+  customerRecordId: "العميل", containerRecordId: "أصل الحاوية", siteRecordId: "موقع العميل",
+  assignmentStatus: "حالة التخصيص", startDate: "بداية التخصيص", endDate: "نهاية التخصيص",
+  movementType: "نوع الحركة", driverName: "اسم السائق", vehiclePlate: "لوحة المركبة",
+  serviceType: "نوع الخدمة", scheduledAt: "الموعد", duration: "مدة التأجير",
+}
+
+function detailLabel(key: string) {
+  return DETAIL_LABELS[key] ?? FIELD_CONFIG.container.find(field => field.key === key)?.label ?? "تفاصيل إضافية"
+}
+
+function recordDisplayName(record: ContainerSystemRecord | undefined, fallback: string) {
+  if (!record) return fallback
+  const payload = record.payload as Record<string, unknown>
+  return String(payload.name ?? payload.customerName ?? payload.contractNumber ?? payload.assetCode ?? record.reference ?? fallback)
+}
+
+function coordinatesFromLocation(location: string) {
+  const match = location.match(/(?:إحداثيات GPS|GPS)\s*:\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/i)
+  if (!match) return null
+  const lat = Number(match[1])
+  const lng = Number(match[2])
+  return Number.isFinite(lat) && Number.isFinite(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180 ? { lat, lng } : null
+}
+
+function RecordDetails({ record, allRecords, serviceRequests = [], open, onOpenChange, onContractAction }: { record?: ContainerSystemRecord | null; allRecords: ContainerSystemRecord[]; serviceRequests?: ServiceRequest[]; open: boolean; onOpenChange: (open: boolean) => void; onContractAction: (record: ContainerSystemRecord, action: string) => void }) {
   const [, navigate] = useLocation()
   if (!record) return null
   const isContainer = ["container", "container_asset"].includes(record.kind)
@@ -806,6 +836,34 @@ function RecordDetails({ record, allRecords, open, onOpenChange, onContractActio
     })
     .reduce((sum, item) => sum + amountOf(item), 0)
   const customerProfit = customerCharges - customerExpenses
+  const containerContractsRecords = relatedContainerRecords.filter(item => item.kind === "contract")
+  const latestContract = containerContractsRecords
+    .slice()
+    .sort((a, b) => String(b.updatedAt ?? b.createdAt).localeCompare(String(a.updatedAt ?? a.createdAt)))[0]
+  const latestContractPayload = (latestContract?.payload ?? {}) as Record<string, unknown>
+  const linkedSite = allRecords.find(item => item.kind === "customer_site" && (
+    String(latestContractPayload.siteRecordId ?? "") === String(item.id) ||
+    (latestContractPayload.customerName && String(item.payload.customerName ?? "") === String(latestContractPayload.customerName))
+  ))
+  const linkedRequestId = Number(latestContractPayload.requestId ?? 0)
+  const linkedRequest = serviceRequests.find(item =>
+    (linkedRequestId > 0 && item.id === linkedRequestId) ||
+    ((item as ServiceRequest & { containerRecordId?: number | null }).containerRecordId === record.id && (!latestContractPayload.customerName || item.clientName === latestContractPayload.customerName))
+  )
+  const requestLocation = linkedRequest?.location ?? String(latestContractPayload.location ?? linkedSite?.payload.address ?? linkedSite?.payload.location ?? "")
+  const requestCoordinates = coordinatesFromLocation(requestLocation)
+  const relatedCustomers = allRecords.filter(item => item.kind === "customer" && (
+    String(latestContractPayload.customerRecordId ?? "") === String(item.id) ||
+    (latestContractPayload.customerName && String(item.payload.name ?? item.payload.customerName ?? "") === String(latestContractPayload.customerName))
+  ))
+  const linkedCustomerName = recordDisplayName(relatedCustomers[0], String(latestContractPayload.customerName ?? "غير مرتبط بعميل"))
+  const displayEntries = entries
+    .filter(([key]) => !["assetCode", "containerCode", "typeName", "containerType", "status"].includes(key))
+    .map(([key, value]) => {
+      const linkedId = ["assignmentRecordId", "assignedContractRecordId", "assignedSiteRecordId"].includes(key) ? Number(value) : 0
+      const linkedRecord = linkedId > 0 ? allRecords.find(item => item.id === linkedId) : undefined
+      return [detailLabel(key), linkedRecord ? recordDisplayName(linkedRecord, String(value)) : String(value)] as const
+    })
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent dir="rtl" className="max-h-[94vh] max-w-5xl overflow-y-auto border-cyan-100">
@@ -818,7 +876,6 @@ function RecordDetails({ record, allRecords, open, onOpenChange, onContractActio
             <div className="flex flex-wrap gap-2">
               {record.kind === "customer" && <Button size="sm" variant="outline" onClick={() => { onOpenChange(false); navigate(`/admin/container-system/profile/customer/${record.id}`) }} className="gap-1.5 border-cyan-200 text-cyan-800"><UserRound size={14} /> فتح ملف العميل</Button>}
               {["employee", "driver"].includes(record.kind) && <Button size="sm" variant="outline" onClick={() => { onOpenChange(false); navigate(`/admin/container-system/profile/employee/${record.id}`) }} className="gap-1.5 border-cyan-200 text-cyan-800"><UserCog size={14} /> فتح ملف الموظف</Button>}
-              {["container", "container_asset"].includes(record.kind) && <Button size="sm" variant="outline" onClick={() => { onOpenChange(false); navigate(`/admin/container-system/profile/container/${record.id}`) }} className="gap-1.5 border-cyan-200 text-cyan-800"><Box size={14} /> فتح ملف الحاوية</Button>}
               {record.kind === "contract" && <Button size="sm" onClick={() => { onOpenChange(false); navigate(`/admin/container-system/contract/${record.id}/print`) }} className="gap-1.5 bg-cyan-800 hover:bg-cyan-900"><FileText size={14} /> فتح العقد A4</Button>}
               {record.kind === "invoice" && <Button size="sm" onClick={() => { onOpenChange(false); navigate(`/admin/container-system/invoice/${record.id}/print`) }} className="gap-1.5 bg-cyan-800 hover:bg-cyan-900"><FileText size={14} /> طباعة الفاتورة</Button>}
             </div>
@@ -860,10 +917,32 @@ function RecordDetails({ record, allRecords, open, onOpenChange, onContractActio
             </div>
           </div>
         )}
+        {isContainer && (
+          <div className="grid gap-4 lg:grid-cols-[1.1fr_.9fr]">
+            <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div><h4 className="text-sm font-black text-blue-950">موقع الحاوية عند العميل</h4><p className="mt-1 text-[11px] text-blue-800/70">الموقع المحدد في طلب التأجير والعقد المرتبط.</p></div>
+                {requestCoordinates && <a href={`https://www.google.com/maps/search/?api=1&query=${requestCoordinates.lat},${requestCoordinates.lng}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-bold text-blue-700 hover:underline"><ExternalLink size={13} /> فتح الخريطة</a>}
+              </div>
+              <p className="mb-3 rounded-xl bg-white px-3 py-2 text-sm font-bold text-slate-800">{requestLocation || "لم يتم تسجيل موقع مرتبط بالطلب"}</p>
+              {requestCoordinates ? <iframe title="موقع العميل المرتبط بالحاوية" src={`https://www.google.com/maps?q=${requestCoordinates.lat},${requestCoordinates.lng}&output=embed`} className="h-56 w-full rounded-xl border-0" loading="lazy" referrerPolicy="no-referrer-when-downgrade" /> : <div className="flex h-40 items-center justify-center rounded-xl border border-dashed border-blue-200 bg-white text-center text-xs text-slate-500"><MapPin size={18} className="ml-2 text-blue-500" /> لا توجد إحداثيات GPS محفوظة لهذا الطلب</div>}
+            </div>
+            <div className="rounded-2xl border border-amber-100 bg-amber-50/50 p-4">
+              <h4 className="mb-3 text-sm font-black text-amber-950">العميل والتشغيل المرتبط</h4>
+              <div className="space-y-2 text-sm">
+                <div className="rounded-xl bg-white p-3"><p className="text-[10px] font-bold text-slate-500">العميل المستأجر</p><p className="mt-1 font-black text-slate-900">{linkedCustomerName}</p></div>
+                <div className="rounded-xl bg-white p-3"><p className="text-[10px] font-bold text-slate-500">العقد المرتبط</p><p className="mt-1 font-black text-slate-900">{String(latestContractPayload.contractNumber ?? "لا يوجد عقد مرتبط")}</p></div>
+                <div className="rounded-xl bg-white p-3"><p className="text-[10px] font-bold text-slate-500">موقع العميل</p><p className="mt-1 font-black text-slate-900">{recordDisplayName(linkedSite, requestLocation || "غير محدد")}</p></div>
+                <div className="rounded-xl bg-white p-3"><p className="text-[10px] font-bold text-slate-500">الطلب المرتبط</p><p className="mt-1 font-black text-slate-900">{linkedRequest ? `طلب رقم ${linkedRequest.id}` : "لا يوجد طلب مرتبط"}</p></div>
+              </div>
+            </div>
+          </div>
+        )}
         <div className="grid gap-3 sm:grid-cols-2">
             {!isContainer && <div className="rounded-xl bg-slate-50 p-3"><p className="text-[11px] text-slate-500">الحالة</p><div className="mt-1"><RecordStatus status={String(record.payload.status ?? record.status)} /></div></div>}
-          {entries.map(([key, value]) => <div key={key} className="rounded-xl border border-slate-100 bg-white p-3"><p className="text-[11px] text-slate-500">{FIELD_CONFIG[record.kind as RecordKind]?.find(field => field.key === key)?.label ?? key}</p><p className="mt-1 break-words text-sm font-bold text-slate-800">{String(value)}</p></div>)}
+          {displayEntries.map(([label, value]) => <div key={label} className="rounded-xl border border-slate-100 bg-white p-3"><p className="text-[11px] text-slate-500">{label}</p><p className="mt-1 break-words text-sm font-bold text-slate-800">{value}</p></div>)}
         </div>
+        {isContainer && <div className="mt-2 flex justify-end border-t border-slate-100 pt-4"><Button onClick={() => { onOpenChange(false); navigate(`/admin/container-system/profile/container/${record.id}`) }} className="gap-2 bg-cyan-800 hover:bg-cyan-900"><Box size={15} /> فتح ملف الحاوية الكامل</Button></div>}
           {record.kind === "customer" && <div className="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4"><h4 className="mb-3 text-sm font-black text-emerald-950">ملف العميل وكشف الحساب</h4><div className="grid grid-cols-2 gap-2 sm:grid-cols-5"><div className="rounded-xl bg-white p-3"><p className="text-[10px] text-slate-500">العقود</p><p className="mt-1 text-lg font-black text-slate-900">{customerContracts.length}</p></div><div className="rounded-xl bg-white p-3"><p className="text-[10px] text-slate-500">إجمالي المطالبات</p><p className="mt-1 text-lg font-black text-slate-900">{customerCharges.toLocaleString("ar-SA")} ر.س</p></div><div className="rounded-xl bg-white p-3"><p className="text-[10px] text-slate-500">المدفوع</p><p className="mt-1 text-lg font-black text-emerald-700">{customerPayments.toLocaleString("ar-SA")} ر.س</p></div><div className="rounded-xl bg-white p-3"><p className="text-[10px] text-slate-500">تكلفة التشغيل</p><p className="mt-1 text-lg font-black text-amber-700">{customerExpenses.toLocaleString("ar-SA")} ر.س</p></div><div className="rounded-xl bg-white p-3"><p className="text-[10px] text-slate-500">ربحية العملية</p><p className={`mt-1 text-lg font-black ${customerProfit >= 0 ? "text-emerald-700" : "text-rose-700"}`}>{customerProfit.toLocaleString("ar-SA")} ر.س</p></div></div><div className="mt-3 rounded-xl bg-white px-3 py-2 text-sm font-black text-rose-700">الرصيد المستحق: {Math.max(customerCharges - customerPayments, 0).toLocaleString("ar-SA")} ر.س</div></div>}
           {record.kind === "contract" && <div className="mt-5 rounded-2xl border border-amber-100 bg-amber-50/60 p-4"><h4 className="mb-3 text-sm font-black text-amber-950">دورة العقد</h4><div className="flex flex-wrap gap-2">{["draft", "pending_approval", "issued"].includes(record.status) && <><Button size="sm" onClick={() => onContractAction(record, "approve")} className="bg-emerald-700 hover:bg-emerald-800">اعتماد العقد</Button><Button size="sm" variant="outline" onClick={() => onContractAction(record, "reject")} className="border-rose-200 text-rose-700">رفض العقد</Button></>}<Button size="sm" onClick={() => onContractAction(record, "deliver")} className="bg-cyan-800 hover:bg-cyan-900">تسجيل التسليم</Button><Button size="sm" variant="outline" onClick={() => onContractAction(record, "return")} className="border-cyan-200 text-cyan-900">تسجيل الاسترجاع</Button><Button size="sm" variant="outline" onClick={() => onContractAction(record, "settle")} className="border-emerald-200 text-emerald-800">تصفية العقد</Button><Button size="sm" variant="outline" onClick={() => onContractAction(record, "debt")} className="border-rose-200 text-rose-700">تحويل لمديونية</Button><Button size="sm" variant="outline" onClick={() => onContractAction(record, "close")} className="border-slate-200 text-slate-700">إغلاق العقد</Button></div></div>}
       </DialogContent>
@@ -1237,7 +1316,7 @@ export default function ContainerSystem() {
                 : <RecordsPanel kind={collectionKind ?? "customer"} records={records} allRecords={snapshot?.records ?? records} loading={loading} onAdd={() => openCreate(collectionKind ?? "customer")} onDetails={record => setDetailRecord(record)} onEdit={openEdit} onArchive={archiveRecord} />}
         </main>
       </div>
-      <RecordDetails record={detailRecord} allRecords={snapshot?.records ?? records} open={Boolean(detailRecord)} onOpenChange={open => { if (!open) setDetailRecord(null) }} onContractAction={contractAction} />
+      <RecordDetails record={detailRecord} allRecords={snapshot?.records ?? records} serviceRequests={serviceRequestsQuery.data ?? []} open={Boolean(detailRecord)} onOpenChange={open => { if (!open) setDetailRecord(null) }} onContractAction={contractAction} />
       <ContractWizard open={contractWizardOpen} records={snapshot?.records ?? records} initialCustomerId={requestedCustomerId} initialRequest={requestContext} busy={busy} onClose={() => { if (!contractFlowBusy) setContractWizardOpen(false) }} onSubmit={submitContract} />
        <ContainerAssignmentWizard open={assignmentWizardOpen} records={snapshot?.records ?? records} initialContainerId={assignmentContainerId} busy={createMutation.isPending} onClose={() => { if (!createMutation.isPending) { setAssignmentWizardOpen(false); setAssignmentContainerId(null) } }} onSubmit={submitAssignment} />
       <RecordDialog

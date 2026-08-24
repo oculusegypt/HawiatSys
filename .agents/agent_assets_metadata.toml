@@ -35,14 +35,14 @@ content_type = "application/octet-stream"
 id = "RTo70OttJokFRCRKOlWig"
 uri = "file://hawiat-update-patch.zip"
 type = "unspecified"
-title = "باتش تحديث نظام الزوار والحاويات"
-description = "النسخة النهائية الجاهزة للرفع، تشمل إظهار كل الزوار النشطين، فتح المحادثة المرتبطة، وترقيم الحاويات CNT-101 إلى CNT-120 مع قاعدة البيانات."
+title = "باتش تطوير تفاصيل الحاويات"
+description = "باتش شامل يتضمن نافذة تفاصيل أصل الحاوية، تعريب الحقول، ربط أسماء العميل والعقد والموقع، خريطة موقع الطلب، وترقيم CNT-101 إلى CNT-120."
 logical_id = "da5e0650-6b63-4e98-9652-3d02a75fa1ad"
-content_hash = "sha256:3d06f6a661d81f1790c0e23c4797fbdbe429c5a006a4366b4cdecc592890b044"
-size = 2788428
-mtime_ms = 1787528628936
-storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:d4af8f3a-f81b-450b-a6d5-1b54ebbf1b28/da5e0650-6b63-4e98-9652-3d02a75fa1ad/195934e3-d893-4e71-ae01-dc8b93165c95"
-storage_version_token = "1787528633176836"
+content_hash = "sha256:d817f19f18b63483de1982cac313d69261ab812b867d13fe5f952227d5687ab1"
+size = 2792067
+mtime_ms = 1787532001823
+storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:d4af8f3a-f81b-450b-a6d5-1b54ebbf1b28/da5e0650-6b63-4e98-9652-3d02a75fa1ad/56ea4909-c505-428f-be82-57833f8a109e"
+storage_version_token = "1787532012592029"
 content_type = "application/octet-stream"
 
 [[outputs]]
