@@ -4,8 +4,7 @@ import { Client } from "basic-ftp";
 import crypto from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { lstat, mkdtemp, rm, writeFile } from "node:fs/promises";
-import { createReadStream } from "node:fs";
-import { readdirSync } from "node:fs";
+import { mkdirSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { getSetting, setSetting } from "./settings";
@@ -168,26 +167,19 @@ router.post("/admin/hostinger/deploy", upload.single("patch"), async (req: Admin
     await writeFile(zipPath, req.file.buffer);
     const entries = safeArchiveEntries(zipPath);
     if (!entries.length) return res.status(400).json({ error: "ملف الباتش فارغ" });
-    execFileSync("unzip", ["-q", zipPath, "-d", workDir]);
-    const extractedRoot = resolve(workDir);
+    const extractedRoot = join(workDir, "extracted");
+    mkdirSync(extractedRoot, { recursive: true });
+    execFileSync("unzip", ["-q", zipPath, "-d", extractedRoot]);
     const files = extractedFiles(extractedRoot);
     for (const entry of files) {
-      const localPath = resolve(workDir, entry);
+      const localPath = resolve(extractedRoot, entry);
       const stat = await lstat(localPath);
       if (!stat.isFile()) throw new Error("ملف الباتش يحتوي على رابط أو عنصر غير صالح");
     }
     client = new Client(30_000);
     await client.access({ host: settings.host, user: settings.username, password: settings.password, port: settings.port, secure: settings.secure });
-    await client.ensureDir(settings.remotePath);
-    for (const entry of files) {
-      const localPath = resolve(workDir, entry);
-      if (!localPath.startsWith(`${extractedRoot}/`)) throw new Error("مسار ملف غير آمن");
-      const remoteFile = `${settings.remotePath}/${entry.replaceAll("\\", "/")}`;
-      const remoteDir = remoteFile.slice(0, remoteFile.lastIndexOf("/"));
-      await client.ensureDir(remoteDir);
-      await client.uploadFrom(createReadStream(localPath), remoteFile);
-    }
-    return res.json({ ok: true, uploaded: entries.length, remotePath: settings.remotePath });
+    await client.uploadFromDir(extractedRoot, settings.remotePath);
+    return res.json({ ok: true, uploaded: files.length, remotePath: settings.remotePath });
   } catch (error) {
     return res.status(502).json({ ok: false, error: error instanceof Error ? error.message : "فشل رفع الباتش إلى Hostinger" });
   } finally {
