@@ -323,7 +323,7 @@ async function hasDuplicateAssetCode(containerCode: string, ignoredId?: number) 
   );
 }
 
-async function validateContractPayload(payload: Record<string, unknown>, ignoredId?: number) {
+async function validateContractPayload(payload: Record<string, unknown>, ignoredId?: number, allowGeneratedSite = false) {
   const startDate = String(payload.startDate ?? "").trim();
   const endDate = String(payload.endDate ?? "").trim();
   const amount = Number(payload.amount ?? 0);
@@ -347,15 +347,17 @@ async function validateContractPayload(payload: Record<string, unknown>, ignored
     if (!Number.isInteger(customerRecordId) || customerRecordId <= 0) {
       throw new Error("العقد التشغيلي يجب أن يرتبط بعميل رسمي");
     }
-    if (!Number.isInteger(siteRecordId) || siteRecordId <= 0) {
+    if (!allowGeneratedSite && (!Number.isInteger(siteRecordId) || siteRecordId <= 0)) {
       throw new Error("العقد التشغيلي يجب أن يرتبط بموقع عميل رسمي");
     }
     const records = await db.select().from(containerSystemRecordsTable);
     const customer = records.find(record => record.id === customerRecordId && record.kind === "customer" && record.status !== "archived");
-    const site = records.find(record => record.id === siteRecordId && record.kind === "customer_site" && record.status !== "archived");
+    const site = siteRecordId > 0
+      ? records.find(record => record.id === siteRecordId && record.kind === "customer_site" && record.status !== "archived")
+      : undefined;
     if (!customer) throw new Error("العميل المرتبط بالعقد غير موجود");
-    if (!site) throw new Error("موقع العميل المرتبط بالعقد غير موجود");
-    if (Number(parsePayload(site.payload).customerRecordId) !== customerRecordId) {
+    if (!site && !allowGeneratedSite) throw new Error("موقع العميل المرتبط بالعقد غير موجود");
+    if (site && Number(parsePayload(site.payload).customerRecordId) !== customerRecordId) {
       throw new Error("موقع العقد لا يتبع العميل المحدد");
     }
   }
@@ -789,13 +791,13 @@ router.post("/admin/container-system/contracts/workflow", requireContainerPermis
   const servicePayload = { ...(body.serviceRequest ?? {}) };
   const existingRequestId = Number(servicePayload.requestId ?? contractPayload.requestId ?? 0);
   const customerId = Number(contractPayload.customerRecordId);
-  const siteId = Number(assignmentPayload.siteRecordId ?? contractPayload.siteRecordId);
+  let siteId = Number(assignmentPayload.siteRecordId ?? contractPayload.siteRecordId);
   const assetId = Number(assignmentPayload.containerRecordId ?? contractPayload.containerRecordId);
-  if (![customerId, siteId, assetId].every(value => Number.isInteger(value) && value > 0)) {
-    return res.status(422).json({ error: "العميل والموقع وأصل الحاوية مطلوبة لإنشاء دورة العقد" });
+  if (![customerId, assetId].every(value => Number.isInteger(value) && value > 0)) {
+    return res.status(422).json({ error: "العميل وأصل الحاوية مطلوبان لإنشاء دورة العقد" });
   }
   try {
-    await validateContractPayload(contractPayload);
+    await validateContractPayload(contractPayload, undefined, true);
     if (await hasOverlappingContract(contractPayload)) return res.status(409).json({ error: "الحاوية مرتبطة بعقد آخر خلال نفس الفترة" });
   } catch (error) {
     return res.status(422).json({ error: error instanceof Error ? error.message : "بيانات العقد غير صحيحة" });
@@ -803,10 +805,33 @@ router.post("/admin/container-system/contracts/workflow", requireContainerPermis
   try {
     const result = db.transaction((tx) => {
       const customer = tx.select().from(containerSystemRecordsTable).where(eq(containerSystemRecordsTable.id, customerId)).get();
-      const site = tx.select().from(containerSystemRecordsTable).where(eq(containerSystemRecordsTable.id, siteId)).get();
+      let site = siteId > 0
+        ? tx.select().from(containerSystemRecordsTable).where(eq(containerSystemRecordsTable.id, siteId)).get()
+        : undefined;
       const asset = tx.select().from(containerSystemRecordsTable).where(eq(containerSystemRecordsTable.id, assetId)).get();
       if (!customer || customer.kind !== "customer" || customer.status === "archived") throw new Error("العميل غير موجود");
-      if (!site || site.kind !== "customer_site" || site.status === "archived") throw new Error("موقع العميل غير موجود");
+      if (!site) {
+        const location = String(contractPayload.location ?? "").trim();
+        if (!location) throw new Error("موقع العقد مطلوب");
+        site = tx.insert(containerSystemRecordsTable).values({
+          kind: "customer_site",
+          status: "active",
+          reference: referenceFor("customer_site", { address: location }, Date.now()),
+          payload: JSON.stringify({
+            customerRecordId: customerId,
+            name: location,
+            address: location,
+            location,
+            locationCoordinates: String(contractPayload.locationCoordinates ?? ""),
+            locationMode: String(contractPayload.locationMode ?? "manual"),
+            propertyNumber: String(contractPayload.propertyNumber ?? ""),
+            planNumber: String(contractPayload.planNumber ?? ""),
+          }),
+          createdBy: adminReq.adminId,
+        }).returning().get();
+        siteId = site.id;
+      }
+      if (site.kind !== "customer_site" || site.status === "archived") throw new Error("موقع العميل غير موجود");
       if (Number(parsePayload(site.payload).customerRecordId) !== customerId) throw new Error("الموقع لا يتبع العميل المحدد");
       if (!asset || !["container", "container_asset"].includes(asset.kind) || asset.status === "archived") throw new Error("أصل الحاوية غير موجود");
       // The record status is the lifecycle of the system record (often
@@ -816,6 +841,8 @@ router.post("/admin/container-system/contracts/workflow", requireContainerPermis
       const assetPayload = parsePayload(asset.payload);
       const assetAvailability = canonicalAssetStatus(assetPayload.status ?? asset.status, asset.status);
       if (!["available", "reserved", "active"].includes(assetAvailability)) throw new Error("الحاوية ليست متاحة للتخصيص");
+      contractPayload.siteRecordId = siteId;
+      assignmentPayload.siteRecordId = siteId;
       const activeAssignment = tx.select().from(containerSystemRecordsTable).all().find(record =>
         record.kind === "container_assignment" && record.status !== "archived" &&
         ["reserved", "active"].includes(String(parsePayload(record.payload).assignmentStatus ?? record.status)) &&

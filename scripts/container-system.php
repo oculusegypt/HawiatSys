@@ -910,8 +910,8 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
         $customerId = (int)($contract['customerRecordId'] ?? 0);
         $siteId = (int)($assignment['siteRecordId'] ?? $contract['siteRecordId'] ?? 0);
         $assetId = (int)($assignment['containerRecordId'] ?? $contract['containerRecordId'] ?? 0);
-        if ($customerId <= 0 || $siteId <= 0 || $assetId <= 0) {
-            hsJson(['error' => 'العميل والموقع وأصل الحاوية مطلوبة لإنشاء دورة العقد'], 422);
+        if ($customerId <= 0 || $assetId <= 0) {
+            hsJson(['error' => 'العميل وأصل الحاوية مطلوبان لإنشاء دورة العقد'], 422);
         }
         $operationKey = trim((string)($_SERVER['HTTP_IDEMPOTENCY_KEY'] ?? $input['operationKey'] ?? ''));
         if ($operationKey !== '' && (strlen($operationKey) < 8 || strlen($operationKey) > 160)) {
@@ -958,11 +958,11 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
             return $row ?: null;
         };
         $customer = $find($pdo, $customerId);
-        $site = $find($pdo, $siteId);
+        $site = $siteId > 0 ? $find($pdo, $siteId) : null;
         $asset = $find($pdo, $assetId);
         if (!$customer || $customer['kind'] !== 'customer' || $customer['status'] === 'archived') hsJson(['error' => 'العميل غير موجود'], 422);
-        if (!$site || $site['kind'] !== 'customer_site' || $site['status'] === 'archived') hsJson(['error' => 'موقع العميل غير موجود'], 422);
-        if ((int)(hsPayload($site['payload'])['customerRecordId'] ?? 0) !== $customerId) hsJson(['error' => 'الموقع لا يتبع العميل المحدد'], 422);
+        if ($site && ($site['kind'] !== 'customer_site' || $site['status'] === 'archived')) hsJson(['error' => 'موقع العميل غير موجود'], 422);
+        if ($site && (int)(hsPayload($site['payload'])['customerRecordId'] ?? 0) !== $customerId) hsJson(['error' => 'الموقع لا يتبع العميل المحدد'], 422);
         if (!$asset || !in_array($asset['kind'], ['container', 'container_asset'], true) || $asset['status'] === 'archived') hsJson(['error' => 'أصل الحاوية غير موجود'], 422);
         // The row status is the record lifecycle (commonly "active"); the
         // payload carries the asset's actual availability.
@@ -975,6 +975,8 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
         if (trim((string)($contract['containerCode'] ?? '')) === '') {
             $contract['containerCode'] = hsAssetCode($assetPayload);
         }
+        $contract['siteRecordId'] = $siteId;
+        $assignment['siteRecordId'] = $siteId;
         hsValidateRecord($pdo, 'contract', $contract);
         $contractNumber = trim((string)($contract['contractNumber'] ?? ''));
         if ($contractNumber !== '') {
@@ -985,6 +987,31 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
         $now = date('c');
         try {
             $pdo->beginTransaction();
+            if (!$site) {
+                $location = trim((string)($contract['location'] ?? ''));
+                if ($location === '') throw new RuntimeException('موقع العقد مطلوب');
+                $sitePayload = [
+                    'customerRecordId' => $customerId,
+                    'name' => $location,
+                    'address' => $location,
+                    'location' => $location,
+                    'locationCoordinates' => (string)($contract['locationCoordinates'] ?? ''),
+                    'locationMode' => (string)($contract['locationMode'] ?? 'manual'),
+                    'propertyNumber' => (string)($contract['propertyNumber'] ?? ''),
+                    'planNumber' => (string)($contract['planNumber'] ?? ''),
+                ];
+                $siteInsert = $pdo->prepare("INSERT INTO container_system_records (kind, status, reference, payload, operation_key, created_by, created_at, updated_at) VALUES ('customer_site', 'active', '', :payload, NULL, :created_by, :created_at, :updated_at)");
+                $siteInsert->execute([
+                    ':payload' => json_encode($sitePayload, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE),
+                    ':created_by' => $actorId,
+                    ':created_at' => $now,
+                    ':updated_at' => $now,
+                ]);
+                $siteId = (int)$pdo->lastInsertId();
+                $pdo->prepare("UPDATE container_system_records SET reference = :reference WHERE id = :id")
+                    ->execute([':reference' => 'SITE-' . str_pad((string)$siteId, 5, '0', STR_PAD_LEFT), ':id' => $siteId]);
+                $site = $find($pdo, $siteId);
+            }
             $insert = $pdo->prepare("INSERT INTO container_system_records (kind, status, reference, payload, operation_key, created_by, created_at, updated_at) VALUES (:kind, :status, '', :payload, :operation_key, :created_by, :created_at, :updated_at)");
             $insert->execute([':kind' => 'contract', ':status' => 'active', ':payload' => json_encode($contract, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE), ':operation_key' => $operationKey !== '' ? $operationKey : null, ':created_by' => $actorId, ':created_at' => $now, ':updated_at' => $now]);
             $contractId = (int)$pdo->lastInsertId();

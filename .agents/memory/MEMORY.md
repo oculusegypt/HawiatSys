@@ -26,3 +26,4 @@
 - [Hostinger FTP upload compatibility](hostinger-ftp-upload-compatibility.md) — upload extraction must preserve Unicode paths and tolerate legacy encrypted FTP settings.
 - [Settlement selection identity](settlement-selection-identity.md) — payment validation must use selected contract IDs, not only display-number fields.
 - [Invoice payment auto-allocation](invoice-payment-auto-allocation.md) — a single invoice selection must resolve its contract allocation consistently in Node and Hostinger PHP.
+- [Contract location fallback](contract-location-fallback.md) — contract workflows may create a customer site from a manual/map location, and Node/PHP must stay behaviorally aligned.
