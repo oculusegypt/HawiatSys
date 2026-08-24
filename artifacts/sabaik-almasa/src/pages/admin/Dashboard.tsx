@@ -11,7 +11,8 @@ import {
   TrendingUp, TrendingDown, Minus, CalendarClock, Package,
   ArrowLeft, RefreshCw, Zap, Activity, Users, BarChart2,
   AlertTriangle, Circle, Eye, Lock, LockOpen, Headphones,
-  ChevronRight, Bot, Star, Target
+  ChevronRight, Bot, Star, Target, UserRound, ReceiptText, UserPlus,
+  HandCoins, FilePlus2, Landmark, ClipboardPlus, Truck
 } from "lucide-react"
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -730,30 +731,59 @@ export default function AdminDashboard() {
         {/* Quick actions */}
         <motion.div
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}
-          className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5"
+          className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm"
         >
-          <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <Zap size={15} className="text-secondary" /> إجراءات سريعة
-          </h3>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="pointer-events-none absolute -left-12 -top-12 h-32 w-32 rounded-full bg-cyan-100/50 blur-2xl" />
+          <div className="relative mb-4 flex items-start justify-between gap-3">
+            <div>
+              <h3 className="flex items-center gap-2 font-bold text-gray-800">
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+                  <Zap size={15} />
+                </span>
+                إجراءات سريعة
+              </h3>
+              <p className="mt-1 text-xs text-gray-400">ابدأ العملية المطلوبة مباشرة من لوحة القيادة</p>
+            </div>
+            <span className="rounded-full border border-amber-100 bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-700">اختصارات التشغيل</span>
+          </div>
+          <div className="relative grid grid-cols-2 gap-2.5 sm:grid-cols-3">
             {[
-              { href: "/admin/requests",      icon: Inbox,       label: "إدارة الطلبات",   color: "bg-blue-50 text-blue-700 hover:bg-blue-100" },
-              { href: "/admin/conversations",  icon: MessageSquare, label: "المحادثات",     color: "bg-green-50 text-green-700 hover:bg-green-100" },
-              { href: "/admin/notifications",  icon: Bell,        label: "الإشعارات",       color: "bg-red-50 text-red-700 hover:bg-red-100" },
-              { href: "/admin/services",       icon: Package,     label: "إدارة الخدمات",  color: "bg-purple-50 text-purple-700 hover:bg-purple-100" },
-              { href: "/admin/packages",          icon: Package,  label: "حاويات الأنقاض والنفايات", color: "bg-amber-50 text-amber-700 hover:bg-amber-100" },
-              { href: "/admin/settings",       icon: Activity,    label: "إعدادات الموقع", color: "bg-gray-50 text-gray-700 hover:bg-gray-100" },
+              { href: "/admin/container-system?view=customer", icon: UserPlus, label: "عميل جديد", hint: "إضافة ملف عميل", tone: "blue" },
+              { href: "/admin/container-system?view=invoice", icon: ReceiptText, label: "فاتورة جديدة", hint: "إنشاء فاتورة", tone: "cyan" },
+              { href: "/admin/container-system?view=contract", icon: FilePlus2, label: "عقد جديد", hint: "بدء عقد وحاوية", tone: "violet" },
+              { href: "/admin/employees", icon: Users, label: "الموظفون", hint: "إدارة الفريق", tone: "emerald" },
+              { href: "/admin/container-system?view=vouchers", icon: Landmark, label: "السندات", hint: "قبض وصرف", tone: "amber" },
+              { href: "/admin/container-system?view=customer_payments", icon: HandCoins, label: "سداد العملاء", hint: "تسجيل دفعة", tone: "green" },
+              { href: "/admin/requests", icon: ClipboardPlus, label: "طلب جديد", hint: "متابعة الطلبات", tone: "rose" },
+              { href: "/admin/container-system?view=container", icon: Truck, label: "الحاويات", hint: "الأصول والتشغيل", tone: "slate" },
+              { href: "/admin/conversations", icon: MessageSquare, label: "المحادثات", hint: "رسائل العملاء", tone: "indigo" },
             ].map((action) => {
               const Icon = action.icon
+              const toneMap: Record<string, string> = {
+                blue: "bg-blue-50 text-blue-700 ring-blue-100 hover:bg-blue-100",
+                cyan: "bg-cyan-50 text-cyan-700 ring-cyan-100 hover:bg-cyan-100",
+                violet: "bg-violet-50 text-violet-700 ring-violet-100 hover:bg-violet-100",
+                emerald: "bg-emerald-50 text-emerald-700 ring-emerald-100 hover:bg-emerald-100",
+                amber: "bg-amber-50 text-amber-700 ring-amber-100 hover:bg-amber-100",
+                green: "bg-green-50 text-green-700 ring-green-100 hover:bg-green-100",
+                rose: "bg-rose-50 text-rose-700 ring-rose-100 hover:bg-rose-100",
+                slate: "bg-slate-50 text-slate-700 ring-slate-100 hover:bg-slate-100",
+                indigo: "bg-indigo-50 text-indigo-700 ring-indigo-100 hover:bg-indigo-100",
+              }
               return (
                 <Link
-                  key={action.href}
+                  key={action.label}
                   href={action.href}
-                  className={`flex items-center gap-2.5 p-3.5 rounded-xl font-medium text-sm transition-all ${action.color}`}
+                  className={`group flex min-h-[76px] items-center gap-2.5 rounded-xl p-3 ring-1 transition-all hover:-translate-y-0.5 hover:shadow-sm ${toneMap[action.tone]}`}
                 >
-                  <Icon size={16} />
-                  {action.label}
-                  <ChevronRight size={13} className="mr-auto opacity-50" />
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/75 shadow-sm">
+                    <Icon size={17} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-xs font-black">{action.label}</span>
+                    <span className="mt-1 block truncate text-[10px] font-medium opacity-65">{action.hint}</span>
+                  </span>
+                  <ChevronRight size={13} className="mr-auto shrink-0 opacity-40 transition-transform group-hover:-translate-x-0.5" />
                 </Link>
               )
             })}

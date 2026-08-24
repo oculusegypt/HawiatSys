@@ -80,6 +80,14 @@ function CustomerProfile({ record, records }: { record: ContainerSystemRecord; r
   const [busy, setBusy] = useState(false)
   const createMutation = useCreateContainerSystemRecord()
   const contractMutation = useCreateContainerContractWorkflow()
+  const closeAction = () => {
+    setAction(null)
+    const url = new URL(window.location.href)
+    if (url.searchParams.has("paymentInvoiceId")) {
+      url.searchParams.delete("paymentInvoiceId")
+      window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`)
+    }
+  }
   const p = payloadOf(record)
   const name = text(p.name ?? p.customerName)
   const related = records.filter(item => {
@@ -136,7 +144,7 @@ function CustomerProfile({ record, records }: { record: ContainerSystemRecord; r
     }, {
       onSuccess: () => {
         refreshProfile()
-        setAction(null)
+        closeAction()
         toast({ title: "تمت إضافة الموقع إلى ملف العميل" })
       },
       onError: error => toast({ title: error instanceof Error ? error.message : "تعذر إضافة الموقع", variant: "destructive" }),
@@ -190,7 +198,7 @@ function CustomerProfile({ record, records }: { record: ContainerSystemRecord; r
     }, {
       onSuccess: () => {
         refreshProfile()
-        setAction(null)
+        closeAction()
         setBusy(false)
         toast({ title: "تم إنشاء العقد وربطه بملف العميل" })
       },
@@ -222,7 +230,7 @@ function CustomerProfile({ record, records }: { record: ContainerSystemRecord; r
         const body = await response.json().catch(() => ({}))
         if (!response.ok) throw new Error(String(body.error ?? "تعذر تسجيل الدفعة"))
         refreshProfile()
-        setAction(null)
+        closeAction()
         toast({ title: body.idempotent ? "تم تأكيد الدفعة السابقة دون تكرارها" : "تم تسجيل الدفعة وتحديث كشف العميل" })
       }).catch(error => {
         toast({ title: error instanceof Error ? error.message : "تعذر تسجيل الدفعة", variant: "destructive" })
@@ -269,7 +277,7 @@ function CustomerProfile({ record, records }: { record: ContainerSystemRecord; r
       const body = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(String(body.error ?? "تعذر تسجيل الدفعة"))
       refreshProfile()
-      setAction(null)
+      closeAction()
       toast({ title: body.idempotent ? "تم تأكيد الدفعة السابقة دون تكرارها" : "تم تسجيل الدفعة وتحديث كشف العميل" })
     }).catch(error => {
       toast({ title: error instanceof Error ? error.message : "تعذر تسجيل الدفعة", variant: "destructive" })
@@ -285,7 +293,7 @@ function CustomerProfile({ record, records }: { record: ContainerSystemRecord; r
       records={records}
       initialCustomerId={record.id}
       busy={busy}
-      onClose={() => { if (!busy) setAction(null) }}
+      onClose={() => { if (!busy) closeAction() }}
       onSubmit={submitContract}
     />
     <RecordDialog
@@ -306,7 +314,7 @@ function CustomerProfile({ record, records }: { record: ContainerSystemRecord; r
           }
         : { customerRecordId: String(record.id), customerName: name, city: String(p.city ?? ""), address: String(p.address ?? "") }}
       busy={busy || createMutation.isPending}
-      onOpenChange={open => { if (!open && !busy) setAction(null) }}
+      onOpenChange={open => { if (!open && !busy) closeAction() }}
       onSubmit={action === "payment" ? submitPayment : submitSite}
     />
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><Stat label="إجمالي العقود" value={contracts.length} /><Stat label="المواقع" value={sites.length} /><Stat label="الحاويات الحالية" value={containers.length} /><Stat label="المواعيد القادمة" value={upcomingAppointments.length} /></div>
