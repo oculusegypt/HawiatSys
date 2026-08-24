@@ -824,7 +824,7 @@ const DETAIL_LABELS: Record<string, string> = {
   customerRecordId: "العميل", containerRecordId: "أصل الحاوية", siteRecordId: "موقع العميل",
   assignmentStatus: "حالة التخصيص", startDate: "بداية التخصيص", endDate: "نهاية التخصيص",
   movementType: "نوع الحركة", driverName: "اسم السائق", vehiclePlate: "لوحة المركبة",
-  serviceType: "نوع الخدمة", scheduledAt: "الموعد", duration: "مدة التأجير",
+  serviceType: "نوع الخدمة", scheduledAt: "الموعد", duration: "مدة التعاقد", billingFrequency: "دورية التعاقد",
   sourceKind: "نوع السجل المصدر", sourceId: "رقم السجل المصدر", contractId: "العقد المرتبط",
   invoiceRecordId: "الفاتورة المرتبطة", invoiceNumber: "رقم الفاتورة", amount: "المبلغ",
   paymentMethod: "طريقة الدفع", direction: "اتجاه القيد", date: "التاريخ", allocations: "توزيعات السداد",
