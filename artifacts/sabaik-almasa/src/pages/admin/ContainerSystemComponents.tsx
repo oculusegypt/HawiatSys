@@ -10,6 +10,30 @@ import { PenLine, RotateCcw, Save, X } from "lucide-react"
 
 const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
 
+const collectionKey = (record: ContainerSystemRecord) => {
+  const payload = record.payload as Record<string, unknown>
+  return [
+    payload.customerRecordId ?? "",
+    payload.contractRecordId ?? payload.contractNumber ?? "",
+    payload.invoiceRecordId ?? payload.invoiceNumber ?? "",
+    payload.amount ?? payload.total ?? "",
+    payload.date ?? "",
+  ].join("|")
+}
+
+function canonicalCollections(records: ContainerSystemRecord[]) {
+  const payments = records.filter(record => record.kind === "payment" && record.status === "posted")
+  const paymentKeys = new Set(payments.map(collectionKey))
+  return [
+    ...payments,
+    ...records.filter(record => {
+      if (record.kind !== "receipt" || record.status !== "posted") return false
+      const payload = record.payload as Record<string, unknown>
+      return !payload.sourcePaymentId && !paymentKeys.has(collectionKey(record))
+    }),
+  ]
+}
+
 export type RecordKind =
   | "customer"
   | "customer_site"
@@ -875,9 +899,7 @@ export function RecordDialog({
       return [String(invoicePayload.invoiceNumber ?? item.reference ?? ""), String(invoicePayload.contractNumber ?? "")] as [string, string]
     }).filter(([invoiceNumber, contractNumber]) => invoiceNumber && contractNumber),
   ), [records])
-  const paidForContract = (contractNumber: string) => records
-    .filter(item => item.kind === "payment" || item.kind === "receipt")
-    .filter(item => item.status === "posted")
+  const paidForContract = (contractNumber: string) => canonicalCollections(records)
     .filter(item => {
       const paymentPayload = item.payload as Record<string, unknown>
       return String(paymentPayload.contractNumber ?? "").trim() === contractNumber ||
@@ -889,7 +911,7 @@ export function RecordDialog({
         const allocation = paymentPayload.allocations.find(entry =>
           String((entry as Record<string, unknown>).contractNumber ?? "").trim() === contractNumber,
         )
-        if (allocation) return sum + Number((allocation as Record<string, unknown>).amount ?? 0)
+        return allocation ? sum + Number((allocation as Record<string, unknown>).amount ?? 0) : sum
       }
       return sum + Number(paymentPayload.amount ?? 0)
     }, 0)
@@ -898,8 +920,7 @@ export function RecordDialog({
     const total = Number(contractPayload.total ?? contractPayload.amount ?? 0)
     const storedRemaining = Number(contractPayload.remaining)
     const contractNumber = String(contractPayload.contractNumber ?? item.reference ?? "")
-    const computedRemaining = records
-      .filter(record => (record.kind === "payment" || record.kind === "receipt") && record.status === "posted")
+    const computedRemaining = canonicalCollections(records)
       .reduce((sum, record) => {
         const paymentPayload = record.payload as Record<string, unknown>
         const allocations = Array.isArray(paymentPayload.allocations) ? paymentPayload.allocations : []
@@ -908,7 +929,9 @@ export function RecordDialog({
           return Number(value.contractId ?? 0) === item.id ||
             String(value.contractNumber ?? "").trim() === contractNumber
         }) as Record<string, unknown> | undefined
-        if (allocation) return sum + Number(allocation.amount ?? 0)
+        if (Array.isArray(paymentPayload.allocations)) {
+          return allocation ? sum + Number(allocation.amount ?? 0) : sum
+        }
         const matchesContract = Number(paymentPayload.contractRecordId ?? 0) === item.id ||
           String(paymentPayload.contractNumber ?? "").trim() === contractNumber
         return matchesContract ? sum + Number(paymentPayload.amount ?? 0) : sum

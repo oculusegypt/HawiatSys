@@ -1023,7 +1023,11 @@ router.get("/admin/container-system/financial/contract-ledgers", requireContaine
          const allocation = Array.isArray(payment.allocations)
            ? payment.allocations.find((item: unknown) => Number((item as Record<string, unknown>).contractId) === contract.id)
            : null;
-         return sum + Number(allocation ? (allocation as Record<string, unknown>).amount : payment.amount ?? 0);
+         return sum + Number(
+           Array.isArray(payment.allocations)
+             ? (allocation as Record<string, unknown> | undefined)?.amount ?? 0
+             : payment.amount ?? 0,
+         );
        }, 0);
        const returned = returnsForContract.reduce((sum, row) => {
          const item = parsePayload(row.payload);

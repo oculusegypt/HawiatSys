@@ -19,6 +19,56 @@ type ProfileMode = "customer" | "employee" | "container"
 const money = (value: number) => `${value.toLocaleString("ar-SA")} ر.س`
 const payloadOf = (record?: ContainerSystemRecord | null) => (record?.payload ?? {}) as Record<string, unknown>
 const text = (value: unknown, fallback = "—") => String(value ?? "").trim() || fallback
+const displayValue = (value: unknown) => {
+  if (value === null || value === undefined || value === "") return "—"
+  if (Array.isArray(value)) {
+    if (!value.length) return "لا توجد"
+    return `${value.length} توزيعات`
+  }
+  if (typeof value === "object") return "متاح في التفاصيل المرتبطة"
+  return text(value)
+}
+const collectionKey = (record: ContainerSystemRecord) => {
+  const payload = payloadOf(record)
+  return [
+    payload.customerRecordId ?? "",
+    payload.contractRecordId ?? payload.contractNumber ?? "",
+    payload.invoiceRecordId ?? payload.invoiceNumber ?? "",
+    payload.amount ?? payload.total ?? "",
+    payload.date ?? "",
+  ].join("|")
+}
+const canonicalCollections = (records: ContainerSystemRecord[]) => {
+  const payments = records.filter(record => record.kind === "payment" && record.status === "posted")
+  const paymentKeys = new Set(payments.map(collectionKey))
+  return [
+    ...payments,
+    ...records.filter(record => {
+      if (record.kind !== "receipt" || record.status !== "posted") return false
+      const payload = payloadOf(record)
+      return !payload.sourcePaymentId && !paymentKeys.has(collectionKey(record))
+    }),
+  ]
+}
+const allocatedAmount = (record: ContainerSystemRecord, key: "contractId" | "invoiceId", id: number) => {
+  const allocations = payloadOf(record).allocations
+  if (!Array.isArray(allocations)) return 0
+  return allocations.reduce((sum, entry) => {
+    const allocation = entry as Record<string, unknown>
+    return Number(allocation[key]) === id ? sum + Number(allocation.amount ?? 0) : sum
+  }, 0)
+}
+const collectionAmountForInvoice = (record: ContainerSystemRecord, invoice: ContainerSystemRecord) => {
+  const payload = payloadOf(record)
+  const invoicePayload = payloadOf(invoice)
+  const allocated = allocatedAmount(record, "invoiceId", invoice.id)
+  if (allocated > 0) return allocated
+  if (Array.isArray(payload.allocations)) return 0
+  return Number(payload.invoiceRecordId ?? 0) === invoice.id ||
+    text(payload.invoiceNumber, "") === text(invoicePayload.invoiceNumber ?? invoice.reference, "")
+    ? Number(payload.amount ?? 0)
+    : 0
+}
 const customerSiteBelongsTo = (site: ContainerSystemRecord, customer: ContainerSystemRecord) => {
   const sitePayload = payloadOf(site)
   const customerPayload = payloadOf(customer)
@@ -40,7 +90,7 @@ function FieldGrid({ record }: { record: ContainerSystemRecord }) {
   const fields = FIELD_CONFIG[record.kind as RecordKind] ?? []
   const payload = payloadOf(record)
   const entries = fields.filter(field => payload[field.key] !== undefined && payload[field.key] !== "").map(field => ({ label: field.label, value: payload[field.key] }))
-  return <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{entries.map(entry => <div key={entry.label} className="rounded-xl border border-slate-100 bg-slate-50/70 p-3"><p className="text-[10px] font-bold text-slate-400">{entry.label}</p><p className="mt-1 break-words text-sm font-bold text-slate-800">{text(entry.value)}</p></div>)}</div>
+  return <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{entries.map(entry => <div key={entry.label} className="rounded-xl border border-slate-100 bg-slate-50/70 p-3"><p className="text-[10px] font-bold text-slate-400">{entry.label}</p><p className="mt-1 break-words text-sm font-bold text-slate-800">{displayValue(entry.value)}</p></div>)}</div>
 }
 
 function RelatedRows({ title, records, empty = "لا توجد سجلات مرتبطة" }: { title: string; records: ContainerSystemRecord[]; empty?: string }) {
@@ -52,7 +102,7 @@ function InvoiceRows({ invoices, payments }: { invoices: ContainerSystemRecord[]
   return <Card className="border-cyan-100 shadow-sm"><CardHeader className="border-b border-slate-100 px-5 py-4"><div className="flex items-center justify-between gap-3"><CardTitle className="text-base">الفواتير</CardTitle><span className="rounded-full bg-cyan-50 px-2.5 py-1 text-xs font-black text-cyan-800">{invoices.length}</span></div></CardHeader><CardContent className="p-0">{invoices.length === 0 ? <p className="p-8 text-center text-sm text-slate-500">لا توجد فواتير مرتبطة بهذا العميل.</p> : invoices.map(invoice => {
     const p = payloadOf(invoice)
     const total = Number(p.total ?? p.amount ?? 0)
-    const paid = payments.filter(payment => Number(payloadOf(payment).invoiceRecordId) === invoice.id || text(payloadOf(payment).invoiceNumber, "") === text(p.invoiceNumber ?? invoice.reference, "")).reduce((sum, payment) => sum + Number(payloadOf(payment).amount ?? payloadOf(payment).total ?? 0), Number(p.paid ?? 0))
+    const paid = canonicalCollections(payments).reduce((sum, payment) => sum + collectionAmountForInvoice(payment, invoice), 0)
     const remaining = Math.max(total - paid, 0)
     const number = text(p.invoiceNumber ?? invoice.reference)
     const status = remaining <= 0 && total > 0 ? "مدفوعة" : paid > 0 ? "مدفوعة جزئياً" : String(p.invoiceStatus ?? invoice.status) === "overdue" ? "متأخرة" : "مستحقة"
@@ -120,7 +170,8 @@ function CustomerProfile({ record, records }: { record: ContainerSystemRecord; r
   ))
   const payments = related.filter(item => ["payment", "receipt", "payment_return"].includes(item.kind))
   const charges = contracts.reduce((sum, item) => sum + Number(payloadOf(item).total ?? payloadOf(item).amount ?? 0), 0)
-  const paid = payments.reduce((sum, item) => sum + amountOf(item) * (item.kind === "payment_return" ? -1 : 1), 0)
+  const paid = canonicalCollections(payments).reduce((sum, item) => sum + amountOf(item), 0) -
+    payments.filter(item => item.kind === "payment_return" && item.status === "posted").reduce((sum, item) => sum + amountOf(item), 0)
   const workOrdersQuery = useGetServiceRequests(undefined, { query: { queryKey: getGetServiceRequestsQueryKey(), staleTime: 30_000 } })
   const workOrders = (workOrdersQuery.data ?? []).filter(item => {
     const linked = item as typeof item & { customerRecordId?: number | null; contractRecordId?: number | null }

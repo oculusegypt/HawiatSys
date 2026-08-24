@@ -34,6 +34,29 @@ function financialAmount(record: ContainerSystemRecord) {
   return Number.isFinite(value) ? value : 0
 }
 
+function canonicalCollections(records: ContainerSystemRecord[]) {
+  const key = (record: ContainerSystemRecord) => {
+    const payload = financialPayload(record)
+    return [
+      payload.customerRecordId ?? "",
+      payload.contractRecordId ?? payload.contractNumber ?? "",
+      payload.invoiceRecordId ?? payload.invoiceNumber ?? "",
+      payload.amount ?? payload.total ?? "",
+      payload.date ?? "",
+    ].join("|")
+  }
+  const payments = records.filter(record => record.kind === "payment" && record.status === "posted")
+  const paymentKeys = new Set(payments.map(key))
+  return [
+    ...payments,
+    ...records.filter(record => {
+      if (record.kind !== "receipt" || record.status !== "posted") return false
+      const payload = financialPayload(record)
+      return !payload.sourcePaymentId && !paymentKeys.has(key(record))
+    }),
+  ]
+}
+
 const financialMoney = (value: number) => `${value.toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س`
 function localMonthKey(date = new Date()) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`
@@ -91,7 +114,7 @@ export function FinancialControlCenter({
   }
   const scoped = active.filter(inPeriod)
   const invoices = scoped.filter(record => record.kind === "invoice" && record.status === "posted")
-  const payments = postedCollections(scoped)
+  const payments = canonicalCollections(scoped)
   const expenses = scoped.filter(record => ["expense", "daily_expense", "fuel_expense", "salary_payment", "salary_advance"].includes(record.kind) && record.status === "posted")
   const returns = scoped.filter(record => ["invoice_return", "payment_return"].includes(record.kind) && record.status === "posted")
   const deposits = scoped.filter(record => ["deposit", "bank_deposit"].includes(record.kind) && record.status === "posted")
