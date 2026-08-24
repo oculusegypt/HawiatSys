@@ -56,7 +56,7 @@ function InvoiceRows({ invoices, payments }: { invoices: ContainerSystemRecord[]
     const remaining = Math.max(total - paid, 0)
     const number = text(p.invoiceNumber ?? invoice.reference)
     const status = remaining <= 0 && total > 0 ? "مدفوعة" : paid > 0 ? "مدفوعة جزئياً" : String(p.invoiceStatus ?? invoice.status) === "overdue" ? "متأخرة" : "مستحقة"
-    return <button type="button" key={invoice.id} onClick={() => navigate(`/admin/container-system/invoice/${invoice.id}/print`)} className="grid w-full grid-cols-2 gap-3 border-b border-slate-100 px-5 py-4 text-right transition hover:bg-cyan-50/40 sm:grid-cols-[1.15fr_1fr_1fr_1fr_1fr]">
+    return <button type="button" key={invoice.id} onClick={() => navigate(`/admin/container-system/invoice/${invoice.id}/details`)} className="grid w-full grid-cols-2 gap-3 border-b border-slate-100 px-5 py-4 text-right transition hover:bg-cyan-50/40 sm:grid-cols-[1.15fr_1fr_1fr_1fr_1fr]">
       <span><b className="block text-sm text-cyan-800" dir="ltr">{number}</b><small className="text-[11px] text-slate-400">{text(p.date, "—")}</small></span>
       <span><small className="block text-[11px] text-slate-400">العقد</small><b className="text-xs">{text(p.contractNumber, "غير مرتبط")}</b></span>
       <span><small className="block text-[11px] text-slate-400">الحاوية</small><b className="text-xs" dir="ltr">#{text(p.containerCode)}</b></span>

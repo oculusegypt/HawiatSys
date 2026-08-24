@@ -52,6 +52,7 @@ export function AdminRoutes() {
           <Route path="/admin/container-system/profile/employee/:id" component={() => <ContainerRecordProfile mode="employee" />} />
           <Route path="/admin/container-system/profile/container/:id" component={() => <ContainerRecordProfile mode="container" />} />
           <Route path="/admin/container-system/contract/:id/print" component={ContractPrintPage} />
+          <Route path="/admin/container-system/invoice/:id/details" component={InvoicePrintPage} />
           <Route path="/admin/container-system/invoice/:id/print" component={InvoicePrintPage} />
           <Route path="/admin/ads" component={AdminAds} />
           <Route path="/admin/analytics" component={AdminAnalytics} />

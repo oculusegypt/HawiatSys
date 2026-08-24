@@ -1608,9 +1608,27 @@ router.post("/admin/container-system/records", async (req, res) => {
           payload: JSON.stringify(nextAssetPayload),
           updatedAt: new Date().toISOString(),
         }).where(eq(containerSystemRecordsTable.id, assetId)).run();
+        const contractPayload = parsePayload(contract.payload);
+        const nextContractPayload = {
+          ...contractPayload,
+          containerRecordId: assetId,
+          assignedContainerRecordId: assetId,
+          assignedSiteRecordId: Number(payload.siteRecordId),
+          containerCode: payload.containerCode,
+          assignmentRecordId: inserted.id,
+          assignmentStatus: "reserved",
+        };
+        tx.update(containerSystemRecordsTable).set({
+          payload: JSON.stringify(nextContractPayload),
+          updatedAt: new Date().toISOString(),
+        }).where(eq(containerSystemRecordsTable.id, contractRecordId)).run();
         tx.insert(containerSystemAuditTable).values({
           recordId: assetId, kind: asset.kind, action: "assignment_reserved",
           beforePayload: asset.payload, afterPayload: JSON.stringify(nextAssetPayload), actorId: adminReq.adminId,
+        }).run();
+        tx.insert(containerSystemAuditTable).values({
+          recordId: contractRecordId, kind: contract.kind, action: "assignment_reserved",
+          beforePayload: contract.payload, afterPayload: JSON.stringify(nextContractPayload), actorId: adminReq.adminId,
         }).run();
       }
       tx.insert(containerSystemAuditTable).values({

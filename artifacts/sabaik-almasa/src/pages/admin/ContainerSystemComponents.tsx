@@ -900,7 +900,11 @@ export function RecordDialog({
           String(paymentPayload.contractNumber ?? "").trim() === contractNumber
         return matchesContract ? sum + Number(paymentPayload.amount ?? 0) : sum
       }, 0)
-    return Math.max(Number.isFinite(computedRemaining) ? computedRemaining : (Number.isFinite(storedRemaining) ? storedRemaining : 0), 0)
+    const paidAmount = Number.isFinite(computedRemaining) ? computedRemaining : 0
+    const remaining = Number.isFinite(total) && total > 0
+      ? total - paidAmount
+      : (Number.isFinite(storedRemaining) ? storedRemaining : 0)
+    return Math.max(remaining, 0)
   }
   const openContractsForPayment = records.filter(item => {
     if (item.kind !== "contract" || item.status === "archived") return false
@@ -1243,7 +1247,7 @@ export function RecordDialog({
                   </div>
                   <div>
                     <Label htmlFor="invoice-linked-contract" className="mb-1.5 block text-xs font-bold text-slate-600">العقد المفتوح غير المسدد</Label>
-                    <select id="invoice-linked-contract" value={String(payload.contractNumber ?? "")} onChange={event => {
+                     <select id="invoice-linked-contract" value={String(payload.contractNumber ?? "")} onChange={event => {
                       const contract = invoiceContracts.find(item => {
                         const p = item.payload as Record<string, unknown>
                         return String(p.contractNumber ?? item.reference ?? "") === event.target.value
@@ -1264,7 +1268,7 @@ export function RecordDialog({
                          customerAddress: String(contractCustomerPayload?.address ?? contractCustomerPayload?.location ?? ""),
                        } : {}) }))
                     }} className="flex h-11 w-full rounded-lg border border-cyan-200 bg-white px-3 text-sm" data-testid="select-invoice-contract">
-                      <option value="">بدون عقد مرتبط</option>
+                       <option value="">بدون عقد مرتبط</option>
                        {invoiceContracts.filter(item => remainingForContract(item) > 0.009).map(item => {
                         const p = item.payload as Record<string, unknown>
                         const number = String(p.contractNumber ?? item.reference ?? "")

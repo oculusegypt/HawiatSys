@@ -580,7 +580,7 @@ function InvoiceWorkspace({ records, onAdd, onDetails, onEdit, onArchive }: { re
                       <div><span className="font-black text-slate-800">{money(total)}</span><span className="mt-1 block text-[10px] text-slate-400">مدفوع {money(paid)} · متبقٍ {money(remaining)}</span></div>
                       <div className="flex items-center justify-end gap-1">
                         <Badge variant="outline" className={`whitespace-nowrap ${statusClass[status]}`}>{statusText[status]}</Badge>
-                        <Link href={`/admin/container-system/invoice/${record.id}/print`} className="flex h-8 w-8 items-center justify-center rounded-md text-slate-500 hover:bg-cyan-50 hover:text-cyan-800" title="طباعة / PDF"><FileDown size={14} /></Link>
+                         <Link href={`/admin/container-system/invoice/${record.id}/details`} className="flex h-8 w-8 items-center justify-center rounded-md text-slate-500 hover:bg-cyan-50 hover:text-cyan-800" title="تفاصيل الفاتورة"><FileDown size={14} /></Link>
                         <Button variant="ghost" size="icon" onClick={() => onEdit(record)} className="h-8 w-8 text-slate-500 hover:bg-cyan-50 hover:text-cyan-800" title="تعديل الفاتورة"><FilePenLine size={14} /></Button>
                         <Button variant="ghost" size="icon" onClick={() => onArchive(record)} className="h-8 w-8 text-slate-400 hover:bg-rose-50 hover:text-rose-600" title="أرشفة الفاتورة"><Archive size={14} /></Button>
                       </div>
@@ -937,7 +937,7 @@ function RecordDetails({ record, allRecords, serviceRequests = [], open, onOpenC
               {record.kind === "customer" && <Button size="sm" variant="outline" onClick={() => { onOpenChange(false); navigate(`/admin/container-system/profile/customer/${record.id}`) }} className="gap-1.5 border-cyan-200 text-cyan-800"><UserRound size={14} /> فتح ملف العميل</Button>}
               {["employee", "driver"].includes(record.kind) && <Button size="sm" variant="outline" onClick={() => { onOpenChange(false); navigate(`/admin/container-system/profile/employee/${record.id}`) }} className="gap-1.5 border-cyan-200 text-cyan-800"><UserCog size={14} /> فتح ملف الموظف</Button>}
               {record.kind === "contract" && <Button size="sm" onClick={() => { onOpenChange(false); navigate(`/admin/container-system/contract/${record.id}/print`) }} className="gap-1.5 bg-cyan-800 hover:bg-cyan-900"><FileText size={14} /> فتح العقد A4</Button>}
-              {record.kind === "invoice" && <Button size="sm" onClick={() => { onOpenChange(false); navigate(`/admin/container-system/invoice/${record.id}/print`) }} className="gap-1.5 bg-cyan-800 hover:bg-cyan-900"><FileText size={14} /> طباعة الفاتورة</Button>}
+              {record.kind === "invoice" && <Button size="sm" onClick={() => { onOpenChange(false); navigate(`/admin/container-system/invoice/${record.id}/details`) }} className="gap-1.5 bg-cyan-800 hover:bg-cyan-900"><FileText size={14} /> تفاصيل الفاتورة</Button>}
             </div>
           </div>
         </DialogHeader>
@@ -1011,7 +1011,7 @@ function RecordDetails({ record, allRecords, serviceRequests = [], open, onOpenC
                  const invoicePayload = invoice.payload as Record<string, unknown>
                  const total = Number(invoicePayload.total ?? invoicePayload.amount ?? 0)
                  const paid = Number(invoicePayload.paid ?? 0)
-                 return <button type="button" key={invoice.id} onClick={() => { onOpenChange(false); navigate(`/admin/container-system/invoice/${invoice.id}/print`) }} className="grid w-full gap-2 rounded-xl bg-white p-3 text-right transition hover:bg-cyan-100/60 sm:grid-cols-[1.2fr_1fr_1fr_1fr_1fr]"><span className="font-black text-cyan-800" dir="ltr">{String(invoicePayload.invoiceNumber ?? invoice.reference)}</span><span><small className="block text-[10px] text-slate-400">الفترة</small>{String(invoicePayload.billingPeriod ?? invoicePayload.date ?? "—")}</span><span><small className="block text-[10px] text-slate-400">الإجمالي</small>{total.toLocaleString("ar-SA")} ر.س</span><span><small className="block text-[10px] text-slate-400">المدفوع</small><span className="text-emerald-700">{paid.toLocaleString("ar-SA")} ر.س</span></span><span><small className="block text-[10px] text-slate-400">المتبقي</small><span className="font-black text-rose-700">{Math.max(total - paid, 0).toLocaleString("ar-SA")} ر.س</span></span></button>
+                 return <button type="button" key={invoice.id} onClick={() => { onOpenChange(false); navigate(`/admin/container-system/invoice/${invoice.id}/details`) }} className="grid w-full gap-2 rounded-xl bg-white p-3 text-right transition hover:bg-cyan-100/60 sm:grid-cols-[1.2fr_1fr_1fr_1fr_1fr]"><span className="font-black text-cyan-800" dir="ltr">{String(invoicePayload.invoiceNumber ?? invoice.reference)}</span><span><small className="block text-[10px] text-slate-400">الفترة</small>{String(invoicePayload.billingPeriod ?? invoicePayload.date ?? "—")}</span><span><small className="block text-[10px] text-slate-400">الإجمالي</small>{total.toLocaleString("ar-SA")} ر.س</span><span><small className="block text-[10px] text-slate-400">المدفوع</small><span className="text-emerald-700">{paid.toLocaleString("ar-SA")} ر.س</span></span><span><small className="block text-[10px] text-slate-400">المتبقي</small><span className="font-black text-rose-700">{Math.max(total - paid, 0).toLocaleString("ar-SA")} ر.س</span></span></button>
                })}</div>}
              </div>
              <div className="rounded-2xl border border-amber-100 bg-amber-50/60 p-4"><h4 className="mb-3 text-sm font-black text-amber-950">دورة العقد</h4><div className="flex flex-wrap gap-2">{["draft", "pending_approval", "issued"].includes(record.status) && <><Button size="sm" onClick={() => onContractAction(record, "approve")} className="bg-emerald-700 hover:bg-emerald-800">اعتماد العقد</Button><Button size="sm" variant="outline" onClick={() => onContractAction(record, "reject")} className="border-rose-200 text-rose-700">رفض العقد</Button></>}<Button size="sm" onClick={() => onContractAction(record, "deliver")} className="bg-cyan-800 hover:bg-cyan-900">تسجيل التسليم</Button><Button size="sm" variant="outline" onClick={() => onContractAction(record, "return")} className="border-cyan-200 text-cyan-900">تسجيل الاسترجاع</Button><Button size="sm" variant="outline" onClick={() => onContractAction(record, "settle")} className="border-emerald-200 text-emerald-800">تصفية العقد</Button><Button size="sm" variant="outline" onClick={() => onContractAction(record, "debt")} className="border-rose-200 text-rose-700">تحويل لمديونية</Button><Button size="sm" variant="outline" onClick={() => onContractAction(record, "close")} className="border-slate-200 text-slate-700">إغلاق العقد</Button></div></div>
@@ -1159,7 +1159,12 @@ export default function ContainerSystem() {
       let amounts: Record<string, string> = {}
       let invoices: Record<string, string> = {}
       try { ids = JSON.parse(String(payload.contractRecordIds)); amounts = JSON.parse(String(payload.allocationAmounts ?? "{}")); invoices = JSON.parse(String(payload.allocationInvoices ?? "{}")) } catch { ids = [] }
-      const allocations = ids.map(id => ({ contractId: Number(id), amount: Number(amounts[id] ?? 0), invoiceId: invoices[id] ? Number(invoices[id]) : null }))
+       const paymentAmount = Number(payload.amount ?? 0)
+       const allocations = ids.map(id => ({
+         contractId: Number(id),
+         amount: ids.length === 1 ? paymentAmount : Number(amounts[id] ?? 0),
+         invoiceId: invoices[id] ? Number(invoices[id]) : null,
+       }))
       if (allocations.length > 0) {
         const operationKey = String(payload.operationKey ?? crypto.randomUUID())
         void fetch(`${API_BASE}/api/admin/container-system/financial/settle`, {
@@ -1183,7 +1188,7 @@ export default function ContainerSystem() {
           setDialog(current => ({ ...current, open: false }))
           if (dialog.kind === "invoice" && created?.id) {
             showSuccess("تم إنشاء الفاتورة بنجاح، جارٍ فتحها")
-            navigate(`/admin/container-system/invoice/${created.id}/print`)
+             navigate(`/admin/container-system/invoice/${created.id}/details`)
           } else {
             showSuccess("تمت إضافة السجل")
           }
@@ -1383,7 +1388,7 @@ export default function ContainerSystem() {
               : view === "container_search" ? <ContainerSearchPanel records={records} loading={loading} onDetails={record => setDetailRecord(record)} onEdit={openEdit} />
               : view === "bookings" ? <DispatchCalendar records={snapshot?.records ?? records} onOpenAppointment={record => setDetailRecord(record)} />
               : view === "invoice"
-                ? <InvoiceWorkspace records={records} onAdd={() => openCreate("invoice")} onDetails={record => navigate(`/admin/container-system/invoice/${record.id}/print`)} onEdit={openEdit} onArchive={archiveRecord} />
+                ? <InvoiceWorkspace records={records} onAdd={() => openCreate("invoice")} onDetails={record => navigate(`/admin/container-system/invoice/${record.id}/details`)} onEdit={openEdit} onArchive={archiveRecord} />
               : view === "container"
                ? <ContainerPOS records={records} onAdd={() => openCreate("container")} onDetails={record => setDetailRecord(record)} onEdit={openEdit} />
                 : <RecordsPanel kind={collectionKind ?? "customer"} records={records} allRecords={snapshot?.records ?? records} loading={loading} onAdd={() => openCreate(collectionKind ?? "customer")} onDetails={record => setDetailRecord(record)} onEdit={openEdit} onArchive={archiveRecord} />}

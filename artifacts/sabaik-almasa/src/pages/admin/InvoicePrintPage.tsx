@@ -81,9 +81,9 @@ export default function InvoicePrintPage() {
       <div className="grid gap-5 lg:grid-cols-[1.25fr_.75fr]">
         <Card className="border-slate-200 shadow-sm"><CardHeader><CardTitle>الأطراف والأصل المفوتر</CardTitle></CardHeader><CardContent className="grid gap-3 sm:grid-cols-2">
           <RelatedLink href={customerId ? `/admin/container-system/profile/customer/${customerId}` : undefined} label="العميل"><UserRound size={14} />{value(p.customerName ?? payloadOf(customer).name)}</RelatedLink>
-          <RelatedLink href={contractId ? `/admin/container-system` : undefined} label="العقد"><FileDown size={14} />{contractNumber}</RelatedLink>
-          <RelatedLink href={containerId ? `/admin/container-system` : undefined} label="الحاوية"><span dir="ltr">#{containerCode}</span></RelatedLink>
-          <RelatedLink href={site?.id ? `/admin/container-system` : undefined} label="الموقع"><MapPin size={14} />{value(p.serviceAddress ?? p.location ?? payloadOf(site).address)}</RelatedLink>
+           <RelatedLink href={contractId ? `/admin/container-system/contract/${contractId}/print` : undefined} label="العقد"><FileDown size={14} />{contractNumber}</RelatedLink>
+           <RelatedLink href={containerId ? `/admin/container-system/profile/container/${containerId}` : undefined} label="الحاوية"><span dir="ltr">#{containerCode}</span></RelatedLink>
+           <RelatedLink href={customerId ? `/admin/container-system/profile/customer/${customerId}` : undefined} label="الموقع"><MapPin size={14} />{value(p.serviceAddress ?? p.location ?? payloadOf(site).address)}</RelatedLink>
           <div className="rounded-xl border border-slate-100 p-3"><p className="text-[11px] font-bold text-slate-400">رقم الجوال</p><p className="mt-1 font-bold" dir="ltr">{value(p.customerPhone ?? payloadOf(customer).phone)}</p></div>
           <div className="rounded-xl border border-slate-100 p-3"><p className="text-[11px] font-bold text-slate-400">دورة الفوترة</p><p className="mt-1 font-bold">{value(p.billingFrequency, "شهري")}</p></div>
         </CardContent></Card>

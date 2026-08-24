@@ -90,7 +90,7 @@ export default function RequestDocumentModal({ request, kind, onClose }: Props) 
       onSuccess: created => {
         onClose()
         toast({ title: "تم إنشاء الفاتورة بنجاح" })
-        if (created?.id) navigate(`/admin/container-system/invoice/${created.id}/print`)
+        if (created?.id) navigate(`/admin/container-system/invoice/${created.id}/details`)
       },
       onError: error => toast({ title: error instanceof Error ? error.message : "تعذر إنشاء الفاتورة", variant: "destructive" }),
     })

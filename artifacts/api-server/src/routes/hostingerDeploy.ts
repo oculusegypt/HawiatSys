@@ -5,6 +5,7 @@ import crypto from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { lstat, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { createReadStream } from "node:fs";
+import { readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { getSetting, setSetting } from "./settings";
@@ -50,7 +51,17 @@ async function getDeploySettings() {
   const [host, username, port, remotePath, secure, password] = await Promise.all(
     Object.values(SETTINGS).map(getSetting),
   );
-  const storedPassword = password ? decryptPassword(password) : "";
+  let storedPassword = "";
+  if (password) {
+    try {
+      storedPassword = decryptPassword(password);
+    } catch {
+      // Older installations may have encrypted the setting with a previous
+      // SESSION_SECRET. Prefer the managed secret fallback so deployment can
+      // repair the saved setting through the normal settings form.
+      storedPassword = "";
+    }
+  }
   return {
     host: host.replace(/^ftps?:\/\//i, "").replace(/\/+$/, ""),
     username,
@@ -75,6 +86,21 @@ function safeArchiveEntries(zipPath: string): string[] {
     }
   }
   return entries.filter(entry => !entry.endsWith("/"));
+}
+
+function extractedFiles(root: string, relativeDir = ""): string[] {
+  const files: string[] = [];
+  for (const entry of readdirSync(join(root, relativeDir), { withFileTypes: true })) {
+    const relativePath = relativeDir ? `${relativeDir}/${entry.name}` : entry.name;
+    if (entry.isDirectory()) {
+      files.push(...extractedFiles(root, relativePath));
+    } else if (entry.isFile()) {
+      files.push(relativePath);
+    } else {
+      throw new Error("ملف الباتش يحتوي على رابط أو عنصر غير صالح");
+    }
+  }
+  return files;
 }
 
 router.use("/admin/hostinger", requireAdmin, requireSectionPermission("settings", { adminOnly: true }));
@@ -144,7 +170,8 @@ router.post("/admin/hostinger/deploy", upload.single("patch"), async (req: Admin
     if (!entries.length) return res.status(400).json({ error: "ملف الباتش فارغ" });
     execFileSync("unzip", ["-q", zipPath, "-d", workDir]);
     const extractedRoot = resolve(workDir);
-    for (const entry of entries) {
+    const files = extractedFiles(extractedRoot);
+    for (const entry of files) {
       const localPath = resolve(workDir, entry);
       const stat = await lstat(localPath);
       if (!stat.isFile()) throw new Error("ملف الباتش يحتوي على رابط أو عنصر غير صالح");
@@ -152,7 +179,7 @@ router.post("/admin/hostinger/deploy", upload.single("patch"), async (req: Admin
     client = new Client(30_000);
     await client.access({ host: settings.host, user: settings.username, password: settings.password, port: settings.port, secure: settings.secure });
     await client.ensureDir(settings.remotePath);
-    for (const entry of entries) {
+    for (const entry of files) {
       const localPath = resolve(workDir, entry);
       if (!localPath.startsWith(`${extractedRoot}/`)) throw new Error("مسار ملف غير آمن");
       const remoteFile = `${settings.remotePath}/${entry.replaceAll("\\", "/")}`;
