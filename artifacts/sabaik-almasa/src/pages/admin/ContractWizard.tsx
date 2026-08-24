@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import type { ContainerSystemRecord } from "@workspace/api-client-react"
-import { ArrowLeft, ArrowRight, CheckCircle2, FileCheck2, ShieldCheck } from "lucide-react"
+import { ArrowLeft, ArrowRight, CheckCircle2, FileCheck2, Plus, ShieldCheck, Trash2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -50,7 +50,26 @@ type FormState = {
   containerSize: string
   location: string
   duration: string
+  tripDuration: string
+  contractType: string
+  propertyNumber: string
+  planNumber: string
+  classification: string
+  trips: string
+  unitPrice: string
+  newClause: string
+  clauses: string[]
 }
+
+const DEFAULT_CLAUSES = [
+  "يلتزم الطرف الأول بتوفير الحاوية وتسليمها إلى الموقع المحدد في العقد، وتنفيذ خدمات النقل والتفريغ المتفق عليها.",
+  "يلتزم الطرف الثاني بالمحافظة على الحاوية وعدم نقلها أو استخدامها لغير الغرض المتفق عليه دون موافقة الطرف الأول.",
+  "تحتسب قيمة العقد والضريبة وأي خدمات إضافية وفق البيانات المالية المثبتة في هذا المستند.",
+  "يتحمل الطرف الثاني أي أضرار ناتجة عن سوء الاستخدام أو تجاوز الوزن أو تعبئة مواد غير مسموحة.",
+  "تسجل كل عملية تسليم أو تبديل أو تفريغ أو استرجاع في النظام وترتبط بهذا العقد.",
+  "يلتزم الطرف الثاني بسداد المستحقات في مواعيدها، ويحق للطرف الأول تعليق الخدمة عند التأخر وفق سياسة المؤسسة.",
+  "أي تعديل على هذا العقد لا يكون نافذًا إلا بعد اعتماده وتسجيله كتابيًا من الطرفين.",
+]
 
 const initialForm: FormState = {
   customerRecordId: "",
@@ -73,6 +92,15 @@ const initialForm: FormState = {
   containerSize: "",
   location: "",
   duration: "",
+  tripDuration: "",
+  contractType: "أنقاض",
+  propertyNumber: "",
+  planNumber: "",
+  classification: "",
+  trips: "",
+  unitPrice: "",
+  newClause: "",
+  clauses: DEFAULT_CLAUSES,
 }
 
 function payloadOf(record: ContainerSystemRecord) {
@@ -216,6 +244,12 @@ export function ContractWizard({ open, records, initialCustomerId = null, initia
     setStep(current => Math.min(current + 1, 4))
   }
 
+  const addClause = () => {
+    const clause = form.newClause.trim()
+    if (!clause) return
+    setForm(current => ({ ...current, clauses: [...current.clauses, clause], newClause: "" }))
+  }
+
   const submit = () => {
     const message = [0, 1, 2, 3].map(currentStep => validateStep(currentStep)).find(Boolean)
     if (message) {
@@ -241,10 +275,18 @@ export function ContractWizard({ open, records, initialCustomerId = null, initia
        taxInclusive,
       status: "active",
       notes: form.notes.trim(),
-       location: String(site ? payloadOf(site).address ?? "" : form.location),
+       contractType: form.contractType,
+       propertyNumber: form.propertyNumber.trim(),
+       planNumber: form.planNumber.trim(),
+       classification: form.classification.trim(),
+       trips: form.trips ? Number(form.trips) : null,
+       unitPrice: form.unitPrice ? Number(form.unitPrice) : null,
+       contractTerms: form.clauses.filter(Boolean),
+       location: form.location.trim() || String(site ? payloadOf(site).address ?? "" : ""),
        serviceType: form.serviceType,
        containerSize: form.containerSize,
        duration: form.duration,
+       tripDuration: form.tripDuration,
       createdFrom: "contract_workflow",
       appointmentDate: form.appointmentDate,
       appointmentTime: form.appointmentTime,
@@ -282,10 +324,19 @@ export function ContractWizard({ open, records, initialCustomerId = null, initia
             {step === 1 && <section className="space-y-4">
                <div><h3 className="font-black text-slate-900">بيانات العقد والتخصيص</h3><p className="mt-1 text-sm text-slate-500">لا يمكن إصدار عقد تشغيلي دون موقع عميل وأصل متاح وفترة واضحة.</p></div>
                {initialRequest && <div className="rounded-2xl border border-indigo-100 bg-indigo-50/70 p-4 text-xs leading-6 text-indigo-950"><div className="mb-2 font-black">بيانات الطلب المحملة تلقائياً</div><div className="grid gap-x-4 sm:grid-cols-2"><span>العميل: <b>{initialRequest.clientName}</b></span><span>الجوال: <b dir="ltr">{initialRequest.phone}</b></span><span>الخدمة: <b>{initialRequest.serviceType}</b></span><span>الحاوية المطلوبة: <b>{initialRequest.containerSize || "غير محدد"}</b></span><span className="sm:col-span-2">العنوان: <b>{initialRequest.location}</b></span>{initialRequest.duration && <span>المدة: <b>{initialRequest.duration}</b></span>}{initialRequest.notes && <span className="sm:col-span-2">الملاحظات: <b>{initialRequest.notes}</b></span>}</div></div>}
-              <div className="grid gap-4 sm:grid-cols-2">
+               <div className="grid gap-4 sm:grid-cols-2">
+                 <div><Label htmlFor="contract-type">نوع العقد</Label><select id="contract-type" value={form.contractType} onChange={event => update("contractType", event.target.value)} className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm"><option value="أنقاض">أنقاض</option><option value="تأجير حاوية">تأجير حاوية</option><option value="نقل مخلفات">نقل مخلفات</option></select></div>
                 <div><Label htmlFor="contract-number">رقم العقد</Label><Input id="contract-number" value={form.contractNumber} onChange={event => update("contractNumber", event.target.value)} placeholder="سيولد تلقائياً عند الحفظ" className="mt-2" dir="ltr" /><p className="mt-1 text-[11px] text-slate-500">اتركه فارغاً ليولد النظام رقماً فريداً تلقائياً.</p></div>
                 <div><Label htmlFor="contract-container">الأصل المتاح</Label><select id="contract-container" value={form.containerRecordId} onChange={event => update("containerRecordId", event.target.value)} className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm"><option value="">اختر الأصل</option>{containers.map(record => <option key={record.id} value={record.id}>{labelOf(record)} · {String(payloadOf(record).typeName ?? "نوع غير محدد")}</option>)}</select></div>
                  <div><Label htmlFor="contract-site">موقع العميل</Label><select id="contract-site" value={form.siteRecordId} onChange={event => update("siteRecordId", event.target.value)} className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm"><option value="">{sites.length ? "اختر موقع العميل" : "لا توجد مواقع لهذا العميل"}</option>{sites.map(record => <option key={record.id} value={record.id}>{labelOf(record)} · {String(payloadOf(record).address ?? "")}</option>)}</select></div>
+                 <div><Label htmlFor="contract-property-number">رقم القطعة</Label><Input id="contract-property-number" value={form.propertyNumber} onChange={event => update("propertyNumber", event.target.value)} placeholder="رقم القطعة" className="mt-2" /></div>
+                 <div><Label htmlFor="contract-plan-number">رقم المخطط</Label><Input id="contract-plan-number" value={form.planNumber} onChange={event => update("planNumber", event.target.value)} placeholder="رقم المخطط" className="mt-2" /></div>
+                 <div><Label htmlFor="contract-classification">التصنيف</Label><Input id="contract-classification" value={form.classification} onChange={event => update("classification", event.target.value)} placeholder="برجاء اختر التصنيف" className="mt-2" /></div>
+                 <div><Label htmlFor="contract-size">حجم الحاوية</Label><Input id="contract-size" value={form.containerSize} onChange={event => update("containerSize", event.target.value)} placeholder="برجاء اختر الحجم" className="mt-2" /></div>
+                 <div><Label htmlFor="contract-trips">عدد الرحلات</Label><Input id="contract-trips" type="number" min="0" value={form.trips} onChange={event => update("trips", event.target.value)} placeholder="عدد الرحلات" className="mt-2" dir="ltr" /></div>
+                 <div className="sm:col-span-2"><Label htmlFor="contract-location">العنوان</Label><Input id="contract-location" value={form.location} onChange={event => update("location", event.target.value)} placeholder="ادخل العنوان الأول" className="mt-2" /></div>
+                 <div><Label htmlFor="contract-trip-duration">مدة الرحلة</Label><Input id="contract-trip-duration" value={form.tripDuration} onChange={event => update("tripDuration", event.target.value)} placeholder="مثال: 3 ساعات" className="mt-2" /></div>
+                 <div><Label htmlFor="contract-duration">مدة التعاقد</Label><Input id="contract-duration" value={form.duration} onChange={event => update("duration", event.target.value)} placeholder="مثال: شهر" className="mt-2" /></div>
                 <div><Label htmlFor="contract-start">بداية العقد</Label><Input id="contract-start" type="date" value={form.startDate} onChange={event => update("startDate", event.target.value)} className="mt-2" dir="ltr" /></div>
                 <div><Label htmlFor="contract-end">نهاية العقد</Label><Input id="contract-end" type="date" value={form.endDate} onChange={event => update("endDate", event.target.value)} className="mt-2" dir="ltr" /></div>
               </div>
@@ -294,9 +345,10 @@ export function ContractWizard({ open, records, initialCustomerId = null, initia
 
             {step === 2 && <section className="space-y-4">
               <div><h3 className="font-black text-slate-900">التسعير والضريبة</h3><p className="mt-1 text-sm text-slate-500">أدخل القيمة الأساسية، وسيحسب النظام الضريبة والإجمالي تلقائيًا.</p></div>
-               <div className="grid gap-4 sm:grid-cols-3"><div><Label htmlFor="contract-amount">قيمة العقد المدخلة</Label><Input id="contract-amount" type="number" min="0" value={form.amount} onChange={event => update("amount", event.target.value)} className="mt-2" dir="ltr" /><p className="mt-1 text-[11px] text-slate-500">{taxInclusive ? "ستُعامل كقيمة شاملة للضريبة" : "ستُعامل كقيمة قبل الضريبة"}</p></div><div><Label htmlFor="contract-tax">نسبة الضريبة %</Label><Input id="contract-tax" type="number" min="0" value={form.taxRate} onChange={event => update("taxRate", event.target.value)} className="mt-2" dir="ltr" /></div><div><Label htmlFor="contract-tax-inclusive">هل السعر شامل الضريبة؟</Label><select id="contract-tax-inclusive" value={form.taxInclusive} onChange={event => update("taxInclusive", event.target.value)} className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm"><option value="false">لا، قبل الضريبة</option><option value="true">نعم، شامل الضريبة</option></select></div></div>
+               <div className="grid gap-4 sm:grid-cols-4"><div><Label htmlFor="contract-unit-price">السعر</Label><Input id="contract-unit-price" type="number" min="0" value={form.unitPrice} onChange={event => update("unitPrice", event.target.value)} className="mt-2" dir="ltr" placeholder="0" /></div><div><Label htmlFor="contract-amount">قيمة التعاقد</Label><Input id="contract-amount" type="number" min="0" value={form.amount} onChange={event => update("amount", event.target.value)} className="mt-2" dir="ltr" placeholder="0" /><p className="mt-1 text-[11px] text-slate-500">{taxInclusive ? "شاملة الضريبة" : "قبل الضريبة"}</p></div><div><Label htmlFor="contract-tax">نسبة الضريبة %</Label><Input id="contract-tax" type="number" min="0" value={form.taxRate} onChange={event => update("taxRate", event.target.value)} className="mt-2" dir="ltr" /></div><div><Label htmlFor="contract-tax-inclusive">هل السعر شامل الضريبة؟</Label><select id="contract-tax-inclusive" value={form.taxInclusive} onChange={event => update("taxInclusive", event.target.value)} className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm"><option value="false">لا، قبل الضريبة</option><option value="true">نعم، شامل الضريبة</option></select></div></div>
                <div className="grid grid-cols-3 gap-3 rounded-2xl bg-slate-50 p-4 text-center"><div><p className="text-xs text-slate-500">قبل الضريبة</p><b className="mt-1 block text-lg text-slate-900">{netAmount.toLocaleString("ar-SA")} ر.س</b></div><div><p className="text-xs text-slate-500">الضريبة</p><b className="mt-1 block text-lg text-amber-700">{taxAmount.toLocaleString("ar-SA")} ر.س</b></div><div><p className="text-xs text-slate-500">الإجمالي</p><b className="mt-1 block text-lg text-emerald-700">{total.toLocaleString("ar-SA")} ر.س</b></div></div>
-              <div><Label htmlFor="contract-notes">الشروط والملاحظات</Label><textarea id="contract-notes" value={form.notes} onChange={event => update("notes", event.target.value)} rows={4} className="mt-2 w-full rounded-lg border border-slate-200 p-3 text-sm outline-none focus:border-cyan-600" placeholder="شروط التسليم أو الاستثناءات..." /></div>
+               <div><Label htmlFor="contract-notes">ملاحظات</Label><textarea id="contract-notes" value={form.notes} onChange={event => update("notes", event.target.value)} rows={3} className="mt-2 w-full rounded-lg border border-slate-200 p-3 text-sm outline-none focus:border-cyan-600" placeholder="شروط التسليم أو الاستثناءات..." /></div>
+               <div className="rounded-2xl border border-amber-100 bg-amber-50/60 p-4"><div><h4 className="font-black text-slate-900">بنود العقد</h4><p className="mt-1 text-xs text-slate-600">البنود الموجودة محفوظة تلقائياً، ويمكنك إضافة أي بند خاص بالعقد.</p></div><ol className="mt-3 space-y-2 pr-5 text-sm leading-6">{form.clauses.map((clause, index) => <li key={`${clause}-${index}`} className="flex items-start gap-2"><span className="flex-1">{clause}</span><button type="button" onClick={() => setForm(current => ({ ...current, clauses: current.clauses.filter((_, clauseIndex) => clauseIndex !== index) }))} className="mt-1 text-rose-600 hover:text-rose-800" aria-label="حذف البند"><Trash2 size={15} /></button></li>)}</ol><div className="mt-4 flex flex-col gap-2 sm:flex-row"><Input value={form.newClause} onChange={event => update("newClause", event.target.value)} onKeyDown={event => { if (event.key === "Enter") { event.preventDefault(); addClause() } }} placeholder="اكتب بنداً جديداً" /><Button type="button" variant="outline" onClick={addClause} className="gap-2 border-amber-300 text-amber-900 hover:bg-amber-100"><Plus size={16} /> إضافة البند</Button></div></div>
             </section>}
 
             {step === 3 && <section className="space-y-4">
@@ -309,10 +361,10 @@ export function ContractWizard({ open, records, initialCustomerId = null, initia
               <div className="rounded-2xl border border-cyan-100 bg-cyan-50 p-4 text-sm leading-6 text-cyan-950">سيُنشأ موعد مرتبط بالعقد والعميل والأصل بعد نجاح الإصدار. إذا رفض النظام الموعد بسبب تعارض، سيبقى العقد محفوظًا وتظهر نتيجة واضحة للمشرف.</div>
             </section>}
 
-              {step === 4 && <section className="space-y-4"><div><h3 className="font-black text-slate-900">مراجعة قبل الإصدار</h3><p className="mt-1 text-sm text-slate-500">تحقق من العلاقات والقيمة والموعد قبل إنشاء العقد النشط.</p></div>{initialRequest && <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-4 text-xs leading-6 text-indigo-950"><b>مصدر العقد: طلب الخدمة #{initialRequest.id}</b><div>العنوان: {initialRequest.location} · الحاوية المطلوبة: {initialRequest.containerSize || "غير محدد"}</div></div>}<div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm sm:grid-cols-2"><span>العميل: <b>{customer ? labelOf(customer) : initialRequest?.clientName || "—"}</b></span><span>الموقع: <b>{site ? labelOf(site) : initialRequest?.location || "—"}</b></span><span>الأصل: <b>{container ? labelOf(container) : initialRequest?.containerSize || "—"}</b></span><span>رقم العقد: <b dir="ltr">{form.contractNumber || "سيولد تلقائياً"}</b></span><span>الفترة: <b dir="ltr">{form.startDate || "—"} → {form.endDate || "—"}</b></span><span>الموعد الأول: <b dir="ltr">{form.appointmentDate || "—"} · {form.appointmentTime}</b></span><span>الإجمالي: <b>{total.toLocaleString("ar-SA")} ر.س</b></span><span>الحالة بعد الإصدار: <b className="text-emerald-700">نشط</b></span></div><div className="flex items-start gap-2 rounded-xl border border-amber-100 bg-amber-50 p-3 text-xs leading-6 text-amber-950"><ShieldCheck size={16} className="mt-1 shrink-0" />سيُحفظ العقد مع معرّف العميل والموقع والأصل، وسيُنشأ موعد مرتبط بهم، مع منع تعارض الفترة أو إعادة استخدام رقم العقد.</div></section>}
+              {step === 4 && <section className="space-y-4"><div><h3 className="font-black text-slate-900">مراجعة قبل الإضافة</h3><p className="mt-1 text-sm text-slate-500">اضغط «تأكيد وإضافة العقد» لحفظ التعاقد وبنوده.</p></div>{initialRequest && <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-4 text-xs leading-6 text-indigo-950"><b>مصدر العقد: طلب الخدمة #{initialRequest.id}</b><div>العنوان: {initialRequest.location} · الحاوية المطلوبة: {initialRequest.containerSize || "غير محدد"}</div></div>}<div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm sm:grid-cols-2"><span>العميل: <b>{customer ? labelOf(customer) : initialRequest?.clientName || "—"}</b></span><span>الموقع: <b>{site ? labelOf(site) : initialRequest?.location || "—"}</b></span><span>نوع العقد: <b>{form.contractType}</b></span><span>رقم القطعة / المخطط: <b>{form.propertyNumber || "—"} / {form.planNumber || "—"}</b></span><span>الأصل: <b>{container ? labelOf(container) : initialRequest?.containerSize || "—"}</b></span><span>الفترة: <b dir="ltr">{form.startDate || "—"} → {form.endDate || "—"}</b></span><span>عدد البنود: <b>{form.clauses.length}</b></span><span>الإجمالي: <b>{total.toLocaleString("ar-SA")} ر.س</b></span></div><div className="flex items-start gap-2 rounded-xl border border-amber-100 bg-amber-50 p-3 text-xs leading-6 text-amber-950"><ShieldCheck size={16} className="mt-1 shrink-0" />سيُحفظ العقد مع بيانات العميل والموقع والأصل والبنود المضافة، وسيُنشأ موعد مرتبط به.</div></section>}
 
             {error && <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700" role="alert">{error}</p>}
-            <div className="flex items-center justify-between border-t border-slate-100 pt-5"><Button type="button" variant="outline" onClick={step === 0 ? onClose : () => { setError(""); setStep(current => current - 1) }} className="gap-2">{step === 0 ? "إلغاء" : <><ArrowRight size={16} /> السابق</>}</Button>{step < 4 ? <Button type="button" onClick={next} className="gap-2 bg-cyan-800 hover:bg-cyan-900">التالي <ArrowLeft size={16} /></Button> : <Button type="button" disabled={busy} onClick={submit} className="gap-2 bg-emerald-700 hover:bg-emerald-800">{busy ? "جارٍ الإصدار..." : "إصدار العقد"} <CheckCircle2 size={16} /></Button>}</div>
+             <div className="flex items-center justify-between border-t border-slate-100 pt-5"><Button type="button" variant="outline" onClick={step === 0 ? onClose : () => { setError(""); setStep(current => current - 1) }} className="gap-2">{step === 0 ? "إلغاء" : <><ArrowRight size={16} /> السابق</>}</Button>{step < 4 ? <Button type="button" onClick={next} className="gap-2 bg-cyan-800 hover:bg-cyan-900">التالي <ArrowLeft size={16} /></Button> : <Button type="button" disabled={busy} onClick={submit} className="gap-2 bg-emerald-700 hover:bg-emerald-800">{busy ? "جارٍ الحفظ..." : "تأكيد وإضافة العقد"} <CheckCircle2 size={16} /></Button>}</div>
           </div>
         </CardContent>
       </Card>

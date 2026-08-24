@@ -825,6 +825,10 @@ const DETAIL_LABELS: Record<string, string> = {
   assignmentStatus: "حالة التخصيص", startDate: "بداية التخصيص", endDate: "نهاية التخصيص",
   movementType: "نوع الحركة", driverName: "اسم السائق", vehiclePlate: "لوحة المركبة",
   serviceType: "نوع الخدمة", scheduledAt: "الموعد", duration: "مدة التأجير",
+  sourceKind: "نوع السجل المصدر", sourceId: "رقم السجل المصدر", contractId: "العقد المرتبط",
+  invoiceRecordId: "الفاتورة المرتبطة", invoiceNumber: "رقم الفاتورة", amount: "المبلغ",
+  paymentMethod: "طريقة الدفع", direction: "اتجاه القيد", date: "التاريخ", allocations: "توزيعات السداد",
+  operationKey: "مفتاح العملية", source: "مصدر العملية",
 }
 
 function detailLabel(key: string) {
@@ -849,7 +853,21 @@ function RecordDetails({ record, allRecords, serviceRequests = [], open, onOpenC
   const [, navigate] = useLocation()
   if (!record) return null
   const isContainer = ["container", "container_asset"].includes(record.kind)
-  const entries = Object.entries(record.payload).filter(([key, value]) => key !== "status" || !isContainer).filter(([, value]) => value !== "" && value !== null && value !== undefined)
+  const sourcePayment = record.kind === "ledger_entry"
+    ? allRecords.find(item => item.kind === "payment" && item.id === Number(record.payload.sourceId ?? 0))
+    : undefined
+  const sourcePaymentPayload = sourcePayment?.payload as Record<string, unknown> | undefined
+  const detailPayload = record.kind === "ledger_entry"
+    ? {
+        ...record.payload,
+        customerName: record.payload.customerName ?? sourcePaymentPayload?.customerName,
+        customerRecordId: record.payload.customerRecordId ?? sourcePaymentPayload?.customerRecordId,
+        invoiceRecordId: record.payload.invoiceRecordId ?? sourcePaymentPayload?.invoiceRecordId,
+        invoiceNumber: record.payload.invoiceNumber ?? sourcePaymentPayload?.invoiceNumber,
+        paymentMethod: record.payload.paymentMethod ?? sourcePaymentPayload?.paymentMethod,
+      }
+    : record.payload
+  const entries = Object.entries(detailPayload).filter(([key]) => key !== "status" || !isContainer).filter(([, value]) => value !== "" && value !== null && value !== undefined)
   const containerPayload = record.payload as Record<string, unknown>
   const containerCode = String(containerPayload.assetCode ?? containerPayload.code ?? record.reference ?? `#${record.id}`)
   const containerStatus = String(containerPayload.status ?? record.status)
@@ -862,14 +880,14 @@ function RecordDetails({ record, allRecords, serviceRequests = [], open, onOpenC
     : []
   const containerMovements = relatedContainerRecords.filter(item => item.kind === "container_movement").length
   const containerContracts = relatedContainerRecords.filter(item => item.kind === "contract" || item.kind === "container_assignment").length
-  const customerName = String(record.payload.name ?? record.payload.customerName ?? "")
+  const customerName = String(detailPayload.name ?? detailPayload.customerName ?? "")
   const linkedCustomer = allRecords.find(item => {
     if (item.kind !== "customer" || item.status === "archived") return false
     const payload = item.payload as Record<string, unknown>
-    return (record.payload.customerRecordId && String(item.id) === String(record.payload.customerRecordId)) ||
+    return (detailPayload.customerRecordId && String(item.id) === String(detailPayload.customerRecordId)) ||
       (customerName && String(payload.name ?? payload.customerName ?? "").trim() === customerName.trim())
   })
-  const linkedCustomerId = linkedCustomer?.id ?? (record.payload.customerRecordId ? Number(record.payload.customerRecordId) : null)
+  const linkedCustomerId = linkedCustomer?.id ?? (detailPayload.customerRecordId ? Number(detailPayload.customerRecordId) : null)
   const customerRecords = allRecords.filter(item => {
     const payload = item.payload as Record<string, unknown>
     return (linkedCustomerId && String(payload.customerRecordId ?? "") === String(linkedCustomerId)) ||
@@ -922,7 +940,21 @@ function RecordDetails({ record, allRecords, serviceRequests = [], open, onOpenC
     .map(([key, value]) => {
       const linkedId = ["assignmentRecordId", "assignedContractRecordId", "assignedSiteRecordId"].includes(key) ? Number(value) : 0
       const linkedRecord = linkedId > 0 ? allRecords.find(item => item.id === linkedId) : undefined
-      return [detailLabel(key), linkedRecord ? recordDisplayName(linkedRecord, String(value)) : String(value)] as const
+      if (linkedRecord) return [detailLabel(key), recordDisplayName(linkedRecord, String(value))] as const
+      if (key === "allocations" && Array.isArray(value)) {
+        const allocationText = value.map((item: unknown) => {
+          const allocation = item as Record<string, unknown>
+          const contract = allRecords.find(candidate => candidate.kind === "contract" && candidate.id === Number(allocation.contractId ?? 0))
+          const invoice = allRecords.find(candidate => candidate.kind === "invoice" && candidate.id === Number(allocation.invoiceId ?? 0))
+          const contractName = contract ? recordDisplayName(contract, String(allocation.contractId ?? "")) : `عقد ${allocation.contractId ?? "—"}`
+          const invoicePayload = invoice?.payload as Record<string, unknown> | undefined
+          const invoiceName = invoice ? String(invoicePayload?.invoiceNumber ?? invoice.reference) : (allocation.invoiceId ? `فاتورة ${allocation.invoiceId}` : "بدون فاتورة")
+          return `${contractName} · ${invoiceName} · ${Number(allocation.amount ?? 0).toLocaleString("ar-SA")} ر.س`
+        }).join("، ")
+        return [detailLabel(key), allocationText] as const
+      }
+      if (typeof value === "object") return [detailLabel(key), JSON.stringify(value, null, 2)] as const
+      return [detailLabel(key), String(value)] as const
     })
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

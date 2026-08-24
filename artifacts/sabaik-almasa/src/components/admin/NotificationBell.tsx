@@ -280,7 +280,7 @@ export function AdminToastPortal() {
   }, [])
 
   return (
-    <div className="fixed left-1/2 top-4 z-[200] flex -translate-x-1/2 flex-col gap-3 pointer-events-none">
+    <div className="admin-toast-portal fixed left-1/2 top-4 z-[200] flex -translate-x-1/2 flex-col gap-3 pointer-events-none">
       <AnimatePresence>
         {toasts.map(t => (
           <FloatingToast key={t.id} toast={t} onClose={() => removeToast(t.id)} />
@@ -313,7 +313,7 @@ export function NotificationStatusStrip() {
 
   if (!latest) return null
   return (
-    <div className="border-b border-primary/10 bg-primary/[0.035] px-4 py-2 text-xs text-gray-600">
+    <div className="notification-status-strip border-b border-primary/10 bg-primary/[0.035] px-4 py-2 text-xs text-gray-600">
       <div className="mx-auto flex max-w-[1600px] items-center gap-2">
         <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-emerald-500" />
         <span className="font-bold text-primary">آخر تحديث</span>
