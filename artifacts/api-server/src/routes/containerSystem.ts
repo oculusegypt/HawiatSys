@@ -1587,8 +1587,11 @@ router.post("/admin/container-system/records", async (req, res) => {
       }
       if (kind === "container_assignment") {
         const assetId = Number(payload.containerRecordId);
+        const contractRecordId = Number(payload.contractRecordId);
         const asset = tx.select().from(containerSystemRecordsTable).where(eq(containerSystemRecordsTable.id, assetId)).get();
         if (!asset) throw new Error("أصل الحاوية غير موجود");
+        const contract = tx.select().from(containerSystemRecordsTable).where(eq(containerSystemRecordsTable.id, contractRecordId)).get();
+        if (!contract || contract.kind !== "contract" || contract.status === "archived") throw new Error("العقد المرتبط غير موجود أو مؤرشف");
         const nextAssetPayload = {
           ...parsePayload(asset.payload),
           assignmentRecordId: inserted.id,

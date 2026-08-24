@@ -24,3 +24,4 @@
 - [Hostinger financial route parity](hostinger-financial-route-parity.md) — PHP generic records must match Node for contract idempotency and closed-period posting.
 - [Request document action boundary](request-document-action-boundary.md) — test document buttons at their originating request page; destination-page fixes cannot remove a stale source redirect.
 - [Hostinger FTP upload compatibility](hostinger-ftp-upload-compatibility.md) — upload extraction must preserve Unicode paths and tolerate legacy encrypted FTP settings.
+- [Settlement selection identity](settlement-selection-identity.md) — payment validation must use selected contract IDs, not only display-number fields.

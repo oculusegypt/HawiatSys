@@ -1154,11 +1154,18 @@ export default function ContainerSystem() {
         ? { ...payload, operationKey: crypto.randomUUID() }
         : payload,
     }
-    if (!dialog.record && dialog.kind === "payment" && String(payload.contractRecordIds ?? "").trim()) {
+    if (!dialog.record && dialog.kind === "payment") {
       let ids: string[] = []
       let amounts: Record<string, string> = {}
       let invoices: Record<string, string> = {}
-      try { ids = JSON.parse(String(payload.contractRecordIds)); amounts = JSON.parse(String(payload.allocationAmounts ?? "{}")); invoices = JSON.parse(String(payload.allocationInvoices ?? "{}")) } catch { ids = [] }
+      try {
+        const storedIds = JSON.parse(String(payload.contractRecordIds ?? ""))
+        ids = Array.isArray(storedIds) ? storedIds.map(String) : []
+        amounts = JSON.parse(String(payload.allocationAmounts ?? "{}"))
+        invoices = JSON.parse(String(payload.allocationInvoices ?? "{}"))
+      } catch { ids = [] }
+      const legacyId = String(payload.contractRecordId ?? "").trim()
+      if (ids.length === 0 && legacyId) ids = [legacyId]
        const paymentAmount = Number(payload.amount ?? 0)
        const allocations = ids.map(id => ({
          contractId: Number(id),

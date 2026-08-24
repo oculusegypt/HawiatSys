@@ -636,6 +636,15 @@ const PAYMENT_METHOD_OPTIONS = [
   { value: "credit", label: "آجل / على الحساب" },
 ] as const
 
+const CUSTOMER_PAYMENT_STATUS_OPTIONS = [
+  { value: "draft", label: "مسودة — بانتظار المراجعة" },
+  { value: "pending", label: "قيد المراجعة" },
+  { value: "posted", label: "مرحّل — مثبت ماليًا" },
+  { value: "settled", label: "مسدد / مصفى" },
+  { value: "returned", label: "مرتجع" },
+  { value: "cancelled", label: "ملغى" },
+] as const
+
 export function statusTone(status?: string) {
   const normalized = (status ?? "").toLowerCase()
   if (["active", "available", "متاح", "نشط", "جاهزة", "مكتملة", "تمت المعالجة"].some(item => normalized.includes(item))) {
@@ -790,7 +799,7 @@ export function RecordDialog({
     }
     if (kind === "container" && !initial.status) initial.status = record?.status || "available"
     setPayload(initial)
-    setStatus(record?.status || (kind === "invoice" ? "draft" : "active"))
+    setStatus(record?.status || (["invoice", "payment"].includes(kind) ? "draft" : "active"))
     setFormError("")
     setNewCustomerOpen(false)
     setNewCustomerError("")
@@ -1004,7 +1013,7 @@ export function RecordDialog({
   const optionsFor = (key: string) => {
     if (kind === "container" && key === "status") return CONTAINER_STATUS_OPTIONS
     if (kind === "invoice" && key === "invoiceType") return INVOICE_TYPE_OPTIONS
-    if (kind === "invoice" && key === "paymentMethod") return PAYMENT_METHOD_OPTIONS
+    if (["invoice", "payment"].includes(kind) && key === "paymentMethod") return PAYMENT_METHOD_OPTIONS
     const employeeSelectionKeys = ["employeeName", "employeeRecordId", "driverName", "supervisorName", "staffName", "createdByName"]
     if (employeeSelectionKeys.includes(key)) {
       return records
@@ -1079,8 +1088,8 @@ export function RecordDialog({
         </DialogHeader>
         <form onSubmit={event => {
           event.preventDefault()
-           if (isCustomerPayment && !String(payload.contractNumber ?? "").trim() && !String(payload.invoiceNumber ?? "").trim()) {
-             setFormError("اختر عقداً واحداً على الأقل أو أدخل رقم الفاتورة يدوياً.")
+            if (isCustomerPayment && selectedPaymentContractIds.length === 0 && !String(payload.invoiceNumber ?? "").trim()) {
+              setFormError("اختر عقداً واحداً على الأقل أو أدخل رقم الفاتورة يدوياً.")
             return
           }
            if (isCustomerPayment && selectedPaymentContractIds.length > 1) {
@@ -1377,7 +1386,12 @@ export function RecordDialog({
                                          type="radio"
                                          name={`payment-invoice-${option.value}`}
                                          checked={!paymentAllocationInvoices[option.value]}
-                                         onChange={() => setPayload(current => ({ ...current, allocationInvoices: JSON.stringify({ ...paymentAllocationInvoices, [option.value]: "" }) }))}
+                                          onChange={() => setPayload(current => ({
+                                            ...current,
+                                            invoiceNumber: "",
+                                            invoiceRecordId: "",
+                                            allocationInvoices: JSON.stringify({ ...paymentAllocationInvoices, [option.value]: "" }),
+                                          }))}
                                          onClick={event => event.stopPropagation()}
                                          className="accent-cyan-700"
                                        />
@@ -1393,7 +1407,12 @@ export function RecordDialog({
                                              name={`payment-invoice-${option.value}`}
                                              value={String(invoice.id)}
                                              checked={paymentAllocationInvoices[option.value] === String(invoice.id)}
-                                             onChange={() => setPayload(current => ({ ...current, allocationInvoices: JSON.stringify({ ...paymentAllocationInvoices, [option.value]: String(invoice.id) }) }))}
+                                              onChange={() => setPayload(current => ({
+                                                ...current,
+                                                invoiceNumber,
+                                                invoiceRecordId: String(invoice.id),
+                                                allocationInvoices: JSON.stringify({ ...paymentAllocationInvoices, [option.value]: String(invoice.id) }),
+                                              }))}
                                              onClick={event => event.stopPropagation()}
                                              className="accent-cyan-700"
                                            />
@@ -1433,7 +1452,9 @@ export function RecordDialog({
              {kind !== "container" && <div className={`${kind === "contract" ? "" : "sm:col-span-2"} ${isCustomerPayment ? "order-7" : ""}`}>
               <Label htmlFor="record-status" className="mb-1.5 block text-xs font-bold text-slate-600">حالة السجل</Label>
               <select id="record-status" value={status} onChange={event => setStatus(event.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-700" data-testid="select-record-status">
-                {STATUS_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                 {isCustomerPayment
+                   ? CUSTOMER_PAYMENT_STATUS_OPTIONS.map(({ value, label }) => <option key={value} value={value}>{label}</option>)
+                   : STATUS_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
               </select>
              </div>}
           </div>
