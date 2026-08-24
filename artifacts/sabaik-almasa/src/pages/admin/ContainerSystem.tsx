@@ -1155,24 +1155,56 @@ export default function ContainerSystem() {
         : payload,
     }
     if (!dialog.record && dialog.kind === "payment") {
-      let ids: string[] = []
-      let amounts: Record<string, string> = {}
-      let invoices: Record<string, string> = {}
-      try {
-        const storedIds = JSON.parse(String(payload.contractRecordIds ?? ""))
-        ids = Array.isArray(storedIds) ? storedIds.map(String) : []
-        amounts = JSON.parse(String(payload.allocationAmounts ?? "{}"))
-        invoices = JSON.parse(String(payload.allocationInvoices ?? "{}"))
-      } catch { ids = [] }
-      const legacyId = String(payload.contractRecordId ?? "").trim()
-      if (ids.length === 0 && legacyId) ids = [legacyId]
-       const paymentAmount = Number(payload.amount ?? 0)
-       const allocations = ids.map(id => ({
-         contractId: Number(id),
-         amount: ids.length === 1 ? paymentAmount : Number(amounts[id] ?? 0),
-         invoiceId: invoices[id] ? Number(invoices[id]) : null,
-       }))
-      if (allocations.length > 0) {
+      let allocations = Array.isArray(payload.allocations)
+        ? payload.allocations.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === "object")).map(item => ({
+            contractId: Number(item.contractId ?? 0),
+            amount: Number(item.amount ?? 0),
+            invoiceId: item.invoiceId == null ? null : Number(item.invoiceId),
+          }))
+        : []
+      // An invoice selection is sufficient context for a customer payment.
+      // Resolve its contract here as a final client-side boundary so every
+      // payment entry point sends the same explicit allocation payload.
+      const selectedInvoice = records.find(record => {
+        if (record.kind !== "invoice" || record.status === "archived") return false
+        const invoicePayload = record.payload as Record<string, unknown>
+        return (payload.invoiceRecordId != null && Number(payload.invoiceRecordId) === record.id) ||
+          (payload.invoiceId != null && Number(payload.invoiceId) === record.id) ||
+          (String(payload.invoiceNumber ?? "").trim() !== "" &&
+            String(invoicePayload.invoiceNumber ?? record.reference ?? "").trim() === String(payload.invoiceNumber).trim())
+      })
+      const selectedInvoicePayload = selectedInvoice?.payload as Record<string, unknown> | undefined
+      const invoiceContract = selectedInvoicePayload
+        ? records.find(record => record.kind === "contract" && record.status !== "archived" && (
+            Number(selectedInvoicePayload.contractRecordId ?? 0) === record.id ||
+            (String(selectedInvoicePayload.contractNumber ?? "").trim() !== "" &&
+              String((record.payload as Record<string, unknown>).contractNumber ?? record.reference ?? "").trim() === String(selectedInvoicePayload.contractNumber).trim())
+          ))
+        : undefined
+      if (allocations.length === 0) {
+        let ids: string[] = []
+        let amounts: Record<string, string> = {}
+        let invoices: Record<string, string> = {}
+        try {
+          const storedIds = JSON.parse(String(payload.contractRecordIds ?? ""))
+          ids = Array.isArray(storedIds) ? storedIds.map(String) : []
+          amounts = JSON.parse(String(payload.allocationAmounts ?? "{}"))
+          invoices = JSON.parse(String(payload.allocationInvoices ?? "{}"))
+        } catch { ids = [] }
+        const legacyId = String(payload.contractRecordId ?? "").trim()
+        if (ids.length === 0 && invoiceContract?.id) ids = [String(invoiceContract.id)]
+        if (ids.length === 0 && legacyId) ids = [legacyId]
+        const paymentAmount = Number(payload.amount ?? 0)
+        allocations = ids.map(id => ({
+          contractId: Number(id),
+          amount: ids.length === 1 ? paymentAmount : Number(amounts[id] ?? 0),
+          invoiceId: invoices[id] ? Number(invoices[id]) : selectedInvoice?.id ?? null,
+        }))
+      }
+      if (allocations.length === 1 && selectedInvoice?.id && allocations[0].invoiceId == null) {
+        allocations[0].invoiceId = selectedInvoice.id
+      }
+      if (allocations.length > 0 && allocations.every(item => item.contractId > 0 && item.amount > 0)) {
         const operationKey = String(payload.operationKey ?? crypto.randomUUID())
         void fetch(`${API_BASE}/api/admin/container-system/financial/settle`, {
           method: "POST",
@@ -1185,6 +1217,8 @@ export default function ContainerSystem() {
         }).catch(error => toast({ title: error instanceof Error ? error.message : "تعذر تسجيل السداد", variant: "destructive" }))
         return
       }
+      toast({ title: "اختر فاتورة أو عقداً واحداً على الأقل وحدد مبلغ السداد", variant: "destructive" })
+      return
     }
     if (dialog.record) {
       updateMutation.mutate({ id: dialog.record.id, data: { status, payload } }, { onSuccess: () => { invalidate(); setDialog(current => ({ ...current, open: false })); showSuccess("تم تحديث السجل") }, onError: error => toast({ title: error instanceof Error ? error.message : "تعذر تحديث السجل", variant: "destructive" }) })

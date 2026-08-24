@@ -1105,6 +1105,18 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
         }
         $requestedInvoicePayload = $requestedInvoice['payload'] ?? [];
         $requestedContractId = (int)($input['contractId'] ?? $requestedInvoicePayload['contractRecordId'] ?? 0);
+        if ($requestedContractId <= 0 && $requestedInvoice) {
+            $requestedContractNumber = trim((string)($requestedInvoicePayload['contractNumber'] ?? ''));
+            foreach ($rows as $row) {
+                if ($row['kind'] !== 'contract' || $row['status'] === 'archived') continue;
+                $contractPayload = $row['payload'] ?? [];
+                if ((int)($requestedInvoicePayload['contractRecordId'] ?? 0) === (int)$row['id']
+                    || ($requestedContractNumber !== '' && trim((string)($contractPayload['contractNumber'] ?? $row['reference'] ?? '')) === $requestedContractNumber)) {
+                    $requestedContractId = (int)$row['id'];
+                    break;
+                }
+            }
+        }
         $requested = is_array($input['allocations'] ?? null) && count($input['allocations']) > 0
             ? $input['allocations']
             : ($requestedContractId > 0 ? [['contractId' => $requestedContractId, 'amount' => $amount, 'invoiceId' => $requestedInvoice['id'] ?? $input['invoiceId'] ?? $input['invoiceRecordId'] ?? null]] : []);

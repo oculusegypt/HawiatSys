@@ -1,5 +1,5 @@
 import { ArrowRight, BriefcaseBusiness, CalendarDays, CheckCircle2, FileDown, FileText, MapPin, Phone, Printer, Truck, UserRound, Wallet, Wrench } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { useLocation, useParams } from "wouter"
 import { getGetContainerSystemQueryKey, getGetServiceRequestsQueryKey, useCreateContainerContractWorkflow, useCreateContainerSystemRecord, useGetContainerSystem, useGetServiceRequests } from "@workspace/api-client-react"
@@ -88,6 +88,21 @@ function CustomerProfile({ record, records }: { record: ContainerSystemRecord; r
   })
   const contracts = related.filter(item => item.kind === "contract")
   const contractIds = new Set(contracts.map(item => item.id))
+  const paymentInvoiceId = Number(new URLSearchParams(window.location.search).get("paymentInvoiceId") ?? 0)
+  const paymentInvoice = paymentInvoiceId > 0
+    ? records.find(item => item.kind === "invoice" && item.id === paymentInvoiceId && item.status !== "archived")
+    : undefined
+  const paymentInvoicePayload = payloadOf(paymentInvoice)
+  const paymentInvoiceContract = contracts.find(item =>
+    item.id === Number(paymentInvoicePayload.contractRecordId ?? 0)
+    || text(payloadOf(item).contractNumber, "") === text(paymentInvoicePayload.contractNumber, ""),
+  )
+  const paymentInvoiceTotal = Number(paymentInvoicePayload.total ?? paymentInvoicePayload.amount ?? 0)
+  const paymentInvoicePaid = Number(paymentInvoicePayload.paid ?? 0)
+  const paymentInvoiceRemaining = Math.max(paymentInvoiceTotal - paymentInvoicePaid, 0)
+  useEffect(() => {
+    if (paymentInvoice && action === null) setAction("payment")
+  }, [paymentInvoice, action])
   const sites = records.filter(item => item.kind === "customer_site" && item.status !== "archived" && customerSiteBelongsTo(item, record))
   const assignments = related.filter(item => item.kind === "container_assignment" || contractIds.has(Number(payloadOf(item).contractRecordId)))
   const appointments = related.filter(item => item.kind === "appointment" || contractIds.has(Number(payloadOf(item).contractRecordId)))
@@ -278,7 +293,17 @@ function CustomerProfile({ record, records }: { record: ContainerSystemRecord; r
       kind={action === "payment" ? "payment" : "customer_site"}
       records={records}
       initialPayload={action === "payment"
-        ? { customerRecordId: String(record.id), customerName: name }
+        ? {
+            customerRecordId: String(record.id),
+            customerName: name,
+            ...(paymentInvoice ? {
+              invoiceRecordId: String(paymentInvoice.id),
+              invoiceId: String(paymentInvoice.id),
+              invoiceNumber: String(paymentInvoicePayload.invoiceNumber ?? paymentInvoice.reference ?? ""),
+              contractRecordId: paymentInvoiceContract?.id ? String(paymentInvoiceContract.id) : String(paymentInvoicePayload.contractRecordId ?? ""),
+              amount: String(paymentInvoiceRemaining),
+            } : {}),
+          }
         : { customerRecordId: String(record.id), customerName: name, city: String(p.city ?? ""), address: String(p.address ?? "") }}
       busy={busy || createMutation.isPending}
       onOpenChange={open => { if (!open && !busy) setAction(null) }}

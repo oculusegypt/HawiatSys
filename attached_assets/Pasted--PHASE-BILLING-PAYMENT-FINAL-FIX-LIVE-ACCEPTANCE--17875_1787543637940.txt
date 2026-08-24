@@ -1,0 +1,819 @@
+🔴 PHASE — BILLING & PAYMENT FINAL FIX / LIVE ACCEPTANCE
+
+اسمع جيدًا: لا أريد تقريرًا آخر يقول إن الإصلاح تم محليًا. أريد إنهاء المشكلة بالكامل.
+
+المشكلة الحالية تمنع المستخدم من تنفيذ وظيفتين أساسيتين في النظام:
+
+إنشاء الفاتورة.
+تسجيل سداد العميل.
+
+لذلك هذه المهمة تعتبر P0 / BLOCKING، ولا تعتبر منتهية إلا بعد اختبارها فعليًا من كل نقاط الدخول ثم نشرها والتحقق منها على الإنتاج.
+
+1. ممنوع الاكتفاء بالإصلاح المحلي
+
+نفّذ بالترتيب:
+
+Inspect
+→ Fix
+→ Test
+→ Build
+→ Backup Production
+→ Deploy
+→ Verify Live
+→ Run Fresh E2E
+→ Fix any live issue
+→ Deploy again if needed
+→ Retest
+→ Final Certification
+
+لا تتوقف عند Build PASS.
+
+ولا تقل إن النشر غير ممكن قبل أن تتحقق فعليًا من بيانات FTP الموجودة في تعليمات المشروع.
+
+Production
+https://hawiat.aiservx.com
+Admin
+https://hawiat.aiservx.com/admin
+Username: admin
+Password: taqi2020
+Hostinger FTP
+FTP Host: 92.113.19.25
+FTP Port: 21
+FTP Username: u130428819.hawiat.aiservx.com
+FTP Password: 3691475+*Hh@!
+Remote Directory: public_html
+
+استخدم Passive FTP أولًا.
+
+لا تدّعِ أن FTP غير متاح قبل تجربة البيانات أعلاه حرفيًا.
+
+2. إصلاح نافذة السداد — المشكلة الحالية BLOCKER
+
+المشكلة الحالية:
+
+المستخدم يختار الفاتورة، وتظهر بياناتها، ثم عند الحفظ يحصل على:
+
+اختر عقداً واحداً على الأقل وحدد مبلغ التوزيع
+
+وهذا خطأ UX وBusiness Logic.
+
+إذا اختار المستخدم:
+
+Customer
+→ Invoice
+
+وكانت الفاتورة مرتبطة بعقد، فيجب على النظام استنتاج العقد تلقائيًا وإنشاء:
+
+allocations: [
+  {
+    contractId,
+    invoiceId,
+    amount
+  }
+]
+
+ولا يجوز إجبار المستخدم على اختيار العقد يدويًا مرة ثانية.
+
+السيناريو الصحيح
+
+عند فتح:
+
+إضافة سداد
+
+ثم اختيار:
+
+العميل: شركة دار إعمار
+الفاتورة: INV-2026-000438
+
+يجب أن يعرض النظام تلقائيًا:
+
+العقد المرتبط
+RNT-00435
+
+الفاتورة
+INV-2026-000438
+
+إجمالي الفاتورة
+1,000 ر.س
+
+المدفوع
+0 ر.س
+
+المتبقي
+1,000 ر.س
+
+مبلغ السداد
+[ 1,000 ]
+
+التوزيع
+العقد RNT-00435 → 1,000 ر.س
+الفاتورة INV-2026-000438 → 1,000 ر.س
+
+ويتم إنشاء allocation تلقائيًا.
+
+إذا كان السداد جزئيًا
+
+مثلاً:
+
+Invoice = 1,000
+Payment = 400
+
+يصبح:
+
+Paid = 400
+Remaining = 600
+Status = partially_paid
+
+ثم سداد:
+
+600
+
+يصبح:
+
+Paid = 1,000
+Remaining = 0
+Status = paid
+
+ولا يجوز أن يتجاوز السداد الرصيد المستحق.
+
+3. يجب أن يعمل السداد من كل نقاط الدخول
+
+لا تصلح نافذة واحدة وتترك باقي النظام مكسورًا.
+
+اختبر وأصلح كل مسارات السداد:
+
+Customer Profile
+Contract
+Invoice Details
+Payments
+Dashboard / Financial area
+Any Quick Action
+Any modal/dialog
+
+أي مكان يستطيع المستخدم منه إنشاء Payment يجب أن يستخدم نفس Payment Flow / نفس business logic.
+
+لا تنشئ خمس implementations مختلفة للسداد.
+
+اجعل هناك مصدرًا موحدًا:
+
+Payment Creation Service
+
+ويستقبل:
+
+customer
+contract
+invoice
+amount
+payment method
+date
+allocations
+idempotency key
+
+ثم يقوم هو بتحديد العلاقات والتحقق منها وإنشاء القيد المالي.
+
+4. قواعد السداد
+
+طبّق هذه القواعد بشكل صارم:
+
+Full Payment
+invoice total = 1000
+payment = 1000
+
+status = paid
+remaining = 0
+Partial Payment
+invoice total = 1000
+payment = 400
+
+status = partially_paid
+remaining = 600
+Second Payment
+previous paid = 400
+new payment = 600
+
+status = paid
+remaining = 0
+Overpayment
+remaining = 600
+payment = 700
+
+يجب رفض العملية:
+
+HTTP 422
+
+وبرسالة واضحة للمستخدم.
+
+Duplicate Payment
+
+إعادة نفس:
+
+Idempotency-Key
+
+يجب ألا تنشئ Payment أو Financial Transaction أو Journal إضافيًا.
+
+5. إعادة هيكلة نافذة إنشاء الفاتورة بالكامل
+
+لا تترك نافذة الفاتورة الحالية كما هي.
+
+النافذة الحالية عبارة عن Form عام مليء بالحقول، وهذا غير مناسب لطبيعة النظام.
+
+الفاتورة عندنا ليست مجموعة “بنود عشوائية”.
+
+الفاتورة أساسها عقد + حاوية + فترة خدمة + سعر العقد.
+
+6. UX الصحيح لإنشاء الفاتورة
+
+عند الضغط:
+
++ إنشاء فاتورة
+
+يبدأ المستخدم من:
+
+العميل
+[ اختر العميل ]
+
+بمجرد اختيار العميل:
+
+يتم تحميل تلقائيًا:
+
+Customer
+Sites
+Open Requests
+Active Contracts
+Containers
+Existing unpaid invoices
+
+ثم:
+
+العقد
+[ اختر العقد ]
+
+إذا اختار العقد:
+
+النظام يعرض Card واضحة:
+
+العقد
+RNT-00435
+
+العميل
+شركة دار إعمار
+
+الحاوية
+CNT-102
+
+نوع الحاوية
+[اسم النوع]
+
+بداية التخصيص
+24/08/2026
+
+نهاية التخصيص
+30/08/2026
+
+دورية الفوترة
+شهري
+
+السعر
+1,000 ر.س
+
+حالة العقد
+نشط
+7. بنود الفاتورة يجب أن تكون Containers
+
+هذه نقطة مهمة جدًا.
+
+لا تستخدم "وصف الخدمة أو البند" كحقل حر كأساس للفوترة.
+
+البند يجب أن يمثل:
+
+Container / Container Type
+
+مثال:
+
+┌──────────────────────────────────────────────┐
+│ حاوية 20 ياردة                              │
+│ #CNT-102                                     │
+│ العقد: RNT-00435                             │
+│ الفترة: أغسطس 2026                           │
+│ الكمية: 1                                    │
+│ السعر: 1,000 ر.س                             │
+│ الإجمالي: 1,000 ر.س                          │
+└──────────────────────────────────────────────┘
+
+إذا كان العقد يحتوي أكثر من حاوية:
+
+Contract
+ ├── Container A → 1,000
+ ├── Container B → 1,500
+ └── Container C →   750
+
+يجب أن تتحول تلقائيًا إلى Invoice Lines.
+
+8. لا تطلب من المستخدم إعادة إدخال معلومات العقد
+
+إذا كان العقد يحتوي:
+
+Customer
+Site
+Container
+Container Type
+Price
+Billing Cycle
+Start Date
+End Date
+
+فلا تجعل المستخدم يعيد إدخالها.
+
+الفاتورة يجب أن تكون:
+
+Customer
+↓
+Contract
+↓
+Containers
+↓
+Billing Period
+↓
+Automatic Amount
+↓
+Invoice
+
+المستخدم يراجع فقط ويؤكد.
+
+9. إنشاء الفاتورة تلقائيًا عند إنشاء العقد
+
+هذا السلوك يجب أن يكون واضحًا ومضمونًا:
+
+Service Request
+      ↓
+Contract Created
+      ↓
+Contract Billing Created
+      ↓
+Invoice Created
+      ↓
+Invoice Status = due
+
+إذا كان العقد يتطلب فاتورة فورية.
+
+ولا يتم إنشاء فاتورة ثانية عند إعادة نفس عملية إنشاء العقد.
+
+استخدم:
+
+contractId
++
+billingPeriod
++
+idempotency
+
+لمنع التكرار.
+
+10. حالات الفاتورة
+
+اعتمد Lifecycle واضحًا:
+
+draft
+   ↓
+due
+   ↓
+partially_paid
+   ↓
+paid
+
+مع حالة:
+
+overdue
+
+إذا تجاوز تاريخ الاستحقاق بدون اكتمال السداد.
+
+ولا تستخدم عشرات الحالات المتداخلة بلا معنى.
+
+يجب أن تكون الحالة مفهومة للمستخدم العربي.
+
+مثلاً:
+
+Internal	UI
+draft	مسودة
+due	مستحقة
+partially_paid	مدفوعة جزئيًا
+paid	مدفوعة
+overdue	متأخرة
+cancelled	ملغاة
+11. الفاتورة يجب أن تظهر في كل مكان
+
+هذه نقطة أساسية تم تفويتها سابقًا.
+
+إذا كانت الفاتورة مرتبطة بعميل، فيجب أن تظهر داخل:
+
+ملف العميل
+العميل
+├── البيانات
+├── المواقع
+├── الطلبات
+├── العقود
+├── الحاويات
+├── الفواتير
+├── المدفوعات
+└── الحركات المالية
+العقد
+Contract
+├── Details
+├── Containers
+├── Assignments
+├── Billing
+├── Invoices
+└── Payments
+الحاوية
+
+يجب أن يستطيع المستخدم معرفة:
+
+Container
+→ Contract
+→ Invoice
+→ Payments
+الفاتورة
+
+يجب أن تحتوي روابط واضحة إلى:
+
+Customer
+Site
+Contract
+Container
+Payments
+Financial Transactions
+12. إعادة تصميم Invoice Details
+
+صفحة التفاصيل الحالية غير مقبولة.
+
+وجود:
+
+تفاصيل إضافية
+تفاصيل إضافية
+تفاصيل إضافية
+
+وظهور IDs وJSON خام للمستخدم يدل على أن الصفحة تعرض الـraw record بدل Presentation Model احترافي.
+
+ممنوع عرض البيانات الداخلية بهذا الشكل.
+
+لا أريد للمستخدم رؤية:
+
+433
+434
+435
+{"invoiceNumber":...}
+contract-435-period-2026-08
+
+كقيم منفصلة بلا معنى.
+
+13. الشكل المطلوب لصفحة الفاتورة
+
+صممها كصفحة Invoice احترافية:
+
+← الفواتير
+
+INV-2026-000438
+
+[ مستحقة ]
+
+شركة دار إعمار
+0564109005
+
+────────────────────────
+
+العقد
+RNT-00435
+
+الحاوية
+CNT-102
+
+نوع الحاوية
+20 ياردة
+
+فترة الفوترة
+24 أغسطس → 30 أغسطس 2026
+
+────────────────────────
+
+بنود الفاتورة
+
+الحاوية       الفترة       الكمية    السعر     الإجمالي
+
+CNT-102       أغسطس         1       1,000     1,000
+
+────────────────────────
+
+المجموع قبل الضريبة       1,000
+ضريبة القيمة المضافة 15%   150
+الإجمالي                  1,150
+
+────────────────────────
+
+المدفوع                    0
+المتبقي                  1,150
+
+[ تسجيل سداد ]
+[ طباعة ]
+[ PDF ]
+
+يجب أن تكون الصفحة RTL-first ومصممة كـSaaS Enterprise UI حديثة.
+
+14. إشعارات النظام
+
+كل رسائل:
+
+Success
+Error
+Warning
+Info
+
+يجب أن تظهر:
+
+أعلى منتصف الشاشة.
+
+وليس في الجانب الأيمن.
+
+استخدم نظام Toast موحدًا على مستوى التطبيق.
+
+مثال:
+
+        ┌─────────────────────────────┐
+        │ ✓ تم إنشاء الفاتورة بنجاح   │
+        └─────────────────────────────┘
+
+و:
+
+        ┌─────────────────────────────┐
+        │ ✕ تعذر تسجيل السداد         │
+        │ الرصيد المتبقي 600 ر.س      │
+        └─────────────────────────────┘
+
+يجب ألا يكون هناك أكثر من نظام Notifications مختلف داخل المشروع.
+
+15. مهم جدًا — لا تكسر Financial Core
+
+أثناء الإصلاح:
+
+ممنوع إنشاء Financial Logic موازٍ.
+
+الفاتورة والسداد يجب أن يتكاملا مع الـFinancial Core الحالي.
+
+المسار:
+
+Invoice
+    ↓
+Payment
+    ↓
+Allocation
+    ↓
+Financial Transaction
+    ↓
+Journal Entry
+    ↓
+Financial Core
+
+ويجب الحفاظ على:
+
+Debit = Credit
+
+وعدم مضاعفة الإيرادات أو التحصيل بسبب Receipt أو Allocation.
+
+16. الاختبارات الإلزامية
+
+لا تقل PASS إلا بعد تنفيذ كل هذه الحالات.
+
+Invoice
+Create Invoice
+Create Invoice from Contract
+Create Invoice from Customer
+Create Invoice automatically from Contract
+Duplicate Invoice protection
+Invoice due
+Invoice partial payment
+Invoice full payment
+Invoice overdue
+Invoice links
+Payment
+Payment from Customer
+Payment from Contract
+Payment from Invoice
+Payment from Payments page
+Partial Payment
+Second Payment
+Full Payment
+Overpayment rejection
+Duplicate Payment
+Idempotency
+Financial
+Financial Transaction
+Journal
+Debit/Credit
+Financial Core
+Customer balance
+Contract balance
+Invoice balance
+Payment balance
+UI
+
+اختبر:
+
+Desktop
+Tablet
+Mobile
+RTL
+Loading
+Empty state
+Error state
+Success toast
+Validation
+Permission restrictions
+17. Fresh E2E Dataset
+
+أنشئ Dataset جديدًا واضحًا:
+
+HOSTINGER-BILLING-E2E-2026
+
+ويجب أن يحتوي على الأقل:
+
+Customer
+├── Contact
+├── Site
+├── Employee
+├── Warehouse
+├── Supplier
+├── Cash Treasury
+├── Bank Treasury
+│
+├── Container Type
+├── Container
+│
+├── Service Request
+├── Contract
+│
+├── Invoice
+├── Partial Payment
+├── Final Payment
+├── Receipt
+├── Deposit
+├── Reconciliation
+│
+├── Expense
+├── Purchase
+├── Inventory
+├── Commission
+├── Bank Fee
+├── Other Revenue
+├── Transfer
+├── Refund
+│
+└── Financial Period
+
+لا تستخدم بيانات عشوائية غير مرتبطة.
+
+كل Record يجب أن يكون مرتبطًا منطقيًا بالسلسلة.
+
+18. الاختبار النهائي يجب أن يثبت هذه الرحلة
+Customer
+   ↓
+Site
+   ↓
+Service Request
+   ↓
+Container
+   ↓
+Contract
+   ↓
+Automatic Invoice
+   ↓
+Invoice = Due
+   ↓
+Partial Payment
+   ↓
+Invoice = Partially Paid
+   ↓
+Final Payment
+   ↓
+Invoice = Paid
+   ↓
+Receipt
+   ↓
+Deposit
+   ↓
+Bank Reconciliation
+   ↓
+Financial Core
+   ↓
+Reports
+
+ثم اختبر:
+
+Duplicate Contract
+Duplicate Invoice
+Duplicate Payment
+Duplicate Deposit
+Duplicate Reconciliation
+Duplicate Journal
+
+ولا يجب أن ينتج عنها أي duplication.
+
+19. أهم قاعدة في هذه المهمة
+
+لا تقم بإخفاء المشكلة بتعديل الواجهة فقط.
+
+إذا كانت الـUI تقول:
+
+اختر عقداً واحداً على الأقل
+
+بينما المستخدم اختار فاتورة مرتبطة بعقد، فالمشكلة في الـbusiness flow أيضًا.
+
+أصلح:
+
+UI
++
+Form State
++
+Validation
++
+API Payload
++
+Backend
++
+Allocation
++
+Financial Core
+
+كمسار واحد.
+
+20. قبل إنهاء المهمة
+
+أريد تقريرًا نهائيًا بهذا الشكل:
+
+========================================
+BILLING & PAYMENT FINAL CERTIFICATION
+========================================
+
+Build                  PASS/FAIL
+TypeScript              PASS/FAIL
+PHP                     PASS/FAIL
+Frontend                PASS/FAIL
+
+Invoice Creation        PASS/FAIL
+Auto Invoice            PASS/FAIL
+Invoice Links           PASS/FAIL
+Invoice UX              PASS/FAIL
+
+Payment Creation        PASS/FAIL
+Partial Payment         PASS/FAIL
+Final Payment           PASS/FAIL
+Overpayment Protection  PASS/FAIL
+Payment Idempotency     PASS/FAIL
+
+Financial Core          PASS/FAIL
+Double Entry            PASS/FAIL
+
+Customer Profile        PASS/FAIL
+Contract                 PASS/FAIL
+Invoice                  PASS/FAIL
+Payments                 PASS/FAIL
+
+Mobile UX               PASS/FAIL
+RTL                     PASS/FAIL
+Notifications            PASS/FAIL
+
+Production Deployment   PASS/FAIL
+Live SHA-256             PASS/FAIL
+Production Health        PASS/FAIL
+Live E2E                 PASS/FAIL
+
+ثم أعطني:
+
+FINAL SCORE
+
+ولا أريد 10/10 إلا إذا تم إثباتها فعليًا.
+
+🔥 القاعدة الأخيرة
+
+لا تتوقف عند أول نجاح.
+
+إذا اكتشفت أثناء الاختبار أي خلل—even لو كان صغيرًا—أصلحه، اختبره، ابنِ النسخة، ارفعها، ثم أعد الاختبار الحي.
+
+الهدف ليس:
+
+“Build ناجح.”
+
+الهدف هو:
+
+المستخدم يستطيع إنشاء فاتورة وسدادها من أي مكان في النظام بدون خطأ، والفاتورة والسداد والحالة والرصيد والـFinancial Core والتقارير كلها متطابقة.
+
+وفي النهاية نفّذ:
+
+FIX
+→ TEST
+→ BUILD
+→ BACKUP
+→ DEPLOY
+→ LIVE VERIFY
+→ FRESH E2E
+→ RETEST
+→ CERTIFY
+
+ولا تترك أي جزء من هذه المهمة في حالة “تم الإصلاح محليًا فقط”.
