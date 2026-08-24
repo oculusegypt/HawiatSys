@@ -27,3 +27,4 @@
 - [Settlement selection identity](settlement-selection-identity.md) — payment validation must use selected contract IDs, not only display-number fields.
 - [Invoice payment auto-allocation](invoice-payment-auto-allocation.md) — a single invoice selection must resolve its contract allocation consistently in Node and Hostinger PHP.
 - [Contract location fallback](contract-location-fallback.md) — contract workflows may create a customer site from a manual/map location, and Node/PHP must stay behaviorally aligned.
+- [Contract invoice source](contract-invoice-source.md) — automatic contract invoices must preserve contract totals and carry the selected container and contract address.

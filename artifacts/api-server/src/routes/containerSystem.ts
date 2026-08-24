@@ -926,8 +926,22 @@ router.post("/admin/container-system/contracts/workflow", requireContainerPermis
         } else {
           const subtotal = Number(contractPayload.amount ?? 0);
           const taxRate = Number(contractPayload.taxRate ?? 15);
-          const taxAmount = Math.round(subtotal * taxRate / 100 * 100) / 100;
-          const total = Math.round((subtotal + taxAmount) * 100) / 100;
+          const taxAmount = Number(contractPayload.taxAmount ?? Math.round(subtotal * taxRate / 100 * 100) / 100);
+          const total = Number(contractPayload.total ?? Math.round((subtotal + taxAmount) * 100) / 100);
+          const containerCode = String(contractPayload.containerCode ?? assetPayload.assetCode ?? assetPayload.code ?? asset.reference ?? "");
+          const containerType = String(contractPayload.containerType ?? assetPayload.typeName ?? assetPayload.containerType ?? assetPayload.size ?? "");
+          const contractLocation = String(contractPayload.location ?? parsePayload(site.payload).address ?? "").trim();
+          const lineItem = {
+            description: containerType ? `حاوية ${containerCode} — ${containerType}` : `حاوية ${containerCode}`,
+            containerCode,
+            quantity: 1,
+            unitPrice: subtotal,
+            amount: subtotal,
+            taxRate,
+            taxAmount,
+            total,
+            location: contractLocation,
+          };
           const invoicePayload = {
             invoiceType: "standard",
             invoiceStatus: "due",
@@ -941,10 +955,12 @@ router.post("/admin/container-system/contracts/workflow", requireContainerPermis
             customerPhone: String(customerPayload.phone ?? customerPayload.mobile ?? ""),
             customerTaxNumber: String(customerPayload.taxNumber ?? customerPayload.vatNumber ?? ""),
             customerAddress: String(customerPayload.address ?? customerPayload.location ?? ""),
+            serviceAddress: contractLocation,
+            location: contractLocation,
             siteRecordId: siteId,
             containerRecordId: assetId,
-            containerCode: String(contractPayload.containerCode ?? ""),
-            containerType: String(contractPayload.containerType ?? contractPayload.typeName ?? ""),
+            containerCode,
+            containerType,
             billingPeriod,
             billingFrequency: String(contractPayload.billingFrequency ?? "monthly"),
             startDate: contractPayload.startDate ?? billingPeriod,
@@ -958,7 +974,11 @@ router.post("/admin/container-system/contracts/workflow", requireContainerPermis
             remaining: total,
             operationKey: invoiceOperationKey,
             date: String(contractPayload.issueDate ?? now).slice(0, 10),
-            description: String(contractPayload.description ?? "خدمات الحاوية"),
+            description: lineItem.description,
+            quantity: 1,
+            unitPrice: subtotal,
+            lineItems: [lineItem],
+            contractTerms: Array.isArray(contractPayload.contractTerms) ? contractPayload.contractTerms : [],
           };
           const insertedInvoice = tx.insert(containerSystemRecordsTable).values({
             kind: "invoice",

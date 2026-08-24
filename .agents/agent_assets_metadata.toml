@@ -27,14 +27,14 @@ content_type = "application/octet-stream"
 id = "e7Hwi4c_9VUpSkVoGq2Ul"
 uri = "file://cleanflow-services-hostinger.zip"
 type = "unspecified"
-title = "حزمة هوستنجر الشاملة"
-description = "أرشيف ZIP جاهز للرفع إلى public_html، ويتضمن الواجهة، API PHP، قاعدة SQLite، الصور، ومنصة CleanFlow مع إصلاح إنشاء العقود والمواقع التلقائي."
+title = "حزمة هوستنجر الشاملة — إصدار الفواتير التلقائية"
+description = "أرشيف ZIP جاهز للرفع إلى public_html. يتضمن إنشاء فاتورة تلقائية من تفاصيل العقد: الحاوية كبند، عنوان العقد كعنوان الخدمة، وإجمالي الفاتورة مساويًا لإجمالي العقد، مع نسخة PHP وواجهة الموقع وقاعدة SQLite."
 logical_id = "c612380d-19d8-4641-8c29-e5ac4a484245"
-content_hash = "sha256:6cb7ed7346a7f75878893e49119d8c36f7e37c990926a60b39580041de280911"
-size = 20662444
-mtime_ms = 1787556389853
-storage_uri = "gcs://replit-rams-assets-worf/rams/assets/repl:8d4f5fea-7bf8-417c-b5ac-7012ab4a99c9/c612380d-19d8-4641-8c29-e5ac4a484245/c4931291-b876-4dc1-982a-9e74bc892259"
-storage_version_token = "1787556405913414"
+content_hash = "sha256:9078e8bd0b823217e02e804acec88dbaef27c77affe4cfd8a55f94c5f453d469"
+size = 20663393
+mtime_ms = 1787557225687
+storage_uri = "gcs://replit-rams-assets-worf/rams/assets/repl:8d4f5fea-7bf8-417c-b5ac-7012ab4a99c9/c612380d-19d8-4641-8c29-e5ac4a484245/c75223bb-d87e-486e-88e3-ebed86465d75"
+storage_version_token = "1787557239731849"
 content_type = "application/octet-stream"
 
 [[outputs]]

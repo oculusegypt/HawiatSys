@@ -1049,9 +1049,57 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
                 $serviceStmt->execute([':client_name' => (string)($service['clientName'] ?? $customerPayload['name'] ?? ''), ':phone' => (string)($service['phone'] ?? $customerPayload['phone'] ?? ''), ':email' => (string)($service['email'] ?? $customerPayload['email'] ?? ''), ':service_type' => (string)($service['serviceType'] ?? 'تسليم حاوية'), ':container_size' => (string)($service['containerSize'] ?? $contract['containerCode'] ?? ''), ':property_type' => (string)($service['propertyType'] ?? ''), ':area_size' => (string)($service['areaSize'] ?? ''), ':location' => (string)($service['location'] ?? $contract['location'] ?? 'يحدد لاحقًا'), ':duration' => (string)($service['duration'] ?? $contract['duration'] ?? ''), ':notes' => (string)($service['notes'] ?? $contract['notes'] ?? ''), ':appointment_type' => 'scheduled', ':scheduled_at' => (string)($service['scheduledAt'] ?? $appointment['scheduledAt'] ?? ''), ':customer_record_id' => $customerId, ':container_record_id' => $assetId, ':contract_record_id' => $contractId, ':created_at' => $now, ':updated_at' => $now]);
                 $serviceId = (int)$pdo->lastInsertId();
             }
+            $invoiceRow = null;
+            $billingEnabled = !in_array(strtolower(trim((string)($contract['billingEnabled'] ?? 'true'))), ['false', '0', 'no'], true);
+            if ($billingEnabled) {
+                $allRows = hsFindRecords($pdo);
+                $billingPeriod = substr((string)($contract['billingPeriod'] ?? $contract['startDate'] ?? $now), 0, 7);
+                $invoiceOperationKey = "contract-{$contractId}-period-{$billingPeriod}";
+                $existingInvoice = array_values(array_filter($allRows, static function (array $row) use ($contractId, $billingPeriod): bool {
+                    if ($row['kind'] !== 'invoice' || $row['status'] === 'archived') return false;
+                    $payload = hsPayload($row['payload']);
+                    return (int)($payload['contractRecordId'] ?? 0) === $contractId &&
+                        (string)($payload['billingPeriod'] ?? '') === $billingPeriod;
+                }));
+                if (!$existingInvoice) {
+                    $containerCode = trim((string)($contract['containerCode'] ?? hsAssetCode($assetPayload)));
+                    $containerType = trim((string)($contract['containerType'] ?? $assetPayload['typeName'] ?? $assetPayload['containerType'] ?? $assetPayload['size'] ?? ''));
+                    $contractLocation = trim((string)($contract['location'] ?? hsPayload($site['payload'])['address'] ?? ''));
+                    $subtotal = (float)($contract['amount'] ?? 0);
+                    $taxRate = (float)($contract['taxRate'] ?? 15);
+                    $taxAmount = (float)($contract['taxAmount'] ?? round($subtotal * $taxRate / 100, 2));
+                    $total = (float)($contract['total'] ?? round($subtotal + $taxAmount, 2));
+                    $lineDescription = $containerType !== '' ? "حاوية {$containerCode} — {$containerType}" : "حاوية {$containerCode}";
+                    $lineItem = ['description' => $lineDescription, 'containerCode' => $containerCode, 'quantity' => 1, 'unitPrice' => $subtotal, 'amount' => $subtotal, 'taxRate' => $taxRate, 'taxAmount' => $taxAmount, 'total' => $total, 'location' => $contractLocation];
+                    $invoicePayload = [
+                        'invoiceType' => 'standard', 'invoiceStatus' => 'due', 'lifecycleStatus' => 'due', 'paymentStatus' => 'unpaid',
+                        'source' => 'contract_billing', 'contractRecordId' => $contractId, 'contractNumber' => $contractNumber,
+                        'customerRecordId' => $customerId, 'customerName' => (string)($customerPayload['name'] ?? $customerPayload['customerName'] ?? ''),
+                        'customerPhone' => (string)($customerPayload['phone'] ?? $customerPayload['mobile'] ?? ''),
+                        'customerTaxNumber' => (string)($customerPayload['taxNumber'] ?? $customerPayload['vatNumber'] ?? ''),
+                        'customerAddress' => (string)($customerPayload['address'] ?? $customerPayload['location'] ?? ''),
+                        'serviceAddress' => $contractLocation, 'location' => $contractLocation, 'siteRecordId' => $siteId, 'containerRecordId' => $assetId,
+                        'containerCode' => $containerCode, 'containerType' => $containerType, 'billingPeriod' => $billingPeriod,
+                        'billingFrequency' => (string)($contract['billingFrequency'] ?? 'monthly'), 'startDate' => $contract['startDate'] ?? $billingPeriod,
+                        'endDate' => $contract['endDate'] ?? $billingPeriod, 'amount' => $subtotal, 'subtotal' => $subtotal,
+                        'taxRate' => $taxRate, 'taxAmount' => $taxAmount, 'total' => $total, 'paid' => 0, 'remaining' => $total,
+                        'operationKey' => $invoiceOperationKey, 'date' => substr((string)($contract['issueDate'] ?? $now), 0, 10),
+                        'description' => $lineDescription, 'quantity' => 1, 'unitPrice' => $subtotal, 'lineItems' => [$lineItem],
+                        'contractTerms' => is_array($contract['contractTerms'] ?? null) ? $contract['contractTerms'] : [],
+                    ];
+                    $invoiceInsert = $pdo->prepare("INSERT INTO container_system_records (kind, status, reference, payload, operation_key, created_by, created_at, updated_at) VALUES ('invoice', 'draft', '', :payload, :operation_key, :created_by, :created_at, :updated_at)");
+                    $invoiceInsert->execute([':payload' => json_encode($invoicePayload, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE), ':operation_key' => $invoiceOperationKey, ':created_by' => $actorId, ':created_at' => $now, ':updated_at' => $now]);
+                    $invoiceId = (int)$pdo->lastInsertId();
+                    $invoiceNumber = 'INV-' . str_pad((string)$invoiceId, 5, '0', STR_PAD_LEFT);
+                    $invoicePayload['invoiceNumber'] = $invoiceNumber;
+                    $invoicePayload['qrCodeData'] = json_encode(['invoiceNumber' => $invoiceNumber, 'recordId' => $invoiceId, 'total' => $total, 'date' => $invoicePayload['date']], JSON_UNESCAPED_UNICODE);
+                    $pdo->prepare("UPDATE container_system_records SET reference = :reference, payload = :payload, updated_at = :updated_at WHERE id = :id")->execute([':reference' => $invoiceNumber, ':payload' => json_encode($invoicePayload, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE), ':updated_at' => $now, ':id' => $invoiceId]);
+                    $invoiceRow = $find($pdo, $invoiceId);
+                }
+            }
             $pdo->commit();
             $contractRow = $find($pdo, $contractId); $assignmentRow = $find($pdo, $assignmentId); $appointmentRow = $find($pdo, $appointmentId);
-            hsJson(['contract' => hsRecord($contractRow), 'assignment' => hsRecord($assignmentRow), 'appointment' => hsRecord($appointmentRow), 'serviceRequest' => ['id' => $serviceId], 'idempotent' => false], 201);
+            hsJson(['contract' => hsRecord($contractRow), 'assignment' => hsRecord($assignmentRow), 'appointment' => hsRecord($appointmentRow), 'serviceRequest' => ['id' => $serviceId], 'invoice' => $invoiceRow ? hsRecord($invoiceRow) : null, 'idempotent' => false], 201);
         } catch (Throwable $error) {
             if ($pdo->inTransaction()) $pdo->rollBack();
             hsJson(['error' => $error->getMessage() ?: 'تعذر إنشاء دورة العقد كاملة'], 422);
