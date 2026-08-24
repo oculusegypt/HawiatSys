@@ -47,6 +47,25 @@ function RelatedRows({ title, records, empty = "لا توجد سجلات مرت�
   return <Card className="border-slate-200/80 shadow-sm"><CardHeader className="border-b border-slate-100 px-5 py-4"><CardTitle className="text-base">{title}</CardTitle></CardHeader><CardContent className="p-0">{records.length === 0 ? <p className="p-8 text-center text-sm text-slate-500">{empty}</p> : records.map(record => <div key={record.id} className="flex items-center gap-3 border-b border-slate-100 px-5 py-3.5 last:border-0"><div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-cyan-50 text-cyan-800"><FileText size={16} /></div><div className="min-w-0 flex-1"><p className="truncate text-sm font-black text-slate-800">{text(record.payload.name ?? record.payload.customerName ?? record.payload.contractNumber ?? record.payload.assetCode ?? record.reference, `سجل ${record.id}`)}</p><p className="mt-1 text-[11px] text-slate-400">{KIND_LABELS[record.kind as RecordKind] ?? record.kind} · {formatRecordDate(record.createdAt)}</p></div><RecordStatus status={record.status} /><span className="text-xs font-black text-slate-700">{amountOf(record) ? money(amountOf(record)) : ""}</span></div>)}</CardContent></Card>
 }
 
+function InvoiceRows({ invoices, payments }: { invoices: ContainerSystemRecord[]; payments: ContainerSystemRecord[] }) {
+  const [, navigate] = useLocation()
+  return <Card className="border-cyan-100 shadow-sm"><CardHeader className="border-b border-slate-100 px-5 py-4"><div className="flex items-center justify-between gap-3"><CardTitle className="text-base">الفواتير</CardTitle><span className="rounded-full bg-cyan-50 px-2.5 py-1 text-xs font-black text-cyan-800">{invoices.length}</span></div></CardHeader><CardContent className="p-0">{invoices.length === 0 ? <p className="p-8 text-center text-sm text-slate-500">لا توجد فواتير مرتبطة بهذا العميل.</p> : invoices.map(invoice => {
+    const p = payloadOf(invoice)
+    const total = Number(p.total ?? p.amount ?? 0)
+    const paid = payments.filter(payment => Number(payloadOf(payment).invoiceRecordId) === invoice.id || text(payloadOf(payment).invoiceNumber, "") === text(p.invoiceNumber ?? invoice.reference, "")).reduce((sum, payment) => sum + Number(payloadOf(payment).amount ?? payloadOf(payment).total ?? 0), Number(p.paid ?? 0))
+    const remaining = Math.max(total - paid, 0)
+    const number = text(p.invoiceNumber ?? invoice.reference)
+    const status = remaining <= 0 && total > 0 ? "مدفوعة" : paid > 0 ? "مدفوعة جزئياً" : String(p.invoiceStatus ?? invoice.status) === "overdue" ? "متأخرة" : "مستحقة"
+    return <button type="button" key={invoice.id} onClick={() => navigate(`/admin/container-system/invoice/${invoice.id}/print`)} className="grid w-full grid-cols-2 gap-3 border-b border-slate-100 px-5 py-4 text-right transition hover:bg-cyan-50/40 sm:grid-cols-[1.15fr_1fr_1fr_1fr_1fr]">
+      <span><b className="block text-sm text-cyan-800" dir="ltr">{number}</b><small className="text-[11px] text-slate-400">{text(p.date, "—")}</small></span>
+      <span><small className="block text-[11px] text-slate-400">العقد</small><b className="text-xs">{text(p.contractNumber, "غير مرتبط")}</b></span>
+      <span><small className="block text-[11px] text-slate-400">الحاوية</small><b className="text-xs" dir="ltr">#{text(p.containerCode)}</b></span>
+      <span><small className="block text-[11px] text-slate-400">الإجمالي / المدفوع</small><b className="text-xs">{money(total)} <span className="font-normal text-emerald-700">({money(paid)})</span></b></span>
+      <span className="col-span-2 sm:col-span-1"><small className="block text-[11px] text-slate-400">المتبقي والحالة</small><b className="text-xs text-rose-700">{money(remaining)} · {status}</b></span>
+    </button>
+  })}</CardContent></Card>
+}
+
 function findProfileRecord(records: ContainerSystemRecord[], mode: ProfileMode, id: string) {
   const numericId = Number(id)
   return records.find(record => record.id === numericId && record.kind === mode)
@@ -239,6 +258,7 @@ function CustomerProfile({ record, records }: { record: ContainerSystemRecord; r
     />
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><Stat label="إجمالي العقود" value={contracts.length} /><Stat label="المواقع" value={sites.length} /><Stat label="الحاويات الحالية" value={containers.length} /><Stat label="المواعيد القادمة" value={upcomingAppointments.length} /></div>
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><Stat label="إجمالي المطالبات" value={money(charges)} /><Stat label="المدفوع" value={money(paid)} tone="text-emerald-700" /><Stat label="الرصيد المستحق" value={money(Math.max(charges - paid, 0))} tone="text-rose-700" /><Stat label="أوامر العمل" value={workOrders.length} tone="text-amber-700" /></div>
+    <InvoiceRows invoices={related.filter(item => item.kind === "invoice" && item.status !== "archived")} payments={related.filter(item => item.kind === "payment" && item.status === "posted")} />
     <div className="grid gap-5 xl:grid-cols-2"><RelatedRows title="مواقع العميل" records={sites} empty="لم تتم إضافة موقع لهذا العميل بعد" /><RelatedRows title="الحاويات المخصصة" records={containers} empty="لا توجد حاويات مخصصة حاليًا" /></div>
     <div className="grid gap-5 xl:grid-cols-2"><RelatedRows title="العقود والإيجارات" records={related.filter(item => ["contract", "contract_line"].includes(item.kind))} /><RelatedRows title="المواعيد وأوامر العمل" records={[...appointments, ...workOrders.map(item => ({ id: item.id, kind: "appointment", status: item.driverStatus ?? "pending", reference: `WO-${item.id}`, payload: { name: item.serviceType, customerName: item.clientName, scheduledAt: item.scheduledAt ?? "" }, createdAt: item.createdAt, updatedAt: item.updatedAt ?? item.createdAt }))]} empty="لا توجد مواعيد أو أوامر عمل" /></div>
     <RelatedRows title="التحصيلات والحركات المالية" records={payments} />

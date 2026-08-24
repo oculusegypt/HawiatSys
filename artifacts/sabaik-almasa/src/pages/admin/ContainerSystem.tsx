@@ -465,6 +465,7 @@ function RecordRow({ record, kind, records, onDetails, onEdit, onArchive }: { re
 function InvoiceWorkspace({ records, onAdd, onDetails, onEdit, onArchive }: { records: ContainerSystemRecord[]; onAdd: () => void; onDetails: (record: ContainerSystemRecord) => void; onEdit: (record: ContainerSystemRecord) => void; onArchive: (record: ContainerSystemRecord) => void }) {
   type InvoiceFilter = "all" | "draft" | "due" | "partial" | "paid" | "overdue"
   const [filter, setFilter] = useState<InvoiceFilter>("all")
+  const [search, setSearch] = useState("")
   const activeRecords = records.filter(record => record.kind === "invoice" && record.status !== "archived")
   const payments = records.filter(record => record.kind === "payment" && record.status === "posted")
   const money = (value: number) => `${value.toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س`
@@ -490,7 +491,12 @@ function InvoiceWorkspace({ records, onAdd, onDetails, onEdit, onArchive }: { re
     return { payload, number, paid, total, remaining, dueDate, status }
   }
   const rows = activeRecords.map(record => ({ record, ...invoiceData(record) }))
-  const visibleRecords = filter === "all" ? rows : rows.filter(row => row.status === filter)
+  const normalizedSearch = search.trim().toLowerCase()
+  const visibleRecords = rows.filter(row => {
+    const matchesStatus = filter === "all" || row.status === filter
+    const haystack = [row.number, row.payload.customerName, row.payload.containerCode, row.payload.contractNumber, row.dueDate].map(value => String(value ?? "").toLowerCase()).join(" ")
+    return matchesStatus && (!normalizedSearch || haystack.includes(normalizedSearch))
+  })
   const total = rows.reduce((sum, row) => sum + row.total, 0)
   const paidAmount = rows.reduce((sum, row) => sum + row.paid, 0)
   const outstanding = rows.reduce((sum, row) => sum + row.remaining, 0)
@@ -544,6 +550,10 @@ function InvoiceWorkspace({ records, onAdd, onDetails, onEdit, onArchive }: { re
               <button key={value} type="button" onClick={() => setFilter(value)} className={`rounded-full border px-3 py-1.5 text-xs font-bold transition ${filter === value ? "border-cyan-700 bg-cyan-800 text-white" : "border-slate-200 bg-white text-slate-600 hover:border-cyan-300"}`}>{label}</button>
             ))}
           </div>
+           <div className="relative mt-4 max-w-xl">
+             <Search size={16} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+             <Input value={search} onChange={event => setSearch(event.target.value)} placeholder="ابحث برقم الفاتورة أو العميل أو العقد أو الحاوية" className="h-10 border-slate-200 bg-white pr-9" />
+           </div>
         </CardHeader>
         <CardContent className="p-0">
           {visibleRecords.length === 0 ? (
@@ -868,6 +878,12 @@ function RecordDetails({ record, allRecords, serviceRequests = [], open, onOpenC
   })
   const customerContracts = customerRecords.filter(item => item.kind === "contract")
   const customerInvoices = customerRecords.filter(item => item.kind === "invoice")
+  const contractInvoices = record.kind === "contract"
+    ? allRecords.filter(item => item.kind === "invoice" && (
+        Number((item.payload as Record<string, unknown>).contractRecordId) === record.id ||
+        String((item.payload as Record<string, unknown>).contractNumber ?? "") === String(record.payload.contractNumber ?? record.reference)
+      ))
+    : []
   const customerPaymentsRecords = customerRecords.filter(item => ["payment", "receipt"].includes(item.kind))
   const customerPayments = customerRecords.filter(item => ["payment", "receipt"].includes(item.kind)).reduce((sum, item) => sum + amountOf(item), 0)
   const customerCharges = customerContracts.reduce((sum, item) => sum + Number(item.payload.total ?? item.payload.amount ?? 0), 0)
@@ -988,7 +1004,18 @@ function RecordDetails({ record, allRecords, serviceRequests = [], open, onOpenC
         </div>
         {isContainer && <div className="mt-2 flex justify-end border-t border-slate-100 pt-4"><Button onClick={() => { onOpenChange(false); navigate(`/admin/container-system/profile/container/${record.id}`) }} className="gap-2 bg-cyan-800 hover:bg-cyan-900"><Box size={15} /> فتح ملف الحاوية الكامل</Button></div>}
           {record.kind === "customer" && <div className="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4"><h4 className="mb-3 text-sm font-black text-emerald-950">ملف العميل وكشف الحساب</h4><div className="grid grid-cols-2 gap-2 sm:grid-cols-5"><div className="rounded-xl bg-white p-3"><p className="text-[10px] text-slate-500">العقود</p><p className="mt-1 text-lg font-black text-slate-900">{customerContracts.length}</p></div><div className="rounded-xl bg-white p-3"><p className="text-[10px] text-slate-500">إجمالي المطالبات</p><p className="mt-1 text-lg font-black text-slate-900">{customerCharges.toLocaleString("ar-SA")} ر.س</p></div><div className="rounded-xl bg-white p-3"><p className="text-[10px] text-slate-500">المدفوع</p><p className="mt-1 text-lg font-black text-emerald-700">{customerPayments.toLocaleString("ar-SA")} ر.س</p></div><div className="rounded-xl bg-white p-3"><p className="text-[10px] text-slate-500">تكلفة التشغيل</p><p className="mt-1 text-lg font-black text-amber-700">{customerExpenses.toLocaleString("ar-SA")} ر.س</p></div><div className="rounded-xl bg-white p-3"><p className="text-[10px] text-slate-500">ربحية العملية</p><p className={`mt-1 text-lg font-black ${customerProfit >= 0 ? "text-emerald-700" : "text-rose-700"}`}>{customerProfit.toLocaleString("ar-SA")} ر.س</p></div></div><div className="mt-3 rounded-xl bg-white px-3 py-2 text-sm font-black text-rose-700">الرصيد المستحق: {Math.max(customerCharges - customerPayments, 0).toLocaleString("ar-SA")} ر.س</div></div>}
-          {record.kind === "contract" && <div className="mt-5 rounded-2xl border border-amber-100 bg-amber-50/60 p-4"><h4 className="mb-3 text-sm font-black text-amber-950">دورة العقد</h4><div className="flex flex-wrap gap-2">{["draft", "pending_approval", "issued"].includes(record.status) && <><Button size="sm" onClick={() => onContractAction(record, "approve")} className="bg-emerald-700 hover:bg-emerald-800">اعتماد العقد</Button><Button size="sm" variant="outline" onClick={() => onContractAction(record, "reject")} className="border-rose-200 text-rose-700">رفض العقد</Button></>}<Button size="sm" onClick={() => onContractAction(record, "deliver")} className="bg-cyan-800 hover:bg-cyan-900">تسجيل التسليم</Button><Button size="sm" variant="outline" onClick={() => onContractAction(record, "return")} className="border-cyan-200 text-cyan-900">تسجيل الاسترجاع</Button><Button size="sm" variant="outline" onClick={() => onContractAction(record, "settle")} className="border-emerald-200 text-emerald-800">تصفية العقد</Button><Button size="sm" variant="outline" onClick={() => onContractAction(record, "debt")} className="border-rose-200 text-rose-700">تحويل لمديونية</Button><Button size="sm" variant="outline" onClick={() => onContractAction(record, "close")} className="border-slate-200 text-slate-700">إغلاق العقد</Button></div></div>}
+           {record.kind === "contract" && <div className="mt-5 space-y-4">
+             <div className="rounded-2xl border border-cyan-100 bg-cyan-50/60 p-4">
+               <div className="flex items-center justify-between gap-3"><div><h4 className="text-sm font-black text-cyan-950">فواتير العقد</h4><p className="mt-1 text-[11px] text-cyan-800/70">الفترات المفوترة والتحصيل الفعلي المرتبط بهذا العقد.</p></div><Badge variant="outline" className="border-cyan-200 bg-white text-cyan-800">{contractInvoices.length} فاتورة</Badge></div>
+               {contractInvoices.length === 0 ? <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-xs font-bold text-amber-800">لا توجد فاتورة لهذه الفترة بعد. ستنشأ تلقائيًا عند اعتماد العقد إذا كان مؤهلاً للفوترة.</p> : <div className="mt-3 space-y-2">{contractInvoices.map(invoice => {
+                 const invoicePayload = invoice.payload as Record<string, unknown>
+                 const total = Number(invoicePayload.total ?? invoicePayload.amount ?? 0)
+                 const paid = Number(invoicePayload.paid ?? 0)
+                 return <button type="button" key={invoice.id} onClick={() => { onOpenChange(false); navigate(`/admin/container-system/invoice/${invoice.id}/print`) }} className="grid w-full gap-2 rounded-xl bg-white p-3 text-right transition hover:bg-cyan-100/60 sm:grid-cols-[1.2fr_1fr_1fr_1fr_1fr]"><span className="font-black text-cyan-800" dir="ltr">{String(invoicePayload.invoiceNumber ?? invoice.reference)}</span><span><small className="block text-[10px] text-slate-400">الفترة</small>{String(invoicePayload.billingPeriod ?? invoicePayload.date ?? "—")}</span><span><small className="block text-[10px] text-slate-400">الإجمالي</small>{total.toLocaleString("ar-SA")} ر.س</span><span><small className="block text-[10px] text-slate-400">المدفوع</small><span className="text-emerald-700">{paid.toLocaleString("ar-SA")} ر.س</span></span><span><small className="block text-[10px] text-slate-400">المتبقي</small><span className="font-black text-rose-700">{Math.max(total - paid, 0).toLocaleString("ar-SA")} ر.س</span></span></button>
+               })}</div>}
+             </div>
+             <div className="rounded-2xl border border-amber-100 bg-amber-50/60 p-4"><h4 className="mb-3 text-sm font-black text-amber-950">دورة العقد</h4><div className="flex flex-wrap gap-2">{["draft", "pending_approval", "issued"].includes(record.status) && <><Button size="sm" onClick={() => onContractAction(record, "approve")} className="bg-emerald-700 hover:bg-emerald-800">اعتماد العقد</Button><Button size="sm" variant="outline" onClick={() => onContractAction(record, "reject")} className="border-rose-200 text-rose-700">رفض العقد</Button></>}<Button size="sm" onClick={() => onContractAction(record, "deliver")} className="bg-cyan-800 hover:bg-cyan-900">تسجيل التسليم</Button><Button size="sm" variant="outline" onClick={() => onContractAction(record, "return")} className="border-cyan-200 text-cyan-900">تسجيل الاسترجاع</Button><Button size="sm" variant="outline" onClick={() => onContractAction(record, "settle")} className="border-emerald-200 text-emerald-800">تصفية العقد</Button><Button size="sm" variant="outline" onClick={() => onContractAction(record, "debt")} className="border-rose-200 text-rose-700">تحويل لمديونية</Button><Button size="sm" variant="outline" onClick={() => onContractAction(record, "close")} className="border-slate-200 text-slate-700">إغلاق العقد</Button></div></div>
+           </div>}
       </DialogContent>
     </Dialog>
   )
