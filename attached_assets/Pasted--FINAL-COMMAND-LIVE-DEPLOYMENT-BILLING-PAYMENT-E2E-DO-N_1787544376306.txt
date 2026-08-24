@@ -1,0 +1,717 @@
+🚨 FINAL COMMAND — LIVE DEPLOYMENT + BILLING/PAYMENT E2E — DO NOT STOP
+
+أنت الآن في المرحلة النهائية فقط.
+
+الجزء المحلي انتهى. لا أريد تقريرًا آخر يقول CONDITIONAL، ولا أريد أن تتوقف عند Build أو Preview أو Local Tests.
+
+المطلوب الآن: DEPLOY → VERIFY → LIVE E2E → FIX IF NEEDED → REDEPLOY → RETEST → CERTIFY.
+
+1. بيانات الإنتاج — استخدمها كما هي
+الموقع الصحيح فقط
+https://hawiat.aiservx.com
+
+Admin:
+
+URL:
+https://hawiat.aiservx.com/admin
+
+Username:
+admin
+
+Password:
+taqi2020
+Hostinger FTP
+FTP Host:
+92.113.19.25
+
+FTP Port:
+21
+
+FTP Username:
+u130428819.hawiat.aiservx.com
+
+FTP Password:
+3691475+*Hh@!
+
+Remote Directory:
+public_html
+
+استخدم Passive FTP أولاً.
+
+لا تستخدم أي Domain آخر.
+
+2. قبل الرفع — ممنوع العبث بقاعدة الإنتاج
+
+قبل أي Upload:
+
+اتصل بـ FTP.
+ادخل /public_html.
+خذ Backup كامل للملفات التي سيتم استبدالها.
+لا تستبدل data/sabaik.db بقاعدة البيانات المحلية.
+لا تحذف بيانات الإنتاج.
+لا تعمل Reset.
+لا تعمل Migration مدمرة.
+لا تستبدل قاعدة الإنتاج ببيانات الاختبار المحلية.
+
+القاعدة الذهبية:
+
+الكود يتحدث، بيانات الإنتاج تبقى.
+
+إذا كان الأرشيف يحتوي data/sabaik.db، لا ترفعه فوق قاعدة الإنتاج إلا إذا كان ذلك ضروريًا ومصرحًا به صراحة. في هذه الجولة الأولوية هي الحفاظ على بيانات الإنتاج.
+
+3. ارفع التحديث الحقيقي
+
+الأرشيف الجاهز:
+
+cleanflow-services-hostinger.zip
+
+SHA المحلي:
+
+336328ee9d0551198dbc81e4f8c920d4b0afa9c89f9453dd029b69b84d7cd856
+
+لكن لا تعتبر SHA للأرشيف وحده كافيًا.
+
+قم بفك/رفع الملفات المطلوبة إلى:
+
+/public_html/
+
+خصوصًا:
+
+api/index.php
+api/container-system.php
+cleanflow-platform/
+
+وأي ملفات Frontend مطلوبة فعليًا حسب بنية المشروع.
+
+4. تحقق من الملفات بعد الرفع
+
+بعد Upload:
+
+احسب SHA-256 للملفات المنشورة فعليًا وقارنها مع الملفات المحلية.
+
+يجب أن يكون عندك جدول واضح:
+
+File | Local SHA-256 | Live SHA-256 | Match
+
+لا تكتب PASS إلا إذا كان هناك تطابق فعلي.
+
+5. لا تكتفِ بالـHTTP Smoke Test
+
+بعد النشر:
+
+GET /
+GET /api/healthz
+
+ثم:
+
+POST /api/auth/login
+GET /api/auth/me
+
+وتحقق من:
+
+php = ok
+database = ok
+application = ok
+
+ثم اختبر:
+
+/data/
+ /data/sabaik.db
+ /.env
+ /api/.env
+
+ويجب أن تبقى محمية.
+
+6. Database Integrity LIVE
+
+بما أن FTP أصبح متاحًا:
+
+نزّل قاعدة الإنتاج الحالية بعد النشر للفحص فقط.
+
+نفذ:
+
+PRAGMA quick_check;
+PRAGMA integrity_check;
+
+ويجب أن تكون:
+
+quick_check = ok
+integrity_check = ok
+
+ثم تحقق أن بيانات الإنتاج السابقة لم تختفِ.
+
+لا تستخدم قاعدة الاختبار المحلية لاستبدالها.
+
+7. Billing Acceptance Test — LIVE
+
+الآن اختبر الإصلاح الذي تم تنفيذه فعليًا.
+
+لا تعتبر الاختبار ناجحًا لأنه نجح Local.
+
+نفذه على:
+
+https://hawiat.aiservx.com
+
+باستخدام Admin Session حقيقية.
+
+8. اختبار إنشاء الفاتورة
+
+استخدم عميلًا وعقدًا وحاوية حقيقية من الإنتاج أو أنشئ Dataset اختبارية واضحة باسم:
+
+HOSTINGER-BILLING-PAYMENT-FINAL-2026
+
+إذا كانت البيئة تحتوي بالفعل على Dataset الاختبار السابقة، لا تعيد إنشاء السجلات بلا داعٍ.
+
+اختبر:
+
+Customer
+→ Site
+→ Container
+→ Service Request
+→ Contract
+→ Invoice
+
+ويجب أن تكون الفاتورة مرتبطة تلقائيًا بـ:
+
+Customer
+Site
+Contract
+Container
+Billing Period
+9. إنشاء العقد يجب أن ينتج الفاتورة تلقائيًا
+
+هذا شرط أساسي.
+
+عند إنشاء Contract صالح:
+
+Contract Created
+        ↓
+Automatic Invoice Created
+        ↓
+Invoice linked to Customer
+        ↓
+Invoice linked to Contract
+        ↓
+Invoice linked to Container
+
+لا يجوز إنشاء فاتورة ثانية لنفس:
+
+Contract + Billing Period
+
+اختبر Idempotency.
+
+نفس المفتاح:
+
+HTTP 200
+idempotent=true
+same invoice
+
+محاولة إنشاء نفس الفاتورة مرة أخرى يجب ألا تنتج Invoice ثانية.
+
+10. صفحة الفاتورة
+
+راجع الصفحة الحية نفسها، وليس API فقط.
+
+صفحة التفاصيل يجب ألا تعرض:
+
+تفاصيل إضافية
+تفاصيل إضافية
+تفاصيل إضافية
+
+ولا JSON خام للمستخدم.
+
+ولا أسماء حقول Database.
+
+ولا:
+
+recordId
+contractBilling
+invoiceNumber
+...
+
+كمحتوى واجهة للمستخدم.
+
+يجب أن تكون صفحة فاتورة احترافية واضحة:
+
+رقم الفاتورة
+حالة الفاتورة
+العميل
+العقد
+الحاوية
+فترة الفوترة
+تاريخ الإصدار
+تاريخ الاستحقاق
+بنود الفاتورة
+المبلغ قبل الضريبة
+الضريبة
+الإجمالي
+المدفوع
+المتبقي
+
+مع:
+
+فتح العميل
+فتح العقد
+فتح الحاوية
+عرض المدفوعات
+تسجيل سداد
+طباعة
+PDF
+11. ملف العميل
+
+من:
+
+Customer Profile
+
+يجب أن أرى بوضوح:
+
+العقود
+الفواتير
+المدفوعات
+الرصيد المستحق
+الرصيد المدفوع
+الفواتير المتأخرة
+
+ويجب أن تكون الفاتورة قابلة للفتح مباشرة.
+
+12. ملف العقد
+
+من:
+
+Contract Profile
+
+يجب أن أرى:
+
+العميل
+الحاوية
+قيمة العقد
+الفترة
+الفاتورة
+المدفوع
+المتبقي
+حالة الفاتورة
+
+مع زر واضح:
+
+عرض الفاتورة
+تسجيل سداد
+13. اختبار نموذج إنشاء الفاتورة
+
+هذا مهم جدًا.
+
+لا تترك النموذج القديم كما هو.
+
+أريد إعادة تصميم UX بالكامل.
+
+عند اختيار:
+
+العميل
+
+يجب أن يتم تحميل:
+
+العقود المفتوحة
+الحاويات المرتبطة
+طلبات الخدمة
+المعلومات الضريبية
+بيانات العميل
+
+وعند اختيار:
+
+العقد
+
+يجب أن يتم تحميل تلقائيًا:
+
+الحاوية
+نوع الحاوية
+مدة العقد
+السعر
+فترة الفوترة
+بيانات الخدمة
+
+ولا تجعل المستخدم يعيد إدخال بيانات موجودة أصلًا في النظام.
+
+14. بنود الفاتورة = الحاويات والخدمات الفعلية
+
+لا أريد UX قائمًا على:
+
+وصف الخدمة
+الكمية
+سعر الوحدة
+
+فقط.
+
+النظام أساسه الحاويات.
+
+لذلك يجب أن يكون البند واضحًا مثل:
+
+الحاوية #CNT-102
+نوع الحاوية: 20 قدم
+الخدمة: تأجير حاوية
+الفترة: 24 أغسطس → 30 أغسطس
+الكمية: 1
+السعر: 1000 ر.س
+
+إذا كان العقد يحتوي أكثر من حاوية:
+
+Container #1
+Container #2
+Container #3
+
+تظهر كبنود مستقلة.
+
+15. اختبار السداد — المشكلة التي كانت موجودة
+
+اختبر كل نقاط الدخول:
+
+Customer Profile
+Contract Profile
+Invoice Details
+Payments Page
+
+يجب أن يؤدي زر:
+
+تسجيل سداد
+
+إلى نفس Payment Dialog / Workflow.
+
+16. أهم اختبار — Invoice → Payment
+
+إذا اخترت فاتورة:
+
+INV-XXXX
+
+يجب تلقائيًا معرفة:
+
+Customer
+Contract
+Invoice
+Outstanding Amount
+
+ويجب إنشاء:
+
+allocations: [
+  {
+    invoiceId: "...",
+    contractId: "...",
+    amount: "..."
+  }
+]
+
+المستخدم لا يجب أن يضطر لإدخال Allocation يدويًا عندما تكون الفاتورة والعقد معروفين.
+
+17. ممنوع ظهور الخطأ القديم
+
+هذا الخطأ:
+
+اختر عقداً واحداً على الأقل وحدد مبلغ التوزيع
+
+يجب ألا يظهر عندما:
+
+Invoice selected
++
+Contract resolved
++
+Amount entered
+
+إذا ظهر:
+
+اعتبر الاختبار FAIL وأصلح السبب الحقيقي.
+
+لا تعمل workaround في الواجهة فقط.
+
+الإصلاح يجب أن يكون متسقًا في:
+
+Frontend
+Node API
+PHP API
+Financial Core
+18. اختبر Partial Payment
+
+مثلاً:
+
+Invoice = 1000
+Payment = 400
+
+النتيجة:
+
+Invoice Status = partially_paid
+Paid = 400
+Remaining = 600
+
+ثم:
+
+Payment = 600
+
+النتيجة:
+
+Invoice Status = paid
+Paid = 1000
+Remaining = 0
+19. اختبر منع تجاوز الرصيد
+
+حاول:
+
+Invoice = 1000
+Paid = 1000
+New Payment = 1
+
+يجب أن يُرفض.
+
+ولا يجب إنشاء:
+
+Payment
+Allocation
+Financial Transaction
+Journal Entry
+
+بسبب العملية المرفوضة.
+
+20. Payment Idempotency
+
+نفذ نفس Payment مرتين بنفس:
+
+Idempotency-Key
+
+النتيجة المطلوبة:
+
+same Payment
+same Financial Transaction
+same Journal Entry
+idempotent=true
+
+ولا يوجد duplicate.
+
+21. Financial Integrity
+
+بعد السداد تحقق من:
+
+Financial Core
+
+و:
+
+Total Debit
+Total Credit
+
+ويجب:
+
+Debit = Credit
+
+كما يجب ألا يؤدي Receipt إلى double counting للسداد.
+
+22. حالات الفاتورة
+
+تحقق من الحالات الفعلية:
+
+due
+partially_paid
+paid
+overdue
+
+والانتقال بينها يجب أن يعتمد على المدفوع والمتبقي والتاريخ.
+
+لا تجعل Status مجرد قيمة UI.
+
+23. Toast / Notifications
+
+كل رسائل:
+
+Success
+Error
+Warning
+Validation
+
+يجب أن تظهر:
+
+أعلى منتصف الشاشة
+
+وليس الجانب الأيمن.
+
+ويجب أن يكون هناك نظام Toast واحد موحد.
+
+24. Regression Test
+
+بعد الإصلاح لا تختبر Billing فقط.
+
+أعد تشغيل:
+
+Contract Idempotency
+Invoice
+Payment
+Payment Idempotency
+Receipt
+Deposit
+Deposit Idempotency
+Bank Reconciliation
+Expense
+Expense Reversal
+Purchase
+Inventory
+Commission
+Bank Fee
+Bank Fee Idempotency
+Other Revenue
+Other Revenue Idempotency
+Transfer
+Refund
+Refund Reversal
+Payment Return
+Financial Period
+Period Lock
+
+ثم:
+
+Financial Core
+Double Entry
+25. Production Data Safety
+
+بعد الاختبارات:
+
+تحقق أن:
+
+Production records before
+=
+Production records after
++
+Expected test records only
+
+لا توجد:
+
+Unexpected deletion
+Unexpected update
+Unexpected duplicate
+Unexpected financial entry
+26. إذا اكتشفت Bug
+
+لا تتوقف وتكتب تقريرًا.
+
+إذا اكتشفت مشكلة:
+
+Identify
+→ Fix
+→ Typecheck
+→ Build
+→ PHP lint
+→ Financial tests
+→ Package
+→ Backup
+→ Deploy
+→ SHA verify
+→ Live test again
+
+واستمر حتى تنجح.
+
+27. ممنوع هذه الإجابات
+
+لا أريد:
+
+CONDITIONAL
+BLOCKED
+NOT VERIFIED
+LOCAL PASS
+PREVIEW PASS
+
+إذا كان السبب مجرد أنك لم تنفذ المطلوب رغم توفر الوصول.
+
+ولا أريد:
+
+"لم أستخدم بيانات FTP الموجودة في المرفق."
+
+بيانات FTP موجودة هنا بشكل صريح، واستخدمها.
+
+إذا فشل الاتصال:
+
+Passive FTP
+Active FTP
+تحقق من Host/Username/Port
+تحقق من /public_html
+أعد المحاولة
+لا تفترض أن FTP غير متاح قبل اختبار الطرق المطلوبة.
+28. التقرير النهائي المطلوب
+
+في النهاية أعطني تقريرًا واحدًا فقط بهذا الشكل:
+
+FINAL BILLING & PAYMENT PRODUCTION CERTIFICATION
+
+Deployment: PASS/FAIL
+Backup: PASS/FAIL
+Live SHA: PASS/FAIL
+Database Integrity: PASS/FAIL
+
+Authentication: PASS/FAIL
+Security: PASS/FAIL
+
+Customer → Contract: PASS/FAIL
+Contract → Invoice: PASS/FAIL
+Invoice → Payment: PASS/FAIL
+
+Partial Payment: PASS/FAIL
+Full Payment: PASS/FAIL
+Overpayment Protection: PASS/FAIL
+
+Payment Idempotency: PASS/FAIL
+Invoice Idempotency: PASS/FAIL
+
+Customer Invoice Link: PASS/FAIL
+Contract Invoice Link: PASS/FAIL
+Invoice Payment Link: PASS/FAIL
+
+Invoice UX: PASS/FAIL
+Payment UX: PASS/FAIL
+Toast System: PASS/FAIL
+
+Financial Core: PASS/FAIL
+Double Entry: PASS/FAIL
+Regression Suite: PASS/FAIL
+
+Node/PHP Parity: PASS/FAIL
+
+Production Stability: PASS/FAIL
+
+FINAL SCORE: X/10
+
+وأرفق:
+
+Live SHA-256
+Database integrity result
+Golden Dataset IDs
+Invoice ID
+Contract ID
+Payment IDs
+Financial totals
+Debit
+Credit
+🚨 القرار النهائي
+
+لا تعتبر المهمة منتهية عند إنشاء ZIP.
+
+المهمة تنتهي فقط عندما:
+
+BUILD
+↓
+BACKUP
+↓
+DEPLOY
+↓
+LIVE SHA
+↓
+DATABASE INTEGRITY
+↓
+LIVE BILLING
+↓
+LIVE PAYMENT
+↓
+PARTIAL PAYMENT
+↓
+FULL PAYMENT
+↓
+IDEMPOTENCY
+↓
+FINANCIAL VALIDATION
+↓
+REGRESSION
+↓
+FINAL CERTIFICATION
+
+نفّذ الآن ولا تتوقف عند أي مرحلة فرعية.
+
+ده هيقفل عليه باب "عملت Local وخلاص" ويجبره يتعامل مع النشر والاختبار الحي والإصلاح وإعادة الاختبار كدورة واحدة.
