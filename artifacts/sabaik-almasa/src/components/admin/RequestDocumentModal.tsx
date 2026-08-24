@@ -32,7 +32,9 @@ function payloadOf(record: ContainerSystemRecord) {
 export default function RequestDocumentModal({ request, kind, onClose }: Props) {
   const [, navigate] = useLocation()
   const { toast } = useToast()
-  const { data: snapshot } = useGetContainerSystem({ query: { enabled: Boolean(request && kind === "contract"), queryKey: getGetContainerSystemQueryKey() } })
+  // The invoice action also needs the authoritative customer list so the
+  // request can be linked to a customer record before it reaches the API.
+  const { data: snapshot } = useGetContainerSystem({ query: { enabled: Boolean(request && (kind === "contract" || kind === "invoice")), queryKey: getGetContainerSystemQueryKey() } })
   const contractMutation = useCreateContainerContractWorkflow()
   const invoiceMutation = useCreateContainerSystemRecord()
   const [amount, setAmount] = useState("")
@@ -61,6 +63,10 @@ export default function RequestDocumentModal({ request, kind, onClose }: Props) 
       toast({ title: "أدخل قيمة الفاتورة أولاً", variant: "destructive" })
       return
     }
+    if (!customer?.id) {
+      toast({ title: "لا يمكن إصدار الفاتورة: لم يتم العثور على العميل الرسمي لهذا الطلب", variant: "destructive" })
+      return
+    }
     const tax = Math.round(numericAmount * 15) / 100
     invoiceMutation.mutate({
       data: {
@@ -68,10 +74,13 @@ export default function RequestDocumentModal({ request, kind, onClose }: Props) 
         status: "draft",
         payload: {
           requestId: request.id,
+          serviceRequestId: request.id,
+          customerRecordId: customer.id,
           invoiceNumber: `INV-REQ-${request.id}-${Date.now()}`,
-          customerName: request.clientName,
-          customerPhone: request.phone,
-          customerEmail: request.email ?? "",
+          customerName: String(payloadOf(customer).name ?? payloadOf(customer).customerName ?? request.clientName),
+          customerPhone: String(payloadOf(customer).phone ?? payloadOf(customer).mobile ?? request.phone),
+          customerEmail: String(payloadOf(customer).email ?? request.email ?? ""),
+          customerAddress: String(payloadOf(customer).address ?? payloadOf(customer).location ?? request.location ?? ""),
           serviceType: request.serviceType,
           description: request.notes ?? request.serviceType,
           quantity: 1,
