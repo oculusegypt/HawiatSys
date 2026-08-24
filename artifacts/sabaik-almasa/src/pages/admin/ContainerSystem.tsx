@@ -446,7 +446,7 @@ function RecordRow({ record, kind, records, onDetails, onEdit, onArchive }: { re
                <p className="mt-0.5 truncate text-[11px] text-slate-500">{String(record.payload.typeName ?? record.payload.containerType ?? "أصل حاوية")}</p>
              </div>
            </div>
-         ) : <p className="truncate font-bold text-slate-800" data-testid={`text-record-primary-${record.id}`}>{primary}</p>}
+         ) : <button type="button" onClick={onDetails} className={`truncate text-right font-bold ${kind === "customer" ? "text-cyan-900 hover:underline" : "text-slate-800"}`} data-testid={`text-record-primary-${record.id}`}>{primary}</button>}
         <p className="mt-0.5 text-[11px] font-mono text-slate-400" dir="ltr">{record.reference || `#${record.id}`}</p>
       </div>
       <div className="hidden min-w-0 gap-2 sm:grid sm:grid-cols-2">
@@ -1071,6 +1071,7 @@ export default function ContainerSystem() {
   const { toast } = useToast()
   const [location, navigate] = useLocation()
   const requestedView = new URLSearchParams(location.split("?")[1] ?? "").get("view") as ViewKey | null
+  const requestedCreate = new URLSearchParams(location.split("?")[1] ?? "").get("create") === "1"
   const requestedCustomerId = Number(new URLSearchParams(location.split("?")[1] ?? "").get("customerId") ?? 0) || null
   const requestedRequestId = Number(new URLSearchParams(location.split("?")[1] ?? "").get("requestId") ?? 0) || null
   const serviceRequestsQuery = useGetServiceRequests(undefined, { query: { staleTime: 30_000, queryKey: getGetServiceRequestsQueryKey() } })
@@ -1094,11 +1095,14 @@ export default function ContainerSystem() {
     if (!requestedView) return
     setView(requestedView)
     if (requestedView === "contract") setContractWizardOpen(true)
+    if (requestedCreate && ["customer", "receipt", "payment", "container"].includes(requestedView)) {
+      setDialog({ open: true, kind: requestedView as RecordKind, record: null })
+    }
     if (requestedView === "customer_site") setDialog({ open: true, kind: "customer_site", record: null })
-    if (requestedView === "invoice") {
+    if (requestedView === "invoice" && requestedCreate) {
       setDialog({ open: true, kind: "invoice", record: null })
     }
-  }, [requestContext, requestedCustomerId, requestedView])
+  }, [requestContext, requestedCreate, requestedCustomerId, requestedView])
   const collectionKind = viewKind[view] ?? (allKinds.includes(view as RecordKind) ? view as RecordKind : undefined)
   const isCollection = Boolean(collectionKind)
   const filterParams = useMemo(() => ({ kind: collectionKind, search: search.trim() || undefined }), [collectionKind, search])
@@ -1144,6 +1148,13 @@ export default function ContainerSystem() {
   const archiveRecord = (record: ContainerSystemRecord) => {
     if (!window.confirm(`هل تريد أرشفة السجل ${record.reference || `#${record.id}`}؟`)) return
     archiveMutation.mutate({ id: record.id }, { onSuccess: () => { invalidate(); showSuccess("تمت أرشفة السجل") }, onError: () => toast({ title: "تعذر أرشفة السجل", variant: "destructive" }) })
+  }
+  const openRecordDetails = (record: ContainerSystemRecord) => {
+    if (record.kind === "customer") {
+      navigate(`/admin/container-system/profile/customer/${record.id}`)
+      return
+    }
+    setDetailRecord(record)
   }
   const submitRecord = (payload: Record<string, unknown>, status: string) => {
     const criticalKinds = new Set(["container_movement", "receipt", "payment", "expense", "deposit", "bank_deposit", "invoice", "invoice_return", "payment_return", "transfer", "purchase", "purchase_return"])
@@ -1426,13 +1437,13 @@ export default function ContainerSystem() {
               : view === "financial_cycle" ? <FinancialCycleWorkspace records={snapshot?.records ?? records} onAdd={openCreate} onOpenSettlements={() => { setView("settlements"); setSearch("") }} />
               : view === "system_settings" ? <SettingsPage records={snapshot?.records ?? records} organization={organization} onSave={saveSettings} />
              : view === "audit" ? <AuditLog audits={auditQuery.data ?? []} loading={auditQuery.isLoading} />
-              : view === "container_search" ? <ContainerSearchPanel records={records} loading={loading} onDetails={record => setDetailRecord(record)} onEdit={openEdit} />
-              : view === "bookings" ? <DispatchCalendar records={snapshot?.records ?? records} onOpenAppointment={record => setDetailRecord(record)} />
+              : view === "container_search" ? <ContainerSearchPanel records={records} loading={loading} onDetails={openRecordDetails} onEdit={openEdit} />
+              : view === "bookings" ? <DispatchCalendar records={snapshot?.records ?? records} onOpenAppointment={openRecordDetails} />
               : view === "invoice"
                 ? <InvoiceWorkspace records={records} onAdd={() => openCreate("invoice")} onDetails={record => navigate(`/admin/container-system/invoice/${record.id}/details`)} onEdit={openEdit} onArchive={archiveRecord} />
               : view === "container"
-               ? <ContainerPOS records={records} onAdd={() => openCreate("container")} onDetails={record => setDetailRecord(record)} onEdit={openEdit} />
-                : <RecordsPanel kind={collectionKind ?? "customer"} records={records} allRecords={snapshot?.records ?? records} loading={loading} onAdd={() => openCreate(collectionKind ?? "customer")} onDetails={record => setDetailRecord(record)} onEdit={openEdit} onArchive={archiveRecord} />}
+               ? <ContainerPOS records={records} onAdd={() => openCreate("container")} onDetails={openRecordDetails} onEdit={openEdit} />
+                : <RecordsPanel kind={collectionKind ?? "customer"} records={records} allRecords={snapshot?.records ?? records} loading={loading} onAdd={() => openCreate(collectionKind ?? "customer")} onDetails={openRecordDetails} onEdit={openEdit} onArchive={archiveRecord} />}
         </main>
       </div>
       <RecordDetails record={detailRecord} allRecords={snapshot?.records ?? records} serviceRequests={serviceRequestsQuery.data ?? []} open={Boolean(detailRecord)} onOpenChange={open => { if (!open) setDetailRecord(null) }} onContractAction={contractAction} />

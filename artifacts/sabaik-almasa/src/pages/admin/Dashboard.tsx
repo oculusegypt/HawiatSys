@@ -748,14 +748,14 @@ export default function AdminDashboard() {
           </div>
           <div className="relative grid grid-cols-2 gap-2.5 sm:grid-cols-3">
             {[
-              { href: "/admin/container-system?view=customer", icon: UserPlus, label: "عميل جديد", hint: "إضافة ملف عميل", tone: "blue" },
-              { href: "/admin/container-system?view=invoice", icon: ReceiptText, label: "فاتورة جديدة", hint: "إنشاء فاتورة", tone: "cyan" },
+              { href: "/admin/container-system?view=customer&create=1", icon: UserPlus, label: "عميل جديد", hint: "إضافة ملف عميل", tone: "blue" },
+              { href: "/admin/container-system?view=invoice&create=1", icon: ReceiptText, label: "فاتورة جديدة", hint: "إنشاء فاتورة", tone: "cyan" },
               { href: "/admin/container-system?view=contract", icon: FilePlus2, label: "عقد جديد", hint: "بدء عقد وحاوية", tone: "violet" },
               { href: "/admin/employees", icon: Users, label: "الموظفون", hint: "إدارة الفريق", tone: "emerald" },
-              { href: "/admin/container-system?view=vouchers", icon: Landmark, label: "السندات", hint: "قبض وصرف", tone: "amber" },
-              { href: "/admin/container-system?view=customer_payments", icon: HandCoins, label: "سداد العملاء", hint: "تسجيل دفعة", tone: "green" },
+              { href: "/admin/container-system?view=receipt&create=1", icon: Landmark, label: "السندات", hint: "قبض وصرف", tone: "amber" },
+              { href: "/admin/container-system?view=payment&create=1", icon: HandCoins, label: "سداد العملاء", hint: "تسجيل دفعة", tone: "green" },
               { href: "/admin/requests", icon: ClipboardPlus, label: "طلب جديد", hint: "متابعة الطلبات", tone: "rose" },
-              { href: "/admin/container-system?view=container", icon: Truck, label: "الحاويات", hint: "الأصول والتشغيل", tone: "slate" },
+              { href: "/admin/container-system?view=container&create=1", icon: Truck, label: "الحاويات", hint: "الأصول والتشغيل", tone: "slate" },
               { href: "/admin/conversations", icon: MessageSquare, label: "المحادثات", hint: "رسائل العملاء", tone: "indigo" },
             ].map((action) => {
               const Icon = action.icon

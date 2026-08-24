@@ -434,7 +434,8 @@ function ContainerProfile({ record, records }: { record: ContainerSystemRecord; 
 }
 
 export function ContainerRecordProfile({ mode }: { mode: ProfileMode }) {
-  const [, navigate] = useLocation()
+  const [, setLocation] = useLocation()
+  const navigate = (to: string) => to === "/admin/container-system" ? (window.history.length > 1 ? window.history.back() : setLocation(to)) : setLocation(to)
   const params = useParams<{ id: string }>()
   const query = useGetContainerSystem()
   const records = query.data?.records ?? []
@@ -442,8 +443,9 @@ export function ContainerRecordProfile({ mode }: { mode: ProfileMode }) {
   const p = payloadOf(record)
   const title = mode === "customer" ? text(p.name ?? p.customerName, "ملف العميل") : mode === "employee" ? text(p.name ?? p.employeeName ?? p.driverName, "ملف الموظف") : text(p.assetCode ?? p.containerCode ?? p.code, "ملف الحاوية")
   const Icon = mode === "customer" ? UserRound : mode === "employee" ? BriefcaseBusiness : Truck
+  const goBack = () => window.history.length > 1 ? window.history.back() : navigate("/admin/container-system")
   if (query.isLoading) return <div className="flex min-h-[50vh] items-center justify-center text-sm text-slate-500">جارٍ تحميل الملف...</div>
-  if (!record) return <div className="space-y-4 rounded-2xl border border-rose-200 bg-rose-50 p-8 text-center"><h2 className="font-black text-rose-900">لم يتم العثور على الملف</h2><Button onClick={() => navigate("/admin/container-system")} variant="outline">العودة إلى نظام الحاويات</Button></div>
+  if (!record) return <div className="space-y-4 rounded-2xl border border-rose-200 bg-rose-50 p-8 text-center"><h2 className="font-black text-rose-900">لم يتم العثور على الملف</h2><Button onClick={goBack} variant="outline">العودة إلى نظام الحاويات</Button></div>
   const customerSites = mode === "customer"
     ? records.filter(item => item.kind === "customer_site" && item.status !== "archived" && customerSiteBelongsTo(item, record))
     : []
@@ -454,7 +456,8 @@ export function ContainerRecordProfile({ mode }: { mode: ProfileMode }) {
 }
 
 export function ContractPrintPage() {
-  const [, navigate] = useLocation()
+  const [, setLocation] = useLocation()
+  const navigate = (to: string) => to === "/admin/container-system" ? (window.history.length > 1 ? window.history.back() : setLocation("/admin/container-system?view=contracts_list")) : setLocation(to)
   const params = useParams<{ id: string }>()
   const query = useGetContainerSystem()
   const record = query.data?.records.find(item => item.id === Number(params.id) && item.kind === "contract")

@@ -77,9 +77,19 @@ export default function InvoicePrintPage() {
   const contractNumber = value(p.contractNumber ?? payloadOf(contract).contractNumber ?? contract?.reference)
 
   return <div dir="rtl" className="invoice-details-view min-h-screen bg-slate-100 p-4 sm:p-8">
-    <style>{`@page{size:A4;margin:0}@media print{.invoice-details-view{padding:0!important;background:white!important}.screen-only{display:none!important}.invoice-print-view{display:block!important}.invoice-print-paper{box-shadow:none!important;margin:0!important}}.invoice-print-view{display:none}.invoice-print-paper{width:210mm;min-height:297mm}`}</style>
+     <style>{`@page{size:A4;margin:0}@media print{
+       body:has(.invoice-details-view){background:white!important}
+       .admin-shell:has(.invoice-details-view)>aside,
+       .admin-shell:has(.invoice-details-view)>div,
+       .admin-shell:has(.invoice-details-view)>main>header{display:none!important}
+       .admin-shell:has(.invoice-details-view)>main{margin:0!important;min-height:0!important;width:100%!important;max-width:none!important}
+       .invoice-details-view{padding:0!important;background:white!important;min-height:0!important}
+       .screen-only{display:none!important}
+       .invoice-print-view{display:block!important}
+       .invoice-print-paper{box-shadow:none!important;margin:0!important}
+     }.invoice-print-view{display:none}.invoice-print-paper{width:210mm;min-height:297mm}`}</style>
     <div className="screen-only mx-auto mb-4 flex max-w-6xl flex-wrap items-center justify-between gap-3">
-      <Button variant="ghost" onClick={() => navigate("/admin/container-system")} className="gap-2"><ArrowRight size={16} /> العودة إلى الفواتير</Button>
+      <Button variant="ghost" onClick={() => window.history.length > 1 ? window.history.back() : navigate("/admin/container-system?view=invoice")} className="gap-2"><ArrowRight size={16} /> العودة إلى الفواتير</Button>
       <div className="flex flex-wrap gap-2">
         <Button variant="outline" onClick={() => window.print()} className="gap-2"><Printer size={15} /> طباعة</Button>
         <Button variant="outline" onClick={() => window.print()} className="gap-2"><FileDown size={15} /> PDF</Button>
