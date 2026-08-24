@@ -812,6 +812,24 @@ export function RecordDialog({
     const initial = emptyPayload(kind)
     Object.entries(initialPayload ?? {}).forEach(([key, value]) => { initial[key] = value })
     Object.entries(record?.payload ?? {}).forEach(([key, value]) => { initial[key] = String(value ?? "") })
+    if (kind === "payment" && !initial.invoiceNumber) {
+      const storedInvoiceId = Number(initial.invoiceRecordId ?? initial.invoiceId ?? 0)
+      const allocationInvoiceId = (() => {
+        try {
+          const allocations = JSON.parse(String(initial.allocations ?? ""))
+          return Array.isArray(allocations)
+            ? Number(allocations.find((item: unknown) => item && typeof item === "object" && Number((item as Record<string, unknown>).invoiceId) > 0)?.invoiceId ?? 0)
+            : 0
+        } catch {
+          return 0
+        }
+      })()
+      const linkedInvoice = records.find(item => item.kind === "invoice" && item.status !== "archived" && item.id === (storedInvoiceId || allocationInvoiceId))
+      if (linkedInvoice) {
+        const linkedPayload = linkedInvoice.payload as Record<string, unknown>
+        initial.invoiceNumber = String(linkedPayload.invoiceNumber ?? linkedInvoice.reference ?? "")
+      }
+    }
     if (kind === "invoice") {
       if (!initial.invoiceType) initial.invoiceType = "standard"
       if (!initial.taxRate) initial.taxRate = "15"

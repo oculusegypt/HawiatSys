@@ -1183,7 +1183,16 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
             $contractRows[] = ['contract' => $contract, 'number' => $number, 'paid' => $paid, 'total' => $total];
         }
         $first = $contractRows[0]; $now = date('c');
-        $paymentPayload = ['operationKey' => $operationKey, 'contractId' => $first['contract']['id'], 'contractNumber' => $first['number'], 'customerRecordId' => $first['contract']['payload']['customerRecordId'] ?? null, 'customerName' => $first['contract']['payload']['customerName'] ?? '', 'amount' => $amount, 'paymentMethod' => $methodName, 'invoiceRecordId' => $allocations[0]['invoiceId'], 'date' => $input['date'] ?? date('Y-m-d'), 'notes' => $input['notes'] ?? '', 'allocations' => array_map(static fn(array $item): array => $item, $allocations)];
+        $firstInvoice = null;
+        if (!empty($allocations[0]['invoiceId'])) {
+            foreach ($rows as $row) {
+                if ($row['kind'] === 'invoice' && (int)$row['id'] === (int)$allocations[0]['invoiceId']) {
+                    $firstInvoice = $row;
+                    break;
+                }
+            }
+        }
+        $paymentPayload = ['operationKey' => $operationKey, 'contractId' => $first['contract']['id'], 'contractNumber' => $first['number'], 'customerRecordId' => $first['contract']['payload']['customerRecordId'] ?? null, 'customerName' => $first['contract']['payload']['customerName'] ?? '', 'amount' => $amount, 'paymentMethod' => $methodName, 'invoiceRecordId' => $allocations[0]['invoiceId'], 'invoiceNumber' => $firstInvoice['payload']['invoiceNumber'] ?? $firstInvoice['reference'] ?? ($input['invoiceNumber'] ?? ''), 'date' => $input['date'] ?? date('Y-m-d'), 'notes' => $input['notes'] ?? '', 'allocations' => array_map(static fn(array $item): array => $item, $allocations)];
             $customerKeys = array_unique(array_map(static function (array $item): string {
                 $customerId = (int)($item['contract']['payload']['customerRecordId'] ?? 0);
                 return $customerId > 0

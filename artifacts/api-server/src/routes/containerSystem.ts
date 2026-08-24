@@ -1190,7 +1190,15 @@ router.post("/admin/container-system/financial/settle", requireContainerPermissi
       }
       const paymentPayload = {
         operationKey, contractId: first.contract.id, contractNumber: first.contractNumber,
-        invoiceRecordId: first.invoiceId ?? null, customerName: first.contractPayload.customerName ?? "",
+        invoiceRecordId: first.invoiceId ?? null,
+        invoiceNumber: first.invoiceId
+          ? String((() => {
+              const invoice = all.find(row => row.id === first.invoiceId && row.kind === "invoice");
+              const invoicePayload = invoice ? parsePayload(invoice.payload) : {};
+              return invoicePayload.invoiceNumber ?? invoice?.reference ?? "";
+            })())
+          : String(body.invoiceNumber ?? ""),
+        customerName: first.contractPayload.customerName ?? "",
         customerRecordId: Number(first.contractPayload.customerRecordId) || null, amount, paymentMethod,
         depositId: body.depositId ?? null, date: body.date ?? now.slice(0, 10), notes: body.notes ?? "",
         allocations: contractRows.map(item => ({ contractId: item.contract.id, contractNumber: item.contractNumber, invoiceId: item.invoiceId, amount: item.amount })),

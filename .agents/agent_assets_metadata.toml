@@ -27,14 +27,14 @@ content_type = "application/octet-stream"
 id = "e7Hwi4c_9VUpSkVoGq2Ul"
 uri = "file://cleanflow-services-hostinger.zip"
 type = "unspecified"
-title = "حزمة سبائك الماسة الجاهزة لهوستنجر"
-description = "أرشيف كامل محدث يتضمن الموقع، واجهة PHP، قاعدة SQLite، الملفات المرفوعة، ومنصة التحكم."
+title = "حزمة Hostinger النهائية — إصلاح ربط رقم الفاتورة"
+description = "أرشيف شامل محدث لنسخة Node وPHP، يحفظ رقم الفاتورة المرتبطة بالسداد ويستعيده تلقائيًا عند تعديل الدفعات القديمة."
 logical_id = "c612380d-19d8-4641-8c29-e5ac4a484245"
-content_hash = "sha256:bd4f7d1b73e378570ba95f4ea598527fdc224099228d012d0844c2ee3f8029fa"
-size = 20653579
-mtime_ms = 1787549070115
-storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:0240d221-b4ec-4c0a-b734-0378244ae65e/c612380d-19d8-4641-8c29-e5ac4a484245/b05cf3af-addd-40f1-b7c2-92ea3d7feb52"
-storage_version_token = "1787549094108835"
+content_hash = "sha256:a6f4fdc697916d317c637fcc6e194705933248c967a78e53743c5e52a111ce93"
+size = 20653955
+mtime_ms = 1787549298449
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:0240d221-b4ec-4c0a-b734-0378244ae65e/c612380d-19d8-4641-8c29-e5ac4a484245/1b0f4208-5136-4685-a501-d561b8028455"
+storage_version_token = "1787549301758687"
 content_type = "application/octet-stream"
 
 [[outputs]]
