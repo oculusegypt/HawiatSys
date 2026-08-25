@@ -72,7 +72,7 @@ export function Navbar() {
             </Link>
 
             {/* Desktop nav */}
-            <nav className="hidden md:flex items-center gap-6 lg:gap-8">
+            <nav className="hidden md:flex items-center gap-6 lg:gap-8 text-[#fafafa]">
               {NAV_LINKS.map(l => (
                 <NavLink key={l.href} href={l.href} text={l.text} isScrolled={isScrolled || isInnerPage} />
               ))}

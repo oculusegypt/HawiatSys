@@ -4557,7 +4557,21 @@ try {
         $contractStmt->execute([':id' => $contractId]);
         $contract = $contractStmt->fetch(PDO::FETCH_ASSOC);
         $contractPayload = $contract ? (json_decode((string)$contract['payload'], true) ?: []) : [];
-        if (!$contract || (int)($contractPayload['customerRecordId'] ?? 0) !== $customerId || (int)($contractPayload['containerRecordId'] ?? 0) !== $containerId) {
+        $customerStmt = $pdo->prepare("SELECT * FROM container_system_records WHERE id = :id AND kind = 'customer' AND status <> 'archived' LIMIT 1");
+        $customerStmt->execute([':id' => $customerId]);
+        $customerRecord = $customerStmt->fetch(PDO::FETCH_ASSOC);
+        $containerStmt = $pdo->prepare("SELECT * FROM container_system_records WHERE id = :id AND kind IN ('container', 'container_asset') AND status <> 'archived' LIMIT 1");
+        $containerStmt->execute([':id' => $containerId]);
+        $containerRecord = $containerStmt->fetch(PDO::FETCH_ASSOC);
+        $customerPayload = $customerRecord ? (json_decode((string)$customerRecord['payload'], true) ?: []) : [];
+        $containerPayload = $containerRecord ? (json_decode((string)$containerRecord['payload'], true) ?: []) : [];
+        $customerName = trim((string)($customerPayload['name'] ?? $customerPayload['customerName'] ?? $clientName));
+        $containerCode = trim((string)($containerPayload['assetCode'] ?? $containerPayload['containerCode'] ?? $containerPayload['code'] ?? ($containerRecord['reference'] ?? '')));
+        $customerMatches = (int)($contractPayload['customerRecordId'] ?? 0) === $customerId
+            || (!(int)($contractPayload['customerRecordId'] ?? 0) && trim((string)($contractPayload['customerName'] ?? '')) !== '' && trim((string)$contractPayload['customerName']) === $customerName);
+        $containerMatches = (int)($contractPayload['containerRecordId'] ?? 0) === $containerId
+            || (!(int)($contractPayload['containerRecordId'] ?? 0) && $containerCode !== '' && $containerCode === trim((string)($contractPayload['containerCode'] ?? $contractPayload['assetCode'] ?? '')));
+        if (!$contract || !$customerRecord || !$containerRecord || !$customerMatches || !$containerMatches) {
             http_response_code(409);
             echo json_encode(['error' => 'علاقات أمر العمل لا تطابق العميل أو أصل الحاوية في العقد'], JSON_UNESCAPED_UNICODE);
             exit;

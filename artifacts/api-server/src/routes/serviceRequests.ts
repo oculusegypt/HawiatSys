@@ -269,7 +269,21 @@ router.post("/admin/service-requests/from-contract", requireAdmin, requireAnySec
     return res.status(422).json({ error: "العقد المرتبط بأمر العمل غير موجود" });
   }
   const contractPayload = parseContainerPayload(contract.payload);
-  if (Number(contractPayload.customerRecordId) !== customerId || Number(contractPayload.containerRecordId) !== containerId) {
+  const [customerRecord] = await db.select().from(containerSystemRecordsTable)
+    .where(eq(containerSystemRecordsTable.id, customerId));
+  const [containerRecord] = await db.select().from(containerSystemRecordsTable)
+    .where(eq(containerSystemRecordsTable.id, containerId));
+  const customerPayload = parseContainerPayload(customerRecord?.payload);
+  const containerPayload = parseContainerPayload(containerRecord?.payload);
+  const customerMatches = Number(contractPayload.customerRecordId) === customerId ||
+    (!contractPayload.customerRecordId && String(contractPayload.customerName ?? "").trim() !== "" &&
+      String(contractPayload.customerName).trim() === String(customerPayload.name ?? customerPayload.customerName ?? clientName).trim());
+  const containerCode = String(containerPayload.assetCode ?? containerPayload.containerCode ?? containerPayload.code ?? containerRecord?.reference ?? "").trim();
+  const containerMatches = Number(contractPayload.containerRecordId) === containerId ||
+    (!contractPayload.containerRecordId && containerCode !== "" &&
+      containerCode === String(contractPayload.containerCode ?? contractPayload.assetCode ?? "").trim());
+  if (!customerRecord || customerRecord.kind !== "customer" || !containerRecord ||
+    !["container", "container_asset"].includes(containerRecord.kind) || !customerMatches || !containerMatches) {
     return res.status(409).json({ error: "علاقات أمر العمل لا تطابق العميل أو أصل الحاوية في العقد" });
   }
   const [existingRequest] = await db.select().from(serviceRequestsTable)

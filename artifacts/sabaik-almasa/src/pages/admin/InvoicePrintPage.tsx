@@ -19,6 +19,19 @@ const allocatedAmount = (record: ContainerSystemRecord, invoiceId: number) => {
     return Number(allocation.invoiceId) === invoiceId ? sum + Number(allocation.amount ?? 0) : sum
   }, 0)
 }
+const findInvoiceContract = (records: ContainerSystemRecord[], invoice: ContainerSystemRecord, customer?: ContainerSystemRecord, container?: ContainerSystemRecord) => {
+  const p = payloadOf(invoice)
+  const contractId = Number(p.contractRecordId ?? p.contractId ?? p.linkedContractId ?? 0)
+  const contractNumber = value(p.contractNumber ?? p.contractNo, "")
+  const customerName = value(p.customerName ?? payloadOf(customer).name, "")
+  const containerCode = value(p.containerCode ?? payloadOf(container).assetCode ?? payloadOf(container).containerCode, "")
+  return records.find(item => item.kind === "contract" && item.id === contractId)
+    ?? records.find(item => item.kind === "contract" && contractNumber !== "" &&
+      value(payloadOf(item).contractNumber ?? item.reference, "") === contractNumber)
+    ?? records.find(item => item.kind === "contract" && customerName !== "" &&
+      value(payloadOf(item).customerName, "") === customerName &&
+      (containerCode === "" || value(payloadOf(item).containerCode ?? payloadOf(item).assetCode, "") === containerCode))
+}
 
 function statusInfo(status: string, total: number, paid: number, dueDate: string) {
   if (status === "cancelled") return { label: "ملغاة", className: "border-rose-200 bg-rose-50 text-rose-800" }
@@ -44,10 +57,10 @@ export default function InvoicePrintPage() {
   const records = query.data?.records ?? []
   const record = records.find(item => item.id === id && item.kind === "invoice")
   const p = payloadOf(record)
-  const contract = records.find(item => item.kind === "contract" && (item.id === Number(p.contractRecordId) || value(payloadOf(item).contractNumber, "") === value(p.contractNumber, "")))
   const customer = records.find(item => item.kind === "customer" && item.id === Number(p.customerRecordId))
-  const site = records.find(item => item.kind === "customer_site" && item.id === Number(p.siteRecordId))
   const container = records.find(item => ["container", "container_asset"].includes(item.kind) && item.id === Number(p.containerRecordId))
+  const contract = findInvoiceContract(records, record!, customer, container)
+  const site = records.find(item => item.kind === "customer_site" && item.id === Number(p.siteRecordId))
   const payments = records.filter(item => {
     if (item.kind !== "payment" || item.status !== "posted") return false
     const payment = payloadOf(item)

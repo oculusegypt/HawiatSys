@@ -1,5 +1,6 @@
 import { ArrowRight, BriefcaseBusiness, CalendarDays, CheckCircle2, FileDown, FileText, MapPin, Phone, Printer, Truck, UserRound, Wallet, Wrench, RotateCcw, Trash2, LockKeyhole } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
+import type { ReactNode } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { useLocation, useParams } from "wouter"
 import { getGetContainerSystemQueryKey, getGetServiceRequestsQueryKey, useCreateContainerContractWorkflow, useCreateContainerSystemRecord, useGetContainerSystem, useGetServiceRequests } from "@workspace/api-client-react"
@@ -134,8 +135,9 @@ function FieldGrid({ record }: { record: ContainerSystemRecord }) {
   return <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{entries.map(entry => <div key={entry.label} className="rounded-xl border border-slate-100 bg-slate-50/70 p-3"><p className="text-[10px] font-bold text-slate-400">{entry.label}</p><p className="mt-1 break-words text-sm font-bold text-slate-800">{displayValue(entry.value)}</p></div>)}</div>
 }
 
-function RelatedRows({ title, records, empty = "لا توجد سجلات مرتبطة" }: { title: string; records: ContainerSystemRecord[]; empty?: string }) {
-  return <Card className="border-slate-200/80 shadow-sm"><CardHeader className="border-b border-slate-100 px-5 py-4"><CardTitle className="text-base">{title}</CardTitle></CardHeader><CardContent className="p-0">{records.length === 0 ? <p className="p-8 text-center text-sm text-slate-500">{empty}</p> : records.map(record => <div key={record.id} className="flex items-center gap-3 border-b border-slate-100 px-5 py-3.5 last:border-0"><div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-cyan-50 text-cyan-800"><FileText size={16} /></div><div className="min-w-0 flex-1"><p className="truncate text-sm font-black text-slate-800">{text(record.payload.name ?? record.payload.customerName ?? record.payload.contractNumber ?? record.payload.assetCode ?? record.reference, `سجل ${record.id}`)}</p><p className="mt-1 text-[11px] text-slate-400">{KIND_LABELS[record.kind as RecordKind] ?? record.kind} · {formatRecordDate(record.createdAt)}</p></div><RecordStatus status={record.status} /><span className="text-xs font-black text-slate-700">{amountOf(record) ? money(amountOf(record)) : ""}</span></div>)}</CardContent></Card>
+function RelatedRows({ title, records, empty = "لا توجد سجلات مرتبطة", headerAction }: { title: string; records: ContainerSystemRecord[]; empty?: string; headerAction?: ReactNode }) {
+  const embeddedAction = (records as ContainerSystemRecord[] & { headerAction?: ReactNode }).headerAction
+  return <Card className="border-slate-200/80 shadow-sm"><CardHeader className="border-b border-slate-100 px-5 py-4"><div className="flex flex-wrap items-center justify-between gap-3"><CardTitle className="text-base">{title}</CardTitle>{headerAction ?? embeddedAction}</div></CardHeader><CardContent className="p-0">{records.length === 0 ? <p className="p-8 text-center text-sm text-slate-500">{empty}</p> : records.map(record => <div key={record.id} className="flex items-center gap-3 border-b border-slate-100 px-5 py-3.5 last:border-0"><div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-cyan-50 text-cyan-800"><FileText size={16} /></div><div className="min-w-0 flex-1"><p className="truncate text-sm font-black text-slate-800">{text(record.payload.name ?? record.payload.customerName ?? record.payload.contractNumber ?? record.payload.assetCode ?? record.reference, `سجل ${record.id}`)}</p><p className="mt-1 text-[11px] text-slate-400">{KIND_LABELS[record.kind as RecordKind] ?? record.kind} · {formatRecordDate(record.createdAt)}</p></div><RecordStatus status={record.status} /><span className="text-xs font-black text-slate-700">{amountOf(record) ? money(amountOf(record)) : ""}</span></div>)}</CardContent></Card>
 }
 
 function InvoiceRows({ invoices, payments }: { invoices: ContainerSystemRecord[]; payments: ContainerSystemRecord[] }) {
@@ -470,6 +472,7 @@ function ContainerProfile({ record, records }: { record: ContainerSystemRecord; 
   const activeContract = contracts.find(item => item.status !== "archived")
   const activeContractPayload = payloadOf(activeContract)
   const customer = records.find(item => item.kind === "customer" && String(item.id) === String(activeContractPayload.customerRecordId))
+    ?? records.find(item => item.kind === "customer" && text(payloadOf(item).name ?? payloadOf(item).customerName, "") === text(activeContractPayload.customerName, ""))
   const customerPayload = payloadOf(customer)
   const timeline = [
     ...movements.map(item => ({ id: `movement-${item.id}`, date: item.createdAt, title: text(payloadOf(item).movementType, "حركة حاوية"), detail: text(payloadOf(item).location, "الموقع غير محدد"), icon: ArrowRight, tone: "bg-cyan-50 text-cyan-800" })),
@@ -485,6 +488,17 @@ function ContainerProfile({ record, records }: { record: ContainerSystemRecord; 
     createdAt: item.createdAt,
     updatedAt: item.updatedAt ?? item.createdAt,
   }))
+  const quickActions = <OperationalQuickActions
+    customerId={customer?.id ?? Number(activeContractPayload.customerRecordId ?? 0)}
+    customerName={text(customerPayload.name ?? customerPayload.customerName ?? activeContractPayload.customerName, "العميل")}
+    phone={text(customerPayload.phone ?? customerPayload.mobile ?? activeContractPayload.customerPhone, "")}
+    email={text(customerPayload.email, "")}
+    location={text(p.location ?? activeContractPayload.location ?? activeContractPayload.address, "يحدد لاحقاً")}
+    contracts={contracts}
+    containers={[record]}
+    onRefresh={() => void workOrdersQuery.refetch()}
+  />
+  ;(workOrderRecords as ContainerSystemRecord[] & { headerAction?: ReactNode }).headerAction = quickActions
   return <><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5"><Stat label="الحالة الحالية" value={formatStatus(String(currentStatus))} tone="text-cyan-800" /><Stat label="الموقع الحالي" value={text(p.location, "غير محدد")} /><Stat label="عدد الحركات" value={movements.length} /><Stat label="العقود المرتبطة" value={contracts.length} /><Stat label="أوامر العمل" value={workOrders.length} /></div><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5"><Stat label="أيام التأجير المحسوبة" value={rentalDays} tone="text-indigo-700" /><Stat label="الاستفادة التقديرية" value={`${utilization}%`} tone="text-emerald-700" /><Stat label="الإيراد المرتبط" value={money(revenue)} tone="text-cyan-800" /><Stat label="التكلفة المرتبطة" value={money(costs)} tone="text-rose-700" /><Stat label="صافي القيمة" value={money(revenue - costs)} tone={revenue - costs >= 0 ? "text-emerald-700" : "text-rose-700"} /></div><div className="grid gap-5 xl:grid-cols-[1.15fr_.85fr]"><Card className="border-slate-200/80 shadow-sm"><CardHeader className="border-b border-slate-100 px-5 py-4"><CardTitle className="flex items-center gap-2 text-base"><CalendarDays size={17} className="text-cyan-800" /> القصة التشغيلية للأصل</CardTitle></CardHeader><CardContent className="p-5">{timeline.length === 0 ? <p className="py-8 text-center text-sm text-slate-500">لا توجد أحداث مرتبطة بعد.</p> : <div className="space-y-4">{timeline.map(event => { const Icon = event.icon; return <div key={event.id} className="flex gap-3"><div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${event.tone}`}><Icon size={16} /></div><div className="min-w-0 flex-1 border-b border-slate-100 pb-3"><div className="flex flex-wrap items-center justify-between gap-2"><p className="text-sm font-black text-slate-800">{event.title}</p><time className="text-[11px] text-slate-400">{formatRecordDate(event.date)}</time></div><p className="mt-1 text-xs text-slate-500">{event.detail}</p></div></div> })}</div>}</CardContent></Card><div className="space-y-5"><RelatedRows title="سجل الحركات" records={movements} /><RelatedRows title="العقود المرتبطة" records={contracts} /><RelatedRows title="أوامر العمل" records={workOrderRecords} empty="لا توجد أوامر عمل مرتبطة" /><RelatedRows title="الفحوصات والصيانة" records={maintenance} empty="لا توجد صيانة مسجلة لهذا الأصل" /></div></div></>
 }
 
