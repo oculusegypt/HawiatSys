@@ -27,14 +27,14 @@ content_type = "application/octet-stream"
 id = "e7Hwi4c_9VUpSkVoGq2Ul"
 uri = "file://cleanflow-services-hostinger.zip"
 type = "unspecified"
-title = "حزمة هوستنجر — النافبار الفاتح"
-description = "النسخة المحدثة تتضمن النافبار العاجي الفاتح المتناسق مع الشعار الكحلي، مع تحديث قائمة الهاتف والأزرار والنصوص. تم فحص سلامة الأرشيف بنجاح."
+title = "حزمة هوستنجر — النافبار الشفاف مع Blur عند السكرول"
+description = "النسخة النهائية تجعل النافبار شفافًا بالكامل في أعلى الصفحة، ثم تضيف خلفية فاتحة شبه شفافة مع Blur خفيف وظل عند السكرول. تم بناء الأرشيف وفحص سلامته بنجاح."
 logical_id = "c612380d-19d8-4641-8c29-e5ac4a484245"
-content_hash = "sha256:771fb3407e0d142d6be3310f14f9d803ff148982da30874cf9cf841fe93e10d4"
-size = 20659035
-mtime_ms = 1787627047241
-storage_uri = "gcs://replit-rams-assets-worf/rams/assets/repl:8d4f5fea-7bf8-417c-b5ac-7012ab4a99c9/c612380d-19d8-4641-8c29-e5ac4a484245/97e46633-d12e-4ae5-bfbf-4ab8b530ef50"
-storage_version_token = "1787627052589662"
+content_hash = "sha256:14be4edf8eacd21ac902827cdb12ac97e98e452c7a561ed74dab4f3a9895c296"
+size = 20659582
+mtime_ms = 1787627241786
+storage_uri = "gcs://replit-rams-assets-worf/rams/assets/repl:8d4f5fea-7bf8-417c-b5ac-7012ab4a99c9/c612380d-19d8-4641-8c29-e5ac4a484245/bff709a1-1add-44d4-b2dd-890838f9c368"
+storage_version_token = "1787627246319704"
 content_type = "application/octet-stream"
 
 [[outputs]]
