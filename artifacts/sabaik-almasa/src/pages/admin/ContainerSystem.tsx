@@ -476,10 +476,16 @@ function InvoiceWorkspace({ records, onAdd, onDetails, onEdit, onArchive }: { re
       const p = payment.payload as Record<string, unknown>
       return Number(p.invoiceRecordId ?? 0) === record.id || String(p.invoiceNumber ?? "") === number
     })
-    const paid = linkedPayments.reduce((sum, payment) => {
+    // The API persists the authoritative paid value after each posting. Do not
+    // add the same posted payments again, otherwise a 500 + 100 cycle renders
+    // as 1200 after the invoice payload has been updated.
+    const paidFromPostedPayments = linkedPayments.reduce((sum, payment) => {
       const p = payment.payload as Record<string, unknown>
       return sum + Number(p.amount ?? p.total ?? 0)
-    }, Number(payload.paid ?? 0))
+    }, 0)
+    const paid = Number.isFinite(Number(payload.paid))
+      ? Number(payload.paid)
+      : paidFromPostedPayments
     const total = Number(payload.total ?? payload.amount ?? 0) || 0
     const remaining = Math.max(total - paid, 0)
     const dueDate = String(payload.dueDate ?? payload.paymentDueDate ?? payload.endDate ?? payload.date ?? "").slice(0, 10)
@@ -955,7 +961,14 @@ function RecordDetails({ record, allRecords, serviceRequests = [], open, onOpenC
         }).join("، ")
         return [detailLabel(key), allocationText] as const
       }
-      if (typeof value === "object") return [detailLabel(key), JSON.stringify(value, null, 2)] as const
+       if (typeof value === "object") {
+         const objectValue = value as Record<string, unknown>
+         const readable = Object.entries(objectValue)
+           .filter(([, item]) => item !== "" && item !== null && item !== undefined)
+           .map(([childKey, item]) => `${detailLabel(childKey)}: ${typeof item === "object" ? "بيانات مرتبطة" : String(item)}`)
+           .join("، ")
+         return [detailLabel(key), readable || "لا توجد بيانات"] as const
+       }
       return [detailLabel(key), String(value)] as const
     })
   return (

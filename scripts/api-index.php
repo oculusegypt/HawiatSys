@@ -1780,6 +1780,27 @@ try {
                     'createdAt' => $e['createdAt'] ?? date('c')
                 ];
             }, $rows);
+             // Work orders are operational records, not service requests. Keep
+             // the Hostinger route aligned with Node by returning both sources.
+             $workOrderStmt = $pdo->query("SELECT * FROM container_system_records WHERE kind = 'work_order' AND status <> 'archived' ORDER BY updated_at DESC, created_at DESC");
+             foreach ($workOrderStmt->fetchAll() as $workOrderRow) {
+                 $workOrderPayload = json_decode((string)$workOrderRow['payload'], true) ?: [];
+                 $workOrderStatus = (string)($workOrderPayload['driverStatus'] ?? 'unassigned');
+                 if (!in_array($workOrderStatus, ['unassigned', 'assigned', 'accepted', 'started', 'en_route', 'arrived'], true)) continue;
+                 $driverName = null;
+                 $workOrderDriverId = (int)($workOrderPayload['assignedDriverId'] ?? 0);
+                 if ($workOrderDriverId > 0) {
+                     $driverStmt = $pdo->prepare("SELECT name FROM admins WHERE id = :id LIMIT 1");
+                     $driverStmt->execute([':id' => $workOrderDriverId]);
+                     $driverName = $driverStmt->fetchColumn() ?: null;
+                 }
+                 $formatted[] = array_merge($workOrderPayload, [
+                     'id' => (int)$workOrderRow['id'],
+                     'assignedDriverName' => $driverName,
+                     'createdAt' => $workOrderRow['created_at'] ?? date('c'),
+                     'updatedAt' => $workOrderRow['updated_at'] ?? date('c'),
+                 ]);
+             }
             echo json_encode($formatted, JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
             echo json_encode([], JSON_UNESCAPED_UNICODE);
