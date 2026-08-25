@@ -7,4 +7,4 @@ Financial mutations should accept an idempotency key from both the HTTP header a
 
 **Why:** Generated mutation hooks may not expose per-call request headers, so a header-only contract can silently lose duplicate protection in the normal UI path.
 
-**How to apply:** Generate a fresh key when starting a user operation, send it in the body and header when possible, and make retries reuse the same body key.
+**How to apply:** Generate a fresh key when starting a user operation, send it in the body and header when possible, make retries reuse the same body key, and compare normalized financial identities rather than serialized display metadata.

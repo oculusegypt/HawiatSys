@@ -103,7 +103,8 @@ export interface ContainerContractWorkflowResult {
   contract: ContainerSystemRecord;
   assignment: ContainerSystemRecord;
   appointment: ContainerSystemRecord;
-  serviceRequest: ContainerContractWorkflowResultServiceRequest;
+  serviceRequest?: ContainerContractWorkflowResultServiceRequest;
+  workOrder?: ContainerSystemRecord;
 }
 
 export interface ContainerSystemAudit {

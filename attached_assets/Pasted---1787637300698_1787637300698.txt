@@ -1,0 +1,660 @@
+الرد ده **أفضل من الردود السابقة معماريًا**، لكنه **لسه لا يستحق اعتماد المهمة**. أهم نقطة: هو يقول إنه فصل المسارات الجديدة، لكنه لم يثبت أن **دورة التشغيل كاملة تعمل من البداية للنهاية**.
+
+أرسل له هذه الرسالة:
+
+---
+
+# 🚨 FINAL OPERATIONAL E2E — لا تعتبر المهمة مكتملة
+
+العمل الحالي جيد كبداية، لكن تقريرك يثبت **التعديل البرمجي فقط** وليس اكتمال الـOperational Domain.
+
+أنا لا أريد منك الآن إضافة Features جديدة عشوائيًا، ولا أريد Migration للبيانات القديمة.
+
+أريد منك **إكمال واختبار دورة التشغيل كاملة End-to-End** على البيانات المحلية فقط.
+
+## أولًا — لا تكتفِ بالـBuild
+
+نجاح:
+
+* TypeScript
+* PHP lint
+* Build
+* Health Check
+
+لا يعني أن النظام يعمل.
+
+المطلوب الآن اختبار حقيقي من:
+
+**Contract → Container → Work Order → Assignment → Appointment → Execution → Completion**
+
+---
+
+# 1. اختبار إنشاء عقد جديد
+
+أنشئ Dataset اختبار جديدة ببادئة واضحة:
+
+```text
+OPERATIONAL-E2E-2026
+```
+
+ولا تستخدم أو تعدل بيانات الإنتاج.
+
+أنشئ:
+
+```text
+Customer
+Site
+Contact
+Employee / Driver
+Vehicle إن كان النظام يدعمه
+Warehouse إن كان مطلوبًا
+Container
+Contract
+```
+
+ثم تحقق من العلاقات.
+
+---
+
+# 2. Contract → Delivery
+
+أنشئ عقدًا مرتبطًا بالحاوية.
+
+اضغط:
+
+> تجهيز العقد
+
+ويجب أن يحدث:
+
+```text
+Contract
+   ↓
+Container Assignment
+   ↓
+Work Order
+   ↓
+Appointment
+```
+
+ويجب **عدم إنشاء Service Request جديد**.
+
+تحقق فعليًا من قاعدة البيانات/API وليس من الواجهة فقط.
+
+---
+
+# 3. تحقق من Work Order
+
+يجب أن يحتوي أمر التشغيل على الأقل على:
+
+```text
+Work Order ID
+Customer
+Contract
+Container
+Site
+Operation Type
+Status
+Driver
+Appointment
+Created At
+Updated At
+```
+
+والـOperation Type يجب أن يكون واضحًا مثل:
+
+```text
+DELIVERY
+PICKUP
+EMPTY
+RETURN
+EXCHANGE
+```
+
+استخدم الـEnum الموجود في النظام إن كان موجودًا، ولا تنشئ Enum موازيًا.
+
+---
+
+# 4. Assignment
+
+من أمر التشغيل:
+
+> إسناد السائق
+
+اختر الموظف/السائق الاختباري.
+
+ثم تحقق:
+
+```text
+WorkOrder.driverId = Employee.id
+```
+
+ولا يتم إنشاء Request جديد.
+
+اختبر كذلك إعادة الإسناد إن كان النظام يسمح بها.
+
+---
+
+# 5. Appointment
+
+يجب أن يكون الموعد تابعًا لأمر التشغيل:
+
+```text
+Appointment.workOrderId
+```
+
+أو العلاقة المعتمدة فعليًا في النظام.
+
+لا أريد Appointment منفصلًا بلا أصل تشغيلي.
+
+---
+
+# 6. دورة حالة التشغيل
+
+اختبر الحالات الفعلية الموجودة في النظام.
+
+على الأقل:
+
+```text
+NEW
+ASSIGNED
+SCHEDULED
+IN_PROGRESS
+COMPLETED
+```
+
+إذا كانت التسميات مختلفة، استخدم Enum النظام الحقيقي.
+
+اختبر انتقال الحالة من البداية حتى النهاية.
+
+وتأكد أن كل انتقال مسموح فقط وفق قواعد النظام.
+
+---
+
+# 7. Delivery
+
+نفذ عملية:
+
+```text
+DELIVERY
+```
+
+حتى `COMPLETED`.
+
+ثم تحقق:
+
+* Work Order أصبح Completed
+* Appointment انعكس عليه التنفيذ
+* الحاوية أصبحت بالحالة الصحيحة
+* Assignment لم ينكسر
+* Contract لم يتغير بشكل خاطئ
+* لا يوجد Customer Request جديد
+* لا يوجد Financial Transaction جديد
+
+---
+
+# 8. Pickup / Return
+
+بعد ذلك نفذ:
+
+```text
+PICKUP
+```
+
+أو:
+
+```text
+RETURN
+```
+
+بحسب السيناريو الصحيح للنظام.
+
+يجب إنشاء:
+
+```text
+Work Order
++
+Appointment
+```
+
+وليس:
+
+```text
+Service Request
+```
+
+اختبر الدورة حتى Completed.
+
+---
+
+# 9. Empty / Dumping
+
+اختبر:
+
+```text
+EMPTY
+```
+
+أو الاسم المستخدم فعليًا في النظام لعملية تفريغ الحاوية.
+
+يجب أن تذهب العملية إلى:
+
+**Work Orders**
+
+وليس:
+
+**Requests**
+
+---
+
+# 10. Exchange
+
+إذا كان النظام يدعم استبدال الحاوية، اختبر:
+
+```text
+EXCHANGE
+```
+
+بحاوية ثانية.
+
+وتحقق من:
+
+```text
+Old Container
+New Container
+Contract
+Customer
+Work Order
+Appointment
+```
+
+والعلاقات الناتجة.
+
+---
+
+# 11. Idempotency
+
+هذه نقطة إلزامية.
+
+لكل عملية تشغيلية استخدم نفس:
+
+```text
+Idempotency-Key
+```
+
+مرتين.
+
+مثال:
+
+```text
+OPERATIONAL-E2E-DELIVERY-001
+```
+
+المحاولة الأولى:
+
+```text
+201
+```
+
+المحاولة الثانية يجب أن تعيد:
+
+```text
+200
+idempotent=true
+same Work Order
+```
+
+ولا تنشئ Work Order ثاني.
+
+اختبر ذلك على:
+
+* Delivery
+* Pickup
+* Empty
+* Return
+
+إن كانت هذه العمليات تدعم الإنشاء عبر API.
+
+---
+
+# 12. أهم اختبار في المهمة
+
+بعد تنفيذ كل العمليات السابقة، افحص:
+
+## Service Requests
+
+يجب ألا تكون هناك Requests جديدة ناتجة عن:
+
+```text
+Delivery
+Pickup
+Empty
+Return
+Exchange
+```
+
+قارن العدد قبل وبعد.
+
+إذا زاد العدد، فالإصلاح غير مكتمل.
+
+---
+
+# 13. البيانات القديمة #96 و#97
+
+قرارك بعدم حذفها صحيح.
+
+لكن لا تكتفِ بقول:
+
+> البيانات القديمة محفوظة.
+
+يجب تحديدها بوضوح في التقرير:
+
+```text
+Legacy Operational Records
+```
+
+وتوضيح:
+
+* هل ستظل تظهر في Requests؟
+* هل سيتم تمييزها؟
+* هل لها علاقة بـWork Orders؟
+* هل يمكن للمستخدم معرفة أنها تاريخية؟
+* هل النظام الجديد سيمنع تكرار المشكلة؟
+
+**ممنوع Migration عشوائي.**
+
+إذا لم توجد Migration آمنة، احتفظ بها كما هي وسجّل ذلك كقرار معماري.
+
+---
+
+# 14. أصلح صفحة Requests
+
+بعد الفصل:
+
+## Requests
+
+يجب أن تعرض:
+
+**Customer Requests فقط.**
+
+لا أريد أن أرى:
+
+```text
+استرجاع حاوية
+سحب حاوية
+تفريغ حاوية
+تسليم حاوية
+```
+
+كطلبات عمل جديدة.
+
+إذا كانت السجلات القديمة تظهر، يجب أن يكون ذلك بسبب كونها Legacy، وليس لأن النظام ما زال ينشئها.
+
+---
+
+# 15. أصلح صفحة Work Orders
+
+أريد أن تكون صفحة حقيقية قابلة للاستخدام.
+
+يجب أن تعرض:
+
+| الحقل     | المطلوب |
+| --------- | ------- |
+| رقم الأمر | نعم     |
+| العميل    | نعم     |
+| العقد     | نعم     |
+| الحاوية   | نعم     |
+| العملية   | نعم     |
+| الموقع    | نعم     |
+| السائق    | نعم     |
+| الموعد    | نعم     |
+| الحالة    | نعم     |
+| الإجراءات | نعم     |
+
+ويجب أن تعمل الإجراءات فعليًا.
+
+---
+
+# 16. أصلح Contract Workspace
+
+زر:
+
+> تجهيز العقد
+
+يجب ألا يذهب إلى:
+
+```text
+view=settlements
+```
+
+ويجب اختبار الزر فعليًا.
+
+من العقد:
+
+```text
+تجهيز العقد
+```
+
+→ يفتح Workspace التشغيل.
+
+ثم:
+
+```text
+إنشاء أمر تشغيل
+```
+
+→ ينشئ Work Order.
+
+---
+
+# 17. Navigation Audit
+
+اختبر الروابط من:
+
+```text
+Customer
+Contract
+Container
+Work Order
+Appointment
+Request
+Invoice
+Payment
+```
+
+كل رابط يجب أن يذهب إلى الـDomain الصحيح.
+
+خصوصًا:
+
+```text
+Contract → Work Orders
+Contract → Appointments
+Work Order → Contract
+Work Order → Customer
+Work Order → Container
+Work Order → Appointment
+```
+
+---
+
+# 18. لا تكسر النظام المالي
+
+بعد الاختبارات التشغيلية نفذ Regression كامل:
+
+```text
+Invoice
+Payment
+Partial Payment
+Full Payment
+Overpayment Protection
+Payment Idempotency
+Invoice Idempotency
+Financial Core
+Double Entry
+Period Lock
+```
+
+يجب أن تكون النتائج نفسها التي تم اعتمادها سابقًا.
+
+**أي تغيير في Financial Core = توقف وحقق قبل الاستمرار.**
+
+---
+
+# 19. UX
+
+اختبر الواجهة فعليًا وليس فقط Build.
+
+أريد:
+
+* رسائل نجاح في أعلى منتصف الشاشة
+* رسائل فشل في نفس المكان
+* لا توجد Toasts متفرقة
+* لا توجد شاشة بيضاء
+* لا توجد Redirects خاطئة
+* لا توجد أزرار لا تعمل
+* لا توجد روابط إلى `settlements` من العمليات التشغيلية
+* لا توجد حقول `تفاصيل إضافية` بدل أسماء الحقول المهمة
+* لا توجد `[object Object]` في أي شاشة تشغيلية
+
+---
+
+# 20. Backend + Frontend + Data
+
+لا تعتمد على الواجهة فقط.
+
+لكل سيناريو تحقق من:
+
+```text
+UI
+↓
+API
+↓
+Database
+↓
+Relations
+```
+
+خصوصًا:
+
+```text
+WorkOrder
+Appointment
+Assignment
+Container
+Contract
+Customer
+```
+
+---
+
+# 21. لا ترفع Production
+
+**ممنوع الرفع الآن.**
+
+نفذ كل شيء Local أولًا.
+
+لا تستبدل:
+
+```text
+data/sabaik.db
+```
+
+ولا تعمل FTP.
+
+بعد نجاح الـE2E المحلي فقط جهز:
+
+```text
+hawiat-operational-update.zip
+```
+
+ويجب أن يكون:
+
+* بدون Production DB
+* بدون Secrets
+* بدون `.env`
+* بدون ملفات حساسة
+
+---
+
+# 22. التقرير المطلوب
+
+لا أريد تقريرًا يقول:
+
+> تم تنفيذ الإصلاح.
+
+أريد جدولًا:
+
+| Test                   | Expected       | Actual | Result |
+| ---------------------- | -------------- | ------ | ------ |
+| Contract → Delivery    | Work Order     | ...    | PASS   |
+| Delivery → Appointment | Linked         | ...    | PASS   |
+| Driver Assignment      | Linked         | ...    | PASS   |
+| Delivery Completion    | Completed      | ...    | PASS   |
+| Pickup                 | Work Order     | ...    | PASS   |
+| Empty                  | Work Order     | ...    | PASS   |
+| Return                 | Work Order     | ...    | PASS   |
+| Exchange               | Work Order     | ...    | PASS   |
+| Request Pollution      | 0 new requests | ...    | PASS   |
+| Idempotency            | Same WO        | ...    | PASS   |
+| Financial Regression   | Unchanged      | ...    | PASS   |
+
+---
+
+# 🔴 معيار الإغلاق
+
+لا تعتبر هذه المرحلة مكتملة إلا إذا أثبتت عمليًا:
+
+```text
+CUSTOMER
+   ↓
+CONTRACT
+   ↓
+CONTAINER
+   ↓
+PREPARE CONTRACT
+   ↓
+WORK ORDER
+   ↓
+APPOINTMENT
+   ↓
+DRIVER ASSIGNMENT
+   ↓
+EXECUTION
+   ↓
+COMPLETION
+   ↓
+NEXT OPERATION
+```
+
+وأن:
+
+```text
+Customer Request
+```
+
+لا يتم إنشاؤه لأي عملية تشغيلية جديدة.
+
+---
+
+## وأخيرًا
+
+**لا أريد منك إعادة شرح ما فعلته.**
+
+أكمل التنفيذ.
+
+إذا اكتشفت مشكلة أثناء الاختبار:
+
+1. أصلحها.
+2. أعد البناء.
+3. أعد الاختبار.
+4. نفذ Regression.
+5. ثم انتقل للخطوة التالية.
+
+ولا تتوقف عند أول نجاح.
+
+**المطلوب النهائي: Operational Domain كامل ومترابط وقابل للاستخدام، وليس مجرد Patch ناجح في TypeScript.**
+
+**Production ممنوع حتى أعطيك إشارة النشر بعد اكتمال كل اختبارات Local E2E.**
+
+---
+
+ده هو الرد المناسب الآن؛ لأنه يمنعه من الوقوع في نفس الدائرة: **يعدل كود → يعمل Build → يقول PASS** بدون إثبات أن الدورة التشغيلية نفسها تعمل.

@@ -1718,7 +1718,17 @@ export const CreateContainerContractWorkflowResponse = zod.object({
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 }),
-  "serviceRequest": zod.record(zod.string(), zod.unknown())
+  "serviceRequest": zod.record(zod.string(), zod.unknown()).optional(),
+  "workOrder": zod.object({
+  "id": zod.number(),
+  "kind": zod.string(),
+  "status": zod.string(),
+  "reference": zod.string(),
+  "payload": zod.record(zod.string(), zod.unknown()),
+  "createdBy": zod.number().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}).optional()
 })
 
 

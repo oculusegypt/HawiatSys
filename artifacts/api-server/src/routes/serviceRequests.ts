@@ -42,6 +42,10 @@ function isReturnWork(request: typeof serviceRequestsTable.$inferSelect) {
   return /استرجاع|سحب|رفع|return|withdraw/i.test(`${request.serviceType} ${request.notes ?? ""}`);
 }
 
+function isEmptyingWork(request: typeof serviceRequestsTable.$inferSelect) {
+  return /تفريغ|empty|unload/i.test(`${request.serviceType} ${request.notes ?? ""}`);
+}
+
 function durationInMs(value?: string | null) {
   const text = String(value ?? "").toLowerCase();
   const hours = Number(text.match(/(\d+(?:\.\d+)?)\s*(?:hour|hours|ساعة|ساعات)/)?.[1] ?? 0);
@@ -133,7 +137,14 @@ async function prepareContainerCompletion(request: typeof serviceRequestsTable.$
     containerCodeFrom(parseContainerPayload(record.payload)) === containerCode,
   );
   if (!asset) throw new Error("أصل الحاوية المرتبط بأمر العمل غير موجود");
-  return { contract, contractPayload, asset, containerCode, returning: isReturnWork(request) };
+  return {
+    contract,
+    contractPayload,
+    asset,
+    containerCode,
+    returning: isReturnWork(request),
+    emptying: isEmptyingWork(request),
+  };
 }
 
 type DbWriter = Pick<typeof db, "update" | "insert">;
@@ -146,7 +157,7 @@ function syncContainerCompletion(
 ) {
   if (!prepared) return;
   const now = new Date().toISOString();
-  const action = prepared.returning ? "استرجاع" : "تسليم";
+  const action = prepared.returning ? "استرجاع" : prepared.emptying ? "تفريغ" : "تسليم";
   const contractStatus = prepared.returning ? "returned" : "delivered";
   const assetStatus = prepared.returning ? "available" : "rented";
   const nextContractPayload = {
@@ -161,22 +172,33 @@ function syncContainerCompletion(
     lastWorkOrderId: request.id,
   };
 
-  writer.update(containerSystemRecordsTable).set({
-    status: contractStatus,
-    payload: JSON.stringify(nextContractPayload),
-    updatedAt: now,
-  }).where(eq(containerSystemRecordsTable.id, prepared.contract.id)).run();
-  writer.update(containerSystemRecordsTable).set({
-    status: assetStatus,
-    payload: JSON.stringify(nextAssetPayload),
-    updatedAt: now,
-  }).where(eq(containerSystemRecordsTable.id, prepared.asset.id)).run();
+  if (!prepared.emptying) {
+    writer.update(containerSystemRecordsTable).set({
+      status: contractStatus,
+      payload: JSON.stringify(nextContractPayload),
+      updatedAt: now,
+    }).where(eq(containerSystemRecordsTable.id, prepared.contract.id)).run();
+    writer.update(containerSystemRecordsTable).set({
+      status: assetStatus,
+      payload: JSON.stringify(nextAssetPayload),
+      updatedAt: now,
+    }).where(eq(containerSystemRecordsTable.id, prepared.asset.id)).run();
+  } else {
+    writer.update(containerSystemRecordsTable).set({
+      payload: JSON.stringify({
+        ...parseContainerPayload(prepared.asset.payload),
+        lastEmptyingAt: now,
+        lastWorkOrderId: request.id,
+      }),
+      updatedAt: now,
+    }).where(eq(containerSystemRecordsTable.id, prepared.asset.id)).run();
+  }
 
   const movement = writer.insert(containerSystemRecordsTable).values({
     kind: "container_movement",
     status: "posted",
     reference: `MOV-${request.id}`,
-    payload: JSON.stringify({
+      payload: JSON.stringify({
       contractNumber: prepared.contractPayload.contractNumber ?? prepared.contract.reference,
       containerCode: prepared.containerCode,
       movementType: action,
@@ -184,19 +206,12 @@ function syncContainerCompletion(
       location: request.location,
       driverName: request.assignedDriverId,
       workOrderId: request.id,
-      source: "driver_work_order",
+        source: "driver_work_order",
+        operationalOnly: prepared.emptying,
     }),
     createdBy: actorId,
   }).returning().get();
   writer.insert(containerSystemAuditTable).values([
-    {
-      recordId: prepared.contract.id,
-      kind: "contract",
-      action: "work_order_sync",
-      beforePayload: prepared.contract.payload,
-      afterPayload: JSON.stringify(nextContractPayload),
-      actorId,
-    },
     {
       recordId: prepared.asset.id,
       kind: prepared.asset.kind,
@@ -213,6 +228,16 @@ function syncContainerCompletion(
       actorId,
     },
   ]).run();
+  if (!prepared.emptying) {
+    writer.insert(containerSystemAuditTable).values({
+      recordId: prepared.contract.id,
+      kind: "contract",
+      action: "work_order_sync",
+      beforePayload: prepared.contract.payload,
+      afterPayload: JSON.stringify(nextContractPayload),
+      actorId,
+    }).run();
+  }
 }
 
 function isRecent(value: string | null | undefined, windowMs: number): boolean {
@@ -383,6 +408,13 @@ router.post("/admin/service-requests/from-contract", requireAdmin, requireAnySec
     kind: "work_order", status: "new", reference: workOrderPayload.workOrderNumber,
     payload: JSON.stringify(workOrderPayload), operationKey, createdBy: (req as AdminRequest).adminId,
   }).returning();
+  await db.update(containerSystemRecordsTable).set({
+    payload: JSON.stringify({
+      ...parseContainerPayload(appointment.payload),
+      workOrderRecordId: workOrder.id,
+    }),
+    updatedAt: new Date().toISOString(),
+  }).where(eq(containerSystemRecordsTable.id, appointment.id));
 
   await createNotification({
     title: "أمر عمل جديد من عقد",
@@ -821,8 +853,16 @@ router.patch("/driver/work-orders/:id", requireAdmin, requireDriver, async (req,
     if (["completed", "rejected"].includes(current.driverStatus) || !transitions[current.driverStatus]?.includes(nextStatus)) {
       return res.status(400).json({ error: "لا يمكن الانتقال من الحالة الحالية إلى هذه الحالة" });
     }
-    if (nextStatus === "completed" && (!receiverName || !signatureData || !proofPhotoUrl)) {
-      return res.status(422).json({ error: "يلزم تسجيل اسم المستلم وتوقيع العميل وصورة إثبات قبل إكمال حركة الحاوية" });
+    let preparedContainerCompletion: Awaited<ReturnType<typeof prepareContainerCompletion>> = null;
+    if (nextStatus === "completed") {
+      try {
+        preparedContainerCompletion = await prepareContainerCompletion(current);
+      } catch (error) {
+        return res.status(422).json({ error: error instanceof Error ? error.message : "تعذر التحقق من ارتباط الحاوية بالعقد" });
+      }
+      if (preparedContainerCompletion && (!receiverName || !signatureData || !proofPhotoUrl)) {
+        return res.status(422).json({ error: "يلزم تسجيل اسم المستلم وتوقيع العميل وصورة إثبات قبل إكمال حركة الحاوية" });
+      }
     }
     const now = new Date().toISOString();
     const currentPayload = parseContainerPayload(operationalRow.payload);
@@ -848,6 +888,9 @@ router.patch("/driver/work-orders/:id", requireAdmin, requireDriver, async (req,
         updatedAt: now,
       }).where(eq(containerSystemRecordsTable.id, id)).returning().get();
       if (!next) throw new Error("تعذر تحديث أمر العمل");
+      if (nextStatus === "completed" && preparedContainerCompletion) {
+        syncContainerCompletion(tx, operationalRecordAsWorkOrder(next), preparedContainerCompletion, adminRequest.adminId);
+      }
       tx.insert(containerSystemAuditTable).values({
         recordId: id, kind: "work_order", action: "driver_status_transition",
         beforePayload: operationalRow.payload, afterPayload: JSON.stringify(nextPayload), actorId: adminRequest.adminId,

@@ -1178,7 +1178,21 @@ router.post("/admin/container-system/financial/settle", requireContainerPermissi
   const existing = await findByOperationKey("payment", operationKey);
   if (existing) {
     const existingPayload = parsePayload(existing.payload);
-    if (JSON.stringify(existingPayload.allocations ?? []) !== JSON.stringify(allocations) || Number(existingPayload.amount ?? 0) !== amount) {
+    // The persisted allocation also carries display-only fields such as
+    // contractNumber. Compare the financial identity, not the serialized
+    // presentation shape, so an exact retry with the same contract/invoice
+    // and amount is truly idempotent.
+    const normalizedExistingAllocations = Array.isArray(existingPayload.allocations)
+      ? existingPayload.allocations.map((item: unknown) => {
+          const allocation = item as Record<string, unknown>;
+          return {
+            contractId: Number(allocation.contractId),
+            amount: Number(allocation.amount),
+            invoiceId: allocation.invoiceId == null ? null : Number(allocation.invoiceId),
+          };
+        })
+      : [];
+    if (JSON.stringify(normalizedExistingAllocations) !== JSON.stringify(allocations) || Number(existingPayload.amount ?? 0) !== amount) {
       return res.status(409).json({ error: "مفتاح العملية مستخدم لحمولة مالية مختلفة" });
     }
     const ledger = (await db.select().from(containerSystemRecordsTable)).find(row =>
@@ -1316,12 +1330,21 @@ router.post("/admin/container-system/financial/settle", requireContainerPermissi
             const dueDate = String(invoicePayload.dueDate ?? invoicePayload.date ?? "");
             const nextInvoiceStatus = invoiceRemaining <= 0.01
               ? "paid"
-              : dueDate && Date.parse(dueDate) < Date.now()
-                ? "overdue"
-                : invoicePaid > 0 ? "partially_paid" : "due";
+              : invoicePaid > 0
+                ? "partially_paid"
+                : dueDate && Date.parse(dueDate) < Date.now()
+                  ? "overdue"
+                  : "due";
             tx.update(containerSystemRecordsTable).set({
               status: nextInvoiceStatus,
-              payload: JSON.stringify({ ...invoicePayload, paid: invoicePaid, remaining: invoiceRemaining, invoiceStatus: nextInvoiceStatus }),
+              payload: JSON.stringify({
+                ...invoicePayload,
+                paid: invoicePaid,
+                remaining: invoiceRemaining,
+                invoiceStatus: nextInvoiceStatus,
+                lifecycleStatus: nextInvoiceStatus,
+                paymentStatus: nextInvoiceStatus,
+              }),
               updatedAt: now,
             }).where(eq(containerSystemRecordsTable.id, invoice.id)).run();
           }

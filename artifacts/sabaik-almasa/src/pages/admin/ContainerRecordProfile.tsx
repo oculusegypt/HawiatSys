@@ -98,6 +98,7 @@ function OperationalQuickActions({ customerId, customerName, phone, email, locat
   contracts: ContainerSystemRecord[]; containers: ContainerSystemRecord[]; onRefresh: () => void
 }) {
   const [, navigate] = useLocation()
+  const { toast } = useToast()
   const [busy, setBusy] = useState("")
   const contract = contracts.find(item => item.status !== "archived")
   const contractPayload = payloadOf(contract)
@@ -117,9 +118,13 @@ function OperationalQuickActions({ customerId, customerName, phone, email, locat
         containerSize: text(ap.assetCode ?? ap.containerCode ?? container.reference),
         location, notes: kind === "pickup" ? "طلب استرجاع الحاوية من ملف العميل" : "طلب تفريغ الحاوية من ملف العميل",
       })
+      toast({ title: "تم إنشاء أمر العمل وربطه بالعقد" })
       onRefresh()
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : "تعذر إنشاء أمر العمل")
+      toast({
+        title: error instanceof Error ? error.message : "تعذر إنشاء أمر العمل",
+        variant: "destructive",
+      })
     } finally {
       setBusy("")
     }
