@@ -1,0 +1,121 @@
+# FINAL BLOCKER RESOLUTION — FTP ACCESS ONLY
+
+التقرير الأخير واضح:
+
+```text
+CODE: PASS
+OPERATIONAL: PASS
+BILLING: PASS
+UX: PASS
+PRODUCTION: BLOCKED
+```
+
+سبب الـ Blocker ليس Bug في التطبيق.
+
+السبب المحدد:
+
+```text
+FTP credentials could not be decrypted using the current session secret.
+```
+
+## المطلوب الآن
+
+لا تعيد أي اختبار محلي.
+
+لا تعيد Discovery.
+
+لا تعيد قراءة الملفات.
+
+لا تعدّل الكود.
+
+لا تعيد بناء الـ ZIP.
+
+لا تعيد تشغيل الاختبارات السابقة.
+
+لا تدخل في أي تحليل إضافي.
+
+### نفّذ فقط الخطوات التالية:
+
+1. استخدم بيانات FTP التي تم تزويدك بها في سياق المهمة.
+2. إذا كانت أداة التنفيذ الحالية لا تستطيع الوصول إلى بيانات الاعتماد بسبب `session secret mismatch`، لا تحاول التحايل على نظام الأسرار.
+3. لا تخمّن كلمة مرور.
+4. لا تطبع أي Secret في الـ logs.
+5. لا تحاول عشرات مرات الاتصال.
+6. لا تغيّر أي ملف في Production.
+
+إذا كانت أداة الـ Agent لا تملك وسيلة فعلية للوصول إلى الـ FTP credentials الحالية، فهذه **Capability Blocker** وليست Application Bug.
+
+في هذه الحالة أغلق المهمة فورًا بهذا التصنيف:
+
+```text
+APPLICATION: VERIFIED
+LOCAL VALIDATION: VERIFIED
+DEPLOYMENT: BLOCKED
+BLOCKER: FTP CREDENTIAL ACCESS / SESSION SECRET
+PRODUCTION: UNTOUCHED
+```
+
+ولا تدّعي:
+
+```text
+BACKUP: PASS
+DEPLOYMENT: PASS
+LIVE SHA: PASS
+LIVE E2E: PASS
+DATABASE INTEGRITY: PASS
+```
+
+لأن هذه الخطوات لم تُنفذ.
+
+## ممنوع تغيير الحكم
+
+لا تحول:
+
+```text
+FTP/Backup unavailable
+```
+
+إلى:
+
+```text
+Deployment failed
+```
+
+فالـ Deployment لم يبدأ أصلًا.
+
+التصنيف الصحيح:
+
+```text
+DEPLOYMENT NOT ATTEMPTED
+Reason: FTP credential decryption unavailable
+```
+
+## Final Closure
+
+إذا لم توجد في بيئة التنفيذ الحالية طريقة موثوقة للوصول إلى بيانات FTP، **توقف هنا وأصدر التقرير النهائي**.
+
+لا تنشئ خطة جديدة.
+
+لا تضف Phase جديدة.
+
+لا تفتح ملفات جديدة.
+
+لا تعدّل المشروع.
+
+لا تكرر المحاولة.
+
+العمل البرمجي الحالي:
+
+```text
+COMPLETE
+```
+
+والعمل المتبقي الوحيد:
+
+```text
+PRODUCTION ACCESS
+```
+
+وهو Blocked بسبب بيئة الاعتماد، وليس بسبب التطبيق.
+
+**أغلق المهمة الآن بتقرير نهائي دقيق.**
