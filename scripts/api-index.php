@@ -913,6 +913,40 @@ try {
         }
     }
 
+    // Driver completion evidence is protected separately because drivers are
+    // intentionally blocked from the broader administrative namespace.
+    if ($path === '/driver/uploads' && $method === 'POST') {
+        $driver = requireAdminAccess($pdo);
+        if (($driver['role'] ?? '') !== 'driver') {
+            http_response_code(403);
+            echo json_encode(['error' => 'هذا المورد مخصص للسائقين فقط'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        if (empty($_FILES['file']) || !is_uploaded_file((string)($_FILES['file']['tmp_name'] ?? ''))) {
+            http_response_code(400);
+            echo json_encode(['error' => 'لم يُرفَق ملف'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        $uploadDir = __DIR__ . '/../uploads';
+        if (!is_dir($uploadDir)) @mkdir($uploadDir, 0755, true);
+        $tmpPath = (string)$_FILES['file']['tmp_name'];
+        $newName = (int)(microtime(true) * 1000) . '-' . substr(bin2hex(random_bytes(6)), 0, 12) . '.webp';
+        $targetPath = $uploadDir . '/' . $newName;
+        if (compressUploadedImage($tmpPath, $targetPath)) {
+            echo json_encode([
+                'url' => '/api/uploads/' . $newName,
+                'filename' => $newName,
+                'contentType' => 'image/webp',
+                'size' => (int)filesize($targetPath)
+            ], JSON_UNESCAPED_UNICODE);
+        } else {
+            @unlink($targetPath);
+            http_response_code(422);
+            echo json_encode(['error' => 'تعذر ضغط الصورة أو حفظها على الخادم'], JSON_UNESCAPED_UNICODE);
+        }
+        exit;
+    }
+
     // 1. Upload File: POST /api/admin/uploads or /api/uploads
     if (($path === '/admin/uploads' || $path === '/admin/slides/upload' || $path === '/uploads') && $method === 'POST') {
         if (empty($_FILES['file'])) {
@@ -4426,7 +4460,9 @@ try {
         $allowed = [
             'assigned' => ['accepted', 'rejected'],
             'accepted' => ['started'],
-            'started' => ['completed'],
+            'started' => ['en_route', 'completed'],
+            'en_route' => ['arrived'],
+            'arrived' => ['completed'],
         ];
         if (!isset($allowed[$currentStatus]) || !in_array($nextStatus, $allowed[$currentStatus], true)) {
             http_response_code(400);
@@ -4466,9 +4502,9 @@ try {
             $fields['driver_completed_at'] = $now;
             $fields['status'] = 'completed';
         }
-        if ($nextStatus === 'completed' && ($request['contract_record_id'] ?? null) && (!$fields['driver_receiver_name'] || !$fields['driver_signature_data'])) {
+        if ($nextStatus === 'completed' && ($request['contract_record_id'] ?? null) && (!$fields['driver_receiver_name'] || !$fields['driver_signature_data'] || !$fields['driver_proof_photo_url'])) {
             http_response_code(422);
-            echo json_encode(['error' => 'يلزم تسجيل اسم المستلم وتوقيع العميل قبل إكمال حركة الحاوية'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['error' => 'يلزم تسجيل اسم المستلم وتوقيع العميل وصورة إثبات قبل إكمال حركة الحاوية'], JSON_UNESCAPED_UNICODE);
             exit;
         }
         $pdo->beginTransaction();
@@ -4492,6 +4528,68 @@ try {
         $updated->execute([':id' => $id]);
         $row = $updated->fetch(PDO::FETCH_ASSOC);
         echo json_encode($row ?: ['id' => $id], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        exit;
+    }
+
+    // Create a field order from a customer/container profile. This keeps the
+    // operation linked to the contract and asset; completion still goes
+    // through the driver's evidence and container-movement lifecycle.
+    if ($path === '/admin/service-requests/from-contract' && $method === 'POST') {
+        $admin = requireAdminAccess($pdo);
+        if (($admin['role'] ?? '') === 'driver') {
+            http_response_code(403);
+            echo json_encode(['error' => 'لا يمكن للسائق إنشاء أمر عمل من ملف العقد'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        $contractId = (int)($input['contractRecordId'] ?? 0);
+        $customerId = (int)($input['customerRecordId'] ?? 0);
+        $containerId = (int)($input['containerRecordId'] ?? 0);
+        $scheduledAt = trim((string)($input['scheduledAt'] ?? ''));
+        if ($contractId <= 0 || $customerId <= 0 || $containerId <= 0 || !$scheduledAt) {
+            http_response_code(422);
+            echo json_encode(['error' => 'ربط أمر العمل بالعميل والعقد وأصل الحاوية وموعد التنفيذ مطلوب'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        $contractStmt = $pdo->prepare("SELECT * FROM container_system_records WHERE id = :id AND kind = 'contract' AND status <> 'archived' LIMIT 1");
+        $contractStmt->execute([':id' => $contractId]);
+        $contract = $contractStmt->fetch(PDO::FETCH_ASSOC);
+        $contractPayload = $contract ? (json_decode((string)$contract['payload'], true) ?: []) : [];
+        if (!$contract || (int)($contractPayload['customerRecordId'] ?? 0) !== $customerId || (int)($contractPayload['containerRecordId'] ?? 0) !== $containerId) {
+            http_response_code(409);
+            echo json_encode(['error' => 'علاقات أمر العمل لا تطابق العميل أو أصل الحاوية في العقد'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        $existing = $pdo->prepare("SELECT * FROM service_requests WHERE contract_record_id = :contract AND acquisition_source = 'contract_workflow' AND scheduled_at = :scheduled LIMIT 1");
+        $existing->execute([':contract' => $contractId, ':scheduled' => $scheduledAt]);
+        $already = $existing->fetch(PDO::FETCH_ASSOC);
+        if ($already) {
+            echo json_encode(['id' => (int)$already['id'], 'message' => 'أمر العمل موجود مسبقاً'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        $now = date('c');
+        $insert = $pdo->prepare("INSERT INTO service_requests
+            (client_name, phone, email, service_type, container_size, location, duration, notes, appointment_type, scheduled_at, status,
+             customer_record_id, container_record_id, contract_record_id, session_id, acquisition_source, assigned_driver_id, driver_status, created_at, updated_at)
+            VALUES (:client_name, :phone, :email, :service_type, :container_size, :location, :duration, :notes, 'scheduled', :scheduled_at, 'pending',
+             :customer_id, :container_id, :contract_id, '', 'contract_workflow', NULL, 'unassigned', :created_at, :updated_at)");
+        $insert->execute([
+            ':client_name' => trim((string)($input['clientName'] ?? '')),
+            ':phone' => trim((string)($input['phone'] ?? '')),
+            ':email' => trim((string)($input['email'] ?? '')) ?: null,
+            ':service_type' => trim((string)($input['serviceType'] ?? 'استرجاع حاوية')),
+            ':container_size' => trim((string)($input['containerSize'] ?? '')),
+            ':location' => trim((string)($input['location'] ?? 'يحدد لاحقاً')),
+            ':duration' => trim((string)($input['duration'] ?? '')) ?: null,
+            ':notes' => trim((string)($input['notes'] ?? '')) ?: null,
+            ':scheduled_at' => $scheduledAt,
+            ':customer_id' => $customerId,
+            ':container_id' => $containerId,
+            ':contract_id' => $contractId,
+            ':created_at' => $now,
+            ':updated_at' => $now,
+        ]);
+        $newId = (int)$pdo->lastInsertId();
+        echo json_encode(['id' => $newId, 'message' => 'تم إنشاء أمر العمل'], JSON_UNESCAPED_UNICODE);
         exit;
     }
 

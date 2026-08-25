@@ -94,8 +94,8 @@ export function HeroSlider() {
               <div className="hero-slide-overlay absolute inset-0" />
           </div>
 
-          <div className="absolute inset-0 z-20">
-            <div className="container relative mx-auto h-full px-4 md:px-6 text-center">
+          <div className="absolute inset-0 z-20 text-[#143b4f]">
+            <div className="container relative mx-auto h-full px-4 md:px-6 text-center border-t-[color:var(--color-sky-500)] border-r-[color:var(--color-sky-500)] border-b-[color:var(--color-sky-500)] border-l-[color:var(--color-sky-500)]">
               {heroCompanyVisible && (
                 <div className={`absolute z-30 inline-block px-4 py-1 border border-secondary/50 rounded-full bg-black/25 backdrop-blur-sm ${centeredCompany ? "top-24 md:top-32 left-1/2 -translate-x-1/2" : positionClasses(heroCompanyPosition)}`}>
                   <span className="text-secondary font-medium tracking-wider text-sm md:text-base">{resolvedCompany}</span>
@@ -150,7 +150,6 @@ export function HeroSlider() {
           </div>
         </div>
       ))}
-
       <div className="absolute bottom-8 left-0 right-0 z-30 flex justify-center gap-3">
         {displaySlides.map((_, idx) => (
           <button
@@ -163,5 +162,5 @@ export function HeroSlider() {
         ))}
       </div>
     </section>
-  )
+  );
 }

@@ -69,7 +69,8 @@ function formatUser(admin: typeof adminsTable.$inferSelect) {
 
 // ── POST /api/auth/login ──────────────────────────────────────────────────────
 router.post("/auth/login", async (req, res) => {
-  const { username, password } = req.body as Record<string, string>;
+  const username = String((req.body as Record<string, unknown>)?.username ?? "").trim();
+  const password = String((req.body as Record<string, unknown>)?.password ?? "");
   if (!username || !password) return res.status(400).json({ error: "Username and password required" });
 
   const [admin] = await db.select().from(adminsTable).where(eq(adminsTable.username, username));

@@ -1,4 +1,4 @@
-import { ArrowRight, BriefcaseBusiness, CalendarDays, CheckCircle2, FileDown, FileText, MapPin, Phone, Printer, Truck, UserRound, Wallet, Wrench } from "lucide-react"
+import { ArrowRight, BriefcaseBusiness, CalendarDays, CheckCircle2, FileDown, FileText, MapPin, Phone, Printer, Truck, UserRound, Wallet, Wrench, RotateCcw, Trash2, LockKeyhole } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { useLocation, useParams } from "wouter"
@@ -80,6 +80,47 @@ const customerSiteBelongsTo = (site: ContainerSystemRecord, customer: ContainerS
 const siteAddress = (site: ContainerSystemRecord) => {
   const payload = payloadOf(site)
   return text(payload.address ?? payload.location ?? payload.name, "")
+}
+
+async function createProfileWorkOrder(input: Record<string, unknown>) {
+  const response = await fetch(`${API_BASE}/api/admin/service-requests/from-contract`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("admin_token") ?? ""}` },
+    body: JSON.stringify({ ...input, appointmentType: "scheduled", scheduledAt: `${new Date().toISOString().slice(0, 10)}T09:00:00` }),
+  })
+  const body = await response.json().catch(() => ({}))
+  if (!response.ok) throw new Error(String(body.error ?? "تعذر إنشاء أمر العمل"))
+}
+
+function OperationalQuickActions({ customerId, customerName, phone, email, location, contracts, containers, onRefresh }: {
+  customerId: number; customerName: string; phone: string; email: string; location: string
+  contracts: ContainerSystemRecord[]; containers: ContainerSystemRecord[]; onRefresh: () => void
+}) {
+  const [, navigate] = useLocation()
+  const [busy, setBusy] = useState("")
+  const contract = contracts.find(item => item.status !== "archived")
+  const container = containers.find(item => item.status !== "archived")
+  const cp = payloadOf(contract)
+  const ap = payloadOf(container)
+  const run = async (kind: "pickup" | "empty") => {
+    if (!contract || !container || !customerId) return
+    setBusy(kind)
+    try {
+      await createProfileWorkOrder({
+        customerRecordId: customerId, containerRecordId: container.id, contractRecordId: contract.id,
+        clientName: customerName, phone, email,
+        serviceType: kind === "pickup" ? "استرجاع وسحب حاوية" : "أمر تفريغ حاوية",
+        containerSize: text(ap.assetCode ?? ap.containerCode ?? container.reference),
+        location, notes: kind === "pickup" ? "طلب استرجاع الحاوية من ملف العميل" : "طلب تفريغ الحاوية من ملف العميل",
+      })
+      onRefresh()
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "تعذر إنشاء أمر العمل")
+    } finally {
+      setBusy("")
+    }
+  }
+  return <Card className="border-amber-200 bg-amber-50/60 shadow-sm"><CardContent className="flex flex-wrap items-center justify-between gap-3 p-4"><div><p className="text-sm font-black text-amber-950">إجراءات تشغيل سريعة</p><p className="mt-1 text-xs text-amber-900/70">مرتبطة بالعقد والحاوية ولا تغيّر القيود المالية.</p></div><div className="flex flex-wrap gap-2"><Button size="sm" disabled={!!busy || !contract || !container || !customerId} onClick={() => run("pickup")} className="gap-2 bg-amber-700 hover:bg-amber-800"><RotateCcw size={14} />{busy === "pickup" ? "جارٍ الإنشاء..." : "استرجاع وسحب الحاوية"}</Button><Button size="sm" variant="outline" disabled={!!busy || !contract || !container || !customerId} onClick={() => run("empty")} className="gap-2 border-amber-300 text-amber-900 hover:bg-white"><Trash2 size={14} />{busy === "empty" ? "جارٍ الإنشاء..." : "أمر تفريغ"}</Button>{contract && <Button size="sm" variant="outline" onClick={() => navigate(`/admin/container-system?view=settlements&contractId=${contract.id}`)} className="gap-2 border-slate-300 text-slate-700"><LockKeyhole size={14} /> تجهيز إغلاق العقد</Button>}</div>{(!contract || !container) && <p className="w-full text-xs font-semibold text-amber-800">يلزم عقد نشط وحاوية مخصصة لإظهار إجراءات التشغيل.</p>}</CardContent></Card>
 }
 
 function Stat({ label, value, tone = "text-slate-900" }: { label: string; value: string | number; tone?: string }) {
@@ -347,6 +388,16 @@ function CustomerProfile({ record, records }: { record: ContainerSystemRecord; r
       onClose={() => { if (!busy) closeAction() }}
       onSubmit={submitContract}
     />
+    <OperationalQuickActions
+      customerId={record.id}
+      customerName={name}
+      phone={text(p.phone ?? p.mobile, "")}
+      email={text(p.email, "")}
+      location={text(p.address ?? p.location ?? siteAddress(sites[0]), "يحدد لاحقاً")}
+      contracts={contracts}
+      containers={containers}
+      onRefresh={refreshProfile}
+    />
     <RecordDialog
       open={action === "site" || action === "payment"}
       kind={action === "payment" ? "payment" : "customer_site"}
@@ -416,6 +467,10 @@ function ContainerProfile({ record, records }: { record: ContainerSystemRecord; 
     const linked = item as typeof item & { containerRecordId?: number | null; contractRecordId?: number | null }
     return linked.containerRecordId === record.id || (linked.contractRecordId != null && contracts.some(contract => contract.id === linked.contractRecordId))
   })
+  const activeContract = contracts.find(item => item.status !== "archived")
+  const activeContractPayload = payloadOf(activeContract)
+  const customer = records.find(item => item.kind === "customer" && String(item.id) === String(activeContractPayload.customerRecordId))
+  const customerPayload = payloadOf(customer)
   const timeline = [
     ...movements.map(item => ({ id: `movement-${item.id}`, date: item.createdAt, title: text(payloadOf(item).movementType, "حركة حاوية"), detail: text(payloadOf(item).location, "الموقع غير محدد"), icon: ArrowRight, tone: "bg-cyan-50 text-cyan-800" })),
     ...workOrders.map(item => ({ id: `work-${item.id}`, date: item.scheduledAt ?? item.createdAt, title: item.serviceType, detail: `${item.clientName} · ${text(item.driverStatus, "غير مسند")}`, icon: CalendarDays, tone: "bg-amber-50 text-amber-800" })),

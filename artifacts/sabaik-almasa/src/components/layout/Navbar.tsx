@@ -54,7 +54,7 @@ export function Navbar() {
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           isScrolled || isInnerPage
-            ? "border-b border-[#e7dccb]/35 bg-[#fffaf3]/45 backdrop-blur-sm shadow-md py-3"
+            ? "border-b border-[#e7dccb]/20 bg-[#fffaf3]/25 backdrop-blur-sm shadow-md py-3"
             : "border-b border-transparent bg-transparent py-5"
         }`}
       >
@@ -83,7 +83,7 @@ export function Navbar() {
               {isLoaded && orderTrackingEnabled && (
                 <button
                   onClick={() => setTrackingOpen(true)}
-                  className="hidden sm:inline-flex items-center gap-1.5 text-primary/75 hover:text-primary border border-primary/15 hover:border-primary/35 px-3.5 py-2 rounded-md text-sm font-medium transition-all duration-200"
+                  className="hidden sm:inline-flex items-center gap-1.5 hover:text-primary border border-primary/15 hover:border-primary/35 px-3.5 py-2 rounded-md text-sm font-medium transition-all duration-200 text-[#e8e8e8]"
                 >
                   <Search size={14} />
                   تتبع الطلب
@@ -92,7 +92,7 @@ export function Navbar() {
 
               <Link
                 href="/admin/login"
-                className="hidden sm:inline-flex items-center gap-1.5 text-primary/75 hover:text-primary border border-primary/15 hover:border-primary/35 px-3.5 py-2 rounded-md text-sm font-medium transition-all duration-200"
+                className="hidden sm:inline-flex items-center gap-1.5 hover:text-primary border border-primary/15 hover:border-primary/35 px-3.5 py-2 rounded-md text-sm font-medium transition-all duration-200 text-[#f5f5f5]"
               >
                 <ShieldCheck size={14} />
                 دخول الإدارة
@@ -119,7 +119,6 @@ export function Navbar() {
           </div>
         </div>
       </header>
-
       {/* Backdrop */}
       <div
         onClick={() => setMenuOpen(false)}
@@ -127,12 +126,10 @@ export function Navbar() {
           menuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
       />
-
       {/* Track order modal */}
       {isLoaded && orderTrackingEnabled && (
         <TrackOrderModal isOpen={trackingOpen} onClose={() => { setTrackingOpen(false); setTrackingId(undefined) }} initialId={trackingId} />
       )}
-
       {/* Mobile menu drawer */}
       <div
         dir="rtl"
@@ -195,7 +192,7 @@ export function Navbar() {
         </div>
       </div>
     </>
-  )
+  );
 }
 
 function NavLink({ href, text, isScrolled }: { href: string; text: string; isScrolled: boolean }) {
