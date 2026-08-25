@@ -9,6 +9,7 @@ import type { ContainerContractWorkflowInputAppointment } from './containerContr
 import type { ContainerContractWorkflowInputAssignment } from './containerContractWorkflowInputAssignment';
 import type { ContainerContractWorkflowInputContract } from './containerContractWorkflowInputContract';
 import type { ContainerContractWorkflowInputServiceRequest } from './containerContractWorkflowInputServiceRequest';
+import type { ContainerSystemRecord } from './containerSystemRecord';
 
 export interface ContainerContractWorkflowInput {
   /**
@@ -19,5 +20,6 @@ export interface ContainerContractWorkflowInput {
   contract: ContainerContractWorkflowInputContract;
   assignment: ContainerContractWorkflowInputAssignment;
   appointment: ContainerContractWorkflowInputAppointment;
-  serviceRequest: ContainerContractWorkflowInputServiceRequest;
+  serviceRequest?: ContainerContractWorkflowInputServiceRequest;
+  workOrder?: ContainerSystemRecord;
 }

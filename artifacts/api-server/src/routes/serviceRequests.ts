@@ -68,6 +68,54 @@ function dispatchWindowsOverlap(
   return Boolean(leftWindow && rightWindow && leftWindow.start < rightWindow.end && rightWindow.start < leftWindow.end);
 }
 
+function operationalRecordAsWorkOrder(record: typeof containerSystemRecordsTable.$inferSelect) {
+  const payload = parseContainerPayload(record.payload);
+  return {
+    id: record.id,
+    clientName: String(payload.customerName ?? payload.clientName ?? ""),
+    phone: String(payload.phone ?? ""),
+    email: String(payload.email ?? ""),
+    serviceType: String(payload.serviceType ?? payload.operationType ?? "عملية تشغيلية"),
+    containerSize: String(payload.containerCode ?? ""),
+    propertyType: null,
+    areaSize: null,
+    location: String(payload.location ?? "يحدد لاحقًا"),
+    duration: null,
+    notes: String(payload.notes ?? ""),
+    appointmentType: "scheduled",
+    scheduledAt: payload.scheduledAt ? String(payload.scheduledAt) : null,
+    status: String(payload.status ?? "new"),
+    adminNotes: null,
+    customerRecordId: Number(payload.customerRecordId ?? 0) || null,
+    containerRecordId: Number(payload.containerRecordId ?? 0) || null,
+    contractRecordId: Number(payload.contractRecordId ?? 0) || null,
+    assignedDriverId: Number(payload.assignedDriverId ?? 0) || null,
+    assignedVehicleId: Number(payload.assignedVehicleId ?? 0) || null,
+    assignedVehiclePlate: payload.assignedVehiclePlate ? String(payload.assignedVehiclePlate) : null,
+    driverStatus: String(payload.driverStatus ?? "unassigned"),
+    driverResponseAt: payload.driverResponseAt ? String(payload.driverResponseAt) : null,
+    driverStartedAt: payload.driverStartedAt ? String(payload.driverStartedAt) : null,
+    driverCompletedAt: payload.driverCompletedAt ? String(payload.driverCompletedAt) : null,
+    driverNotes: payload.driverNotes ? String(payload.driverNotes) : null,
+    driverLocationLat: payload.driverLocationLat ? String(payload.driverLocationLat) : null,
+    driverLocationLng: payload.driverLocationLng ? String(payload.driverLocationLng) : null,
+    driverProofPhotoUrl: payload.driverProofPhotoUrl ? String(payload.driverProofPhotoUrl) : null,
+    driverSignatureData: payload.driverSignatureData ? String(payload.driverSignatureData) : null,
+    driverReceiverName: payload.driverReceiverName ? String(payload.driverReceiverName) : null,
+    assignedAt: payload.assignedAt ? String(payload.assignedAt) : null,
+    sessionId: "",
+    acquisitionSource: "contract_workflow",
+    attributionReferrer: "",
+    attributionLandingPage: "",
+    attributionUtmSource: "",
+    attributionUtmMedium: "",
+    attributionUtmCampaign: "",
+    attributionGclid: "",
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt,
+  } as typeof serviceRequestsTable.$inferSelect;
+}
+
 async function prepareContainerCompletion(request: typeof serviceRequestsTable.$inferSelect) {
   if (!isContainerWork(request)) return null;
   const contract = await db.select().from(containerSystemRecordsTable)
@@ -286,6 +334,12 @@ router.post("/admin/service-requests/from-contract", requireAdmin, requireAnySec
     !["container", "container_asset"].includes(containerRecord.kind) || !customerMatches || !containerMatches) {
     return res.status(409).json({ error: "علاقات أمر العمل لا تطابق العميل أو أصل الحاوية في العقد" });
   }
+  const operationKey = `contract-operation-${contractId}-${String(scheduledAt).replace(/[^0-9]/g, "").slice(0, 24)}-${requestedServiceType.slice(0, 20)}`;
+  const existingWorkOrder = (await db.select().from(containerSystemRecordsTable))
+    .find(row => row.kind === "work_order" && row.status !== "archived" &&
+      parseContainerPayload(row.payload).operationKey === operationKey);
+  if (existingWorkOrder) return res.status(200).json(operationalRecordAsWorkOrder(existingWorkOrder));
+
   const [existingRequest] = await db.select().from(serviceRequestsTable)
     .where(and(
       eq(serviceRequestsTable.contractRecordId, contractId),
@@ -293,51 +347,51 @@ router.post("/admin/service-requests/from-contract", requireAdmin, requireAnySec
       eq(serviceRequestsTable.scheduledAt, String(scheduledAt)),
       eq(serviceRequestsTable.serviceType, requestedServiceType),
     ));
-  if (existingRequest) return res.status(200).json(existingRequest);
-
-  const [request] = await db.insert(serviceRequestsTable).values({
-    clientName: String(clientName).trim(),
-    phone: String(phone).trim(),
-    email: email ? String(email).trim() : null,
-    serviceType: requestedServiceType,
-    containerSize: String(containerSize ?? ""),
-    location: String(location ?? "يحدد لاحقًا"),
-    duration: duration ? String(duration) : null,
-    notes: notes ? String(notes) : null,
-    appointmentType: String(appointmentType ?? "scheduled"),
-    scheduledAt: String(scheduledAt),
-    status: "pending",
-    customerRecordId: customerId,
-    containerRecordId: containerId,
-    contractRecordId: contractId,
-    sessionId: "",
-    acquisitionSource: "contract_workflow",
-    attributionReferrer: "",
-    attributionLandingPage: "",
-    attributionUtmSource: "",
-    attributionUtmMedium: "",
-    attributionUtmCampaign: "",
-    attributionGclid: "",
+  const operation = String(requestedServiceType).match(/تفريغ|empty/i) ? "EMPTY_CONTAINER" :
+    String(requestedServiceType).match(/استرجاع|سحب|pickup|return/i) ? "PICKUP_CONTAINER" : "DELIVER_CONTAINER";
+  const [appointment] = await db.insert(containerSystemRecordsTable).values({
+    kind: "appointment",
+    status: "scheduled",
+    reference: `APT-${contractId}-${Date.now()}`,
+    payload: JSON.stringify({
+      operationKey: `${operationKey}:appointment`,
+      contractRecordId: contractId,
+      customerRecordId: customerId,
+      containerRecordId: containerId,
+      appointmentType: operation,
+      scheduledAt: String(scheduledAt),
+      location: String(location ?? "يحدد لاحقًا"),
+      source: "contract_operation",
+    }),
+    createdBy: (req as AdminRequest).adminId,
   }).returning();
-
-  // Every public order becomes a reusable customer record and, when supplied,
-  // a customer site. This is deliberately best-effort after the request is
-  // stored so a malformed legacy record can never lose the order itself.
-  try {
-    const synced = await syncCustomerFromRequest(request);
-    Object.assign(request, synced.request);
-  } catch (error) {
-    req.log.warn({ err: error, requestId: request.id }, "customer auto-save skipped");
-  }
+  const workOrderPayload = {
+    operationKey,
+    workOrderNumber: `WO-${contractId}-${Date.now()}`,
+    customerRecordId: customerId, containerRecordId: containerId, contractRecordId: contractId,
+    clientName: String(clientName).trim(), customerName: String(clientName).trim(),
+    phone: String(phone).trim(), email: email ? String(email).trim() : "",
+    serviceType: requestedServiceType, operationType: operation,
+    containerSize: String(containerSize ?? ""), location: String(location ?? "يحدد لاحقًا"),
+    duration: duration ? String(duration) : "", notes: notes ? String(notes) : "",
+    appointmentType: String(appointmentType ?? "scheduled"), scheduledAt: String(scheduledAt),
+    appointmentRecordId: appointment.id,
+    driverStatus: "unassigned", status: "new", source: "contract_operation",
+    legacyRequestId: existingRequest?.id ?? null,
+  };
+  const [workOrder] = await db.insert(containerSystemRecordsTable).values({
+    kind: "work_order", status: "new", reference: workOrderPayload.workOrderNumber,
+    payload: JSON.stringify(workOrderPayload), operationKey, createdBy: (req as AdminRequest).adminId,
+  }).returning();
 
   await createNotification({
     title: "أمر عمل جديد من عقد",
     message: `تم إنشاء أمر عمل مرتبط بالعقد ${String(contractPayload.contractNumber ?? contract.reference)}`,
     type: "service_request",
-    refId: request.id,
-    refType: "service_request",
+    refId: workOrder.id,
+    refType: "work_order",
   });
-  return res.status(201).json(request);
+  return res.status(201).json(operationalRecordAsWorkOrder(workOrder));
 });
 
 router.post("/service-requests", async (req, res) => {
@@ -557,6 +611,7 @@ router.patch("/service-requests/:id", requireAdmin, requireSectionPermission("re
 });
 
 router.patch("/service-requests/:id/assignment", requireAdmin, requireSectionPermission("work_orders"), requireRequestAssignment, async (req, res) => {
+  const adminRequest = req as AdminRequest;
   const id = parseInt(String(req.params.id), 10);
   const driverId = req.body?.driverId === null || req.body?.driverId === undefined
     ? null
@@ -594,6 +649,40 @@ router.patch("/service-requests/:id/assignment", requireAdmin, requireSectionPer
     }
     const vehiclePayload = parseContainerPayload(vehicle.payload);
     vehiclePlate = String(vehiclePayload.vehiclePlate ?? vehiclePayload.plateNumber ?? vehiclePayload.plate ?? vehicle.reference ?? "").trim();
+  }
+
+  const operationalRow = await db.select().from(containerSystemRecordsTable)
+    .where(eq(containerSystemRecordsTable.id, id)).get();
+  if (operationalRow?.kind === "work_order") {
+    const current = operationalRecordAsWorkOrder(operationalRow);
+    const currentPayload = parseContainerPayload(operationalRow.payload);
+    if (["completed", "rejected"].includes(current.driverStatus)) {
+      return res.status(409).json({ error: "لا يمكن إعادة إسناد أمر عمل مغلق" });
+    }
+    const now = new Date().toISOString();
+    const nextPayload = {
+      ...currentPayload,
+      assignedDriverId: driverId,
+      assignedVehicleId: vehicleId,
+      assignedVehiclePlate: vehiclePlate,
+      assignedAt: driverId ? now : null,
+      driverStatus: driverId ? "assigned" : "unassigned",
+      status: driverId ? "assigned" : "new",
+    };
+    const updated = db.transaction((tx) => {
+      const next = tx.update(containerSystemRecordsTable).set({
+        status: driverId ? "assigned" : "new",
+        payload: JSON.stringify(nextPayload),
+        updatedAt: now,
+      }).where(eq(containerSystemRecordsTable.id, id)).returning().get();
+      if (!next) throw new Error("تعذر تحديث إسناد أمر العمل");
+      tx.insert(containerSystemAuditTable).values({
+        recordId: id, kind: "work_order", action: "work_order_assignment",
+        beforePayload: operationalRow.payload, afterPayload: JSON.stringify(nextPayload), actorId: adminRequest.adminId,
+      }).run();
+      return operationalRecordAsWorkOrder(next);
+    });
+    return res.json(updated);
   }
 
   const [request] = await db.select().from(serviceRequestsTable)
@@ -664,7 +753,13 @@ router.get("/driver/work-orders", requireAdmin, requireDriver, async (req, res) 
   const requests = await db.select().from(serviceRequestsTable)
     .where(and(...filters))
     .orderBy(desc(serviceRequestsTable.assignedAt), desc(serviceRequestsTable.createdAt));
-  return res.json(requests);
+  const operationalRows = await db.select().from(containerSystemRecordsTable);
+  const operational = operationalRows
+    .filter(row => row.kind === "work_order" && row.status !== "archived")
+    .map(operationalRecordAsWorkOrder)
+    .filter(order => order.assignedDriverId === adminRequest.adminId &&
+      (!requestedStatus || order.driverStatus === requestedStatus));
+  return res.json([...requests, ...operational]);
 });
 
 router.get("/admin/work-orders", requireAdmin, requireSectionPermission("work_orders"), requireManagerOrAdmin, async (_req, res) => {
@@ -673,14 +768,20 @@ router.get("/admin/work-orders", requireAdmin, requireSectionPermission("work_or
       inArray(serviceRequestsTable.driverStatus, ["unassigned", "assigned", "accepted", "started", "en_route", "arrived"]),
     ))
     .orderBy(desc(serviceRequestsTable.assignedAt), desc(serviceRequestsTable.createdAt));
-  const driverIds = [...new Set(requests.map(request => request.assignedDriverId).filter((id): id is number => id !== null))];
+  const operationalRows = await db.select().from(containerSystemRecordsTable);
+  const operational = operationalRows
+    .filter(row => row.kind === "work_order" && row.status !== "archived")
+    .map(operationalRecordAsWorkOrder)
+    .filter(order => ["unassigned", "assigned", "accepted", "started", "en_route", "arrived"].includes(order.driverStatus));
+  const allOrders = [...requests, ...operational];
+  const driverIds = [...new Set(allOrders.map(request => request.assignedDriverId).filter((id): id is number => id !== null))];
   const drivers = driverIds.length > 0
     ? await db.select({ id: adminsTable.id, name: adminsTable.name })
       .from(adminsTable)
       .where(inArray(adminsTable.id, driverIds))
     : [];
   const driverNames = new Map(drivers.map(driver => [driver.id, driver.name]));
-  return res.json(requests.map(request => ({
+  return res.json(allOrders.map(request => ({
     ...request,
     assignedDriverName: request.assignedDriverId ? driverNames.get(request.assignedDriverId) ?? null : null,
   })));
@@ -709,6 +810,51 @@ router.patch("/driver/work-orders/:id", requireAdmin, requireDriver, async (req,
   }
   if (operationKey && (operationKey.length < 8 || operationKey.length > 160)) {
     return res.status(422).json({ error: "مفتاح العملية غير صالح" });
+  }
+
+  const operationalRow = await db.select().from(containerSystemRecordsTable)
+    .where(eq(containerSystemRecordsTable.id, id)).get();
+  if (operationalRow?.kind === "work_order") {
+    const current = operationalRecordAsWorkOrder(operationalRow);
+    if (current.assignedDriverId !== adminRequest.adminId) return res.status(404).json({ error: "أمر العمل غير موجود" });
+    if (current.driverStatus === nextStatus) return res.json(current);
+    if (["completed", "rejected"].includes(current.driverStatus) || !transitions[current.driverStatus]?.includes(nextStatus)) {
+      return res.status(400).json({ error: "لا يمكن الانتقال من الحالة الحالية إلى هذه الحالة" });
+    }
+    if (nextStatus === "completed" && (!receiverName || !signatureData || !proofPhotoUrl)) {
+      return res.status(422).json({ error: "يلزم تسجيل اسم المستلم وتوقيع العميل وصورة إثبات قبل إكمال حركة الحاوية" });
+    }
+    const now = new Date().toISOString();
+    const currentPayload = parseContainerPayload(operationalRow.payload);
+    const nextPayload = {
+      ...currentPayload,
+      driverStatus: nextStatus,
+      status: nextStatus === "completed" ? "completed" : currentPayload.status,
+      driverResponseAt: currentPayload.driverResponseAt ?? (nextStatus === "accepted" || nextStatus === "rejected" ? now : null),
+      driverStartedAt: nextStatus === "started" ? now : currentPayload.driverStartedAt,
+      driverCompletedAt: nextStatus === "completed" ? now : currentPayload.driverCompletedAt,
+      ...(notes !== undefined ? { driverNotes: notes || null } : {}),
+      ...(locationLat !== undefined ? { driverLocationLat: locationLat || null } : {}),
+      ...(locationLng !== undefined ? { driverLocationLng: locationLng || null } : {}),
+      ...(proofPhotoUrl !== undefined ? { driverProofPhotoUrl: proofPhotoUrl || null } : {}),
+      ...(signatureData !== undefined ? { driverSignatureData: signatureData || null } : {}),
+      ...(receiverName !== undefined ? { driverReceiverName: receiverName || null } : {}),
+      ...(operationKey ? { lastOperationKey: operationKey } : {}),
+    };
+    const updated = db.transaction((tx) => {
+      const next = tx.update(containerSystemRecordsTable).set({
+        status: nextPayload.status === "completed" ? "completed" : operationalRow.status,
+        payload: JSON.stringify(nextPayload),
+        updatedAt: now,
+      }).where(eq(containerSystemRecordsTable.id, id)).returning().get();
+      if (!next) throw new Error("تعذر تحديث أمر العمل");
+      tx.insert(containerSystemAuditTable).values({
+        recordId: id, kind: "work_order", action: "driver_status_transition",
+        beforePayload: operationalRow.payload, afterPayload: JSON.stringify(nextPayload), actorId: adminRequest.adminId,
+      }).run();
+      return operationalRecordAsWorkOrder(next);
+    });
+    return res.json(updated);
   }
 
   const [request] = await db.select().from(serviceRequestsTable)

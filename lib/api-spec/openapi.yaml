@@ -1325,7 +1325,7 @@ components:
 
     ContainerContractWorkflowInput:
       type: object
-      required: [contract, assignment, appointment, serviceRequest]
+      required: [contract, assignment, appointment]
       properties:
         operationKey:
           type: string
@@ -1343,6 +1343,8 @@ components:
         serviceRequest:
           type: object
           additionalProperties: true
+        workOrder:
+          $ref: "#/components/schemas/ContainerSystemRecord"
 
     ContainerContractWorkflowResult:
       type: object

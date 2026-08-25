@@ -1,0 +1,878 @@
+أيوه، هنا المشكلة **مش مجرد Bug في زر أو Route**؛ اللي حاصل إن الـAgent بدأ يصلّح أجزاء منفصلة بدون ما يراجع **نموذج التشغيل Business Domain Model بالكامل**.
+
+أرسل له الرسالة التالية حرفيًا:
+
+---
+
+# 🚨 FINAL OPERATIONAL DOMAIN RESTRUCTURE — NO PARTIAL FIXES
+
+يا Agent، توقف عن تنفيذ إصلاحات جزئية أو تجميل الواجهات فقط.
+
+المشاكل التي ظهرت الآن تثبت أن هناك خلطًا معماريًا بين:
+
+* طلبات العملاء `Requests`
+* أوامر التشغيل `Work Orders`
+* المواعيد والحجوزات
+* العقود
+* تخصيص الحاويات
+* التحصيلات والفواتير
+* دورة التشغيل الفعلية للسائقين والعمال
+
+**المطلوب الآن مراجعة وتصحيح دورة التشغيل بالكامل، وليس إصلاح الشاشة التي ظهر فيها الخطأ فقط.**
+
+## 1. قاعدة أساسية يجب تثبيتها
+
+### `Requests` ليست Work Orders
+
+صفحة **طلبات العملاء** يجب أن تمثل الطلبات التجارية/الخدمية الواردة من العميل فقط.
+
+مثل:
+
+* طلب استئجار حاوية
+* طلب خدمة جديد
+* طلب تعاقد
+* طلب عرض/خدمة
+
+لكن العمليات الناتجة عن عقد قائم مثل:
+
+* إرسال حاوية
+* تسليم حاوية
+* سحب حاوية
+* استرجاع حاوية
+* تفريغ حاوية
+* تبديل حاوية
+* نقل حاوية
+* إغلاق عقد
+* صيانة حاوية
+* فحص حاوية
+
+**لا يجوز أن تُنشئ Customer Request جديدًا في صفحة Requests.**
+
+هذه عمليات تنفيذية يجب أن تدخل في **Operational / Work Order domain**.
+
+---
+
+# 2. أنشئ نموذج تشغيل واضح
+
+أريد فصلًا صريحًا بين:
+
+```text
+Customer Request
+       ↓
+Contract
+       ↓
+Container Assignment
+       ↓
+Operational Work Order
+       ↓
+Driver / Team Assignment
+       ↓
+Appointment / Schedule
+       ↓
+Execution
+       ↓
+Completion
+```
+
+مع بقاء المسار المالي منفصلًا:
+
+```text
+Contract
+   ↓
+Invoice
+   ↓
+Payment
+   ↓
+Financial Transaction
+   ↓
+Journal Entry
+```
+
+ولا يجوز أن تقوم أوامر التشغيل بتغيير القيود المالية إلا إذا كان هناك **حدث مالي صريح ومصرح به**.
+
+---
+
+# 3. مشكلة الطلبات الحالية
+
+حاليًا ظهر:
+
+```text
+#96
+استرجاع وسحب حاوية CNT-102
+
+#97
+أمر تفريغ حاوية CNT-102
+```
+
+داخل صفحة Requests.
+
+هذا **خطأ في Domain Modeling**.
+
+لا أريد مجرد إخفاء هذه السجلات من صفحة Requests.
+
+بل أصلح المصدر الذي يقوم بإنشائها.
+
+ابحث عن كل workflow يقوم بتحويل:
+
+```text
+Contract / Container / Operation
+```
+
+إلى:
+
+```text
+Request
+```
+
+وأعد توجيهه إلى:
+
+```text
+Work Order / Operational Order
+```
+
+مع الحفاظ على أي Request حقيقي سابق موجود بالفعل.
+
+**لا تحذف البيانات الموجودة يدويًا.**
+
+---
+
+# 4. قسم التشغيل يجب أن يصبح Domain حقيقي
+
+أريد مساحة تشغيل واضحة داخل النظام، وليست مجرد مجموعة أزرار.
+
+يجب أن يستطيع المستخدم من خلالها رؤية:
+
+### أوامر التشغيل
+
+* جديد
+* مجدول
+* مسند
+* في الطريق
+* وصل للموقع
+* قيد التنفيذ
+* مكتمل
+* ملغي
+* فشل التنفيذ
+* يحتاج إعادة جدولة
+
+مع بيانات:
+
+* رقم أمر التشغيل
+* العميل
+* الموقع
+* العقد
+* الحاوية
+* نوع العملية
+* السائق
+* المركبة إن وجدت
+* التاريخ والوقت
+* الأولوية
+* الملاحظات
+* حالة التنفيذ
+
+---
+
+# 5. أنواع العمليات التشغيلية
+
+يجب تعريف أنواع تشغيل واضحة بدل استخدام Requests لكل شيء:
+
+```text
+DELIVER_CONTAINER
+PICKUP_CONTAINER
+EXCHANGE_CONTAINER
+EMPTY_CONTAINER
+MOVE_CONTAINER
+RETURN_CONTAINER
+INSPECT_CONTAINER
+MAINTENANCE_CONTAINER
+CONTRACT_CLOSURE
+```
+
+استخدم الأسماء المناسبة الموجودة في النظام إذا كان لديه Enum قائم، ولا تنشئ Enum موازيًا بلا داعٍ.
+
+كل عملية يجب أن ترتبط بـ:
+
+```text
+customerId
+contractId
+containerId
+siteId
+```
+
+بحسب طبيعة العملية.
+
+---
+
+# 6. زر "تجهيز العقد" — هذا Bug حقيقي
+
+حاليًا الضغط على:
+
+> تجهيز العقد
+
+ينقلك إلى:
+
+```text
+/admin/container-system?view=settlements&contractId=435
+```
+
+وهذا **غير منطقي تمامًا**.
+
+`settlements` خاص بالتحصيلات/التسويات المالية.
+
+زر:
+
+> تجهيز العقد
+
+يجب أن يفتح **Contract Preparation / Operations Workspace**.
+
+لا أريد Redirect إلى Settlement.
+
+---
+
+# 7. تجهيز العقد يجب أن يكون Workspace فعلي
+
+عند الضغط على:
+
+> تجهيز العقد
+
+افتح نافذة أو صفحة مخصصة للعقد تحتوي على:
+
+### بيانات العقد
+
+* العميل
+* الموقع
+* رقم العقد
+* حالة العقد
+* تاريخ البداية
+* تاريخ النهاية
+* نوع الفوترة
+* القيمة
+* الحاويات المرتبطة
+
+### التشغيل المطلوب
+
+مثلاً:
+
+```text
+☑ تجهيز إرسال الحاوية
+☑ تحديد موعد التسليم
+☑ تحديد السائق
+☑ تحديد الموقع
+☑ إنشاء أمر تشغيل
+```
+
+ثم:
+
+**إنشاء أمر التشغيل**
+
+وينشئ:
+
+```text
+Work Order
+```
+
+وليس:
+
+```text
+Request
+```
+
+---
+
+# 8. التشغيل من العقد
+
+العقد يجب أن يحتوي على قسم واضح:
+
+## العمليات التشغيلية
+
+مثلاً:
+
+```text
+أمر #WO-001
+إرسال حاوية
+CNT-102
+25 أغسطس
+غير مسند
+جديد
+```
+
+وأزرار:
+
+* عرض
+* تعديل
+* إسناد
+* جدولة
+* بدء التنفيذ
+* إكمال
+* إلغاء
+
+---
+
+# 9. التشغيل من الحاوية
+
+ملف الحاوية يجب أن يعرض:
+
+## السجل التشغيلي
+
+مثل:
+
+```text
+25 أغسطس
+إرسال الحاوية
+CNT-102
+شركة دار اعمار
+WO-001
+مكتمل
+
+26 أغسطس
+سحب الحاوية
+CNT-102
+WO-002
+مجدول
+```
+
+ولا يتم إنشاء Customer Request لهذه الأحداث.
+
+---
+
+# 10. التشغيل من العميل
+
+ملف العميل يجب أن يحتوي على:
+
+```text
+العقود
+الفواتير
+المدفوعات
+الحاويات
+المواقع
+أوامر التشغيل
+المواعيد
+```
+
+مع روابط صحيحة لكل Domain.
+
+---
+
+# 11. التشغيل من المواعيد
+
+المواعيد ليست بديلًا عن Work Order.
+
+العلاقة:
+
+```text
+Work Order
+      ↓
+Appointment / Schedule
+```
+
+أي أن الموعد يمثل **وقت التنفيذ** لأمر التشغيل.
+
+وليس العكس.
+
+---
+
+# 12. لا تكرر السجلات
+
+ممنوع أن يؤدي نفس الحدث إلى:
+
+```text
+Request
++
+Work Order
++
+Appointment
++
+Container Assignment
+```
+
+بدون علاقات واضحة.
+
+المطلوب:
+
+```text
+Work Order
+ ├── Contract
+ ├── Customer
+ ├── Container
+ ├── Site
+ └── Appointment
+```
+
+وإذا كان هناك Assignment، يكون مرتبطًا بأمر التشغيل.
+
+---
+
+# 13. أصلح جميع المسارات وليس المسار الذي اكتشفناه فقط
+
+ابحث في المشروع كاملًا عن كل الأماكن التي تنشئ:
+
+```text
+requests
+work orders
+appointments
+assignments
+container movements
+```
+
+ثم راجع العلاقات بينها.
+
+أريد Audit للـworkflow وليس تعديل ملف واحد.
+
+راجع:
+
+* Contract creation
+* Contract preparation
+* Container assignment
+* Container delivery
+* Container pickup
+* Container return
+* Emptying
+* Exchange
+* Maintenance
+* Scheduling
+* Driver assignment
+* Customer profile
+* Container profile
+* Contract profile
+* Requests page
+* Work Orders page
+* Appointments page
+
+---
+
+# 14. حافظ على النظام المالي
+
+مهم جدًا:
+
+**لا تلمس Financial Core إلا عند الضرورة.**
+
+العقود والفواتير والمدفوعات الحالية تعمل.
+
+لا تكسر:
+
+```text
+Invoice
+Payment
+Payment Idempotency
+Partial Payment
+Full Payment
+Overpayment Protection
+Financial Transaction
+Journal Entry
+Debit/Credit
+```
+
+وأوامر التشغيل العادية:
+
+```text
+Delivery
+Pickup
+Emptying
+Return
+Exchange
+```
+
+لا يجب أن تنشئ قيودًا مالية تلقائيًا.
+
+---
+
+# 15. أصلح الـUI والـUX أيضًا
+
+لا أريد صفحات منفصلة غير مترابطة.
+
+يجب أن تكون الروابط واضحة:
+
+### من العقد
+
+```text
+العقد
+ ├── الفواتير
+ ├── المدفوعات
+ ├── الحاويات
+ ├── أوامر التشغيل
+ └── المواعيد
+```
+
+### من الفاتورة
+
+```text
+الفاتورة
+ ├── العميل
+ ├── العقد
+ ├── الحاوية
+ └── المدفوعات
+```
+
+### من Work Order
+
+```text
+أمر التشغيل
+ ├── العميل
+ ├── العقد
+ ├── الحاوية
+ ├── الموقع
+ ├── الموعد
+ └── السائق
+```
+
+---
+
+# 16. أصلح مشكلة البيانات الحالية بدون تدمير البيانات
+
+البيانات الموجودة مثل:
+
+```text
+Customer #433
+Contract #435
+Container #CNT-102
+```
+
+لا تحذفها.
+
+ولا تعيد إنشاء Golden Dataset.
+
+إذا وجدت:
+
+```text
+Request #96
+Request #97
+```
+
+وهما في الحقيقة عمليات تشغيلية، لا تحذفهما مباشرة.
+
+حدد أفضل استراتيجية:
+
+* migration منطقي إن كان آمنًا
+* أو ربطهما بالـWork Order
+* أو تصنيفهما Legacy Operational Request
+
+لكن **لا تترك النظام مستمرًا في إنشاء Requests جديدة لهذه العمليات.**
+
+---
+
+# 17. أهم اختبار قبول
+
+بعد التعديل نفذ:
+
+## Contract → Delivery
+
+إنشاء عقد جديد.
+
+يجب أن ينتج:
+
+```text
+Contract
+↓
+Container Assignment
+↓
+Work Order: DELIVERY
+↓
+Appointment
+```
+
+ولا يجب أن ينتج:
+
+```text
+Customer Request
+```
+
+---
+
+## Contract → Pickup
+
+نفذ سحب الحاوية.
+
+يجب:
+
+```text
+Work Order: PICKUP
+↓
+Appointment
+```
+
+ولا Request.
+
+---
+
+## Contract → Empty
+
+نفذ تفريغ الحاوية.
+
+يجب:
+
+```text
+Work Order: EMPTY
+```
+
+ولا Request.
+
+---
+
+## Contract → Return
+
+نفذ استرجاع الحاوية.
+
+يجب:
+
+```text
+Work Order: RETURN
+```
+
+ولا Request.
+
+---
+
+# 18. اختبار التكرار
+
+لكل عملية استخدم Idempotency.
+
+مثلاً:
+
+```text
+contract-435-delivery-2026-08
+```
+
+إعادة الطلب بنفس المفتاح يجب أن تعيد نفس Work Order.
+
+ولا تنشئ:
+
+```text
+WO-001
+WO-002
+```
+
+---
+
+# 19. اختبار الروابط
+
+بعد الإنشاء تحقق آليًا:
+
+```text
+Customer → Contract
+Contract → Container
+Contract → Work Order
+Work Order → Appointment
+Work Order → Customer
+Work Order → Container
+Work Order → Site
+```
+
+ويجب أن تعمل كل الروابط من الواجهات.
+
+---
+
+# 20. اختبار عدم التلوث
+
+بعد إنشاء عمليات التشغيل:
+
+تحقق أن:
+
+```text
+Requests count
+```
+
+لم يزد بسبب:
+
+```text
+Delivery
+Pickup
+Empty
+Return
+Exchange
+```
+
+إلا إذا كان هناك Request تجاري حقيقي.
+
+---
+
+# 21. الاختبارات المطلوبة قبل إعلان الإنجاز
+
+لا تكتب:
+
+> تم الإصلاح
+
+بمجرد نجاح TypeScript.
+
+يجب تنفيذ:
+
+### Static
+
+* TypeScript
+* Lint
+* API build
+* Frontend build
+* PHP lint
+
+### Functional
+
+* Contract
+* Delivery
+* Pickup
+* Empty
+* Return
+* Exchange
+* Assignment
+* Appointment
+* Work Order lifecycle
+
+### Regression
+
+* Invoice
+* Payment
+* Partial Payment
+* Full Payment
+* Payment Idempotency
+* Invoice Idempotency
+* Financial Core
+* Double Entry
+* Period Lock
+
+### UX
+
+اختبر:
+
+* Customer Profile
+* Contract Profile
+* Container Profile
+* Work Orders
+* Appointments
+* Requests
+* Invoice
+* Payment
+
+وتأكد أن كل زر يفتح المكان الصحيح.
+
+---
+
+# 22. قاعدة صارمة
+
+**ممنوع تنفيذ نصف الحل ثم التوقف.**
+
+لا أريد:
+
+> "وجدت المشكلة وسأكمل لاحقًا"
+
+ولا:
+
+> "تم تعديل الـfrontend فقط"
+
+ولا:
+
+> "تم إخفاء Requests"
+
+المطلوب:
+
+```text
+DISCOVER
+→ MODEL
+→ FIX BACKEND
+→ FIX FRONTEND
+→ FIX NAVIGATION
+→ FIX DATA RELATIONSHIPS
+→ TEST
+→ REGRESSION
+→ BUILD
+→ VERIFY
+```
+
+---
+
+# 23. لا تلمس Production الآن
+
+نفذ الإصلاح محليًا أولًا.
+
+**لا ترفع أي شيء إلى Hostinger الآن.**
+
+ولا تستبدل:
+
+```text
+data/sabaik.db
+```
+
+ولا تعمل migration على Production قبل أن تنتهي كل الاختبارات المحلية.
+
+بعد نجاحها سأعطيك إشارة النشر.
+
+---
+
+# 24. المطلوب في التقرير النهائي
+
+أريد تقريرًا واضحًا يحتوي:
+
+```text
+1. المشكلة الأصلية
+2. سببها المعماري
+3. الملفات التي تم تعديلها
+4. Backend changes
+5. Frontend changes
+6. Data model changes
+7. Navigation changes
+8. Migration strategy
+9. Tests executed
+10. Regression results
+11. Screens verified
+12. Remaining issues
+13. Production deployment package
+```
+
+وأهم شيء:
+
+## لا تعتبر المهمة مكتملة إلا عندما أستطيع تنفيذ السيناريو التالي بدون أي التفاف:
+
+```text
+Customer
+   ↓
+Contract
+   ↓
+Container
+   ↓
+Prepare Contract
+   ↓
+Create Delivery Work Order
+   ↓
+Assign Driver
+   ↓
+Schedule Appointment
+   ↓
+Execute
+   ↓
+Complete
+   ↓
+Pickup Work Order
+   ↓
+Return Container
+   ↓
+Close Contract
+```
+
+وفي كل هذه الدورة:
+
+**لا يتم إنشاء Customer Request إلا عندما يكون هناك Request تجاري حقيقي من العميل.**
+
+---
+
+## 🚨 معيار القبول النهائي
+
+يجب أن أرى في النظام بوضوح:
+
+**Requests = طلبات العملاء**
+
+**Work Orders = أوامر التشغيل**
+
+**Appointments = مواعيد التنفيذ**
+
+**Contracts = العلاقة التجارية**
+
+**Containers = الأصول التشغيلية**
+
+**Invoices = المطالبات المالية**
+
+**Payments = التحصيلات المالية**
+
+ولا يجوز خلط هذه الـDomains مرة أخرى.
+
+**راجع النظام كمهندس معماري وليس كمنفذ Bug Fix. افهم الدورة كاملة ثم نفذها كاملة، واختبر كل المسارات المرتبطة قبل أن تقول إن المهمة انتهت.**
+
+### ممنوع التوقف عند انتهاء الـquota أو منتصف التنفيذ في تقرير شكلي؛ إذا توقفت البيئة، اترك حالة واضحة لما تم وما تبقى، ثم استأنف من آخر نقطة بدل إعادة التحليل من الصفر.
+
+**ابدأ الآن بالـaudit الكامل للـOperational Domain ثم نفذ الإصلاحات والاختبارات المطلوبة محليًا.**

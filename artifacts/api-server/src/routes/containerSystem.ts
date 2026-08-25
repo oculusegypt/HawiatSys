@@ -15,11 +15,12 @@ const supportedKinds = [
   "oil_change", "salary_advance", "salary_payment", "fuel_expense", "daily_expense",
   "other_revenue", "notification", "payment_return", "stock_issue", "stock_issue_return",
   "purchase", "purchase_return",
+  "work_order",
 ] as const;
 type RecordKind = typeof supportedKinds[number];
 const idempotentKinds = new Set([
   "container_movement", "receipt", "payment", "expense", "deposit", "bank_deposit", "bank_fee",
-  "invoice", "invoice_return", "payment_return", "transfer", "purchase", "purchase_return", "contract",
+  "invoice", "invoice_return", "payment_return", "transfer", "purchase", "purchase_return", "contract", "work_order",
   "other_revenue",
 ]);
 const financialLifecycleKinds = new Set([
@@ -771,6 +772,10 @@ router.post("/admin/container-system/contracts/workflow", requireContainerPermis
     }) ?? null;
     const serviceRequest = await db.select().from(serviceRequestsTable)
       .where(eq(serviceRequestsTable.contractRecordId, existingContract.id)).get();
+    const workOrder = rows.find(row => {
+      if (row.kind !== "work_order" || row.status === "archived") return false;
+      return Number(parsePayload(row.payload).contractRecordId ?? 0) === existingContract.id;
+    });
     const invoice = rows.find(row => {
       if (row.kind !== "invoice" || row.status === "archived") return false;
       const payload = parsePayload(row.payload);
@@ -780,6 +785,7 @@ router.post("/admin/container-system/contracts/workflow", requireContainerPermis
       contract: formatRecord(existingContract),
       assignment: related("container_assignment") ? formatRecord(related("container_assignment")!) : null,
       appointment: related("appointment") ? formatRecord(related("appointment")!) : null,
+      workOrder: workOrder ? formatRecord(workOrder) : null,
       serviceRequest: serviceRequest ?? null,
       invoice: invoice ? formatRecord(invoice) : null,
       idempotent: true,
@@ -888,21 +894,44 @@ router.post("/admin/container-system/contracts/workflow", requireContainerPermis
           contractRecordId: contract.id,
           updatedAt: now,
         }).where(eq(serviceRequestsTable.id, existingRequestId)).returning().get();
-      } else {
-        serviceRequest = tx.insert(serviceRequestsTable).values({
-          clientName: String(servicePayload.clientName ?? customerPayload.name ?? ""),
-          phone: String(servicePayload.phone ?? customerPayload.phone ?? ""),
-          email: String(servicePayload.email ?? customerPayload.email ?? ""),
-          serviceType: String(servicePayload.serviceType ?? "تسليم حاوية"),
-          containerSize: String(servicePayload.containerSize ?? contractPayload.containerCode ?? ""),
-          propertyType: String(servicePayload.propertyType ?? ""), areaSize: String(servicePayload.areaSize ?? ""),
-          location: String(servicePayload.location ?? contractPayload.location ?? "يحدد لاحقًا"),
-          duration: String(servicePayload.duration ?? contractPayload.duration ?? ""),
-          notes: String(servicePayload.notes ?? contractPayload.notes ?? ""),
-          appointmentType: "scheduled", scheduledAt: String(servicePayload.scheduledAt ?? appointmentPayload.scheduledAt ?? ""),
-          customerRecordId: customerId, containerRecordId: assetId, contractRecordId: contract.id,
-        }).returning().get();
       }
+      // A contract operation is an operational work order, not a customer
+      // request. Keep an explicitly supplied commercial request linked, but
+      // never manufacture a new service_requests row for delivery/pickup/etc.
+      const workOrderOperationKey = operationKey ? `${operationKey}:work-order` : `contract-${contract.id}-delivery`;
+      const workOrderPayload = {
+        operationKey: workOrderOperationKey,
+        workOrderNumber: `WO-${String(contract.id).padStart(6, "0")}`,
+        customerRecordId: customerId,
+        contractRecordId: contract.id,
+        containerRecordId: assetId,
+        siteRecordId: siteId,
+        customerName: String(servicePayload.clientName ?? customerPayload.name ?? customerPayload.customerName ?? ""),
+        phone: String(servicePayload.phone ?? customerPayload.phone ?? ""),
+        email: String(servicePayload.email ?? customerPayload.email ?? ""),
+        operationType: String(appointmentPayload.appointmentType ?? "delivery") === "pickup" ? "PICKUP_CONTAINER" : "DELIVER_CONTAINER",
+        serviceType: String(servicePayload.serviceType ?? "تسليم حاوية"),
+        containerCode: String(contractPayload.containerCode ?? assetPayload.assetCode ?? assetPayload.code ?? asset.reference ?? ""),
+        location: String(servicePayload.location ?? contractPayload.location ?? "يحدد لاحقًا"),
+        notes: String(servicePayload.notes ?? contractPayload.notes ?? ""),
+        appointmentRecordId: appointment.id,
+        scheduledAt: String(servicePayload.scheduledAt ?? appointmentPayload.scheduledAt ?? ""),
+        driverStatus: "unassigned",
+        status: "new",
+        source: "contract_workflow",
+      };
+      const workOrder = tx.insert(containerSystemRecordsTable).values({
+        kind: "work_order",
+        status: "new",
+        reference: workOrderPayload.workOrderNumber,
+        payload: JSON.stringify(workOrderPayload),
+        operationKey: workOrderOperationKey,
+        createdBy: adminReq.adminId,
+      }).returning().get();
+      tx.update(containerSystemRecordsTable).set({
+        payload: JSON.stringify({ ...parsePayload(appointment.payload), workOrderRecordId: workOrder.id }),
+        updatedAt: now,
+      }).where(eq(containerSystemRecordsTable.id, appointment.id)).run();
       // Contract is the billing source of truth. Create the first billing-period
       // invoice inside the same transaction so retries cannot leave half a cycle.
       // Keep the record in the financial draft lifecycle while exposing the
@@ -1003,12 +1032,12 @@ router.post("/admin/container-system/contracts/workflow", requireContainerPermis
           }).run();
         }
       }
-      for (const record of [finalizedContract, assignment, appointment]) {
+      for (const record of [finalizedContract, assignment, appointment, workOrder]) {
         tx.insert(containerSystemAuditTable).values({ recordId: record.id, kind: record.kind, action: "workflow_create", afterPayload: record.payload, actorId: adminReq.adminId }).run();
       }
-      return { contract: finalizedContract, assignment, appointment, serviceRequest, invoice };
+      return { contract: finalizedContract, assignment, appointment, workOrder, serviceRequest, invoice };
     });
-    return res.status(201).json({ contract: formatRecord(result.contract), assignment: formatRecord(result.assignment), appointment: formatRecord(result.appointment), serviceRequest: result.serviceRequest, invoice: result.invoice ? formatRecord(result.invoice) : null, idempotent: false });
+    return res.status(201).json({ contract: formatRecord(result.contract), assignment: formatRecord(result.assignment), appointment: formatRecord(result.appointment), workOrder: formatRecord(result.workOrder), serviceRequest: result.serviceRequest ?? null, invoice: result.invoice ? formatRecord(result.invoice) : null, idempotent: false });
   } catch (error) {
     return res.status(422).json({ error: error instanceof Error ? error.message : "تعذر إنشاء دورة العقد كاملة" });
   }

@@ -93,7 +93,8 @@ export interface ContainerContractWorkflowInput {
   contract: ContainerContractWorkflowInputContract;
   assignment: ContainerContractWorkflowInputAssignment;
   appointment: ContainerContractWorkflowInputAppointment;
-  serviceRequest: ContainerContractWorkflowInputServiceRequest;
+  serviceRequest?: ContainerContractWorkflowInputServiceRequest;
+  workOrder?: ContainerSystemRecord;
 }
 
 export type ContainerContractWorkflowResultServiceRequest = { [key: string]: unknown };
