@@ -1,0 +1,216 @@
+FINAL CLOSURE DIRECTIVE — CONTAINER SYSTEM
+
+التقرير مقبول، والـ E2E أثبت النواة التشغيلية والمالية بنجاح.
+
+لا تبدأ Audit جديد.
+لا تعيد Discovery.
+لا تعيد الاختبارات التي نجحت.
+لا تغيّر Financial Core.
+لا تغيّر Invoice Flow.
+لا تعمل Refactoring.
+لا تستخدم Production.
+
+لكن قبل إغلاق المهمة نهائيًا، هناك 4 نقاط فقط بقيت NOT VERIFIED في التقرير، ونريد حسمها بأقل عدد ممكن من العمليات.
+
+==================================================
+1. PICKUP ASSERTION
+==================================================
+
+نفّذ فقط Assertion نهائي بعد اكتمال Pickup:
+
+قبل Pickup:
+container.status = X
+
+بعد Pickup completed:
+container.status = EXPECTED_RETURN_STATE
+
+وأثبت:
+
+work_order.status = completed
+movement count = expected
+no duplicate movement
+
+==================================================
+2. EMPTYING ASSERTION
+==================================================
+
+بعد Emptying completed أثبت فقط:
+
+work_order.status = completed
+expected container state = correct
+movement count = expected
+duplicate operation = rejected / prevented
+
+لا تعِد دورة Emptying كاملة إذا كانت نفس الـ fixture والآلية.
+
+==================================================
+3. NODE / PHP PARITY
+==================================================
+
+نفّذ Smoke Test محدود فقط للمسارات الحرجة التي لم تُثبت runtime parity:
+
+Contract → Work Order
+Invoice → Payment
+Idempotency
+Financial Status
+
+استخدم نفس الـ isolated fixture.
+
+إذا كان تشغيل PHP runtime غير متاح فعليًا في بيئة الاختبار، لا تحاول الالتفاف على ذلك.
+
+اكتب بوضوح:
+
+NOT VERIFIED — PHP runtime unavailable
+
+ولا تعتبر PHP syntax + shared implementation = runtime parity.
+
+==================================================
+4. ROLE AUTHORIZATION
+==================================================
+
+لا تنفذ Matrix ضخمة.
+
+اختبر فقط العمليات الحساسة الأساسية التي يمكن اختبارها بسرعة:
+
+View
+Create
+Assign
+Delivery
+Pickup
+Financial
+
+لكل:
+
+Unauthenticated
+Unauthorized
+Authorized
+
+إذا كانت بعض العمليات تتطلب صلاحية مختلفة، استخدم الـ role الصحيح الموجود فعليًا.
+
+إذا لم تكن كل الصلاحيات قابلة للاختبار في البيئة الحالية:
+
+NOT VERIFIED
+
+ولا تخمّن.
+
+==================================================
+5. DO NOT SPEND TIME ON VISUAL AUDIT
+==================================================
+
+لا تعيد اختبار:
+
+Container screen
+Contract screen
+Work Order screen
+Invoice screen
+Payment screen
+
+في هذه الجولة.
+
+الـ UX Audit تم بالفعل، وما تبقى ليس Blocker لإغلاق الـ operational/financial core.
+
+سجّلها فقط كـ follow-up recommendation إذا لزم.
+
+==================================================
+6. FINAL SCORE
+
+بعد النقاط الأربعة أعلاه:
+
+حدّث التقييم النهائي فقط بناءً على الأدلة الفعلية.
+
+لا ترفع الدرجة لمجرد إكمال الاختبارات.
+
+ولا تخفضها بسبب أشياء خارج الـ core scope.
+
+استخدم:
+
+Container System Score: XX/100
+
+ثم:
+
+Production Confidence:
+LOW / MEDIUM / HIGH
+
+مهم جدًا:
+
+PRODUCTION CONFIDENCE = HIGH
+
+لا تُستخدم إلا إذا كانت الأدلة تسمح بها فعلًا.
+
+إذا بقي Node/PHP runtime parity أو جزء أساسي من authorization غير مثبت:
+
+PRODUCTION CONFIDENCE = MEDIUM-HIGH
+
+ولا مشكلة في ذلك.
+
+==================================================
+7. FINAL REPORT ONLY
+==================================================
+
+بعد الانتهاء أرسل تقريرًا نهائيًا مختصرًا:
+
+FINAL CONTAINER SYSTEM CLOSURE REPORT
+
+CORE:
+PASS / FAIL
+
+OPERATIONAL:
+PASS / FAIL
+
+BILLING:
+PASS / FAIL
+
+AUTHORIZATION:
+PASS / FAIL / PARTIAL
+
+NODE/PHP PARITY:
+PASS / PARTIAL / NOT VERIFIED
+
+UX:
+PASS / PARTIAL / NOT VERIFIED
+
+DATA ISOLATION:
+PASS
+
+PRODUCTION MODIFIED:
+NO
+
+CONTAINER SYSTEM SCORE:
+XX/100
+
+PRODUCTION CONFIDENCE:
+LOW / MEDIUM / HIGH
+
+REMAINING VERIFIED GAPS:
+[فقط ما بقي فعليًا]
+
+ACTUAL BUGS:
+[فقط Bugs حقيقية]
+
+CODE CHANGES:
+[إذا لم يوجد: NONE]
+
+FINAL RECOMMENDATIONS:
+[حد أقصى 5]
+
+==================================================
+FINAL COMMAND
+==================================================
+
+بعد هذا التقرير:
+
+CLOSE THE TASK.
+
+لا تبدأ تنفيذ التوصيات.
+
+لا تبدأ Modernization.
+
+لا تنشئ خطة جديدة.
+
+لا تضف Features.
+
+لا تعيد Audit.
+
+أي توصية متبقية تصبح Backlog موثقًا فقط.
+
+المطلوب الآن هو إغلاق المهمة بناءً على الأدلة، وليس إبقاء الـ Agent في دورة لا نهائية من التحليل والاختبارات.
