@@ -4545,9 +4545,12 @@ try {
         $customerId = (int)($input['customerRecordId'] ?? 0);
         $containerId = (int)($input['containerRecordId'] ?? 0);
         $scheduledAt = trim((string)($input['scheduledAt'] ?? ''));
-        if ($contractId <= 0 || $customerId <= 0 || $containerId <= 0 || !$scheduledAt) {
+        $clientName = trim((string)($input['clientName'] ?? ''));
+        $phone = trim((string)($input['phone'] ?? ''));
+        $serviceType = trim((string)($input['serviceType'] ?? 'استرجاع حاوية')) ?: 'استرجاع حاوية';
+        if ($contractId <= 0 || $customerId <= 0 || $containerId <= 0 || !$scheduledAt || !$clientName || !$phone) {
             http_response_code(422);
-            echo json_encode(['error' => 'ربط أمر العمل بالعميل والعقد وأصل الحاوية وموعد التنفيذ مطلوب'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['error' => 'ربط أمر العمل بالعميل والعقد وأصل الحاوية واسم العميل والجوال وموعد التنفيذ مطلوب'], JSON_UNESCAPED_UNICODE);
             exit;
         }
         $contractStmt = $pdo->prepare("SELECT * FROM container_system_records WHERE id = :id AND kind = 'contract' AND status <> 'archived' LIMIT 1");
@@ -4559,8 +4562,8 @@ try {
             echo json_encode(['error' => 'علاقات أمر العمل لا تطابق العميل أو أصل الحاوية في العقد'], JSON_UNESCAPED_UNICODE);
             exit;
         }
-        $existing = $pdo->prepare("SELECT * FROM service_requests WHERE contract_record_id = :contract AND acquisition_source = 'contract_workflow' AND scheduled_at = :scheduled LIMIT 1");
-        $existing->execute([':contract' => $contractId, ':scheduled' => $scheduledAt]);
+        $existing = $pdo->prepare("SELECT * FROM service_requests WHERE contract_record_id = :contract AND acquisition_source = 'contract_workflow' AND scheduled_at = :scheduled AND service_type = :service_type LIMIT 1");
+        $existing->execute([':contract' => $contractId, ':scheduled' => $scheduledAt, ':service_type' => $serviceType]);
         $already = $existing->fetch(PDO::FETCH_ASSOC);
         if ($already) {
             echo json_encode(['id' => (int)$already['id'], 'message' => 'أمر العمل موجود مسبقاً'], JSON_UNESCAPED_UNICODE);
@@ -4573,10 +4576,10 @@ try {
             VALUES (:client_name, :phone, :email, :service_type, :container_size, :location, :duration, :notes, 'scheduled', :scheduled_at, 'pending',
              :customer_id, :container_id, :contract_id, '', 'contract_workflow', NULL, 'unassigned', :created_at, :updated_at)");
         $insert->execute([
-            ':client_name' => trim((string)($input['clientName'] ?? '')),
-            ':phone' => trim((string)($input['phone'] ?? '')),
+            ':client_name' => $clientName,
+            ':phone' => $phone,
             ':email' => trim((string)($input['email'] ?? '')) ?: null,
-            ':service_type' => trim((string)($input['serviceType'] ?? 'استرجاع حاوية')),
+            ':service_type' => $serviceType,
             ':container_size' => trim((string)($input['containerSize'] ?? '')),
             ':location' => trim((string)($input['location'] ?? 'يحدد لاحقاً')),
             ':duration' => trim((string)($input['duration'] ?? '')) ?: null,

@@ -257,6 +257,7 @@ router.post("/admin/service-requests/from-contract", requireAdmin, requireAnySec
   if (!String(clientName ?? "").trim() || !String(phone ?? "").trim() || !String(scheduledAt ?? "").trim()) {
     return res.status(422).json({ error: "اسم العميل والجوال وموعد التنفيذ مطلوبة" });
   }
+  const requestedServiceType = String(serviceType ?? "تسليم حاوية").trim();
   const scheduledDate = new Date(String(scheduledAt));
   if (!Number.isFinite(scheduledDate.getTime())) {
     return res.status(422).json({ error: "موعد التنفيذ غير صحيح" });
@@ -276,6 +277,7 @@ router.post("/admin/service-requests/from-contract", requireAdmin, requireAnySec
       eq(serviceRequestsTable.contractRecordId, contractId),
       eq(serviceRequestsTable.acquisitionSource, "contract_workflow"),
       eq(serviceRequestsTable.scheduledAt, String(scheduledAt)),
+      eq(serviceRequestsTable.serviceType, requestedServiceType),
     ));
   if (existingRequest) return res.status(200).json(existingRequest);
 
@@ -283,7 +285,7 @@ router.post("/admin/service-requests/from-contract", requireAdmin, requireAnySec
     clientName: String(clientName).trim(),
     phone: String(phone).trim(),
     email: email ? String(email).trim() : null,
-    serviceType: String(serviceType ?? "تسليم حاوية"),
+    serviceType: requestedServiceType,
     containerSize: String(containerSize ?? ""),
     location: String(location ?? "يحدد لاحقًا"),
     duration: duration ? String(duration) : null,
