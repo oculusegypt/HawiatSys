@@ -27,14 +27,14 @@ content_type = "application/octet-stream"
 id = "e7Hwi4c_9VUpSkVoGq2Ul"
 uri = "file://cleanflow-services-hostinger.zip"
 type = "unspecified"
-title = "حزمة هوستنجر — النافبار الشفاف مع Blur عند السكرول"
-description = "النسخة النهائية تجعل النافبار شفافًا بالكامل في أعلى الصفحة، ثم تضيف خلفية فاتحة شبه شفافة مع Blur خفيف وظل عند السكرول. تم بناء الأرشيف وفحص سلامته بنجاح."
+title = "حزمة هوستنجر — روابط بيضاء وشفافية أعلى بعد السكرول"
+description = "النسخة النهائية تتضمن روابط بيضاء في النافبار الشفاف أعلى الصفحة، وروابط كحلية بعد السكرول مع خلفية فاتحة أكثر شفافية وBlur خفيف. تم بناء الأرشيف وفحص سلامته بنجاح."
 logical_id = "c612380d-19d8-4641-8c29-e5ac4a484245"
-content_hash = "sha256:14be4edf8eacd21ac902827cdb12ac97e98e452c7a561ed74dab4f3a9895c296"
-size = 20659582
-mtime_ms = 1787627241786
-storage_uri = "gcs://replit-rams-assets-worf/rams/assets/repl:8d4f5fea-7bf8-417c-b5ac-7012ab4a99c9/c612380d-19d8-4641-8c29-e5ac4a484245/bff709a1-1add-44d4-b2dd-890838f9c368"
-storage_version_token = "1787627246319704"
+content_hash = "sha256:a7796c6a0dafceca9639c32d06043f633cbb65684dcd9bf4e637e6dad4c3e616"
+size = 20660182
+mtime_ms = 1787628146596
+storage_uri = "gcs://replit-rams-assets-worf/rams/assets/repl:8d4f5fea-7bf8-417c-b5ac-7012ab4a99c9/c612380d-19d8-4641-8c29-e5ac4a484245/fe7eb62e-490f-4445-91fb-a67e1458ff44"
+storage_version_token = "1787628154469540"
 content_type = "application/octet-stream"
 
 [[outputs]]

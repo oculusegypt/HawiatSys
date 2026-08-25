@@ -54,7 +54,7 @@ export function Navbar() {
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           isScrolled || isInnerPage
-            ? "border-b border-[#e7dccb]/50 bg-[#fffaf3]/70 backdrop-blur-sm shadow-md py-3"
+            ? "border-b border-[#e7dccb]/35 bg-[#fffaf3]/45 backdrop-blur-sm shadow-md py-3"
             : "border-b border-transparent bg-transparent py-5"
         }`}
       >
@@ -74,7 +74,7 @@ export function Navbar() {
             {/* Desktop nav */}
             <nav className="hidden md:flex items-center gap-6 lg:gap-8">
               {NAV_LINKS.map(l => (
-                <NavLink key={l.href} href={l.href} text={l.text} isScrolled={isScrolled} />
+                <NavLink key={l.href} href={l.href} text={l.text} isScrolled={isScrolled || isInnerPage} />
               ))}
             </nav>
 
@@ -202,7 +202,9 @@ function NavLink({ href, text, isScrolled }: { href: string; text: string; isScr
   return (
     <a
       href={href}
-      className="font-medium text-primary/80 transition-colors hover:text-secondary"
+      className={`font-medium transition-colors hover:text-secondary ${
+        isScrolled ? "text-primary/80" : "text-white drop-shadow-md"
+      }`}
     >
       {text}
     </a>
