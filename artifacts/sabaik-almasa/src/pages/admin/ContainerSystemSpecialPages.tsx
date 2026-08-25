@@ -562,12 +562,12 @@ export function ReportPage({ reportId, records, onBack }: { reportId: ReportId; 
   </div>
 }
 
-export function ContractSettlementWorkspace({ records, initialCustomerId = null }: { records: ContainerSystemRecord[]; initialCustomerId?: number | null }) {
+export function ContractSettlementWorkspace({ records, initialCustomerId = null, initialContractId = null }: { records: ContainerSystemRecord[]; initialCustomerId?: number | null; initialContractId?: number | null }) {
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const ledgerQuery = useGetContainerContractLedgers(undefined, { query: { queryKey: getGetContainerContractLedgersQueryKey(), staleTime: 15_000 } })
   const settlementMutation = useSettleContainerContract()
-  const [selectedId, setSelectedId] = useState<number | null>(null)
+  const [selectedId, setSelectedId] = useState<number | null>(initialContractId)
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [allocationAmounts, setAllocationAmounts] = useState<Record<number, string>>({})
   const [allocationInvoices, setAllocationInvoices] = useState<Record<number, string>>({})
@@ -576,9 +576,10 @@ export function ContractSettlementWorkspace({ records, initialCustomerId = null 
   const [depositId, setDepositId] = useState("")
   const [notes, setNotes] = useState("")
   const ledgers = useMemo(() => (ledgerQuery.data?.ledgers ?? []).filter(row => {
+    if (initialContractId && row.contract.id !== initialContractId) return false
     if (!initialCustomerId) return true
     return Number((row.contract.payload as Record<string, unknown>).customerRecordId ?? 0) === initialCustomerId
-  }), [initialCustomerId, ledgerQuery.data?.ledgers])
+  }), [initialContractId, initialCustomerId, ledgerQuery.data?.ledgers])
   const selected = ledgers.find(row => row.contract.id === selectedId) ?? ledgers[0]
   const deposits = records.filter(record => (record.kind === "deposit" || record.kind === "bank_deposit") && record.status === "posted")
   const selectedRows = ledgers.filter(row => selectedIds.includes(row.contract.id))

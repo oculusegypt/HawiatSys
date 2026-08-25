@@ -100,8 +100,11 @@ function OperationalQuickActions({ customerId, customerName, phone, email, locat
   const [, navigate] = useLocation()
   const [busy, setBusy] = useState("")
   const contract = contracts.find(item => item.status !== "archived")
-  const container = containers.find(item => item.status !== "archived")
-  const cp = payloadOf(contract)
+  const contractPayload = payloadOf(contract)
+  const container = containers.find(item => item.status !== "archived" && (
+    String(contractPayload.containerRecordId ?? "") === String(item.id) ||
+    text(contractPayload.containerCode ?? contractPayload.assetCode, "") === text(payloadOf(item).assetCode ?? payloadOf(item).containerCode ?? item.reference, "")
+  )) ?? containers.find(item => item.status !== "archived")
   const ap = payloadOf(container)
   const run = async (kind: "pickup" | "empty") => {
     if (!contract || !container || !customerId) return

@@ -1132,6 +1132,7 @@ export default function ContainerSystem() {
   const requestedView = new URLSearchParams(location.split("?")[1] ?? "").get("view") as ViewKey | null
   const requestedCreate = new URLSearchParams(location.split("?")[1] ?? "").get("create") === "1"
   const requestedCustomerId = Number(new URLSearchParams(location.split("?")[1] ?? "").get("customerId") ?? 0) || null
+  const requestedContractId = Number(new URLSearchParams(location.split("?")[1] ?? "").get("contractId") ?? 0) || null
   const requestedRequestId = Number(new URLSearchParams(location.split("?")[1] ?? "").get("requestId") ?? 0) || null
   const serviceRequestsQuery = useGetServiceRequests(undefined, { query: { staleTime: 30_000, queryKey: getGetServiceRequestsQueryKey() } })
   const requestContext = useMemo(() => {
@@ -1492,7 +1493,7 @@ export default function ContainerSystem() {
                : view === "overview" ? <Overview snapshot={snapshot} records={records} onAdd={openCreate} onOpen={setDetailRecord} onAssign={record => { setDetailRecord(null); setAssignmentContainerId(record.id); setAssignmentWizardOpen(true) }} />
                : view === "financial_center" ? <FinancialControlCenter records={snapshot?.records ?? records} onAdd={kind => openCreate(kind)} onNavigate={nextView => { setView(nextView); setSearch(""); if (nextView !== "reports") setReportId(null) }} />
               : view === "reports" ? reportId ? <ReportPage reportId={reportId} records={snapshot?.records ?? records} onBack={() => setReportId(null)} /> : <ReportsHub onOpen={setReportId} />
-              : view === "settlements" ? <ContractSettlementWorkspace records={snapshot?.records ?? records} initialCustomerId={requestedCustomerId} />
+               : view === "settlements" ? <ContractSettlementWorkspace records={snapshot?.records ?? records} initialCustomerId={requestedCustomerId} initialContractId={requestedContractId} />
               : view === "financial_cycle" ? <FinancialCycleWorkspace records={snapshot?.records ?? records} onAdd={openCreate} onOpenSettlements={() => { setView("settlements"); setSearch("") }} />
               : view === "system_settings" ? <SettingsPage records={snapshot?.records ?? records} organization={organization} onSave={saveSettings} />
              : view === "audit" ? <AuditLog audits={auditQuery.data ?? []} loading={auditQuery.isLoading} />
