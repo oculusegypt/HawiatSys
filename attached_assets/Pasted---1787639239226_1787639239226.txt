@@ -1,0 +1,758 @@
+أيوه، التقرير ده **أدق بكثير من التقارير السابقة**، لكنه في الحقيقة يؤكد أن الوكيل وقف قبل أهم مرحلة: **Live Functional E2E**.
+
+الـ7/10 منطقي؛ لأنه أثبت أن **النشر والبنية وقاعدة البيانات سليمة**، لكنه لم يثبت أن المستخدم يستطيع تنفيذ الدورة الجديدة كاملة من الواجهة الحية.
+
+ابعت له الرسالة دي:
+
+---
+
+# 🔴 FINAL MANDATE — DO NOT STOP AT PARTIAL LIVE E2E
+
+التقرير الأخير مقبول من ناحية الصراحة، لكن **المهمة لم تنتهِ**.
+
+أنت أثبتت الآن:
+
+* Deployment PASS
+* Live SHA PASS
+* Production DB Integrity PASS
+* Authentication PASS
+* Security PASS
+* Financial Core PASS
+* Double Entry PASS
+* Production Stability PASS
+
+ممتاز.
+
+لكن هذه ليست شهادة النظام الوظيفية.
+
+## المطلوب الآن تحديدًا
+
+**لا تعدّل الكود حاليًا إلا إذا كشف الاختبار عن Bug حقيقي.**
+
+النسخة المنشورة موجودة، FTP يعمل، Backup/DB verification أصبحا متاحين.
+
+إذن لم يعد هناك عذر للتوقف عند:
+
+```text
+PARTIAL
+NOT TESTED
+NOT FULLY TESTED
+```
+
+أريد منك الآن تنفيذ **Fresh Live E2E حقيقي من الواجهة المنشورة**.
+
+---
+
+# 1. أنشئ Dataset جديد تمامًا
+
+استخدم Prefix واضح:
+
+```text
+FINAL-LIVE-E2E-2026
+```
+
+ولا تعتمد على السجلات القديمة الموجودة حاليًا لإعلان PASS.
+
+أنشئ من الواجهة:
+
+```text
+Customer
+↓
+Customer Site
+↓
+Container
+↓
+Contract
+↓
+Work Order
+↓
+Invoice
+↓
+Payment
+```
+
+ثم أكمل بقية الدورة.
+
+---
+
+# 2. CUSTOMER → CONTRACT
+
+من الواجهة:
+
+1. إنشاء Customer جديد.
+2. إنشاء Site.
+3. إنشاء/اختيار Container.
+4. إنشاء Contract.
+5. تحقق أن العقد مرتبط فعليًا بالعميل والموقع والحاوية.
+
+ثم أعد نفس إنشاء العقد بنفس `Idempotency-Key`.
+
+المطلوب:
+
+```text
+First → Created
+Second → Same Contract
+No Duplicate
+```
+
+---
+
+# 3. CONTRACT → WORK ORDER
+
+عند تجهيز العقد:
+
+**يجب إنشاء Work Order وليس Service Request جديدًا.**
+
+اختبر:
+
+```text
+Delivery
+Pickup / Return
+Emptying
+```
+
+وتحقق بعد كل عملية من:
+
+```text
+service_requests
+work_orders
+appointments
+container state
+contract state
+```
+
+المطلوب ألا تُنشأ Service Request تشغيلية جديدة.
+
+---
+
+# 4. DRIVER E2E
+
+نفذ من الواجهة:
+
+```text
+Assign Driver
+↓
+Accepted
+↓
+Started
+↓
+En Route
+↓
+Arrived
+↓
+Completed
+```
+
+وتحقق أن كل انتقال يتم مرة واحدة وبالترتيب الصحيح.
+
+---
+
+# 5. DELIVERY
+
+بعد إكمال Delivery تحقق فعليًا من:
+
+```text
+Work Order = completed
+Contract = delivered
+Container = rented
+```
+
+ولا تنشئ أي سجل تشغيلي مكرر.
+
+---
+
+# 6. PICKUP / RETURN
+
+نفذ Pickup/Return فعليًا.
+
+بعد الإكمال:
+
+```text
+Work Order = completed
+Contract = returned
+Container = available
+```
+
+---
+
+# 7. EMPTYING
+
+هذه نقطة حرجة جدًا.
+
+نفذ Emptying منفصلًا.
+
+يجب أن يبقى:
+
+```text
+Emptying = Operational Work Order
+```
+
+ولا يتم معاملته كـDelivery.
+
+لا تسمح لأي كود أن يغير:
+
+```text
+Contract → delivered
+Container → rented
+```
+
+بشكل خاطئ نتيجة عملية Emptying.
+
+---
+
+# 8. AUTOMATIC INVOICE
+
+هذه أهم نقطة في الاختبار المالي.
+
+بعد إنشاء العقد، تحقق من أن النظام أنشأ الفاتورة تلقائيًا.
+
+لا تنشئ فاتورة يدويًا إذا كان العقد يجب أن يولدها تلقائيًا.
+
+يجب أن تكون:
+
+```text
+Contract
+→ Invoice
+```
+
+مرتبطة بـ:
+
+```text
+Customer
+Contract
+Container
+Billing Period
+Amount
+```
+
+وتظهر في:
+
+### Customer Profile
+
+```text
+Invoices
+```
+
+### Contract Profile
+
+```text
+Invoice
+```
+
+### Invoice Details
+
+```text
+Payments
+```
+
+---
+
+# 9. INVOICE IDEMPOTENCY
+
+أعد نفس عملية إنشاء الفاتورة بنفس مفتاح العملية.
+
+المطلوب:
+
+```text
+Same Invoice ID
+idempotent = true
+No second invoice
+```
+
+ثم تحقق من قاعدة الإنتاج بعد العملية.
+
+---
+
+# 10. PAYMENT FROM INVOICE
+
+افتح الفاتورة من الواجهة.
+
+اضغط:
+
+**إضافة سداد**
+
+يجب أن تفتح نافذة السداد وهي تعرف تلقائيًا:
+
+```text
+Customer
+Contract
+Invoice
+Remaining Amount
+Allocation
+```
+
+لا تجعل المستخدم يعيد اختيار البيانات التي يعرف النظام بالفعل.
+
+---
+
+# 11. PARTIAL PAYMENT
+
+إذا كانت الفاتورة:
+
+```text
+1000
+```
+
+نفذ:
+
+```text
+Payment #1 = 500
+```
+
+يجب أن تصبح:
+
+```text
+Paid = 500
+Remaining = 500
+Status = partially_paid
+```
+
+ثم:
+
+```text
+Payment #2 = 100
+```
+
+يجب أن تصبح:
+
+```text
+Paid = 600
+Remaining = 400
+Status = partially_paid
+```
+
+**يجب ألا تصبح 1200.**
+
+هذه المشكلة ظهرت سابقًا وتم إصلاحها، لذلك يجب إثباتها Live وليس Local فقط.
+
+---
+
+# 12. PAYMENT IDEMPOTENCY
+
+أعد Payment #1 بنفس:
+
+```text
+Idempotency-Key
+```
+
+المطلوب:
+
+```text
+HTTP 200
+idempotent = true
+Same Payment ID
+```
+
+والأهم:
+
+```text
+Paid remains 600
+```
+
+ولا تصبح:
+
+```text
+Paid = 1100
+Paid = 1200
+```
+
+ولا يتم إنشاء Financial Transaction أو Journal Entry إضافي.
+
+---
+
+# 13. FULL PAYMENT
+
+أكمل:
+
+```text
+Payment #3 = 400
+```
+
+المطلوب:
+
+```text
+Paid = 1000
+Remaining = 0
+Status = paid
+```
+
+ثم تحقق من Customer Profile وContract Profile وInvoice Details.
+
+يجب أن تعرض الثلاثة نفس الحقيقة المالية.
+
+---
+
+# 14. OVERPAYMENT
+
+حاول دفع مبلغ إضافي بعد وصول:
+
+```text
+Remaining = 0
+```
+
+المطلوب:
+
+```text
+REQUEST REJECTED
+```
+
+بدون:
+
+* Payment جديد
+* Financial Transaction
+* Journal Entry
+* تغيير الرصيد
+
+---
+
+# 15. CUSTOMER PROFILE
+
+هذه ليست مجرد صفحة شكلية.
+
+افتح ملف العميل وتحقق من:
+
+```text
+Contracts = 1
+Invoices = 1
+Payments = 3
+Outstanding = 0
+```
+
+والروابط يجب أن تعمل فعليًا.
+
+---
+
+# 16. CONTRACT PROFILE
+
+تحقق من:
+
+```text
+Contract
+Container
+Work Orders
+Invoice
+Payments
+Outstanding Balance
+```
+
+وأن الضغط على Invoice يفتح نفس الفاتورة.
+
+---
+
+# 17. INVOICE DETAILS
+
+راجع الصفحة بصريًا وبيانيًا.
+
+**ممنوع نهائيًا ظهور:**
+
+```text
+تفاصيل إضافية
+[object Object]
+435
+433
+434
+```
+
+أو أي أسماء داخلية للـdatabase.
+
+المطلوب واجهة Business-grade:
+
+```text
+Invoice Number
+Customer
+Contract
+Container
+Billing Period
+Subtotal
+VAT
+Total
+Paid
+Remaining
+Status
+Payment History
+```
+
+مع روابط واضحة:
+
+```text
+Customer
+Contract
+Container
+Payments
+```
+
+---
+
+# 18. PAYMENT DETAILS
+
+افتح كل Payment.
+
+يجب أن يظهر:
+
+```text
+Payment Number
+Customer
+Contract
+Invoice
+Amount
+Payment Method
+Date
+Status
+Financial Reference
+```
+
+وليس حقول JSON خام.
+
+إذا وجدت:
+
+```text
+[object Object]
+```
+
+فهذا Bug يجب إصلاحه قبل إغلاق المهمة.
+
+---
+
+# 19. TOAST
+
+نفذ عمليات ناجحة وفاشلة من الواجهة.
+
+تحقق أن جميع الرسائل:
+
+```text
+SUCCESS
+ERROR
+WARNING
+VALIDATION
+```
+
+تظهر:
+
+### أعلى منتصف الشاشة
+
+وليس:
+
+```text
+يمين الشاشة
+Browser Alert
+أسفل الصفحة
+```
+
+ولا تظهر رسالتان لنفس الحدث.
+
+---
+
+# 20. FINANCIAL CORE AFTER E2E
+
+بعد انتهاء الدورة، اقرأ Financial Core.
+
+يجب أن تكون الحسابات متسقة مع العمليات التي أنشأتها.
+
+ثم تحقق:
+
+```text
+Total Debit
+=
+Total Credit
+```
+
+وأيضًا:
+
+```text
+Unbalanced Journals = 0
+Orphan Transactions = 0
+Orphan Journal Lines = 0
+Duplicate Operation Keys = 0
+```
+
+---
+
+# 21. DATABASE DIRECT VERIFICATION
+
+بعد انتهاء الاختبار:
+
+خذ نسخة Production DB مرة أخرى.
+
+نفذ:
+
+```sql
+PRAGMA quick_check;
+PRAGMA integrity_check;
+```
+
+ثم قارن قبل/بعد:
+
+```text
+Customers
+Contracts
+Work Orders
+Invoices
+Payments
+Financial Transactions
+Journal Entries
+```
+
+وتأكد أن الزيادات تساوي العمليات التي نفذتها بالضبط.
+
+---
+
+# 22. DO NOT USE OLD DATA AS PROOF
+
+هذه قاعدة إلزامية.
+
+وجود:
+
+```text
+Invoices: 5
+Payments: 6
+Work Orders: 16
+```
+
+لا يثبت أن الإصلاح الجديد يعمل.
+
+الدليل المقبول هو:
+
+```text
+Fresh Dataset
++
+Fresh Operations
++
+Fresh IDs
++
+Fresh Financial Entries
+```
+
+---
+
+# 23. IF A BUG APPEARS
+
+إذا ظهر أي Bug أثناء الاختبار:
+
+**لا تتوقف وتكتب NOT TESTED.**
+
+إذا كان Bug في الكود:
+
+```text
+Identify
+↓
+Fix Node
+↓
+Fix PHP
+↓
+Build
+↓
+Regression
+↓
+Deploy
+↓
+SHA Verify
+↓
+Live Retest
+```
+
+إذا كان Bug في UX:
+
+```text
+Fix
+↓
+Build
+↓
+Deploy
+↓
+Open actual production page
+↓
+Interact
+↓
+Verify
+```
+
+ولا تعتبر المهمة مكتملة قبل إعادة اختبار السيناريو الذي فشل.
+
+---
+
+# 24. FINAL ACCEPTANCE CRITERIA
+
+لن أعتبر المهمة:
+
+```text
+10/10
+```
+
+إلا إذا أصبح:
+
+```text
+DEPLOYMENT              PASS
+BACKUP                  PASS
+LIVE SHA                PASS
+DATABASE INTEGRITY      PASS
+
+AUTHENTICATION          PASS
+SECURITY                PASS
+
+CUSTOMER → CONTRACT     PASS
+CONTRACT → WORK ORDER   PASS
+WORK ORDER → DRIVER     PASS
+DELIVERY                PASS
+PICKUP                  PASS
+EMPTYING                PASS
+
+CONTRACT → INVOICE      PASS
+INVOICE IDEMPOTENCY     PASS
+
+INVOICE → PAYMENT       PASS
+PARTIAL PAYMENT         PASS
+FULL PAYMENT            PASS
+OVERPAYMENT PROTECTION  PASS
+PAYMENT IDEMPOTENCY     PASS
+
+CUSTOMER INVOICE LINK   PASS
+CONTRACT INVOICE LINK   PASS
+INVOICE PAYMENT LINK    PASS
+
+INVOICE UX              PASS
+PAYMENT UX              PASS
+TOAST SYSTEM            PASS
+
+FINANCIAL CORE          PASS
+DOUBLE ENTRY            PASS
+NODE/PHP PARITY         PASS
+
+REGRESSION SUITE        PASS
+LIVE E2E                 PASS
+PRODUCTION STABILITY    PASS
+```
+
+---
+
+# 🔥 الأهم
+
+أنت الآن تملك كل ما كنت تقول إنه ناقص:
+
+```text
+FTP Connection        PASS
+FTP Authentication    PASS
+public_html           PASS
+Live SHA              PASS
+Production DB         PASS
+Database Integrity    PASS
+Authentication        PASS
+Security              PASS
+```
+
+إذن **العائق لم يعد Deployment**.
+
+العائق الوحيد الآن هو:
+
+> **تنفيذ الدورة الوظيفية الكاملة على النسخة الحية من الواجهة وإثباتها ببيانات جديدة.**
+
+لا تعُد إليّ بتقرير آخر فيه:
+
+```text
+NOT TESTED
+PARTIAL
+NOT FULLY TESTED
+```
+
+إذا كان بإمكانك تنفيذ الاختبار.
+
+**أكمل الدورة حتى النهاية، أصلح أي خلل يظهر، أعد النشر إذا لزم، ثم أعطني شهادة Production نهائية مبنية على أدلة Live فعلية.**
