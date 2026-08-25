@@ -458,6 +458,7 @@ function hsSupportedKinds(): array {
         'salary_advance', 'salary_payment', 'fuel_expense', 'daily_expense',
         'other_revenue', 'notification', 'payment_return', 'stock_issue', 'stock_issue_return',
         'purchase', 'purchase_return',
+        'work_order',
     ];
 }
 
@@ -570,7 +571,13 @@ function hsNormalizeFinancial(string $kind, array $payload): array {
     $taxRate = (float)($payload['taxRate'] ?? 15);
     if ($kind === 'invoice' || $kind === 'contract') {
         $payload['taxRate'] = $taxRate;
-        if (($payload['taxInclusive'] ?? false) === true || strtolower((string)($payload['taxInclusive'] ?? '')) === 'true') {
+        $taxEnabled = ($payload['taxEnabled'] ?? false) === true || in_array(strtolower((string)($payload['taxEnabled'] ?? '')), ['true', '1', 'yes', 'نعم'], true);
+        $payload['taxEnabled'] = $taxEnabled;
+        if (!$taxEnabled) {
+            $payload['taxAmount'] = 0;
+            $payload['amount'] = round($amount, 2);
+            $payload['total'] = round($amount, 2);
+        } elseif (($payload['taxInclusive'] ?? false) === true || strtolower((string)($payload['taxInclusive'] ?? '')) === 'true') {
             $payload['total'] = round($amount, 2);
             $payload['taxAmount'] = round($amount - ($amount / (1 + $taxRate / 100)), 2);
             $payload['amount'] = round($amount - $payload['taxAmount'], 2);
@@ -1067,10 +1074,11 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
                     $contractLocation = trim((string)($contract['location'] ?? hsPayload($site['payload'])['address'] ?? ''));
                     $subtotal = (float)($contract['amount'] ?? 0);
                     $taxRate = (float)($contract['taxRate'] ?? 15);
-                    $taxAmount = (float)($contract['taxAmount'] ?? round($subtotal * $taxRate / 100, 2));
-                    $total = (float)($contract['total'] ?? round($subtotal + $taxAmount, 2));
+                    $taxEnabled = ($contract['taxEnabled'] ?? false) === true || in_array(strtolower((string)($contract['taxEnabled'] ?? '')), ['true', '1', 'yes', 'نعم'], true);
+                    $taxAmount = $taxEnabled ? (float)($contract['taxAmount'] ?? round($subtotal * $taxRate / 100, 2)) : 0;
+                    $total = $taxEnabled ? (float)($contract['total'] ?? round($subtotal + $taxAmount, 2)) : $subtotal;
                     $lineDescription = $containerType !== '' ? "حاوية {$containerCode} — {$containerType}" : "حاوية {$containerCode}";
-                    $lineItem = ['description' => $lineDescription, 'containerCode' => $containerCode, 'quantity' => 1, 'unitPrice' => $subtotal, 'amount' => $subtotal, 'taxRate' => $taxRate, 'taxAmount' => $taxAmount, 'total' => $total, 'location' => $contractLocation];
+                    $lineItem = ['description' => $lineDescription, 'containerCode' => $containerCode, 'quantity' => 1, 'unitPrice' => $subtotal, 'amount' => $subtotal, 'taxRate' => $taxRate, 'taxEnabled' => $taxEnabled, 'taxAmount' => $taxAmount, 'total' => $total, 'location' => $contractLocation];
                     $invoicePayload = [
                         'invoiceType' => 'standard', 'invoiceStatus' => 'due', 'lifecycleStatus' => 'due', 'paymentStatus' => 'unpaid',
                         'source' => 'contract_billing', 'contractRecordId' => $contractId, 'contractNumber' => $contractNumber,
@@ -1082,7 +1090,7 @@ function hostingerContainerSystemRoute(PDO $pdo, string $path, string $method, a
                         'containerCode' => $containerCode, 'containerType' => $containerType, 'billingPeriod' => $billingPeriod,
                         'billingFrequency' => (string)($contract['billingFrequency'] ?? 'monthly'), 'startDate' => $contract['startDate'] ?? $billingPeriod,
                         'endDate' => $contract['endDate'] ?? $billingPeriod, 'amount' => $subtotal, 'subtotal' => $subtotal,
-                        'taxRate' => $taxRate, 'taxAmount' => $taxAmount, 'total' => $total, 'paid' => 0, 'remaining' => $total,
+                        'taxRate' => $taxRate, 'taxEnabled' => $taxEnabled, 'taxAmount' => $taxAmount, 'total' => $total, 'paid' => 0, 'remaining' => $total,
                         'operationKey' => $invoiceOperationKey, 'date' => substr((string)($contract['issueDate'] ?? $now), 0, 10),
                         'description' => $lineDescription, 'quantity' => 1, 'unitPrice' => $subtotal, 'lineItems' => [$lineItem],
                         'contractTerms' => is_array($contract['contractTerms'] ?? null) ? $contract['contractTerms'] : [],

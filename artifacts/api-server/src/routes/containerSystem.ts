@@ -173,8 +173,13 @@ function normalizeContractPayload(payload: Record<string, unknown>) {
   next.currency = String(next.currency ?? "SAR").toUpperCase();
   const amount = Number(next.amount ?? 0);
   const taxRate = Number(next.taxRate ?? 15);
+  const taxEnabled = next.taxEnabled === true || ["true", "1", "yes", "نعم"].includes(String(next.taxEnabled ?? "").toLowerCase());
+  next.taxEnabled = taxEnabled;
   if (Number.isFinite(amount) && Number.isFinite(taxRate)) {
-    if (next.taxInclusive === true || String(next.taxInclusive).toLowerCase() === "true") {
+    if (!taxEnabled) {
+      next.taxAmount = 0;
+      next.total = Math.round(amount * 100) / 100;
+    } else if (next.taxInclusive === true || String(next.taxInclusive).toLowerCase() === "true") {
       next.total = Math.round(amount * 100) / 100;
       next.taxAmount = Math.round((amount - amount / (1 + taxRate / 100)) * 100) / 100;
       next.amount = Math.round((amount - Number(next.taxAmount)) * 100) / 100;
@@ -198,9 +203,15 @@ function normalizeInvoicePayload(payload: Record<string, unknown>) {
       ? quantity * unitPrice
       : 0;
   const taxRate = Number(next.taxRate ?? 15);
+  const taxEnabled = next.taxEnabled === true || ["true", "1", "yes", "نعم"].includes(String(next.taxEnabled ?? "").toLowerCase());
   if (Number.isFinite(amount) && Number.isFinite(taxRate)) {
     next.taxRate = taxRate;
-    if (next.taxInclusive === true || String(next.taxInclusive).toLowerCase() === "true") {
+    next.taxEnabled = taxEnabled;
+    if (!taxEnabled) {
+      next.taxAmount = 0;
+      next.amount = Math.round(amount * 100) / 100;
+      next.total = next.amount;
+    } else if (next.taxInclusive === true || String(next.taxInclusive).toLowerCase() === "true") {
       next.total = Math.round(amount * 100) / 100;
       next.taxAmount = Math.round((amount - amount / (1 + taxRate / 100)) * 100) / 100;
       next.amount = Math.round((amount - Number(next.taxAmount)) * 100) / 100;
@@ -955,8 +966,9 @@ router.post("/admin/container-system/contracts/workflow", requireContainerPermis
         } else {
           const subtotal = Number(contractPayload.amount ?? 0);
           const taxRate = Number(contractPayload.taxRate ?? 15);
-          const taxAmount = Number(contractPayload.taxAmount ?? Math.round(subtotal * taxRate / 100 * 100) / 100);
-          const total = Number(contractPayload.total ?? Math.round((subtotal + taxAmount) * 100) / 100);
+            const taxEnabled = contractPayload.taxEnabled === true || ["true", "1", "yes", "نعم"].includes(String(contractPayload.taxEnabled ?? "").toLowerCase());
+            const taxAmount = taxEnabled ? Number(contractPayload.taxAmount ?? Math.round(subtotal * taxRate / 100 * 100) / 100) : 0;
+            const total = taxEnabled ? Number(contractPayload.total ?? Math.round((subtotal + taxAmount) * 100) / 100) : subtotal;
           const containerCode = String(contractPayload.containerCode ?? assetPayload.assetCode ?? assetPayload.code ?? asset.reference ?? "");
           const containerType = String(contractPayload.containerType ?? assetPayload.typeName ?? assetPayload.containerType ?? assetPayload.size ?? "");
           const contractLocation = String(contractPayload.location ?? parsePayload(site.payload).address ?? "").trim();
@@ -968,6 +980,7 @@ router.post("/admin/container-system/contracts/workflow", requireContainerPermis
             amount: subtotal,
             taxRate,
             taxAmount,
+            taxEnabled,
             total,
             location: contractLocation,
           };

@@ -178,7 +178,7 @@ type FieldConfig = {
   key: string
   label: string
   placeholder?: string
-  type?: "text" | "date" | "number" | "textarea"
+  type?: "text" | "date" | "number" | "textarea" | "checkbox"
   wide?: boolean
   required?: boolean
 }
@@ -241,6 +241,7 @@ export const FIELD_CONFIG: Record<RecordKind, FieldConfig[]> = {
     { key: "startDate", label: "بداية العقد", type: "date" },
     { key: "endDate", label: "نهاية العقد", type: "date" },
     { key: "amount", label: "قيمة العقد", type: "number", placeholder: "0" },
+    { key: "taxEnabled", label: "تفعيل الضريبة", type: "checkbox" },
     { key: "taxRate", label: "نسبة الضريبة %", type: "number", placeholder: "15" },
     { key: "taxAmount", label: "قيمة الضريبة", type: "number", placeholder: "تحسب تلقائياً أو أدخلها" },
     { key: "total", label: "الإجمالي شامل الضريبة", type: "number", placeholder: "0" },
@@ -255,6 +256,7 @@ export const FIELD_CONFIG: Record<RecordKind, FieldConfig[]> = {
     { key: "containerCode", label: "رقم الحاوية", placeholder: "CNT-101" },
     { key: "quantity", label: "الكمية", type: "number", placeholder: "1" },
     { key: "unitPrice", label: "سعر الوحدة", type: "number", placeholder: "0" },
+    { key: "taxEnabled", label: "تفعيل الضريبة", type: "checkbox" },
     { key: "taxRate", label: "الضريبة %", type: "number", placeholder: "15" },
     { key: "lineTotal", label: "إجمالي البند", type: "number", placeholder: "0" },
     { key: "notes", label: "ملاحظات", type: "textarea", wide: true },
@@ -869,6 +871,7 @@ function InvoiceComposer({
       return sum + Math.max(quantity * unitPrice - discount, 0)
     }, 0)
     const first = normalized[0]
+    const taxEnabled = String(values.taxEnabled ?? payload.taxEnabled ?? "false") === "true"
     onChange({
       ...payload,
       ...values,
@@ -877,8 +880,10 @@ function InvoiceComposer({
       quantity: first?.quantity ?? "1",
       unitPrice: first?.unitPrice ?? "0",
       amount: String(Math.round(subtotal * 100) / 100),
+      taxEnabled: taxEnabled ? "true" : "false",
       taxRate: payload.taxRate || "15",
-      total: String(Math.round(subtotal * (1 + Number(payload.taxRate || 15) / 100) * 100) / 100),
+      taxAmount: taxEnabled ? String(Math.round(subtotal * Number(payload.taxRate || 15) / 100 * 100) / 100) : "0",
+      total: String(Math.round(subtotal * (taxEnabled ? 1 + Number(payload.taxRate || 15) / 100 : 1) * 100) / 100),
     })
   }
   const selectCustomer = (value: string) => {
@@ -1006,7 +1011,11 @@ function InvoiceComposer({
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3 text-xs"><span className="text-slate-500">عدد البنود: <b className="text-slate-800">{lines.length}</b></span><span className="font-black text-cyan-800">الإجمالي قبل الضريبة: {Number(payload.amount ?? 0).toLocaleString("ar-SA")} ر.س</span></div>
       </div>
       <div className="grid gap-3 sm:grid-cols-3">
-        <div><Label htmlFor="invoice-tax-rate" className="mb-1.5 block text-xs font-bold text-slate-600">ضريبة القيمة المضافة %</Label><Input id="invoice-tax-rate" type="number" min="0" max="100" step="0.01" value={payload.taxRate ?? "15"} onChange={event => update({ taxRate: event.target.value })} className="h-10 border-cyan-200 bg-white" data-testid="input-invoice-tax-rate" /></div>
+        <div className="flex items-center gap-3 rounded-xl border border-cyan-100 bg-white px-3 py-2">
+          <input id="invoice-tax-enabled" type="checkbox" checked={String(payload.taxEnabled ?? "false") === "true"} onChange={event => update({ taxEnabled: event.target.checked ? "true" : "false" })} className="h-4 w-4 accent-cyan-700" data-testid="checkbox-invoice-tax-enabled" />
+          <Label htmlFor="invoice-tax-enabled" className="text-xs font-bold text-slate-600">تفعيل الضريبة على الفاتورة</Label>
+        </div>
+        <div><Label htmlFor="invoice-tax-rate" className="mb-1.5 block text-xs font-bold text-slate-600">نسبة الضريبة %</Label><Input id="invoice-tax-rate" type="number" min="0" max="100" step="0.01" value={payload.taxRate ?? "15"} onChange={event => update({ taxRate: event.target.value })} className="h-10 border-cyan-200 bg-white" data-testid="input-invoice-tax-rate" /></div>
         <div><Label htmlFor="invoice-number" className="mb-1.5 block text-xs font-bold text-slate-600">رقم الفاتورة (اختياري)</Label><Input id="invoice-number" value={payload.invoiceNumber ?? ""} onChange={event => update({ invoiceNumber: event.target.value })} placeholder="يولد تلقائياً" className="h-10 border-cyan-200 bg-white" /></div>
         <div><Label htmlFor="invoice-date" className="mb-1.5 block text-xs font-bold text-slate-600">تاريخ الإصدار</Label><Input id="invoice-date" type="date" value={payload.date ?? ""} onChange={event => update({ date: event.target.value })} className="h-10 border-cyan-200 bg-white" required /></div>
       </div>
@@ -1069,10 +1078,12 @@ export function RecordDialog({
     }
     if (kind === "invoice") {
       if (!initial.invoiceType) initial.invoiceType = "standard"
+      if (initial.taxEnabled === undefined) initial.taxEnabled = "false"
       if (!initial.taxRate) initial.taxRate = "15"
       if (!initial.quantity) initial.quantity = "1"
       if (!initial.date) initial.date = new Date().toISOString().slice(0, 10)
     }
+    if (kind === "contract" && initial.taxEnabled === undefined) initial.taxEnabled = "false"
     if (kind === "payment") {
       if (!initial.date) initial.date = new Date().toISOString().slice(0, 10)
       if (!initial.paymentMethod) initial.paymentMethod = "cash"
@@ -1534,7 +1545,12 @@ export function RecordDialog({
                      <option value="">اختر {field.label}</option>
                      {optionsFor(field.key).map((option, index) => <option key={`${field.key}-${option.value || index}`} value={option.value}>{option.label}</option>)}
                   </select>
-                ) : (
+                 ) : field.type === "checkbox" ? (
+                   <label className="flex h-11 cursor-pointer items-center gap-2 rounded-lg border border-cyan-200 bg-white px-3 text-sm text-slate-700">
+                     <input type="checkbox" checked={String(payload[field.key] ?? "false") === "true"} onChange={event => setPayload(current => ({ ...current, [field.key]: event.target.checked ? "true" : "false" }))} className="h-4 w-4 accent-cyan-700" data-testid={`checkbox-record-${field.key}`} />
+                     <span>{payload[field.key] === "true" ? "مفعلة" : "متوقفة — بدون ضريبة"}</span>
+                   </label>
+                 ) : (
                   <>
                     <Input
                       id={`record-${field.key}`}
@@ -1680,6 +1696,8 @@ export function RecordDialog({
                                                 ...current,
                                                 invoiceNumber,
                                                 invoiceRecordId: String(invoice.id),
+                                                 amount: String(Number(invoicePayload.total ?? invoicePayload.amount ?? 0)),
+                                                 total: String(Number(invoicePayload.total ?? invoicePayload.amount ?? 0)),
                                                 allocationInvoices: JSON.stringify({ ...paymentAllocationInvoices, [option.value]: String(invoice.id) }),
                                               }))}
                                              onClick={event => event.stopPropagation()}

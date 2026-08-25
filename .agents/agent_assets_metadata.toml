@@ -27,14 +27,14 @@ content_type = "application/octet-stream"
 id = "e7Hwi4c_9VUpSkVoGq2Ul"
 uri = "file://cleanflow-services-hostinger.zip"
 type = "unspecified"
-title = "حزمة هوستنجر — شفافية أعلى للنافبار"
-description = "تمت زيادة شفافية النافبار بعد السكرول إلى 25% مع الحفاظ على Blur الخفيف، ثم إعادة بناء الحزمة وفحص ZIP بنجاح."
+title = "حزمة CleanFlow النهائية لـ Hostinger"
+description = "أرشيف Hostinger شامل الواجهة وPHP وSQLite والأصول، بعد تنظيف العملاء والعقود والفواتير والمدفوعات وإتاحة جميع الحاويات."
 logical_id = "c612380d-19d8-4641-8c29-e5ac4a484245"
-content_hash = "sha256:07ce3b4fd564756b8b9be54b8651e9a029f05ac236ad38a2f08d66c09a205fcd"
-size = 20659957
-mtime_ms = 1787628233603
-storage_uri = "gcs://replit-rams-assets-worf/rams/assets/repl:8d4f5fea-7bf8-417c-b5ac-7012ab4a99c9/c612380d-19d8-4641-8c29-e5ac4a484245/90cb1583-8212-4f44-a727-7871c0a56a97"
-storage_version_token = "1787628239802245"
+content_hash = "sha256:cd19325dd8a37a432034e341249bc0afd61d3a1ea6c002a63b895852b9052118"
+size = 20701629
+mtime_ms = 1787651968180
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:858f1eae-4e3a-42b9-be7c-bf0367c348b6/c612380d-19d8-4641-8c29-e5ac4a484245/55211415-3096-4020-9dd7-f7decbf54127"
+storage_version_token = "1787651991070880"
 content_type = "application/octet-stream"
 
 [[outputs]]
