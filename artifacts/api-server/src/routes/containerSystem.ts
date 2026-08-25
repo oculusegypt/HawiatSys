@@ -163,8 +163,8 @@ function referenceFor(kind: string, payload: Record<string, unknown>, nextId: nu
   return String(payload.reference || payload.code || `${prefix[kind] ?? "REC"}-${String(nextId).padStart(5, "0")}`);
 }
 
-function generatedDocumentNumber(kind: "contract" | "invoice", id: number) {
-  const prefix = kind === "contract" ? "RNT" : "INV";
+function generatedDocumentNumber(kind: "contract" | "invoice" | "receipt", id: number) {
+  const prefix = kind === "contract" ? "RNT" : kind === "invoice" ? "INV" : "RCV";
   return `${prefix}-${new Date().getFullYear()}-${String(id).padStart(6, "0")}`;
 }
 
@@ -458,6 +458,16 @@ async function validateFinancialPayload(kind: string, payload: Record<string, un
       String(parsePayload(record.payload).invoiceNumber ?? record.reference).trim() === invoiceNumber
     );
     if (!invoice) throw new Error("الفاتورة المرتبطة بالمستند المالي غير موجودة");
+    const invoicePayload = parsePayload(invoice.payload);
+    if (!payload.contractRecordId && invoicePayload.contractRecordId) {
+      payload.contractRecordId = invoicePayload.contractRecordId;
+    }
+    if (!payload.customerRecordId && invoicePayload.customerRecordId) {
+      payload.customerRecordId = invoicePayload.customerRecordId;
+    }
+    if (!payload.contractNumber && (invoicePayload.contractNumber || invoicePayload.contractRecordId)) {
+      payload.contractNumber = invoicePayload.contractNumber ?? "";
+    }
     if (customerRecordId && Number(parsePayload(invoice.payload).customerRecordId) !== customerRecordId) {
       throw new Error("الفاتورة لا تتبع العميل المحدد في المستند");
     }
@@ -531,6 +541,38 @@ async function validateFinancialPayload(kind: string, payload: Record<string, un
     if (warehouseId <= 0) throw new Error("يجب ربط حركة المخزون بمستودع رسمي");
     const warehouse = await db.select().from(containerSystemRecordsTable).where(eq(containerSystemRecordsTable.id, warehouseId)).get();
     if (!warehouse || warehouse.kind !== "warehouse" || warehouse.status === "archived") throw new Error("المستودع المرتبط غير موجود");
+  }
+  if (["expense", "daily_expense", "fuel_expense"].includes(kind)) {
+    const category = String(payload.category ?? payload.expenseCategory ?? "").trim();
+    const expenseType = String(payload.expenseType ?? payload.type ?? "").trim();
+    if (!category && !expenseType) throw new Error("تصنيف أو نوع المصروف مطلوب");
+    if (category && !payload.expenseCategory) payload.expenseCategory = category;
+    if (expenseType && !payload.expenseType) payload.expenseType = expenseType;
+  }
+  const contextKinds: Array<[string, string, string]> = [
+    ["employeeRecordId", "employeeId", "employee"],
+    ["supplierRecordId", "supplierId", "supplier"],
+    ["containerRecordId", "containerId", "container_asset"],
+    ["contractRecordId", "contractId", "contract"],
+    ["workOrderRecordId", "workOrderId", "work_order"],
+    ["siteRecordId", "siteId", "customer_site"],
+  ];
+  if (["expense", "daily_expense", "fuel_expense", "other_revenue"].includes(kind)) {
+    const records = await db.select().from(containerSystemRecordsTable);
+    for (const [primary, alias, expectedKind] of contextKinds) {
+      const raw = payload[primary] ?? payload[alias];
+      if (raw === undefined || raw === null || String(raw).trim() === "") continue;
+      const id = Number(raw);
+      const allowedKinds = expectedKind === "container_asset" ? ["container", "container_asset"] : [expectedKind];
+      const related = records.find(record => record.id === id && allowedKinds.includes(record.kind) && record.status !== "archived");
+      if (!related) throw new Error(`المستند المرتبط (${primary}) غير موجود أو مؤرشف`);
+      payload[primary] = id;
+      if (expectedKind === "contract") {
+        const relatedPayload = parsePayload(related.payload);
+        if (!payload.customerRecordId && relatedPayload.customerRecordId) payload.customerRecordId = relatedPayload.customerRecordId;
+        if (!payload.contractNumber) payload.contractNumber = relatedPayload.contractNumber ?? related.reference;
+      }
+    }
   }
 }
 
@@ -1675,7 +1717,7 @@ router.post("/admin/container-system/records", async (req, res) => {
     payload.containerCode = assetCodeOf(parsePayload(asset.payload));
   }
   if (kind === "invoice") Object.assign(payload, normalizeInvoicePayload(payload));
-  const documentNumberField = kind === "contract" ? "contractNumber" : kind === "invoice" ? "invoiceNumber" : null;
+  const documentNumberField = kind === "contract" ? "contractNumber" : kind === "invoice" ? "invoiceNumber" : kind === "receipt" ? "receiptNumber" : null;
   if (documentNumberField && !String(payload[documentNumberField] ?? "").trim()) {
     delete payload[documentNumberField];
   }
@@ -1732,7 +1774,7 @@ router.post("/admin/container-system/records", async (req, res) => {
       let current = inserted;
       if (documentNumberField) {
         const documentNumber = String(payload[documentNumberField] ?? "").trim() ||
-          generatedDocumentNumber(kind as "contract" | "invoice", inserted.id);
+           generatedDocumentNumber(kind as "contract" | "invoice" | "receipt", inserted.id);
         const nextPayload = {
           ...parsePayload(inserted.payload),
           [documentNumberField]: documentNumber,

@@ -1,0 +1,1610 @@
+# FINANCIAL CONTEXT EXPANSION — RECEIPTS / REVENUE / EXPENSES
+# + DOCUMENTATION UPDATE + 101/102/103 QUALITY SCALE
+# FINAL IMPLEMENTATION DIRECTIVE
+
+هذه مرحلة تطوير جديدة، ولكنها ليست إعادة بناء للنظام.
+
+النظام الحالي أصبح:
+
+APPLICATION: VERIFIED
+CODE: STABLE
+FINANCIAL CORE: VERIFIED
+OPERATIONAL CORE: VERIFIED
+CONTAINER SYSTEM: 79/100
+ACTUAL BUGS: NONE
+
+لا تعيد Discovery الكامل.
+لا تعيد Audit نظام الحاويات.
+لا تعيد بناء Financial Core.
+لا تغير Double Entry الحالي إلا إذا ظهر احتياج حقيقي ومثبت.
+لا تكسر Invoice Flow أو Contract Flow الحالي.
+
+المطلوب الآن هو تطوير طبقة المستندات المالية المحيطة بالنواة الحالية بطريقة تجعل:
+
+Invoice
+Receipt
+Revenue
+Expense
+Payment
+Contract
+Container
+Work Order
+Customer Financial Account
+
+تعمل داخل سياق مالي وتشغيلي واحد.
+
+==================================================
+1. الهدف الحقيقي
+==================================================
+
+لا أريد إنشاء أربع شاشات مالية منفصلة:
+
+Invoices
+Receipts
+Revenues
+Expenses
+
+ثم جعل المستخدم يربطها يدويًا ببعضها.
+
+هذا هو التصميم الخاطئ.
+
+أريد أن يصبح النظام:
+
+Customer
+↓
+Contract
+↓
+Package / Container Types
+↓
+Containers
+↓
+Work Orders / Requests
+↓
+Invoice
+↓
+Receipt / Payment
+↓
+Customer Financial Account
+
+وفي الاتجاه الآخر:
+
+Company / Operations
+↓
+Expense
+↓
+Expense Category
+↓
+Employee / Responsible Person
+↓
+Supplier / Payee if applicable
+↓
+Container / Contract / Work Order / Site if applicable
+↓
+Accounting / Double Entry
+↓
+Financial Reports
+
+بحيث تكون المستندات المالية "سياقية" وليست معزولة.
+
+==================================================
+2. القاعدة الأساسية
+==================================================
+
+كل مستند مالي يجب أن يجيب بوضوح:
+
+WHO
+WHAT
+WHY
+WHEN
+HOW MUCH
+RELATED TO WHAT
+WHO CREATED IT
+WHO APPROVED IT
+WHO RECEIVED / PAID IT
+WHAT ACCOUNT IT AFFECTS
+
+ويجب أن يعرف النظام العلاقة إن كانت قابلة للاستنتاج.
+
+مثال:
+
+إذا أنشأ المستخدم سند قبض من داخل Invoice:
+
+Customer
+→ Contract
+→ Container
+→ Invoice
+→ Receipt
+
+فلا تطلب منه إعادة اختيار Customer أو Contract أو Container.
+
+السياق معروف.
+
+==================================================
+3. سندات القبض — RECEIPTS
+==================================================
+
+أعد تصميم سند القبض بنفس روح Invoice وContract.
+
+لا تجعل Receipt مجرد:
+
+Amount
+Date
+Notes
+
+بل اجعله مستندًا ماليًا سياقيًا.
+
+التدفق المقترح:
+
+STEP 1
+Customer
+
+أو:
+
+Open Invoice
+
+أو:
+
+Open Contract
+
+أو:
+
+Customer Financial Account
+
+ثم:
+
+STEP 2
+اختيار مصدر القبض:
+
+- Invoice
+- Contract
+- Customer Account
+- Advance / On Account
+- Other Valid Customer Receipt
+
+لا تخترع تصنيفات إذا كان النظام الحالي لديه مفهوم مناسب.
+
+==================================================
+4. RECEIPT CONTEXT
+==================================================
+
+إذا بدأ المستخدم من:
+
+Invoice
+
+يجب أن يصبح:
+
+Customer
+Contract if linked
+Invoice
+Outstanding
+Previous Payments
+Allocation
+
+محددًا تلقائيًا.
+
+مثال:
+
+Invoice = 1000
+Paid = 600
+Remaining = 400
+
+Receipt:
+
+Amount = 100
+
+يجب أن يعرف النظام:
+
+Customer = automatically selected
+Invoice = automatically selected
+Contract = automatically selected if linked
+Remaining = 400
+
+ثم بعد الحفظ:
+
+Paid = 700
+Remaining = 300
+
+ولا يسمح بتجاوز الرصيد إلا إذا كان النظام يدعم صراحة:
+
+Customer Credit / Advance
+
+وفي هذه الحالة يجب تسجيله بشكل صحيح وليس إخفاء الزيادة.
+
+==================================================
+5. RECEIPT TYPES
+==================================================
+
+راجع أنواع القبض التي يحتاجها النظام فعليًا.
+
+على الأقل قيّم:
+
+- Invoice Payment
+- Contract Payment
+- Customer Account Payment
+- Advance Payment
+- On Account Payment
+- Other Customer Receipt
+
+لا تضف نوعًا فقط لأنه ممكن تقنيًا.
+
+كل نوع يجب أن يكون له Business Meaning واضح.
+
+==================================================
+6. RECEIPT NUMBERING
+==================================================
+
+سند القبض يجب أن يكون له:
+
+Receipt Number
+Date
+Customer
+Source
+Amount
+Currency
+Payment Method
+Reference
+Notes
+Created By
+Approved By if applicable
+Status
+Allocation
+
+والـ numbering يجب أن يكون منظمًا ومتسقًا مع النظام الحالي.
+
+لا تستخدم UUID كرقم مستند ظاهر للمستخدم.
+
+==================================================
+7. RECEIPT ALLOCATION
+==================================================
+
+هذه نقطة مهمة جدًا.
+
+إذا دفع العميل:
+
+500
+
+وكان لديه:
+
+Invoice A = 300
+Invoice B = 200
+
+يجب أن يستطيع النظام تسجيل:
+
+Receipt = 500
+
+ثم:
+
+Allocation:
+Invoice A = 300
+Invoice B = 200
+
+ويجب أن يبقى:
+
+Customer Account
+=
+Invoices
++
+Payments
++
+Allocations
++
+Remaining
+
+متسقًا.
+
+إذا كان النظام الحالي لا يدعم Multi-Invoice Allocation، قيّم أفضل طريقة لإضافتها بدون كسر Financial Core.
+
+لا تنشئ Financial Core بديلًا.
+
+==================================================
+8. CUSTOMER FINANCIAL ACCOUNT
+==================================================
+
+هذه هي النقطة المركزية.
+
+من صفحة Customer يجب أن يصبح لدينا سياق مالي واضح:
+
+CUSTOMER FINANCIAL ACCOUNT
+
+يشمل:
+
+Invoices
+Receipts
+Payments
+Credits
+Advances
+Allocations
+Outstanding
+Paid
+Overdue
+Balance
+Revenue generated from customer
+
+والـ user يستطيع التنقل:
+
+Customer
+→ Contract
+→ Invoice
+→ Receipt
+→ Payment
+
+بدون فقدان السياق.
+
+==================================================
+9. REVENUE
+==================================================
+
+لا تفترض أن:
+
+Revenue = Invoice
+
+ولا تفترض أن:
+
+Revenue = Payment
+
+راجع النموذج الحالي أولًا.
+
+صمّم Revenue بحيث يمثل المعنى المحاسبي الصحيح في النظام.
+
+يجب أن نميز بين:
+
+Revenue Recognition
+Invoice
+Cash Receipt
+
+إذا كان النظام الحالي يعتبر Invoice مصدر الاعتراف بالإيراد، حافظ على ذلك.
+
+إذا كان الإيراد يحتاج مصدرًا آخر، اربطه بطريقة صحيحة.
+
+لا تسجل الإيراد مرتين.
+
+==================================================
+10. REVENUE SOURCES
+==================================================
+
+يجب أن يدعم النظام أنواع الإيرادات المناسبة لطبيعة المنصة، مع إمكانية الإدارة والتوسع.
+
+مثل:
+
+- Container Rental
+- Waste Collection
+- Pickup
+- Emptying
+- Delivery
+- Additional Service
+- Contract Service
+- Extra Container
+- Manual Service
+- Other Revenue
+
+لكن لا تفترض أن هذه القائمة نهائية.
+
+راجع الخدمات الفعلية الموجودة في النظام واستخرج منها taxonomy منطقية.
+
+الأهم:
+
+Revenue Category
+≠
+Invoice
+≠
+Payment
+
+كل واحد له معنى مختلف.
+
+==================================================
+11. REVENUE CONTEXT
+==================================================
+
+كل Revenue Record يجب أن يرتبط، عندما يكون ذلك ممكنًا، بـ:
+
+Customer
+Contract
+Site
+Container
+Container Type
+Work Order
+Invoice
+Service
+Package
+
+لكن لا تجبر كل Revenue على كل العلاقات.
+
+مثال:
+
+إيراد ناتج عن عقد وحاوية:
+
+Customer
+Contract
+Container
+Invoice
+Revenue
+
+إيراد يدوي مشروع:
+
+Customer if applicable
+Revenue Category
+Amount
+Reason
+Source
+
+وهكذا.
+
+==================================================
+12. EXPENSE SYSTEM
+==================================================
+
+أريد للمصروفات أن تكون أكثر مرونة من مجرد:
+
+Expense
+Amount
+Description
+
+لأن المصروفات في النظام قد تكون متنوعة جدًا.
+
+يجب تصميم:
+
+Expense
++
+Expense Category
++
+Expense Type
++
+Responsible Employee
++
+Payee / Supplier
++
+Payment Method
++
+Source
++
+Operational Context
++
+Accounting Context
+
+حسب الحاجة.
+
+==================================================
+13. EXPENSE CATEGORIES
+==================================================
+
+راجع النظام واقترح Taxonomy مناسبة بدل إنشاء قائمة عشوائية.
+
+مثلًا يمكن أن تشمل:
+
+OPERATIONS
+- Fuel
+- Vehicle Maintenance
+- Container Maintenance
+- Replacement
+- Transportation
+- Disposal / Waste Handling
+- Tools / Equipment
+
+ADMINISTRATION
+- Office
+- Utilities
+- Internet
+- Software
+- Supplies
+
+PEOPLE
+- Salaries
+- Wages
+- Allowances
+- Employee Expenses
+- Reimbursements
+
+ASSETS
+- Equipment
+- Vehicles
+- Container Purchases
+
+FINANCIAL
+- Bank Fees
+- Transaction Fees
+- Other Financial Charges
+
+OTHER
+- Taxes
+- Government Fees
+- Miscellaneous
+
+لكن:
+
+لا تعتمد هذه القائمة كما هي.
+
+راجع النظام الحالي والخدمات والعمليات والعقود والحاويات والموجودات واستخرج taxonomy مناسبة.
+
+يجب أن تكون Categories قابلة للإدارة والتوسع.
+
+==================================================
+14. EXPENSE TYPES
+==================================================
+
+فرق واضح بين:
+
+Expense Category
+Expense Type
+Expense Record
+
+مثال:
+
+Category:
+Operations
+
+Type:
+Fuel
+
+Expense:
+Fuel purchase 1500
+
+أو:
+
+Category:
+Maintenance
+
+Type:
+Container Repair
+
+Expense:
+Repair of container CNT-001 = 300
+
+لا تخلط هذه المستويات.
+
+==================================================
+15. EXPENSE CONTEXT
+==================================================
+
+المصروف يمكن أن يكون:
+
+Company-level
+Employee-related
+Vehicle-related
+Container-related
+Contract-related
+Work-order-related
+Site-related
+Supplier-related
+
+لذلك يجب أن يستطيع المستخدم اختيار السياق عندما يكون موجودًا.
+
+مثال:
+
+Container repair:
+
+Expense
+→ Category = Maintenance
+→ Type = Container Repair
+→ Container = CNT-001
+→ Site = Site A
+→ Contract = Contract X
+→ Responsible Employee = Ahmed
+→ Supplier = Repair Shop
+→ Amount = 300
+
+هنا يصبح لدينا trace كامل.
+
+==================================================
+16. RESPONSIBLE EMPLOYEE
+==================================================
+
+أريد دعم:
+
+Responsible Employee
+
+عندما يكون المصروف مرتبطًا بموظف مسؤول.
+
+لكن لا تجعل الموظف مطلوبًا في كل مصروف.
+
+يكون:
+
+OPTIONAL / CONTEXTUAL
+
+مثال:
+
+Fuel expense:
+Responsible Employee = Driver
+
+Office electricity:
+Responsible Employee = Office Manager
+
+Supplier invoice:
+Responsible Employee = Procurement Officer
+
+Employee reimbursement:
+Employee = claimant
+
+وهكذا.
+
+==================================================
+17. SUPPLIER / PAYEE
+==================================================
+
+قيّم دعم:
+
+Supplier
+Payee
+Beneficiary
+
+ولا تنشئ ثلاث كيانات إذا كان النظام الحالي يمكنه تمثيلها بكيان موحد منطقي.
+
+المطلوب أن نعرف:
+
+من استلم المال؟
+
+خصوصًا للمصروفات.
+
+==================================================
+18. EXPENSE FLOW
+==================================================
+
+أريد UX قريبًا من Invoice:
+
+STEP 1
+Expense Type / Category
+
+STEP 2
+Context
+
+STEP 3
+Payee / Employee
+
+STEP 4
+Amount
+
+STEP 5
+Payment Method
+
+STEP 6
+Details
+
+STEP 7
+Review
+
+STEP 8
+Save / Approve
+
+لكن اختصر الخطوات إذا كانت البيانات معروفة من السياق.
+
+==================================================
+19. CONTEXTUAL EXPENSE CREATION
+==================================================
+
+من Container:
+
+Container
+→ Maintenance
+→ Create Expense
+
+يجب أن يصبح:
+
+Container
+automatically selected
+
+ومن Work Order:
+
+Work Order
+→ Expense
+
+يصبح:
+
+Customer
+Contract
+Site
+Container
+Work Order
+
+محددًا تلقائيًا إذا كانت العلاقات موجودة.
+
+ومن Employee:
+
+Employee
+→ Expense / Reimbursement
+
+يصبح الموظف محددًا.
+
+ومن Supplier:
+
+Supplier
+→ Expense
+
+يصبح Payee محددًا.
+
+==================================================
+20. EXPENSE APPROVAL
+==================================================
+
+راجع هل النظام يحتاج:
+
+Draft
+Pending Approval
+Approved
+Rejected
+Paid
+Cancelled
+
+ولا تضف Approval Workflow معقدًا إلا إذا كان مطلوبًا.
+
+لكن يجب الفصل بين:
+
+Expense Created
+
+و:
+
+Expense Paid
+
+إذا كان هذا مطلوبًا محاسبيًا.
+
+==================================================
+21. EXPENSE PAYMENT
+==================================================
+
+لا تجعل Expense مجرد Ledger Entry بدون مستند.
+
+يجب أن يكون:
+
+Expense
+→ Payment
+
+إذا كان المصروف مدفوعًا.
+
+مع:
+
+Payment Method
+Reference
+Date
+Amount
+
+والـ Financial Core يسجل التأثير المحاسبي الصحيح.
+
+==================================================
+22. RECEIPT VS PAYMENT
+==================================================
+
+هذه نقطة يجب مراجعتها بعناية.
+
+لا تكرر نفس المعنى بأسماء مختلفة.
+
+حدد بوضوح:
+
+Invoice
+Payment
+Receipt
+Revenue
+Expense
+
+وما العلاقة بينها.
+
+مثال محتمل:
+
+Invoice
+= Amount owed
+
+Payment
+= Money movement
+
+Receipt
+= Customer-facing proof/document of received money
+
+Revenue
+= Accounting income recognition
+
+Expense
+= Accounting cost
+
+لكن استخدم النموذج الصحيح المتوافق مع النظام الحالي.
+
+المهم:
+
+لا تسجل نفس الحركة المالية مرتين.
+
+==================================================
+23. DOUBLE ENTRY
+==================================================
+
+ممنوع إنشاء محاسبة موازية.
+
+أي Receipt / Revenue / Expense جديد يجب أن يمر عبر:
+
+Financial Core
+→ Ledger
+→ Journal
+→ Double Entry
+
+بالـ architecture الحالية.
+
+لا تكتب Ledger Entries مباشرة من UI.
+
+==================================================
+24. REVERSALS
+==================================================
+
+راجع:
+
+Receipt cancellation
+Payment reversal
+Revenue reversal
+Expense cancellation
+Expense reversal
+
+يجب ألا يتم حذف الحركة المالية المسجلة مباشرة.
+
+استخدم آلية reversal الحالية.
+
+لا تكسر:
+
+Closed Period Protection
+Audit Trail
+Idempotency
+
+==================================================
+25. DOCUMENT RELATIONSHIPS
+==================================================
+
+أريد نظامًا واضحًا للعلاقات.
+
+مثال:
+
+Customer
+├── Contracts
+│   ├── Containers
+│   ├── Work Orders
+│   └── Invoices
+│       └── Receipts / Payments
+│
+└── Financial Account
+    ├── Invoices
+    ├── Receipts
+    ├── Credits
+    └── Balance
+
+والشركة:
+
+Company
+├── Revenue
+│   ├── Customer
+│   ├── Contract
+│   ├── Invoice
+│   └── Work Order
+│
+└── Expenses
+    ├── Category
+    ├── Type
+    ├── Employee
+    ├── Supplier
+    ├── Container
+    ├── Contract
+    └── Work Order
+
+بحيث يمكن تتبع مصدر أي رقم مالي.
+
+==================================================
+26. UNIFIED DOCUMENT CONTEXT
+==================================================
+
+راجع إمكانية إنشاء Context Model موحد للمستندات بدل تكرار:
+
+customerId
+contractId
+containerId
+workOrderId
+invoiceId
+
+بطرق مختلفة في كل شاشة.
+
+لكن:
+
+لا تغير Database Architecture لمجرد التجريد.
+
+إذا كان النموذج الحالي كافيًا، استخدمه.
+
+إذا كان هناك تكرار حقيقي أو تضارب، اقترح الحل أولًا قبل تغييره.
+
+==================================================
+27. FIELD / NAMING AUDIT
+==================================================
+
+راجع كل الحقول الجديدة والقديمة.
+
+يجب توحيد:
+
+Customer
+Contract
+Container
+Container Type
+Site
+Work Order
+Invoice
+Receipt
+Payment
+Revenue
+Expense
+Employee
+Supplier
+Category
+Type
+Amount
+Currency
+Date
+Status
+Reference
+
+لكل مفهوم:
+
+Database Name
+API Name
+TypeScript Name
+UI Label
+Arabic Label
+
+يجب ألا يكون هناك:
+
+duplicate concept
+ambiguous field
+wrong label
+legacy name exposed to users
+
+==================================================
+28. UX REQUIREMENT
+==================================================
+
+الفاتورة أصبحت الآن:
+
+Customer
+→ Source
+→ Context
+→ Lines
+→ Review
+→ Invoice
+→ Payment
+
+نريد نفس الروح.
+
+Receipt:
+
+Customer
+→ Source
+→ Invoice / Contract / Account
+→ Amount
+→ Allocation
+→ Review
+→ Receipt
+
+Expense:
+
+Category
+→ Type
+→ Context
+→ Responsible Person / Payee
+→ Amount
+→ Payment
+→ Review
+→ Expense
+
+Revenue:
+
+Source
+→ Context
+→ Category
+→ Amount
+→ Review
+→ Revenue
+
+لا أريد Forms ضخمة.
+
+إذا كان السياق معروفًا، استخدمه.
+
+==================================================
+29. SMART CONTEXT
+==================================================
+
+النظام يجب أن يكون ذكيًا في اقتراح السياق.
+
+مثال:
+
+فتح Receipt من Invoice:
+
+Customer = known
+Contract = known
+Invoice = known
+Remaining = known
+
+فتح Expense من Work Order:
+
+Work Order = known
+Container = known
+Contract = known
+Customer = known
+Site = known
+
+فتح Expense من Container:
+
+Container = known
+Customer = known if assigned
+Contract = known if assigned
+Site = known if assigned
+
+لا تعيد طلب هذه البيانات.
+
+==================================================
+30. REPORTING
+==================================================
+
+راجع التقارير الحالية وأضف فقط ما يلزم لتصبح الصورة المالية متكاملة:
+
+Customer Statement
+Contract Financial Summary
+Container Revenue
+Work Order Revenue
+Revenue by Category
+Expenses by Category
+Expenses by Employee
+Expenses by Supplier
+Expenses by Container
+Expenses by Contract
+Profitability by Contract
+Profitability by Customer
+
+لا تنشئ 30 تقريرًا.
+
+حدد مجموعة Reports ذات قيمة فعلية.
+
+==================================================
+31. CUSTOMER STATEMENT
+==================================================
+
+يجب أن يستطيع المستخدم رؤية:
+
+Invoices
+Payments
+Receipts
+Credits
+Outstanding
+Revenue
+
+ضمن:
+
+Customer Financial Statement
+
+مع:
+
+Opening Balance
+Debits
+Credits
+Closing Balance
+
+حسب النموذج المالي الحالي.
+
+==================================================
+32. CONTRACT FINANCIAL VIEW
+==================================================
+
+من Contract:
+
+Revenue
+Invoices
+Payments
+Outstanding
+Expenses directly attributable to contract if applicable
+Profitability
+
+لكن لا تعرض Profitability إذا كانت البيانات غير كافية.
+
+استخدم:
+
+NOT AVAILABLE
+
+بدل أرقام مضللة.
+
+==================================================
+33. CONTAINER FINANCIAL VIEW
+==================================================
+
+من Container:
+
+Contract
+Customer
+Work Orders
+Revenue
+Expenses
+Maintenance Costs
+Replacement Costs
+
+بحيث يمكن معرفة:
+
+Container Revenue
+Container Cost
+Container Margin
+
+إذا كان النظام يملك البيانات اللازمة.
+
+==================================================
+34. AUDIT TRAIL
+==================================================
+
+كل مستند حساس يجب أن يعرف:
+
+Created By
+Created At
+Updated By
+Updated At
+Approved By
+Approved At
+Cancelled By
+Cancelled At
+
+بحسب lifecycle الموجود.
+
+لا تضف حقولًا غير ضرورية.
+
+==================================================
+35. IDEMPOTENCY
+==================================================
+
+كل عملية مالية جديدة يجب أن تحترم idempotency الحالية:
+
+Receipt creation
+Payment
+Revenue posting
+Expense posting
+
+لا تسمح بتكرار مالي بسبب retry.
+
+==================================================
+36. VALIDATION
+==================================================
+
+تحقق من:
+
+negative amounts
+zero amounts
+invalid customer
+invalid contract
+invalid invoice
+invalid allocation
+over-allocation
+overpayment
+invalid expense category
+invalid employee
+invalid supplier
+invalid container
+invalid work order
+closed contract
+cancelled invoice
+closed financial period
+
+استخدم Business Rules الحالية.
+
+==================================================
+37. DOCUMENTATION
+==================================================
+
+هذه نقطة إلزامية.
+
+وثّق جميع التعديلات والإضافات الجديدة في ملفات التوثيق الموجودة في المشروع.
+
+لا تنشئ Documentation منفصلة لا يعرفها المشروع.
+
+حدّث الملفات المناسبة، مثل:
+
+Architecture Documentation
+Financial Documentation
+API Documentation
+Developer Guide
+User/Feature Documentation
+Change Log
+Decision Log
+Project Memory / relevant documentation
+
+حسب الملفات الموجودة فعليًا.
+
+يجب أن توثق:
+
+- Receipt redesign
+- Revenue model
+- Expense model
+- Expense categories/types
+- Employee responsibility
+- Supplier/payee
+- Customer financial context
+- Contract financial context
+- Container financial context
+- Document relationships
+- New flows
+- Validation rules
+- Idempotency behavior
+- Reversal behavior
+- Reporting
+- Naming decisions
+- Any schema/API changes
+- Any compatibility considerations
+
+لا تضف كلامًا عامًا.
+
+Documentation يجب أن تصف ما تم تنفيذه فعلًا.
+
+==================================================
+38. CHANGE LOG
+==================================================
+
+أضف سجلًا واضحًا لكل التعديلات الأخيرة التي تمت منذ آخر مرحلة، بما فيها:
+
+Container System Audit
+Invoice Context Flow
+Customer quick creation
+Request/Contract/Free Invoice
+Container Type Lines
+Manual Lines
+Context Auto-fill
+Node/PHP work_order parity
+Receipt changes
+Revenue changes
+Expense changes
+Financial integration
+UX changes
+Validation
+Documentation
+
+ولا توثق شيئًا على أنه implemented إذا لم يتم تنفيذه.
+
+==================================================
+39. QUALITY SCALE — 101 / 102 / 103
+==================================================
+
+أريد تعديل نظام التقييم بحيث لا يتوقف عند 100 بشكل مصطنع.
+
+100 = النظام يحقق جميع المعايير الأساسية المعتمدة.
+
+101 = جميع المعايير الأساسية
++
+Enterprise-grade integration evidence
+
+102 = 101
++
+Advanced operational/financial traceability
+
+103 = 102
++
+Exceptional UX/contextual automation
++
+Documentation completeness
++
+Cross-module consistency
++
+Automated regression evidence
+
+لكن:
+
+ممنوع إعطاء 101 أو 102 أو 103 لمجرد الرغبة في رفع الرقم.
+
+كل نقطة فوق 100 يجب أن يكون لها Evidence.
+
+وفي التقرير النهائي يجب أن يوضح:
+
+BASE SCORE = XX/100
+BONUS = +X
+FINAL QUALITY SCORE = XX/103
+
+مثال:
+
+Base = 94
+Enterprise Integration = +3
+Traceability = +2
+Automation = +2
+
+Final = 101/103
+
+==================================================
+40. IMPORTANT — DO NOT GAME THE SCORE
+==================================================
+
+الهدف ليس الوصول إلى 103.
+
+الهدف أن يعكس الرقم الواقع.
+
+إذا كانت النتيجة:
+
+86/100
+
+فهي 86.
+
+إذا أصبحت:
+
+97/100
+
+فهي 97.
+
+إذا تحققت معايير 101/102/103 فعلًا:
+
+استخدمها.
+
+==================================================
+41. IMPLEMENTATION STRATEGY
+==================================================
+
+قبل أي Database migration أو Financial Core change:
+
+1. Inspect existing models.
+2. Inspect existing APIs.
+3. Inspect existing Financial Core.
+4. Identify reusable structures.
+5. Design minimum changes.
+6. Implement.
+7. Typecheck.
+8. Targeted tests.
+9. Financial regression.
+10. E2E.
+11. Documentation update.
+
+لا تبدأ بتغيير Database مباشرة.
+
+==================================================
+42. REQUIRED TESTS
+==================================================
+
+اختبر على قاعدة اختبار معزولة:
+
+### RECEIPT
+
+Customer
+→ Invoice
+→ Receipt 500
+→ Remaining updated
+
+ثم:
+
+Receipt 100
+→ Total = 600
+
+ثم retry:
+same Idempotency-Key
+→ no duplicate
+
+### ALLOCATION
+
+Receipt 500
+→ Invoice A = 300
+→ Invoice B = 200
+
+أو إذا كان Multi-Invoice Allocation غير موجود:
+
+نفّذ التقييم والقرار المعماري أولًا.
+
+### REVENUE
+
+Contract
+→ Service
+→ Invoice
+→ Revenue
+
+أثبت عدم تسجيل Revenue مرتين.
+
+### EXPENSE
+
+Container
+→ Maintenance
+→ Expense
+→ Employee / Supplier
+→ Payment
+
+أثبت العلاقات.
+
+### EXPENSE TYPES
+
+اختبر على الأقل:
+
+Operational
+Maintenance
+Employee
+Administrative
+
+وتأكد أن Category/Type صحيحان.
+
+### REVERSAL
+
+Expense / Receipt / Revenue reversal
+
+أثبت:
+
+Original transaction remains
+Reversal recorded
+Net financial result correct
+
+### CUSTOMER ACCOUNT
+
+بعد كل الحركات:
+
+Customer Statement
+=
+Invoices
+-
+Payments
++
+Credits / Adjustments
+
+حسب النموذج المالي الفعلي.
+
+### CONTRACT
+
+Contract financial view must agree with customer account.
+
+### CONTAINER
+
+Container financial view must use actual linked records only.
+
+==================================================
+43. ACCEPTANCE CRITERIA
+==================================================
+
+المهمة لا تعتبر PASS إلا إذا:
+
+- Receipt مرتبط بالسياق الصحيح.
+- Receipt لا يكرر Payment/Financial Effect.
+- Revenue لا يتكرر.
+- Expense قابل للتصنيف.
+- Expense يمكن ربطه بالموظف عند الحاجة.
+- Expense يمكن ربطه بالمورد/الدافع عند الحاجة.
+- Expense يمكن ربطه بالحاوية/العقد/أمر العمل عند الحاجة.
+- Customer Account متسق.
+- Contract Financial View متسق.
+- Container Financial View متسق.
+- Double Entry لم ينكسر.
+- Idempotency لم تنكسر.
+- Reversal لم ينكسر.
+- Existing Invoice/Payment tests ما زالت PASS.
+- Documentation محدثة.
+- Naming/Fields متسقة.
+
+==================================================
+44. FINAL REPORT
+==================================================
+
+بعد التنفيذ أرسل تقريرًا واحدًا:
+
+FINANCIAL DOCUMENT CONTEXT IMPLEMENTATION REPORT
+
+RECEIPTS:
+PASS / FAIL
+
+REVENUE:
+PASS / FAIL
+
+EXPENSES:
+PASS / FAIL
+
+EXPENSE CATEGORIES:
+PASS / FAIL
+
+EMPLOYEE RESPONSIBILITY:
+PASS / FAIL
+
+SUPPLIER / PAYEE:
+PASS / FAIL
+
+CUSTOMER FINANCIAL CONTEXT:
+PASS / FAIL
+
+CONTRACT FINANCIAL CONTEXT:
+PASS / FAIL
+
+CONTAINER FINANCIAL CONTEXT:
+PASS / FAIL
+
+WORK ORDER FINANCIAL CONTEXT:
+PASS / FAIL
+
+PAYMENT:
+PASS / FAIL
+
+DOUBLE ENTRY:
+PASS / FAIL
+
+IDEMPOTENCY:
+PASS / FAIL
+
+REVERSALS:
+PASS / FAIL
+
+REPORTING:
+PASS / FAIL
+
+FIELD / NAMING CONSISTENCY:
+PASS / FAIL
+
+DOCUMENTATION:
+PASS / FAIL
+
+REGRESSION:
+PASS / FAIL
+
+E2E:
+PASS / FAIL
+
+BASE QUALITY SCORE:
+XX/100
+
+BONUS:
++X
+
+FINAL QUALITY SCORE:
+XX/103
+
+ACTUAL BUGS FOUND:
+...
+
+ACTUAL FIXES:
+...
+
+FILES CHANGED:
+...
+
+DOCUMENTATION UPDATED:
+...
+
+KNOWN LIMITATIONS:
+...
+
+==================================================
+FINAL COMMAND
+==================================================
+
+نفّذ هذا العمل كامتداد طبيعي للنظام الحالي.
+
+لا تبنِ نظامًا ماليًا ثانيًا.
+
+لا تفصل Receipts / Revenue / Expenses عن Customer / Contract / Container context.
+
+لا تجعل كل شيء مرتبطًا بكل شيء بشكل مصطنع.
+
+العلاقة يجب أن تكون:
+
+REAL
+TRACEABLE
+CONTEXTUAL
+OPTIONAL WHEN NOT APPLICABLE
+
+استخدم الـ Financial Core الحالي.
+
+استخدم الـ Invoice Flow الحالي كمرجع UX.
+
+استخدم الـ Contract Flow الحالي كمرجع UX.
+
+اجعل المستند المالي يعرف سياقه تلقائيًا قدر الإمكان.
+
+اجعل Expense مرنًا بما يكفي لتغطية طبيعة المصروفات المختلفة دون تحويل النظام إلى نموذج ضخم.
+
+اجعل Revenue قابلًا للتصنيف والتتبع دون تكرار الاعتراف المالي.
+
+اجعل Receipt واضحًا كوثيقة قبض، مع الحفاظ على Payment/Financial Core كالمصدر المالي الصحيح.
+
+وثّق كل ما تم تغييره فعليًا في ملفات المشروع.
+
+ولا تبدأ Audit جديدًا بعد التنفيذ.
+
+إذا ظهر Bug حقيقي:
+
+REPRODUCE
+→ FIX
+→ TARGETED TEST
+→ REGRESSION
+
+إذا لم يظهر:
+
+PASS
+→ DOCUMENT
+→ CLOSE
+
+المطلوب في هذه المرحلة:
+
+IMPLEMENT
+→ VERIFY
+→ DOCUMENT
+→ CLOSE
+
+وليس:
+
+PLAN
+→ EXPLORE
+→ REPLAN
+→ AUDIT
+→ LOOP
