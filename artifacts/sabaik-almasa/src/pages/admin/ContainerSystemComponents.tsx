@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { PenLine, RotateCcw, Save, X } from "lucide-react"
+import { PenLine, Plus, RotateCcw, Save, Trash2, X } from "lucide-react"
 
 const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
 
@@ -777,6 +777,243 @@ function ContractTemplatePicker({ value, onChange }: { value: string; onChange: 
   )
 }
 
+type InvoiceLine = {
+  id: string
+  lineType: "contract" | "request" | "manual"
+  description: string
+  containerType?: string
+  containerCode?: string
+  service?: string
+  quantity: string
+  unitPrice: string
+  discount?: string
+  taxRate?: string
+}
+
+function readInvoiceLines(payload: Record<string, string>): InvoiceLine[] {
+  try {
+    const parsed = JSON.parse(String(payload.lineItems ?? ""))
+    if (Array.isArray(parsed)) {
+      return parsed.map((line, index) => {
+        const value = line as Record<string, unknown>
+        const lineType: InvoiceLine["lineType"] = value.lineType === "manual" ? "manual" : value.lineType === "request" ? "request" : "contract"
+        return {
+          id: String(value.id ?? `line-${index}`),
+          lineType,
+          description: String(value.description ?? ""),
+          containerType: String(value.containerType ?? ""),
+          containerCode: String(value.containerCode ?? ""),
+          service: String(value.service ?? ""),
+          quantity: String(value.quantity ?? "1"),
+          unitPrice: String(value.unitPrice ?? "0"),
+          discount: String(value.discount ?? "0"),
+          taxRate: String(value.taxRate ?? payload.taxRate ?? "15"),
+        }
+      }).filter(line => line.description || line.containerType)
+    }
+  } catch {
+    // Older invoices only have description/quantity/unitPrice fields.
+  }
+  if (payload.description || payload.unitPrice || payload.quantity) {
+    return [{
+      id: "legacy-line",
+      lineType: "manual",
+      description: payload.description ?? "",
+      quantity: payload.quantity || "1",
+      unitPrice: payload.unitPrice || payload.amount || "0",
+      discount: payload.discount || "0",
+      taxRate: payload.taxRate || "15",
+    }]
+  }
+  return []
+}
+
+function InvoiceComposer({
+  payload,
+  onChange,
+  records,
+  serviceRequests,
+  onAddCustomer,
+}: {
+  payload: Record<string, string>
+  onChange: (payload: Record<string, string>) => void
+  records: ContainerSystemRecord[]
+  serviceRequests: ServiceRequest[]
+  onAddCustomer: () => void
+}) {
+  const customers = records.filter(item => item.kind === "customer" && item.status !== "archived")
+  const customerId = String(payload.customerRecordId ?? "")
+  const customer = customers.find(item => String(item.id) === customerId)
+  const customerPayload = customer?.payload as Record<string, unknown> | undefined
+  const contracts = records.filter(item => {
+    if (item.kind !== "contract" || item.status === "archived") return false
+    const value = item.payload as Record<string, unknown>
+    return !customer || String(value.customerRecordId ?? "") === customerId ||
+      (!value.customerRecordId && String(value.customerName ?? "").trim() === String(customerPayload?.name ?? "").trim())
+  })
+  const requests = serviceRequests.filter(request => {
+    if (["cancelled", "completed"].includes(request.status)) return false
+    const requestCustomerId = Number((request as ServiceRequest & { customerRecordId?: number }).customerRecordId ?? 0)
+    return !customer || requestCustomerId === customer?.id ||
+      (!requestCustomerId && request.clientName.trim() === String(customerPayload?.name ?? "").trim())
+  })
+  const source = payload.invoiceSource || (payload.serviceRequestId ? "request" : payload.contractRecordId ? "contract" : "free")
+  const lines = readInvoiceLines(payload)
+
+  const update = (values: Record<string, string>, nextLines = lines) => {
+    const normalized = nextLines.map((line, index) => ({ ...line, id: line.id || `line-${index}` }))
+    const subtotal = normalized.reduce((sum, line) => {
+      const quantity = Number(line.quantity || 0)
+      const unitPrice = Number(line.unitPrice || 0)
+      const discount = Number(line.discount || 0)
+      return sum + Math.max(quantity * unitPrice - discount, 0)
+    }, 0)
+    const first = normalized[0]
+    onChange({
+      ...payload,
+      ...values,
+      lineItems: JSON.stringify(normalized),
+      description: first?.description ?? "",
+      quantity: first?.quantity ?? "1",
+      unitPrice: first?.unitPrice ?? "0",
+      amount: String(Math.round(subtotal * 100) / 100),
+      taxRate: payload.taxRate || "15",
+      total: String(Math.round(subtotal * (1 + Number(payload.taxRate || 15) / 100) * 100) / 100),
+    })
+  }
+  const selectCustomer = (value: string) => {
+    const selected = customers.find(item => String(item.id) === value)
+    const selectedPayload = selected?.payload as Record<string, unknown> | undefined
+    update({
+      customerRecordId: value,
+      customerName: String(selectedPayload?.name ?? selectedPayload?.customerName ?? ""),
+      customerPhone: String(selectedPayload?.phone ?? selectedPayload?.mobile ?? ""),
+      customerTaxNumber: String(selectedPayload?.taxNumber ?? selectedPayload?.vatNumber ?? selectedPayload?.taxId ?? ""),
+      customerAddress: String(selectedPayload?.address ?? selectedPayload?.location ?? ""),
+      contractRecordId: "",
+      contractNumber: "",
+      serviceRequestId: "",
+      serviceAddress: "",
+    }, [])
+  }
+  const contractLines = (contract: ContainerSystemRecord): InvoiceLine[] => {
+    const value = contract.payload as Record<string, unknown>
+    const quantity = String(value.quantity ?? 1)
+    const unitPrice = String(value.unitPrice ?? value.amount ?? value.total ?? 0)
+    const containerType = String(value.containerType ?? value.typeName ?? value.size ?? "")
+    const service = String(value.serviceType ?? value.service ?? value.rentType ?? "خدمة الحاوية")
+    return [{
+      id: `contract-${contract.id}`,
+      lineType: "contract",
+      description: String(value.description ?? `${service}${containerType ? ` — ${containerType}` : ""}`),
+      containerType,
+      containerCode: String(value.containerCode ?? ""),
+      service,
+      quantity,
+      unitPrice,
+      discount: "0",
+      taxRate: payload.taxRate || "15",
+    }]
+  }
+  const selectContract = (value: string) => {
+    const contract = contracts.find(item => String(item.id) === value)
+    const contractPayload = contract?.payload as Record<string, unknown> | undefined
+    if (!contract) {
+      update({ contractRecordId: "", contractNumber: "" }, [])
+      return
+    }
+    update({
+      invoiceSource: "contract",
+      contractRecordId: String(contract.id),
+      contractNumber: String(contractPayload?.contractNumber ?? contract.reference ?? ""),
+      serviceAddress: String(contractPayload?.address ?? contractPayload?.location ?? ""),
+    }, contractLines(contract))
+  }
+  const selectRequest = (value: string) => {
+    const request = requests.find(item => String(item.id) === value)
+    if (!request) {
+      update({ serviceRequestId: "" }, [])
+      return
+    }
+    const linkedContractId = Number((request as ServiceRequest & { contractRecordId?: number }).contractRecordId ?? 0)
+    const linkedContract = contracts.find(item => item.id === linkedContractId)
+    const line: InvoiceLine = {
+      id: `request-${request.id}`,
+      lineType: "request",
+      description: request.serviceType,
+      service: request.serviceType,
+      containerType: request.containerSize ?? "",
+      quantity: "1",
+      unitPrice: payload.unitPrice || "0",
+      discount: "0",
+      taxRate: payload.taxRate || "15",
+    }
+    update({
+      invoiceSource: "request",
+      serviceRequestId: String(request.id),
+      serviceAddress: request.location,
+      ...(linkedContract ? {
+        contractRecordId: String(linkedContract.id),
+        contractNumber: String((linkedContract.payload as Record<string, unknown>).contractNumber ?? linkedContract.reference ?? ""),
+      } : {}),
+    }, linkedContract ? contractLines(linkedContract).map(item => ({ ...item, lineType: "request" })) : [line])
+  }
+  const updateLine = (index: number, values: Partial<InvoiceLine>) => {
+    const next = lines.map((line, lineIndex) => lineIndex === index ? { ...line, ...values } : line)
+    update({}, next)
+  }
+  const addManualLine = () => update({}, [...lines, {
+    id: `manual-${Date.now()}`,
+    lineType: "manual",
+    description: "",
+    quantity: "1",
+    unitPrice: "0",
+    discount: "0",
+    taxRate: payload.taxRate || "15",
+  }])
+  const removeLine = (index: number) => update({}, lines.filter((_, lineIndex) => lineIndex !== index))
+
+  return (
+    <div className="space-y-4 rounded-2xl border border-cyan-200 bg-cyan-50/40 p-4 sm:col-span-2" data-testid="invoice-context-composer">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div><p className="text-sm font-black text-slate-900">إنشاء فاتورة من السياق</p><p className="mt-1 text-[11px] leading-5 text-slate-500">اختر العميل أولاً، وسيجلب النظام العقود والطلبات والبنود المتاحة تلقائياً.</p></div>
+        <Badge variant="outline" className="border-cyan-300 bg-white text-cyan-800">حساب العميل محفوظ</Badge>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <Label htmlFor="invoice-context-customer" className="mb-1.5 block text-xs font-bold text-slate-600">العميل الحالي</Label>
+          <div className="flex gap-2">
+            <select id="invoice-context-customer" value={customerId} onChange={event => selectCustomer(event.target.value)} required className="flex h-11 min-w-0 flex-1 rounded-lg border border-cyan-200 bg-white px-3 text-sm" data-testid="select-invoice-context-customer">
+              <option value="">اختر العميل</option>
+              {customers.map(item => { const value = item.payload as Record<string, unknown>; return <option key={item.id} value={item.id}>{String(value.name ?? value.customerName ?? item.reference)}{value.phone ? ` · ${String(value.phone)}` : ""}</option> })}
+            </select>
+            <Button type="button" variant="outline" onClick={onAddCustomer} className="h-11 shrink-0 gap-1 border-cyan-200 px-3 text-xs text-cyan-800 hover:bg-white" data-testid="button-invoice-add-customer"><Plus size={13} /> إضافة سريعة</Button>
+          </div>
+        </div>
+        <div>
+          <Label htmlFor="invoice-source" className="mb-1.5 block text-xs font-bold text-slate-600">مصدر الفاتورة</Label>
+          <select id="invoice-source" value={source} onChange={event => update({ invoiceSource: event.target.value, ...(event.target.value === "free" ? { contractRecordId: "", contractNumber: "", serviceRequestId: "" } : {}) }, event.target.value === "free" ? [] : lines)} className="flex h-11 w-full rounded-lg border border-cyan-200 bg-white px-3 text-sm" data-testid="select-invoice-source">
+            <option value="request">ربط بطلب</option><option value="contract">ربط بعقد</option><option value="free">فاتورة حرة</option>
+          </select>
+        </div>
+      </div>
+      {source === "request" && <div><Label htmlFor="invoice-context-request" className="mb-1.5 block text-xs font-bold text-slate-600">الطلب المفتوح المرتبط</Label><select id="invoice-context-request" value={String(payload.serviceRequestId ?? "")} onChange={event => selectRequest(event.target.value)} disabled={!customer} className="flex h-11 w-full rounded-lg border border-cyan-200 bg-white px-3 text-sm" data-testid="select-invoice-context-request"><option value="">{customer ? "اختر الطلب" : "اختر العميل أولاً"}</option>{requests.map(request => <option key={request.id} value={request.id}>{request.serviceType} · {request.location}</option>)}</select>{customer && requests.length === 0 && <p className="mt-1 text-[11px] text-amber-700">لا توجد طلبات مفتوحة لهذا العميل.</p>}</div>}
+      {source === "contract" && <div><Label htmlFor="invoice-context-contract" className="mb-1.5 block text-xs font-bold text-slate-600">العقد المفتوح المرتبط</Label><select id="invoice-context-contract" value={String(payload.contractRecordId ?? "")} onChange={event => selectContract(event.target.value)} disabled={!customer} className="flex h-11 w-full rounded-lg border border-cyan-200 bg-white px-3 text-sm" data-testid="select-invoice-context-contract"><option value="">{customer ? "اختر العقد" : "اختر العميل أولاً"}</option>{contracts.map(contract => { const value = contract.payload as Record<string, unknown>; return <option key={contract.id} value={contract.id}>{String(value.contractNumber ?? contract.reference)} · {String(value.containerType ?? value.description ?? "خدمة")}</option> })}</select>{customer && contracts.length === 0 && <p className="mt-1 text-[11px] text-amber-700">لا توجد عقود مسجلة لهذا العميل.</p>}</div>}
+      {customer && <div className="grid gap-2 rounded-xl border border-cyan-100 bg-white p-3 text-xs sm:grid-cols-3"><div><p className="text-[10px] font-bold text-slate-400">العميل</p><p className="mt-1 font-black text-slate-800">{String(customerPayload?.name ?? customerPayload?.customerName)}</p></div><div><p className="text-[10px] font-bold text-slate-400">العنوان</p><p className="mt-1 font-bold text-slate-700">{String(payload.serviceAddress ?? customerPayload?.address ?? "—")}</p></div><div><p className="text-[10px] font-bold text-slate-400">المصدر</p><p className="mt-1 font-bold text-cyan-800">{source === "free" ? "فاتورة حرة مرتبطة بحساب العميل" : source === "request" ? "طلب خدمة" : "عقد تشغيلي"}</p></div></div>}
+      <div className="rounded-xl border border-cyan-100 bg-white p-3">
+        <div className="mb-3 flex items-center justify-between gap-2"><div><p className="text-xs font-black text-slate-800">بنود الفاتورة</p><p className="mt-1 text-[10px] text-slate-400">بنود العقد أو الطلب تُحفظ كعلاقة حقيقية، والبند اليدوي يبقى مميزاً.</p></div><Button type="button" variant="outline" onClick={addManualLine} className="h-8 gap-1 border-cyan-200 px-2 text-xs text-cyan-800" data-testid="button-add-manual-invoice-line"><Plus size={13} /> إضافة بند يدوي</Button></div>
+        {lines.length === 0 ? <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-xs text-slate-500">لم تتم إضافة بنود بعد. اختر عقداً أو طلباً، أو أضف بنداً يدوياً.</div> : <div className="space-y-2">{lines.map((line, index) => <div key={line.id} className="grid gap-2 rounded-xl border border-slate-200 bg-slate-50/70 p-3 sm:grid-cols-[1.7fr_.55fr_.8fr_.8fr_auto]"><div><Label className="mb-1 block text-[10px] font-bold text-slate-500">{line.lineType === "manual" ? "بند يدوي" : line.lineType === "request" ? "من الطلب" : "من العقد"}{line.containerType ? ` · ${line.containerType}` : ""}</Label><Input value={line.description} onChange={event => updateLine(index, { description: event.target.value })} required placeholder="وصف الخدمة أو البند" className="h-9 bg-white text-xs" data-testid={`input-invoice-line-description-${index}`} /></div><div><Label className="mb-1 block text-[10px] font-bold text-slate-500">الكمية</Label><Input type="number" min="0.01" step="0.01" value={line.quantity} onChange={event => updateLine(index, { quantity: event.target.value })} required className="h-9 bg-white text-xs" /></div><div><Label className="mb-1 block text-[10px] font-bold text-slate-500">السعر</Label><Input type="number" min="0" step="0.01" value={line.unitPrice} onChange={event => updateLine(index, { unitPrice: event.target.value })} required className="h-9 bg-white text-xs" /></div><div><Label className="mb-1 block text-[10px] font-bold text-slate-500">الخصم</Label><Input type="number" min="0" step="0.01" value={line.discount ?? "0"} onChange={event => updateLine(index, { discount: event.target.value })} className="h-9 bg-white text-xs" /></div><Button type="button" variant="ghost" onClick={() => removeLine(index)} disabled={lines.length === 1 && line.lineType !== "manual"} className="h-9 w-9 self-end p-0 text-slate-400 hover:bg-rose-50 hover:text-rose-600" title="حذف البند"><Trash2 size={14} /></Button></div>)}</div>}
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3 text-xs"><span className="text-slate-500">عدد البنود: <b className="text-slate-800">{lines.length}</b></span><span className="font-black text-cyan-800">الإجمالي قبل الضريبة: {Number(payload.amount ?? 0).toLocaleString("ar-SA")} ر.س</span></div>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div><Label htmlFor="invoice-tax-rate" className="mb-1.5 block text-xs font-bold text-slate-600">ضريبة القيمة المضافة %</Label><Input id="invoice-tax-rate" type="number" min="0" max="100" step="0.01" value={payload.taxRate ?? "15"} onChange={event => update({ taxRate: event.target.value })} className="h-10 border-cyan-200 bg-white" data-testid="input-invoice-tax-rate" /></div>
+        <div><Label htmlFor="invoice-number" className="mb-1.5 block text-xs font-bold text-slate-600">رقم الفاتورة (اختياري)</Label><Input id="invoice-number" value={payload.invoiceNumber ?? ""} onChange={event => update({ invoiceNumber: event.target.value })} placeholder="يولد تلقائياً" className="h-10 border-cyan-200 bg-white" /></div>
+        <div><Label htmlFor="invoice-date" className="mb-1.5 block text-xs font-bold text-slate-600">تاريخ الإصدار</Label><Input id="invoice-date" type="date" value={payload.date ?? ""} onChange={event => update({ date: event.target.value })} className="h-10 border-cyan-200 bg-white" required /></div>
+      </div>
+    </div>
+  )
+}
+
 export function RecordDialog({
   open,
   kind,
@@ -1205,8 +1442,8 @@ export function RecordDialog({
               <Badge variant="outline" className="border-cyan-200 bg-cyan-50 text-cyan-800">{KIND_LABELS[kind]}</Badge>
             </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-             {fields.map(field => (
-              isCustomerPayment && (field.key === "customerName" || field.key === "contractNumber") ? null : (
+             {!isInvoice && fields.map(field => (
+               isCustomerPayment && (field.key === "customerName" || field.key === "contractNumber") ? null : (
               <div key={field.key} className={`min-h-[82px] rounded-xl border border-slate-100 bg-slate-50/45 p-3 ${field.wide ? "sm:col-span-2" : ""} ${isCustomerPayment ? field.key === "invoiceNumber" ? "order-3" : field.key === "amount" ? "order-4" : field.key === "paymentMethod" ? "order-5" : field.key === "date" ? "order-6" : "" : ""}`}>
                 <Label htmlFor={`record-${field.key}`} className="mb-1.5 block text-xs font-bold text-slate-600">{field.label}</Label>
                  {field.key === "customerName" ? (
@@ -1325,67 +1562,8 @@ export function RecordDialog({
                 )}
               </div>
               )
-            ))}
-            {isInvoice && (
-              <div className="sm:col-span-2 rounded-2xl border border-cyan-200 bg-cyan-50/50 p-4">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <div><p className="text-sm font-black text-slate-900">الخدمة والعقد المرتبطان</p><p className="mt-1 text-[11px] text-slate-500">تُجلب تلقائياً من طلبات العميل وعقوده التي عليها رصيد.</p></div>
-                  <Badge variant="outline" className="border-cyan-300 bg-white text-cyan-800">ربط تلقائي</Badge>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div>
-                    <Label htmlFor="invoice-service-request" className="mb-1.5 block text-xs font-bold text-slate-600">طلب الخدمة المفتوح</Label>
-                    <select id="invoice-service-request" value={String(payload.serviceRequestId ?? "")} onChange={event => {
-                      const request = invoiceRequests.find(item => String(item.id) === event.target.value)
-                      setPayload(current => ({ ...current, serviceRequestId: event.target.value, description: request?.serviceType ?? "", serviceAddress: request?.location ?? current.serviceAddress ?? "" }))
-                    }} className="flex h-11 w-full rounded-lg border border-cyan-200 bg-white px-3 text-sm" data-testid="select-invoice-service-request">
-                      <option value="">اختر الطلب المفتوح</option>
-                      {invoiceRequests.map(request => <option key={request.id} value={request.id}>{request.serviceType} · {request.location}</option>)}
-                    </select>
-                    {invoiceCustomer && invoiceRequests.length === 0 && <p className="mt-1 text-[11px] text-amber-700">لا توجد طلبات خدمة مفتوحة لهذا العميل.</p>}
-                  </div>
-                  <div>
-                    <Label htmlFor="invoice-linked-contract" className="mb-1.5 block text-xs font-bold text-slate-600">العقد المفتوح غير المسدد</Label>
-                     <select id="invoice-linked-contract" value={String(payload.contractNumber ?? "")} onChange={event => {
-                      const contract = invoiceContracts.find(item => {
-                        const p = item.payload as Record<string, unknown>
-                        return String(p.contractNumber ?? item.reference ?? "") === event.target.value
-                      })
-                      const p = contract?.payload as Record<string, unknown> | undefined
-                       const contractCustomer = customers.find(item =>
-                         (p?.customerRecordId && String(item.id) === String(p.customerRecordId)) ||
-                         (!p?.customerRecordId && String(item.payload.name ?? "").trim() === String(p?.customerName ?? "").trim()),
-                       )
-                       const contractCustomerPayload = contractCustomer?.payload as Record<string, unknown> | undefined
-                       const contractAmount = Number(p?.total ?? p?.amount ?? p?.lineTotal ?? 0)
-                       const contractTaxRate = Number(p?.taxRate ?? 15)
-                       const contractTaxAmount = Number(p?.taxAmount ?? (contractAmount * contractTaxRate / 100))
-                       setPayload(current => ({ ...current, contractNumber: event.target.value, contractRecordId: contract?.id ? String(contract.id) : "", description: String(p?.description ?? p?.rentType ?? p?.containerType ?? current.description ?? ""), quantity: String(p?.quantity ?? 1), unitPrice: String(p?.unitPrice ?? contractAmount), amount: String(Math.max(contractAmount - (p?.taxIncluded ? contractTaxAmount : 0), 0)), taxRate: String(contractTaxRate), ...(contractAmount > 0 ? { total: String(p?.total ?? contractAmount + contractTaxAmount) } : {}), ...(contractCustomer ? {
-                         customerRecordId: String(contractCustomer.id),
-                         customerName: String(contractCustomerPayload?.name ?? p?.customerName ?? ""),
-                         customerTaxNumber: String(contractCustomerPayload?.taxNumber ?? contractCustomerPayload?.vatNumber ?? ""),
-                         customerAddress: String(contractCustomerPayload?.address ?? contractCustomerPayload?.location ?? ""),
-                       } : {}) }))
-                    }} className="flex h-11 w-full rounded-lg border border-cyan-200 bg-white px-3 text-sm" data-testid="select-invoice-contract">
-                       <option value="">بدون عقد مرتبط</option>
-                       {invoiceContracts.filter(item => remainingForContract(item) > 0.009).map(item => {
-                        const p = item.payload as Record<string, unknown>
-                        const number = String(p.contractNumber ?? item.reference ?? "")
-                         return <option key={item.id} value={number}>{number} · المتبقي {remainingForContract(item).toLocaleString("ar-SA")} ر.س</option>
-                      })}
-                    </select>
-                  </div>
-                </div>
-                {invoiceCustomer && (
-                  <div className="mt-3 grid gap-2 rounded-xl border border-cyan-100 bg-white p-3 text-xs sm:grid-cols-3">
-                    <div><p className="text-[10px] font-bold text-slate-400">العميل المحدد</p><p className="mt-1 font-black text-slate-800">{String(invoiceCustomerPayload?.name ?? payload.customerName)}</p></div>
-                    <div><p className="text-[10px] font-bold text-slate-400">الجوال</p><p className="mt-1 font-bold text-slate-700" dir="ltr">{String(invoiceCustomerPayload?.phone ?? invoiceCustomerPayload?.mobile ?? "—")}</p></div>
-                    <div><p className="text-[10px] font-bold text-slate-400">الرقم الرسمي</p><p className="mt-1 font-bold text-slate-700" dir="ltr">#{invoiceCustomer.id}</p></div>
-                  </div>
-                )}
-                <div className="mt-3 rounded-xl border border-cyan-100 bg-white px-3 py-2 text-xs font-bold text-slate-700">عنوان الخدمة: {String(payload.serviceAddress ?? invoiceCustomerAddress ?? "سيُجلب من بيانات الطلب أو العميل")}</div>
-              </div>
-            )}
+             ))}
+             {isInvoice && <InvoiceComposer payload={payload} onChange={setPayload} records={[...records, ...createdCustomers]} serviceRequests={serviceRequests} onAddCustomer={() => setNewCustomerOpen(true)} />}
             {isCustomerPayment && (
               <>
                 <div className="order-1 min-h-[82px] rounded-xl border border-cyan-100 bg-cyan-50/40 p-3">

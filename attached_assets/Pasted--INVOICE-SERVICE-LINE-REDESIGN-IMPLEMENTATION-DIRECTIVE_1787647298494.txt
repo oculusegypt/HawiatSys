@@ -1,0 +1,766 @@
+# INVOICE & SERVICE LINE REDESIGN — IMPLEMENTATION DIRECTIVE
+
+هذه الرسالة تخص **تنفيذ تغيير محدد في تجربة الفاتورة وبنود الخدمات**.
+
+لا تبدأ الآن بالـ Full Container Audit الشامل الذي طُلب سابقًا.
+
+نفّذ هذا التغيير أولًا، اختبره بالكامل، ثم ارفع التحديث النهائي.
+
+بعد الانتهاء سأرسل لك رسالة مستقلة لإجراء **Full End-to-End Container System Audit** على النسخة المحدثة.
+
+---
+
+# 1. الهدف الأساسي
+
+أريد أن تصبح الفاتورة جزءًا طبيعيًا من سياق:
+
+```text
+Customer
+↓
+Contract
+↓
+Containers
+↓
+Services / Packages
+↓
+Work Orders / Requests
+↓
+Invoice
+↓
+Payments
+↓
+Customer Financial Account
+```
+
+ولا أريد أن تكون شاشة Invoice عبارة عن نموذج مستقل يجبر المستخدم على إعادة إدخال المعلومات التي يعرفها النظام بالفعل.
+
+القاعدة الأساسية:
+
+> **كلما كان هناك سياق موجود بالفعل، يجب على النظام استخدامه تلقائيًا بدل إجبار المستخدم على إعادة إدخاله.**
+
+---
+
+# 2. SERVICE / INVOICE LINE DESCRIPTION
+
+حاليًا وصف الخدمة أو البند لا يعكس بشكل جيد ما يقدمه النظام.
+
+أريد تغيير المنطق بحيث يكون **وصف الخدمة/البند مبنيًا على أنواع الحاويات والخدمات المتاحة داخل الباقات والعقود**.
+
+مثال مفاهيمي:
+
+```text
+الباقة / العقد
+    ↓
+الخدمات
+    ↓
+أنواع الحاويات المتاحة
+    ↓
+الحاوية / الكمية / السعر
+    ↓
+Invoice Line
+```
+
+عند إنشاء بند فاتورة من سياق عقد أو طلب، يجب أن يستطيع المستخدم اختيار العناصر المتاحة فعليًا من السياق.
+
+مثال:
+
+```text
+نوع الحاوية: 1100 لتر
+الكمية: 2
+السعر: 500
+الإجمالي: 1000
+```
+
+أو حسب نموذج التسعير الفعلي الموجود في النظام.
+
+---
+
+# 3. MANUAL LINE ITEM
+
+يجب أن تبقى هناك إمكانية إضافة **بند يدوي**.
+
+مثال:
+
+```text
++ إضافة بند يدوي
+```
+
+ويستطيع المستخدم إدخال:
+
+```text
+وصف البند
+الكمية
+السعر
+الخصم إن وجد
+الضريبة إن وجدت
+الإجمالي
+```
+
+لكن يجب التمييز داخليًا بين:
+
+```text
+CONTRACT / PACKAGE LINE
+MANUAL LINE
+```
+
+ولا تجعل البند اليدوي يكسر السياق المالي أو العلاقات الموجودة.
+
+---
+
+# 4. إزالة الخدمة / العقد المرتبطان بشكل غير ضروري
+
+لا أريد إجبار المستخدم في كل مرة على اختيار:
+
+```text
+Service
+Contract
+```
+
+كحقول منفصلة إذا كان السياق يستطيع تحديدهما تلقائيًا.
+
+إذا كانت الفاتورة مرتبطة بعقد:
+
+```text
+Customer
+→ Contract
+→ Package / Services
+→ Containers
+```
+
+فيجب أن يتم اشتقاق المعلومات ذات الصلة تلقائيًا.
+
+إذا كان المستخدم دخل إلى إنشاء فاتورة من عقد محدد، فلا تطلب منه اختيار العقد مرة أخرى.
+
+إذا دخل من Customer، اعرض العقود المفتوحة الخاصة بالعميل.
+
+إذا دخل من Request، استخرج السياق من الطلب.
+
+---
+
+# 5. NEW INVOICE FLOW
+
+أريد إعادة تصميم إنشاء الفاتورة ليكون قريبًا من **تجربة إنشاء العقد** وليس نموذجًا طويلًا منفصلًا.
+
+## STEP 1 — CUSTOMER
+
+تبدأ الفاتورة بـ:
+
+```text
+اختر العميل
+```
+
+مع خيارين واضحين:
+
+```text
+عميل حالي
+إضافة عميل سريع
+```
+
+### عميل حالي
+
+يبحث المستخدم ويختار العميل.
+
+### إضافة عميل سريع
+
+يستطيع إنشاء Customer بسرعة بالحد الأدنى من البيانات المطلوبة، ثم يعود مباشرة إلى إنشاء الفاتورة.
+
+لا تفقد السياق بعد إنشاء العميل السريع.
+
+---
+
+# 6. STEP 2 — CUSTOMER CONTEXT
+
+بعد اختيار العميل اضغط:
+
+```text
+التالي
+```
+
+ويجب أن يجلب النظام تلقائيًا:
+
+```text
+العقود المفتوحة للعميل
+الطلبات المفتوحة / المرتبطة بالعميل
+الحاويات المرتبطة
+السياق المالي الحالي
+```
+
+ولا أريد المستخدم أن يعيد إدخال هذه المعلومات.
+
+---
+
+# 7. INVOICE SOURCE
+
+في الخطوة التالية يجب أن يحدد المستخدم مصدر الفاتورة:
+
+```text
+ربط بطلب
+ربط بعقد
+فاتورة حرة
+```
+
+## OPTION A — REQUEST
+
+إذا اختار:
+
+```text
+ربط بطلب
+```
+
+اعرض طلبات العميل المناسبة.
+
+بعد اختيار الطلب:
+
+```text
+Request
+↓
+Customer
+↓
+Contract if available
+↓
+Site
+↓
+Container
+↓
+Service
+↓
+Quantity
+↓
+Price
+↓
+Invoice Lines
+```
+
+يتم ملء البيانات تلقائيًا قدر الإمكان.
+
+---
+
+# 8. OPTION B — CONTRACT
+
+إذا اختار:
+
+```text
+ربط بعقد
+```
+
+اعرض العقود المفتوحة للعميل.
+
+بعد اختيار العقد:
+
+```text
+Contract
+↓
+Package
+↓
+Services
+↓
+Available Container Types
+↓
+Assigned Containers
+↓
+Pricing
+```
+
+ثم يستطيع المستخدم اختيار ما يريد إصدار الفاتورة عليه.
+
+مثال:
+
+```text
+العقد: عقد خدمة شهري
+الحاويات:
+☑ 1100 لتر × 2
+☐ 660 لتر × 1
+
+الخدمة:
+جمع نفايات
+```
+
+وعند الاختيار يتم إنشاء بنود الفاتورة تلقائيًا.
+
+---
+
+# 9. OPTION C — FREE INVOICE
+
+إذا اختار:
+
+```text
+فاتورة حرة
+```
+
+فلا تجبره على عقد أو طلب.
+
+لكن الفاتورة **تبقى مرتبطة ماليًا بالعميل**.
+
+أي:
+
+```text
+Customer
+↓
+Financial Account
+↓
+Free Invoice
+↓
+Payments
+```
+
+ولا تتحول إلى فاتورة مجهولة أو خارج حساب العميل.
+
+يمكن إضافة:
+
+```text
+Manual Line Items
+```
+
+مع الاحتفاظ بالعميل كسياق مالي أساسي.
+
+---
+
+# 10. CONTEXTUAL AUTO-FILL
+
+هذه نقطة أساسية جدًا.
+
+عند وجود علاقة معروفة، يجب تعبئة البيانات تلقائيًا.
+
+مثال:
+
+```text
+اختيار العميل
+↓
+اختيار العقد
+↓
+اختيار الحاوية
+```
+
+يجب أن يستطيع النظام معرفة:
+
+```text
+Customer
+Contract
+Site
+Container
+Container Type
+Service / Package
+Pricing
+Quantity
+```
+
+بدون إعادة إدخالها يدويًا.
+
+والعكس صحيح:
+
+إذا بدأ المستخدم من Request:
+
+```text
+Request
+→ Customer
+→ Contract
+→ Container
+→ Service
+```
+
+فلا يجب أن يسأله النظام عن هذه المعلومات مرة أخرى إلا إذا كان هناك أكثر من اختيار ممكن.
+
+---
+
+# 11. LINKING OPTIONS
+
+أريد أن تكون العلاقات واضحة ومقصودة.
+
+الفاتورة يمكن أن تكون:
+
+```text
+Customer only
+Customer + Contract
+Customer + Request
+Customer + Contract + Container
+Customer + Request + Work Order
+```
+
+بحسب ما يدعمه السياق.
+
+لكن لا تنشئ علاقات وهمية أو غير صحيحة.
+
+كل Relation يجب أن تكون حقيقية وقابلة للتتبع.
+
+---
+
+# 12. CUSTOMER FINANCIAL ACCOUNT
+
+أي فاتورة، حتى لو كانت:
+
+```text
+Free Invoice
+```
+
+يجب أن تدخل في:
+
+```text
+Customer Financial Account
+```
+
+وتؤثر بشكل صحيح على:
+
+```text
+Outstanding
+Paid
+Remaining
+Overdue
+Payments
+Credit / Debit
+Financial Reports
+```
+
+مع الحفاظ على النظام المالي الحالي الذي تم اختباره بنجاح.
+
+**ممنوع كسر Financial Core الحالي.**
+
+---
+
+# 13. PAYMENT CONTEXT
+
+بعد إنشاء الفاتورة، يجب أن يكون الانتقال للسداد طبيعيًا.
+
+مثال:
+
+```text
+Customer
+→ Invoice
+→ Remaining
+→ Payment
+```
+
+وعند فتح Payment يجب أن يعرف النظام تلقائيًا:
+
+```text
+Customer
+Contract if linked
+Invoice
+Remaining
+Existing Payments
+Allocation
+```
+
+ولا يظهر للمستخدم:
+
+```text
+اختر عقدًا
+```
+
+إذا كان العقد معروفًا بالفعل من سياق الفاتورة.
+
+---
+
+# 14. INVOICE DETAILS
+
+صفحة تفاصيل الفاتورة يجب أن تعكس سياقها.
+
+مثلاً:
+
+```text
+العميل
+العقد
+الطلب
+الموقع
+الحاوية
+نوع الحاوية
+الخدمة
+بنود الفاتورة
+الإجمالي
+المدفوع
+المتبقي
+حالة الفاتورة
+المدفوعات
+```
+
+لكن **اعرض فقط العلاقات الموجودة فعليًا**.
+
+لا تعرض:
+
+```text
+UUID خام
+JSON
+[object Object]
+عقد غير مرتبط
+حاوية غير مرتبطة
+```
+
+---
+
+# 15. BACKWARD COMPATIBILITY
+
+قبل تغيير الـ Flow:
+
+* افحص الفواتير الموجودة.
+* لا تكسر الفواتير القديمة.
+* لا تغيّر Financial Core الذي تم اعتماده.
+* لا تكسر Payments.
+* لا تكسر Idempotency.
+* لا تكسر Double Entry.
+* لا تكسر Reports.
+
+الهدف:
+
+```text
+NEW UX
++
+EXISTING FINANCIAL INTEGRITY
+```
+
+---
+
+# 16. VALIDATION
+
+أضف Validation مناسبًا لكل مسار.
+
+### Contract Invoice
+
+يجب أن يكون العقد صالحًا ومفتوحًا إذا كانت Business Rules تتطلب ذلك.
+
+### Request Invoice
+
+يجب أن يكون الطلب صالحًا وقابلًا للفوترة.
+
+### Free Invoice
+
+لا يتطلب عقدًا أو طلبًا، لكنه يتطلب Customer مالي صحيح.
+
+### Manual Line
+
+يجب أن يحتوي على:
+
+```text
+Description
+Quantity
+Unit Price
+```
+
+والقيم المالية يجب أن تمر عبر نفس قواعد الحساب المالي الحالية.
+
+---
+
+# 17. DO NOT OVERENGINEER
+
+لا تنشئ:
+
+* نظام فواتير جديد بالكامل.
+* Financial Core جديد.
+* Database architecture جديدة.
+* جداول مكررة.
+* APIs مكررة.
+* Workflow منفصل لكل نوع فاتورة بدون ضرورة.
+
+استخدم الـ architecture الحالية قدر الإمكان.
+
+الهدف هو:
+
+```text
+Better Context
+Better UX
+Better Linking
+Less Manual Entry
+Same Financial Integrity
+```
+
+---
+
+# 18. REQUIRED TESTING
+
+بعد التنفيذ، اختبر فقط السيناريوهات الضرورية التالية.
+
+## Test 1 — Contract Invoice
+
+```text
+Customer
+→ Contract
+→ Container Type
+→ Invoice
+→ Auto-filled Lines
+```
+
+تحقق من صحة كل البيانات.
+
+## Test 2 — Request Invoice
+
+```text
+Customer
+→ Request
+→ Invoice
+→ Auto-filled Context
+```
+
+## Test 3 — Free Invoice
+
+```text
+Customer
+→ Free Invoice
+→ Manual Line
+→ Invoice
+→ Customer Financial Account
+```
+
+## Test 4 — Multiple Lines
+
+```text
+Container Type A
++
+Container Type B
++
+Manual Line
+```
+
+## Test 5 — Payment
+
+```text
+Invoice
+→ Payment 500
+→ Payment 100
+→ Total Paid 600
+→ Remaining 400
+```
+
+## Test 6 — Idempotency
+
+نفس الطلب ونفس Idempotency Key:
+
+```text
+NO DUPLICATE
+```
+
+## Test 7 — Overpayment
+
+```text
+Amount > Remaining
+→ REJECTED
+```
+
+## Test 8 — Existing Invoice Regression
+
+تأكد أن الفواتير القديمة والمدفوعات القديمة لا تتأثر.
+
+---
+
+# 19. UX ACCEPTANCE
+
+لا تعتبر المهمة ناجحة فقط لأن API يعمل.
+
+يجب أن تكون التجربة:
+
+```text
+Clear
+Fast
+Contextual
+Arabic-first
+RTL
+Consistent
+Predictable
+```
+
+المستخدم يجب أن يشعر أن النظام يقوده خطوة بخطوة:
+
+```text
+Customer
+→ Source
+→ Context
+→ Lines
+→ Review
+→ Invoice
+→ Payment
+```
+
+وليس:
+
+```text
+Choose customer
+Choose contract
+Choose service
+Choose container
+Choose site
+Choose request
+...
+```
+
+إذا كان النظام يعرف هذه المعلومات بالفعل.
+
+---
+
+# 20. FINAL RESPONSE AFTER IMPLEMENTATION
+
+بعد الانتهاء لا ترسل شرحًا طويلًا.
+
+أرسل تقريرًا مختصرًا يحتوي:
+
+```text
+IMPLEMENTATION: PASS / FAIL
+
+Invoice Flow:
+PASS / FAIL
+
+Contract Linking:
+PASS / FAIL
+
+Request Linking:
+PASS / FAIL
+
+Free Invoice:
+PASS / FAIL
+
+Container Type Lines:
+PASS / FAIL
+
+Manual Line:
+PASS / FAIL
+
+Context Auto-fill:
+PASS / FAIL
+
+Customer Financial Account:
+PASS / FAIL
+
+Payment Context:
+PASS / FAIL
+
+Existing Invoice Regression:
+PASS / FAIL
+
+Financial Core:
+PASS / FAIL
+
+Idempotency:
+PASS / FAIL
+
+Overpayment Protection:
+PASS / FAIL
+
+UX:
+PASS / FAIL
+```
+
+ثم اذكر فقط:
+
+```text
+Files Changed
+Tests Executed
+Actual Problems Found
+Actual Problems Fixed
+Known Limitations
+```
+
+ولا تبدأ بعد ذلك أي Audit شامل.
+
+---
+
+# FINAL COMMAND
+
+**نفّذ هذا التغيير الآن.**
+
+لا تعيد بناء النظام من الصفر.
+
+لا تعيد الـ Financial Core.
+
+لا تعيد Discovery.
+
+لا تنشئ خطة جديدة.
+
+نفّذ التغيير، اختبره، أصلح أي Regression حقيقي، ثم ارفع النسخة المحدثة.
+
+**بعد أن ترسل تقرير التنفيذ وترفع التحديث، سنتبع ذلك مباشرة برسالة مستقلة لإجراء Full Container System Audit الشامل من البداية إلى النهاية على النسخة الجديدة.**
