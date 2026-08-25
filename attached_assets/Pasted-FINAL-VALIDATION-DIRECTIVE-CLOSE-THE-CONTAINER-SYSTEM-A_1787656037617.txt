@@ -1,0 +1,479 @@
+FINAL VALIDATION DIRECTIVE — CLOSE THE CONTAINER SYSTEM AUDIT
+
+تقرير الـ Full Audit مقبول كـ Audit، لكن لا تعتبر المهمة مغلقة بعد.
+
+هناك نقطة واحدة فقط يجب إغلاقها قبل إصدار التقييم النهائي:
+
+الـ Audit قام بتنظيف بيانات نظام الحاويات، ولذلك أصبحت بعض أهم أجزاء دورة التشغيل:
+
+NOT VERIFIED
+
+وهذا مقبول كتقييم Audit، لكنه غير كافٍ للحصول على Production Confidence = HIGH.
+
+لا أريد Audit جديدًا.
+لا أريد إعادة قراءة الملفات.
+لا أريد Refactoring.
+لا أريد تنفيذ P2/P3/P4.
+لا أريد تغيير Financial Core.
+لا أريد تغيير Invoice Flow.
+لا أريد توسيع Scope.
+
+نفّذ فقط عملية إثبات نهائية معزولة وقابلة لإعادة البناء.
+
+==================================================
+1. CREATE REBUILDABLE TEST FIXTURE
+==================================================
+
+استخدم قاعدة اختبار معزولة فقط.
+
+أنشئ أقل Dataset ممكن لإثبات الدورة:
+
+Customer
+→ Site
+→ Contract
+→ Container Type
+→ Container
+→ Delivery Work Order
+→ Driver
+→ Invoice
+→ Payment
+
+ويُفضّل أن تحتوي الـ fixture على:
+
+1 Customer
+1 Site
+1 Contract
+2 Container Types
+2 Containers
+1 Delivery Work Order
+1 Pickup Work Order
+1 Emptying Work Order
+1 Invoice
+2 Payments
+
+لا تستخدم Production.
+
+لا تستخدم بيانات العملاء الحقيقية.
+
+لا تترك بيانات الاختبار في Production.
+
+==================================================
+2. FULL CONTAINER LIFECYCLE
+==================================================
+
+أثبت فعليًا:
+
+Customer
+↓
+Site
+↓
+Contract
+↓
+Container
+↓
+Delivery Work Order
+↓
+Driver Assignment
+↓
+accepted
+↓
+started
+↓
+en_route
+↓
+arrived
+↓
+completed
+↓
+Container State Updated
+↓
+Contract Synchronization
+
+لا يكفي أن يكون الكود موجودًا.
+
+كل خطوة يجب أن يكون لها Assertion حقيقي.
+
+مثال:
+
+قبل Delivery:
+
+container.status = expected_before
+
+بعد completed:
+
+container.status = expected_after
+
+contract/container relationship = valid
+
+work_order.status = completed
+
+==================================================
+3. PICKUP
+==================================================
+
+نفّذ Pickup كـ Work Order مستقل.
+
+أثبت:
+
+service_requests delta = 0
+
+work_orders delta = +1
+
+ثم:
+
+Pickup completed
+
+→ container state updated correctly
+
+→ contract state remains consistent
+
+→ movement history created correctly
+
+==================================================
+4. EMPTYING
+==================================================
+
+نفّذ Emptying كـ Work Order مستقل.
+
+أثبت:
+
+service_requests delta = 0
+
+work_orders delta = +1
+
+ثم:
+
+Emptying completed
+
+→ correct operational state
+
+→ no duplicate operation
+
+==================================================
+5. IDEMPOTENCY
+==================================================
+
+اختبر عملية تشغيلية حساسة مرتين بنفس:
+
+Idempotency-Key
+
+يجب إثبات:
+
+same logical operation
+same resulting record
+no duplicate work order
+no duplicate movement
+no duplicate financial effect
+
+لا تقل PASS إلا إذا كان ذلك مثبتًا بالأرقام/IDs.
+
+==================================================
+6. FINANCIAL E2E
+==================================================
+
+استخدم نفس الـ fixture.
+
+نفّذ:
+
+Invoice
+Total = 1000
+
+Payment 1 = 500
+
+Payment 2 = 100
+
+يجب إثبات:
+
+beforePaid = 0
+
+afterPayment1 = 500
+
+afterPayment2 = 600
+
+paymentCount = 2
+
+remaining = 400
+
+invoice.status = partially_paid
+
+ثم أعد نفس Payment Request باستخدام نفس Idempotency-Key.
+
+يجب إثبات:
+
+same payment ID
+payment count unchanged
+paid total unchanged
+
+==================================================
+7. OVERPAYMENT
+==================================================
+
+حاول دفع مبلغ أكبر من:
+
+remaining
+
+يجب أن تكون النتيجة:
+
+REJECTED
+
+ويجب إثبات أن:
+
+paid total unchanged
+payment count unchanged
+remaining unchanged
+
+==================================================
+8. FINANCIAL RECONCILIATION
+==================================================
+
+بعد الدورة:
+
+Invoice Total
+=
+Paid
++
+Remaining
+
+وأثبت:
+
+1000 = 600 + 400
+
+ثم تحقق من Financial Reconciliation الحالية.
+
+لا تغيّر Financial Core.
+
+==================================================
+9. ROLE AUTHORIZATION
+==================================================
+
+اختبر صلاحيات الـ API فعليًا للأدوار الموجودة في النظام.
+
+لا تكتفِ بوجود middleware.
+
+اختبر على الأقل:
+
+unauthenticated
+authenticated unauthorized role
+authorized role
+
+على العمليات الحساسة المتعلقة بـ:
+
+View
+Create
+Edit
+Assign
+Delivery
+Pickup
+Emptying
+Financial
+Audit
+
+كل نتيجة يجب أن تكون مبنية على HTTP response فعلي.
+
+==================================================
+10. NODE / PHP PARITY
+==================================================
+
+بما أن CF-AUDIT-001 تم اكتشافه وإصلاحه:
+
+أثبت أن Node وPHP يدعمان نفس العمليات الحرجة:
+
+Contract → Work Order
+Work Order lifecycle
+Invoice → Payment
+Idempotency
+Financial status
+
+لا تراجع كل PHP.
+
+فقط المسارات الحرجة.
+
+وأضف parity check بسيط إذا كان ذلك مباشرًا ولا يتطلب Architecture جديدة.
+
+==================================================
+11. RESPONSIVE / ACCESSIBILITY
+==================================================
+
+لا تدخل في Audit جديد.
+
+نفّذ فقط Smoke Check سريع للنوافذ الحرجة:
+
+Container
+Contract
+Work Order
+Invoice
+Payment
+
+على:
+
+Mobile
+Desktop
+
+وتحقق من عدم وجود:
+
+horizontal overflow
+broken dialog
+inaccessible primary action
+missing label
+broken RTL
+
+إذا وجدت مشكلة حقيقية صغيرة ومباشرة، أصلحها.
+
+إذا كانت أكبر من ذلك:
+
+DOCUMENT ONLY
+
+==================================================
+12. DATA CLEANUP
+==================================================
+
+بعد انتهاء الاختبارات:
+
+تأكد أن بيانات الـ fixture موجودة فقط في قاعدة الاختبار.
+
+لا تلمس Production.
+
+لا تترك بيانات اختبار في قاعدة العميل.
+
+==================================================
+13. NO CODE CHANGES UNLESS REQUIRED
+==================================================
+
+إذا نجحت الدورة:
+
+لا تعدّل الكود.
+
+إذا ظهر Bug حقيقي:
+
+REPRODUCE
+→ FIX
+→ TARGETED TEST
+→ REGRESSION
+
+ولا تعدّل أي شيء آخر.
+
+==================================================
+14. FINAL REPORT
+==================================================
+
+بعد الانتهاء أرسل تقريرًا نهائيًا فقط بهذا الشكل:
+
+FINAL VALIDATION REPORT
+
+CODE
+TypeScript:
+API Build:
+Frontend Build:
+PHP Lint:
+
+OPERATIONAL
+Customer → Contract:
+Contract → Work Order:
+Driver Assignment:
+Driver Lifecycle:
+Delivery:
+Pickup:
+Emptying:
+Container Synchronization:
+Operational Idempotency:
+
+BILLING
+Contract → Invoice:
+Invoice → Payment:
+Partial Payment:
+Payment Idempotency:
+Overpayment Protection:
+Financial Reconciliation:
+
+AUTHORIZATION
+Unauthenticated:
+Unauthorized Role:
+Authorized Role:
+
+PARITY
+Node/PHP Critical Paths:
+
+UX
+Container:
+Contract:
+Work Order:
+Invoice:
+Payment:
+Mobile:
+Desktop:
+RTL:
+
+DATA
+Production Modified: NO
+Test Data Isolated: YES
+
+FINAL STATUS
+
+APPLICATION:
+LOCAL VALIDATION:
+E2E VALIDATION:
+PRODUCTION:
+PRODUCTION CONFIDENCE:
+
+CONTAINER SYSTEM SCORE:
+
+ثم:
+
+VERIFIED:
+[فقط ما تم إثباته فعليًا]
+
+NOT VERIFIED:
+[إن بقي شيء]
+
+ACTUAL BUGS FOUND:
+[فقط Bugs حقيقية]
+
+ACTUAL FIXES:
+[فقط ما تم تغييره]
+
+RECOMMENDATIONS:
+[فقط أهم 5 توصيات كحد أقصى]
+
+==================================================
+FINAL RULE
+==================================================
+
+لا تعيد الـ Audit.
+
+لا تعيد Discovery.
+
+لا تعيد قراءة الملفات التي سبق تحليلها إلا عند ظهور Failure محدد.
+
+لا تعيد الاختبارات التي ثبت نجاحها سابقًا إلا إذا كانت جزءًا من الـ E2E النهائي.
+
+لا تبدأ Modernization.
+
+لا تنشئ Architecture جديدة.
+
+لا تغيّر Financial Core.
+
+لا تغيّر Invoice Flow المستقر.
+
+لا تستخدم Production للاختبار.
+
+لا تكتب PASS بدون Assertion حقيقي.
+
+إذا نجحت كل الدورة:
+
+CLOSE THE TASK.
+
+إذا فشل شيء:
+
+اعزل السبب، أصلحه فقط إن كان Bug حقيقيًا، أعد الاختبار المستهدف، ثم أغلق.
+
+المطلوب الآن ليس المزيد من التحليل.
+
+المطلوب هو تحويل:
+
+NOT VERIFIED
+
+إلى:
+
+VERIFIED
+
+حيث يمكن إثباته، ثم إصدار الشهادة النهائية.
