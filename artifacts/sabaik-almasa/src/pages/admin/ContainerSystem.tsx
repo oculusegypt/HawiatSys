@@ -1142,11 +1142,20 @@ export default function ContainerSystem() {
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const [location, navigate] = useLocation()
-  const requestedView = new URLSearchParams(location.split("?")[1] ?? "").get("view") as ViewKey | null
-  const requestedCreate = new URLSearchParams(location.split("?")[1] ?? "").get("create") === "1"
-  const requestedCustomerId = Number(new URLSearchParams(location.split("?")[1] ?? "").get("customerId") ?? 0) || null
-  const requestedContractId = Number(new URLSearchParams(location.split("?")[1] ?? "").get("contractId") ?? 0) || null
-  const requestedRequestId = Number(new URLSearchParams(location.split("?")[1] ?? "").get("requestId") ?? 0) || null
+  // Wouter may expose only the pathname in its location value depending on
+  // the history adapter. Read the browser query as the source of truth so
+  // dashboard shortcuts such as ?view=invoice&create=1 cannot fall back to
+  // the default customer view.
+  const queryParams = useMemo(() => {
+    const browserSearch = typeof window !== "undefined" ? window.location.search : ""
+    const locationSearch = location.includes("?") ? `?${location.split("?").slice(1).join("?")}` : ""
+    return new URLSearchParams(browserSearch || locationSearch)
+  }, [location])
+  const requestedView = queryParams.get("view") as ViewKey | null
+  const requestedCreate = queryParams.get("create") === "1"
+  const requestedCustomerId = Number(queryParams.get("customerId") ?? 0) || null
+  const requestedContractId = Number(queryParams.get("contractId") ?? 0) || null
+  const requestedRequestId = Number(queryParams.get("requestId") ?? 0) || null
   const serviceRequestsQuery = useGetServiceRequests(undefined, { query: { staleTime: 30_000, queryKey: getGetServiceRequestsQueryKey() } })
   const requestContext = useMemo(() => {
     const stored = requestContextFromStorage(requestedRequestId)
@@ -1175,7 +1184,7 @@ export default function ContainerSystem() {
     if (requestedView === "invoice" && requestedCreate) {
       setDialog({ open: true, kind: "invoice", record: null })
     }
-  }, [requestContext, requestedCreate, requestedCustomerId, requestedView])
+  }, [requestContext, requestedContractId, requestedCreate, requestedCustomerId, requestedView])
   const collectionKind = viewKind[view] ?? (allKinds.includes(view as RecordKind) ? view as RecordKind : undefined)
   const isCollection = Boolean(collectionKind)
   const filterParams = useMemo(() => ({ kind: collectionKind, search: search.trim() || undefined }), [collectionKind, search])
