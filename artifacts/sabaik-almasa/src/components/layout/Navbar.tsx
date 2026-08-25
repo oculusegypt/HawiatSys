@@ -52,10 +52,8 @@ export function Navbar() {
   return (
     <>
       <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          isScrolled || isInnerPage
-            ? "bg-primary/95 backdrop-blur-md shadow-md py-3"
-            : "bg-transparent py-5"
+        className={`fixed top-0 left-0 right-0 z-50 border-b border-[#e7dccb]/80 bg-[#fffaf3]/95 backdrop-blur-md transition-all duration-300 ${
+          isScrolled || isInnerPage ? "shadow-md py-3" : "shadow-sm py-5"
         }`}
       >
         <div className="container mx-auto px-4 md:px-6">
@@ -65,7 +63,7 @@ export function Navbar() {
               {isLoaded && logoUrl ? (
                 <img src={logoUrl} alt={companyName || "تأجير حاويات بالرياض"} className="h-10 md:h-12 w-auto object-contain" />
               ) : (
-                <span className="font-extrabold text-white text-lg md:text-xl">
+                <span className="font-extrabold text-primary text-lg md:text-xl">
                   {companyName || "تأجير الحاويات"}
                 </span>
               )}
@@ -83,7 +81,7 @@ export function Navbar() {
               {isLoaded && orderTrackingEnabled && (
                 <button
                   onClick={() => setTrackingOpen(true)}
-                  className="hidden sm:inline-flex items-center gap-1.5 text-white/80 hover:text-white border border-white/25 hover:border-white/50 px-3.5 py-2 rounded-md text-sm font-medium transition-all duration-200"
+                  className="hidden sm:inline-flex items-center gap-1.5 text-primary/75 hover:text-primary border border-primary/15 hover:border-primary/35 px-3.5 py-2 rounded-md text-sm font-medium transition-all duration-200"
                 >
                   <Search size={14} />
                   تتبع الطلب
@@ -92,7 +90,7 @@ export function Navbar() {
 
               <Link
                 href="/admin/login"
-                className="hidden sm:inline-flex items-center gap-1.5 text-white/80 hover:text-white border border-white/25 hover:border-white/50 px-3.5 py-2 rounded-md text-sm font-medium transition-all duration-200"
+                className="hidden sm:inline-flex items-center gap-1.5 text-primary/75 hover:text-primary border border-primary/15 hover:border-primary/35 px-3.5 py-2 rounded-md text-sm font-medium transition-all duration-200"
               >
                 <ShieldCheck size={14} />
                 دخول الإدارة
@@ -101,7 +99,7 @@ export function Navbar() {
               {/* CTA */}
               <button
                 onClick={() => openModal()}
-                className="hidden sm:inline-flex items-center bg-secondary text-white px-5 py-2 rounded-md font-bold text-sm hover:bg-white hover:text-primary transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                className="hidden sm:inline-flex items-center bg-secondary text-white px-5 py-2 rounded-md font-bold text-sm hover:bg-primary hover:text-white transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
               >
                 اطلب الحاوية
               </button>
@@ -111,7 +109,7 @@ export function Navbar() {
                 onClick={() => setMenuOpen(p => !p)}
                 aria-label="القائمة الرئيسية"
                 aria-expanded={menuOpen}
-                className="md:hidden flex items-center justify-center w-10 h-10 rounded-xl text-white hover:bg-white/15 active:bg-white/20 transition-colors"
+                className="md:hidden flex items-center justify-center w-10 h-10 rounded-xl text-primary hover:bg-primary/10 active:bg-primary/15 transition-colors"
               >
                 {menuOpen ? <X size={24} /> : <Menu size={24} />}
               </button>
@@ -136,19 +134,19 @@ export function Navbar() {
       {/* Mobile menu drawer */}
       <div
         dir="rtl"
-        className={`fixed top-0 right-0 z-[60] h-full w-72 bg-primary shadow-2xl flex flex-col md:hidden transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 right-0 z-[60] h-full w-72 bg-[#fffaf3] shadow-2xl flex flex-col md:hidden transition-transform duration-300 ease-in-out ${
           menuOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#e7dccb]">
           {isLoaded && logoUrl ? (
             <img src={logoUrl} alt={companyName || "تأجير حاويات بالرياض"} className="h-10 w-auto" />
           ) : (
-            <span className="font-bold text-white text-base">{companyName || "تأجير الحاويات"}</span>
+            <span className="font-bold text-primary text-base">{companyName || "تأجير الحاويات"}</span>
           )}
           <button
             onClick={() => setMenuOpen(false)}
-            className="w-9 h-9 flex items-center justify-center rounded-xl text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+            className="w-9 h-9 flex items-center justify-center rounded-xl text-primary/70 hover:text-primary hover:bg-primary/10 transition-colors"
             aria-label="أغلق القائمة"
           >
             <X size={22} />
@@ -161,14 +159,14 @@ export function Navbar() {
               key={l.href}
               href={l.href}
               onClick={() => setMenuOpen(false)}
-              className="flex items-center px-4 py-3.5 rounded-xl text-white/85 hover:text-white hover:bg-white/10 font-medium text-[1rem] transition-colors"
+              className="flex items-center px-4 py-3.5 rounded-xl text-primary/85 hover:text-primary hover:bg-primary/10 font-medium text-[1rem] transition-colors"
             >
               {l.text}
             </a>
           ))}
         </nav>
 
-        <div className="px-4 pb-8 pt-3 border-t border-white/10 space-y-2.5">
+        <div className="px-4 pb-8 pt-3 border-t border-[#e7dccb] space-y-2.5">
           <button
             onClick={() => { setMenuOpen(false); openModal() }}
             className="w-full bg-secondary text-white py-3.5 rounded-xl font-bold text-base shadow-lg hover:bg-secondary/90 transition-colors"
@@ -178,7 +176,7 @@ export function Navbar() {
           {isLoaded && orderTrackingEnabled && (
             <button
               onClick={() => { setMenuOpen(false); setTrackingOpen(true) }}
-              className="w-full flex items-center justify-center gap-2 border border-white/25 text-white/80 hover:text-white hover:border-white/50 py-3 rounded-xl font-medium text-sm transition-colors"
+              className="w-full flex items-center justify-center gap-2 border border-primary/20 text-primary/75 hover:text-primary hover:border-primary/45 py-3 rounded-xl font-medium text-sm transition-colors"
             >
               <Search size={15} />
               تتبع الطلب
@@ -202,9 +200,7 @@ function NavLink({ href, text, isScrolled }: { href: string; text: string; isScr
   return (
     <a
       href={href}
-      className={`font-medium transition-colors hover:text-secondary ${
-        isScrolled ? "text-gray-200" : "text-gray-100 drop-shadow-md"
-      }`}
+      className="font-medium text-primary/80 transition-colors hover:text-secondary"
     >
       {text}
     </a>
