@@ -10,11 +10,7 @@ export interface PackageCardProps {
   onRequest: () => void
 }
 
-export const ARABIC_CATEGORY_NAMES: Record<string, string> = {
-  debris: "أنقاض",
-  waste: "نفايات",
-  contract: "عقد نظافة",
-}
+export const ARABIC_CATEGORY_NAMES: Record<string, string> = {}
 
 function parseImages(raw: unknown): string[] {
   if (Array.isArray(raw)) return raw.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
@@ -70,12 +66,7 @@ function PhoneRow({ callNumber, whatsappNumber, name }: { callNumber: string; wh
 }
 
 export function resolveServiceTypeFromContainer(c: { category?: any; name?: any; id?: any }): string {
-  if (!c) return "حاويات الأنقاض"
-  const cat = String(c.category || "").toLowerCase()
-  if (cat === "debris") return "حاويات الأنقاض"
-  if (cat === "waste") return "حاويات النفايات"
-  if (cat === "contract") return "عقود النظافة"
-  return "حاويات الأنقاض"
+  return c?.name ? String(c.name) : "الباقة المختارة"
 }
 
 export function PackageCard({ container: c, onRequest }: PackageCardProps) {
@@ -86,8 +77,7 @@ export function PackageCard({ container: c, onRequest }: PackageCardProps) {
   const callNumber = c.contactPhone2 || c.contactPhone1 || defaultCall
   const whatsappNumber = c.contactPhone1 || defaultWa
 
-  const categoryArabic = (c.category && ARABIC_CATEGORY_NAMES[c.category]) || c.category || "أنقاض"
-  const isWasteOrContract = c.category === "waste" || c.category === "contract"
+  const categoryArabic = "باقة متاحة"
 
   return (
     <div className="bg-white border-2 border-slate-100 hover:border-secondary/40 rounded-3xl overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-300 flex flex-col justify-between group transform hover:-translate-y-1">
@@ -186,7 +176,7 @@ export function PackageCard({ container: c, onRequest }: PackageCardProps) {
             onClick={onRequest}
             className="w-full text-center bg-primary hover:bg-secondary hover:text-slate-950 text-white font-extrabold py-3 rounded-2xl transition-all duration-300 text-sm shadow-md hover:shadow-xl transform active:scale-98"
           >
-            {isWasteOrContract ? "طلب عرض سعر معتمد ←" : "اطلب الحاوية فوراً ←"}
+            {"اطلب الباقة الآن ←"}
           </button>
           <PhoneRow callNumber={callNumber} whatsappNumber={whatsappNumber} name={c.name} />
         </div>

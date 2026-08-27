@@ -1,33 +1,20 @@
-import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useGetContainers } from "@workspace/api-client-react"
 import type { Container } from "@workspace/api-client-react"
-import { Check, Maximize, Weight, Phone, MessageCircle, Clock, Info, FileText } from "lucide-react"
 import { useServiceRequest } from "@/context/ServiceRequestContext"
-import { resolveContactNumbers, useSiteSettings } from "@/context/SiteSettingsContext"
-import { CategoryTabs, TABS } from "@/components/home/packages/CategoryTabs"
-import { PackageCard, resolveServiceTypeFromContainer, getContainerImage } from "@/components/home/packages/PackageCard"
+import { useSiteSettings } from "@/context/SiteSettingsContext"
+import { PackageCard } from "@/components/home/packages/PackageCard"
 
 export function PackagesSection({ initialCategory = "all" }: { initialCategory?: string }) {
   const { data: apiData, isLoading } = useGetContainers()
   const { openModal } = useServiceRequest()
   const { companyName, homepageContent } = useSiteSettings()
   const copy = homepageContent.sections?.packages
-  const [activeTab, setActiveTab] = useState(initialCategory)
-
-  // Sync if initialCategory changes
-  useState(() => {
-    if (initialCategory && initialCategory !== activeTab) {
-      setActiveTab(initialCategory)
-    }
-  })
 
   const all: Container[] = (apiData ?? [])
     .filter((c) => c.isActive)
     .sort((a, b) => a.order - b.order)
-
-  const filtered =
-    activeTab === "all" ? all : all.filter((c) => (c.category ?? "debris") === activeTab)
+  const filtered = all
 
   if (!isLoading && all.length === 0) return null
 
@@ -52,17 +39,14 @@ export function PackagesSection({ initialCategory = "all" }: { initialCategory?:
           </h2>
           <div className="w-24 h-1.5 bg-secondary mx-auto rounded-full mb-6" />
           <p className="text-gray-600 text-lg">
-            {copy?.description || "اختر الحجم والفئة المناسبة لاحتياجات مشروعك (أنقاض، نفايات، عقود نظافة ومكابس)."}
+            {copy?.description || "اختر الباقة المناسبة لاحتياجاتك، وسيتواصل معك فريقنا لتأكيد التفاصيل وموعد التنفيذ."}
           </p>
         </motion.div>
-
-        {/* Category Tabs */}
-        <CategoryTabs activeTab={activeTab} onSelectTab={setActiveTab} />
 
         {/* Cards Grid */}
         <AnimatePresence mode="wait">
           <motion.div
-            key={activeTab}
+            key={initialCategory}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
@@ -74,16 +58,13 @@ export function PackagesSection({ initialCategory = "all" }: { initialCategory?:
                   <div key={i} className="bg-white rounded-2xl shadow-md animate-pulse h-80" />
                 ))
               : filtered.map((c, i) =>
-                  c.category === "contract"
-                    ? <ContractCard key={c.id} container={c} index={i} onRequest={() => openModal({ serviceType: "عقود النظافة", containerSize: "", containerName: c.name })} />
-                    : <PackageCard key={c.id} container={c} index={i} companyName={companyName} onRequest={() =>
-                        openModal({
-                          serviceType: resolveServiceTypeFromContainer(c),
-                          containerSize: `${c.name}${c.size ? ` - ${c.size}` : ""}`,
-                          containerName: c.name,
-                        })
-                      }
-                    />
+                  <PackageCard key={c.id} container={c} index={i} companyName={companyName} onRequest={() =>
+                    openModal({
+                      serviceType: c.name,
+                      containerSize: `${c.name}${c.size ? ` - ${c.size}` : ""}`,
+                      containerName: c.name,
+                    })
+                  } />
                 )}
             {!isLoading && filtered.length === 0 && (
               <div className="col-span-full text-center py-16 text-gray-400">
@@ -95,112 +76,5 @@ export function PackagesSection({ initialCategory = "all" }: { initialCategory?:
 
       </div>
     </section>
-  )
-}
-
-function parseFeatures(raw: unknown): string[] {
-  if (Array.isArray(raw)) return raw as string[]
-  if (typeof raw === "string") {
-    try { return JSON.parse(raw) } catch { return [] }
-  }
-  return []
-}
-
-function ContractCard({
-  container: c,
-  index,
-  onRequest,
-}: {
-  container: Container
-  index: number
-  onRequest: () => void
-}) {
-  const { phoneCall, phoneWhatsapp, phones } = useSiteSettings()
-  const feats = parseFeatures(c.features)
-  const { call: defaultCall, whatsapp: defaultWa } = resolveContactNumbers(phoneCall, phoneWhatsapp, phones)
-  const contractCallNumber = c.contactPhone2 || c.contactPhone1 || defaultCall
-  const contractWhatsappNumber = c.contactPhone1 || defaultWa
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 40 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-50px" }}
-      transition={{ duration: 0.5, delay: index * 0.08 }}
-      className="bg-gradient-to-br from-blue-900 to-blue-700 rounded-2xl overflow-hidden shadow-lg flex flex-col text-white"
-    >
-      {/* Header strip */}
-      <div className="flex items-center gap-3 px-6 pt-6 pb-4 border-b border-white/10">
-        <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center shrink-0">
-          <FileText size={24} className="text-white" />
-        </div>
-        <div>
-          <span className="text-xs font-semibold bg-blue-500/50 px-2 py-0.5 rounded-full">عقد نظافة معتمد</span>
-          <h3 className="text-lg font-bold mt-1 leading-tight">{c.name}</h3>
-        </div>
-      </div>
-
-      <div className="p-6 flex-1 flex flex-col gap-4">
-        {/* Price callout */}
-        {c.priceText && (
-          <div className="bg-white/10 rounded-xl px-4 py-3 text-center">
-            <p className="text-xs text-blue-200 mb-0.5">السعر</p>
-            <p className="text-2xl font-extrabold">{c.priceText}</p>
-          </div>
-        )}
-
-        {/* Description */}
-        <p className="text-blue-100 text-sm leading-relaxed">{c.description}</p>
-
-        {/* Features */}
-        {feats.length > 0 && (
-          <div className="space-y-1.5">
-            {feats.map((f, i) => (
-              <div key={i} className="flex items-start gap-2 text-xs text-blue-100">
-                <Check size={13} className="text-blue-300 shrink-0 mt-0.5" /><span>{f}</span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* SuitableFor */}
-        {c.suitableFor && (
-          <div className="flex items-start gap-2 text-xs text-blue-100 bg-white/10 rounded-lg p-2">
-            <Info size={13} className="text-blue-300 shrink-0 mt-0.5" />
-            <span><strong>مناسب لـ:</strong> {c.suitableFor}</span>
-          </div>
-        )}
-
-        {/* Rental period */}
-        {c.rentalPeriod && (
-          <div className="flex items-center gap-2 text-xs text-blue-200">
-            <Clock size={13} className="text-blue-300 shrink-0" /><span>{c.rentalPeriod}</span>
-          </div>
-        )}
-
-        {/* CTA */}
-        <div className="flex flex-col gap-0 mt-auto pt-2">
-          <button
-            onClick={onRequest}
-            className="w-full text-center bg-white text-blue-800 font-bold py-2.5 rounded-xl transition-all duration-200 text-sm shadow hover:shadow-lg hover:bg-blue-50"
-          >
-            طلب عقد النظافة الآن ←
-          </button>
-          {(contractCallNumber || contractWhatsappNumber) && (
-            <div className="flex gap-2 mt-2">
-              {contractCallNumber && <a href={`tel:${contractCallNumber}`}
-                className="flex-1 flex items-center justify-center gap-1.5 border border-white/30 text-white py-2 rounded-xl text-xs font-medium hover:bg-white/10 transition-colors">
-                <Phone size={13} /> اتصل
-              </a>}
-              {contractWhatsappNumber && <a href={`https://wa.me/966${contractWhatsappNumber.replace(/^0/, "")}?text=${encodeURIComponent(`أريد الاستفسار عن ${c.name}`)}`}
-                target="_blank" rel="noopener noreferrer"
-                className="flex-1 flex items-center justify-center gap-1.5 bg-green-500 hover:bg-green-400 text-white py-2 rounded-xl text-xs font-medium transition-colors">
-                <MessageCircle size={13} /> واتساب
-              </a>}
-            </div>
-          )}
-        </div>
-      </div>
-    </motion.div>
   )
 }

@@ -7,8 +7,7 @@ import { TrackOrderModal } from "@/components/home/TrackOrderModal"
 
 const NAV_LINKS = [
   { href: "/", text: "الرئيسية" },
-  { href: "/#containers", text: "الحاويات" },
-  { href: "/#services", text: "الخدمات" },
+  { href: "/#containers", text: "الباقات" },
   { href: "/pricing", text: "الأسعار" },
   { href: "/blog", text: "المدونة" },
   { href: "/faq", text: "الأسئلة الشائعة" },
@@ -54,8 +53,8 @@ export function Navbar() {
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           isScrolled || isInnerPage
-            ? "border-b border-[#e7dccb]/20 bg-[#fffaf3]/25 backdrop-blur-sm shadow-md py-3"
-            : "border-b border-transparent bg-transparent py-5"
+            ? "border-b border-slate-200/90 bg-white/95 backdrop-blur-xl shadow-[0_8px_30px_rgba(15,23,42,0.10)] py-3"
+            : "border-b border-white/15 bg-slate-950/20 backdrop-blur-[2px] py-5"
         }`}
       >
         <div className="container mx-auto px-4 md:px-6">
@@ -72,7 +71,7 @@ export function Navbar() {
             </Link>
 
             {/* Desktop nav */}
-            <nav className="hidden md:flex items-center gap-6 lg:gap-8 text-[#fafafa]">
+            <nav className="hidden md:flex items-center gap-6 lg:gap-8">
               {NAV_LINKS.map(l => (
                 <NavLink key={l.href} href={l.href} text={l.text} isScrolled={isScrolled || isInnerPage} />
               ))}
@@ -83,7 +82,11 @@ export function Navbar() {
               {isLoaded && orderTrackingEnabled && (
                 <button
                   onClick={() => setTrackingOpen(true)}
-                  className="hidden sm:inline-flex items-center gap-1.5 hover:text-primary border border-primary/15 hover:border-primary/35 px-3.5 py-2 rounded-md text-sm font-medium transition-all duration-200 text-[#e8e8e8]"
+                  className={`hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-bold transition-all duration-200 ${
+                    isScrolled || isInnerPage
+                      ? "border border-primary/15 text-primary hover:border-primary/35 hover:bg-primary/5"
+                      : "border border-white/35 text-white hover:border-secondary hover:bg-white/10"
+                  }`}
                 >
                   <Search size={14} />
                   تتبع الطلب
@@ -92,7 +95,11 @@ export function Navbar() {
 
               <Link
                 href="/admin/login"
-                className="hidden sm:inline-flex items-center gap-1.5 hover:text-primary border border-primary/15 hover:border-primary/35 px-3.5 py-2 rounded-md text-sm font-medium transition-all duration-200 text-[#f5f5f5]"
+                className={`hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-bold transition-all duration-200 ${
+                  isScrolled || isInnerPage
+                    ? "border border-primary/15 text-primary hover:border-primary/35 hover:bg-primary/5"
+                    : "border border-white/35 text-white hover:border-secondary hover:bg-white/10"
+                }`}
               >
                 <ShieldCheck size={14} />
                 دخول الإدارة
@@ -101,7 +108,7 @@ export function Navbar() {
               {/* CTA */}
               <button
                 onClick={() => openModal()}
-                className="hidden sm:inline-flex items-center bg-secondary text-white px-5 py-2 rounded-md font-bold text-sm hover:bg-primary hover:text-white transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                className="hidden sm:inline-flex items-center bg-secondary text-primary px-5 py-2.5 rounded-xl font-black text-sm hover:bg-primary hover:text-white transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
               >
                 اطلب الحاوية
               </button>

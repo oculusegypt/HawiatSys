@@ -104,10 +104,15 @@ function SidebarContent({ permissions = [], onNavClick, onLogout, userName, user
   const RIcon = roleInfo.icon
   return (
     <div className="flex min-h-0 flex-col h-full">
-      <div className="p-5 border-b border-white/10 shrink-0">
-         {isLoaded && logoUrl ? <img src={logoUrl} alt={`شعار ${companyName}`} className="h-14 max-w-full w-auto object-contain mt-0 mb-3" /> : <div className="h-14 mb-3" aria-hidden="true" />}
-        <h2 className="text-lg font-bold text-white leading-tight">لوحة الإدارة</h2>
-         <p className="text-white/40 text-xs mt-0.5">{companyName}</p>
+      <div className="p-4 border-b border-white/10 shrink-0">
+        <div className="relative flex min-h-[5.5rem] items-center justify-center overflow-hidden rounded-2xl border border-white/15 bg-gradient-to-br from-white via-slate-50 to-amber-50/90 px-3 py-4 shadow-xl shadow-black/10">
+          <span className="absolute inset-x-0 top-0 h-1 bg-gradient-to-l from-secondary via-amber-300 to-primary" aria-hidden="true" />
+          {isLoaded && logoUrl ? (
+            <img src={logoUrl} alt={`شعار ${companyName}`} className="max-h-14 max-w-full w-auto object-contain" />
+          ) : (
+            <span className="text-primary/30 text-xs font-bold" aria-hidden="true"> </span>
+          )}
+        </div>
       </div>
 
       <nav className="min-h-0 flex-1 overflow-y-auto py-3 overscroll-contain" aria-label="قائمة إدارة النظام">

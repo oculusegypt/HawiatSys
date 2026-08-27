@@ -1,6 +1,6 @@
 import { Navbar } from "@/components/layout/Navbar"
 import { Footer } from "@/components/layout/Footer"
-import { ServicesSection } from "@/components/home/ServicesSection"
+import { PackagesSection } from "@/components/home/PackagesSection"
 import { HowItWorksSection } from "@/components/home/HowItWorksSection"
 import { useDocumentSEO } from "@/hooks/useDocumentSEO"
 import { siteUrl } from "@/lib/siteUrl"
@@ -34,7 +34,7 @@ export default function WhyUsWhatWe() {
       </div>
 
       <main className="flex-1">
-        <ServicesSection />
+        <PackagesSection />
         <HowItWorksSection />
       </main>
 

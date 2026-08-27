@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Lock, CalendarClock, Zap, FileText, Phone, CheckCircle, Loader2, Box, Truck, MapPin, Navigation } from "lucide-react"
 import { DraggableMapPicker } from "@/components/ui/DraggableMapPicker"
 import { useSiteSettings } from "@/context/SiteSettingsContext"
-import { getContainerValue, getContainersForService } from "@/lib/packageOptions"
+import { getActiveContainers, getContainerValue } from "@/lib/packageOptions"
 import { getVisitorTracking } from "@/lib/visitorAttribution"
 
 const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
@@ -30,14 +30,6 @@ const formSchema = z.object({
   appointmentType: z.enum(["immediate", "scheduled"]).default("immediate"),
   scheduledAt: z.string().optional(),
 })
-
-const PUBLIC_SERVICES = [
-  { value: "حاويات الأنقاض", label: "حاويات الأنقاض ومخلفات الهدم", category: "debris" },
-  { value: "حاويات النفايات", label: "حاويات النفايات والمكابس", category: "waste" },
-  { value: "عقود النظافة", label: "عقود النظافة للمنشآت وتجديد الرخص", category: "contract" },
-  { value: "نقل الأنقاض والمخلفات", label: "نقل الأنقاض والمخلفات بالأسطول", category: "debris" },
-  { value: "طلب أي خدمة", label: "طلب خدمة مخصصة / استشارة", category: "all" },
-]
 
 export function ServiceRequestForm() {
   const { companyName, phoneCall, phoneWhatsapp } = useSiteSettings()
@@ -86,20 +78,12 @@ export function ServiceRequestForm() {
     },
   })
 
-  const selectedServiceType = form.watch("serviceType")
-  const containerOptions = getContainersForService(apiContainers, selectedServiceType)
-  const isContainerService =
-    selectedServiceType === "حاويات الأنقاض" ||
-    selectedServiceType === "حاويات النفايات" ||
-    selectedServiceType === "نقل الأنقاض والمخلفات" ||
-    selectedServiceType === "عقود النظافة"
+  const availablePackages = getActiveContainers(apiContainers)
 
   // Tomorrow as minimum date for scheduling
   const minDate = new Date()
   minDate.setDate(minDate.getDate() + 1)
   const minDateStr = minDate.toISOString().slice(0, 16)
-  const quoteContainerOptions = getContainersForService(apiContainers, quoteForm.serviceType)
-
   async function handleQuoteSubmit() {
     const errs: { name?: string; phone?: string } = {}
     if (!quoteForm.name.trim()) errs.name = "الاسم مطلوب"
@@ -260,28 +244,12 @@ export function ServiceRequestForm() {
                     onChange={e => setQuoteForm(prev => ({ ...prev, serviceType: e.target.value, containerSize: "" }))}
                     className="w-full text-sm border rounded-xl p-2.5 bg-white"
                   >
-                    <option value="">اختر الخدمة...</option>
-                    {PUBLIC_SERVICES.map(s => (
-                      <option key={s.value} value={s.value}>{s.label}</option>
+                    <option value="">اختر الباقة...</option>
+                    {availablePackages.map((pkg) => (
+                      <option key={pkg.id} value={getContainerValue(pkg)}>{pkg.name}</option>
                     ))}
                   </select>
                 </div>
-
-                {quoteContainerOptions.length > 0 && (
-                  <div>
-                    <label className="text-xs font-bold text-gray-700 block mb-1">حجم الحاوية التقريبي</label>
-                    <select
-                      value={quoteForm.containerSize}
-                      onChange={e => setQuoteForm(prev => ({ ...prev, containerSize: e.target.value }))}
-                      className="w-full text-sm border rounded-xl p-2.5 bg-white"
-                    >
-                      <option value="">اختر الحجم إن وجد...</option>
-                      {quoteContainerOptions.map(c => (
-                        <option key={c.id} value={getContainerValue(c)}>{getContainerValue(c)}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
 
                 <div>
                   <label className="text-xs font-bold text-gray-700 block mb-1">الاسم / اسم المنشأة *</label>
@@ -440,52 +408,27 @@ export function ServiceRequestForm() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-sm font-bold text-gray-700">نوع الخدمة المطلوب *</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={containersLoading || availablePackages.length === 0}>
                         <FormControl>
                           <SelectTrigger className="rounded-xl border-gray-200 focus:border-primary focus:ring-primary h-12">
-                            <SelectValue placeholder="اختر نوع الخدمة أو الحاوية" />
+                              <SelectValue placeholder={containersLoading ? "جاري تحميل الباقات..." : "اختر الباقة المتاحة"} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent className="rounded-xl">
-                          {PUBLIC_SERVICES.map((s) => (
-                            <SelectItem key={s.value} value={s.value} className="py-2.5">
-                              {s.label}
+                            {availablePackages.map((pkg) => (
+                              <SelectItem key={pkg.id} value={getContainerValue(pkg)} className="py-2.5">
+                                {pkg.name}{pkg.size ? ` — ${pkg.size}` : ""}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
+                        {!containersLoading && availablePackages.length === 0 && (
+                          <p className="text-xs text-amber-700 mt-2">لا توجد باقات متاحة للحجز حالياً.</p>
+                        )}
                       <FormMessage className="text-xs" />
                     </FormItem>
                   )}
                 />
-
-                {/* Dynamic Container Size */}
-                {isContainerService && containerOptions.length > 0 && (
-                  <FormField
-                    control={form.control}
-                    name="containerSize"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-sm font-bold text-gray-700">حجم ومقاس الحاوية</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="rounded-xl border-gray-200 focus:border-primary focus:ring-primary h-12">
-                              <SelectValue placeholder="اختر حجم الحاوية المناسب" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent className="rounded-xl">
-                            {containerOptions.map((c) => (
-                              <SelectItem key={c.id} value={getContainerValue(c)} className="py-2.5">
-                                {getContainerValue(c)} {c.priceText ? `— (${c.priceText})` : ""}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage className="text-xs" />
-                      </FormItem>
-                    )}
-                  />
-                )}
 
                 {/* Duration */}
                 <FormField

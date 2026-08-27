@@ -48,9 +48,6 @@ export function SeoPagesLinksSection() {
     return [
       { id: "all", label: "جميع الصفحات والأدلة" },
       { id: "debris", label: "حاويات الأنقاض ومخلفات البناء" },
-      { id: "waste", label: "حاويات النفايات والمكابس" },
-      { id: "contracts", label: "عقود النظافة وتجديد الرخص" },
-      { id: "earthwork", label: "ردم وتسوية الأراضي" },
     ]
   }, [])
 
@@ -59,9 +56,6 @@ export function SeoPagesLinksSection() {
     return pages.filter(p => {
       const text = (p.title + " " + p.slug + " " + (p.targetKeyword || "")).toLowerCase()
       if (activeTab === "debris") return text.includes("أنقاض") || text.includes("هدم") || text.includes("بناء") || text.includes("مخلفات") || text.includes("ترميم")
-      if (activeTab === "waste") return text.includes("نفايات") || text.includes("مكبس") || text.includes("مطاعم") || text.includes("محلات")
-      if (activeTab === "contracts") return text.includes("عقد") || text.includes("بلدي") || text.includes("رخص") || text.includes("أمانة")
-      if (activeTab === "earthwork") return text.includes("ردم") || text.includes("تسوية") || text.includes("أراضي") || text.includes("معدات")
       return true
     })
   }, [pages, activeTab])

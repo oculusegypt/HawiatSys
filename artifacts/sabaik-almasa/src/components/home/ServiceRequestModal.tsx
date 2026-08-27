@@ -13,8 +13,7 @@ import { DraggableMapPicker } from "@/components/ui/DraggableMapPicker"
 import { useGetContainers } from "@workspace/api-client-react"
 import { getVisitorTracking, sendVisitorHeartbeat } from "@/lib/visitorAttribution"
 import { getHighAccuracyPosition } from "@/lib/reverseGeocode"
-import { SERVICE_TYPES, DEBRIS_CONTAINERS, WASTE_CONTAINERS } from "@/components/request-modal/constants"
-import { getContainerValue, getContainersForService } from "@/lib/packageOptions"
+import { getActiveContainers, getContainerValue } from "@/lib/packageOptions"
 
 const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
 
@@ -148,14 +147,9 @@ export function ServiceRequestModal() {
 
   if (!isOpen) return null
 
-  const handleSelectService = (id: string) => {
-    setServiceType(id)
-    setContainerSize("")
-    setStep("container")
-  }
-
-  const handleSelectContainer = (size: string) => {
-    setContainerSize(size)
+  const handleSelectPackage = (pkg: NonNullable<typeof apiContainers>[number]) => {
+    setServiceType(pkg.name)
+    setContainerSize(getContainerValue(pkg))
     setStep("details")
   }
 
@@ -263,7 +257,7 @@ export function ServiceRequestModal() {
   }
 
   const minDateStr = getTodayString()
-  const containersForCurrentService = getContainersForService(apiContainers, serviceType)
+  const availablePackages = getActiveContainers(apiContainers)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
@@ -309,27 +303,26 @@ export function ServiceRequestModal() {
                 exit={{ opacity: 0, x: -20 }}
                 className="space-y-4"
               >
-                <p className="text-xs text-gray-500 font-medium">اختر نوع الخدمة أو الحاوية المطلوبة لمشروعك:</p>
+                <p className="text-xs text-gray-500 font-medium">اختر إحدى الباقات المتاحة من الكتالوج:</p>
                 <div className="space-y-2.5">
-                  {SERVICE_TYPES.map((st) => {
-                    const Icon = st.icon
+                  {availablePackages.map((pkg) => {
                     return (
                       <button
-                        key={st.id}
+                        key={pkg.id}
                         type="button"
-                        onClick={() => handleSelectService(st.id)}
-                        className={`w-full text-right p-4 rounded-2xl border bg-gradient-to-r ${st.color} hover:shadow-md transition-all flex items-center justify-between group`}
+                        onClick={() => handleSelectPackage(pkg)}
+                        className="w-full text-right p-4 rounded-2xl border border-slate-200 bg-gradient-to-r from-white to-slate-50 hover:border-secondary/60 hover:shadow-md transition-all flex items-center justify-between group"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-primary shrink-0 group-hover:scale-110 transition-transform">
-                            <Icon size={20} />
+                          <div className="w-10 h-10 rounded-xl bg-secondary/10 shadow-sm flex items-center justify-center text-secondary shrink-0 group-hover:scale-110 transition-transform">
+                            <Box size={20} />
                           </div>
                           <div>
                             <h4 className="font-bold text-gray-900 text-sm group-hover:text-primary transition-colors">
-                              {st.label}
+                              {pkg.name}
                             </h4>
                             <p className="text-xs text-gray-500 leading-tight line-clamp-1 mt-0.5">
-                              {st.desc}
+                              {pkg.size || pkg.description}
                             </p>
                           </div>
                         </div>
@@ -337,63 +330,10 @@ export function ServiceRequestModal() {
                       </button>
                     )
                   })}
-                </div>
-              </motion.div>
-            )}
-
-            {/* STEP 2: Select Container Size */}
-            {step === "container" && (
-              <motion.div
-                key="step-container"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="space-y-4"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs text-gray-500 font-medium">اختر المقاس المناسب لحاوية {serviceType}:</p>
-                  <button
-                    type="button"
-                    onClick={() => setStep("service")}
-                    className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
-                  >
-                    تغيير الخدمة
-                  </button>
-                </div>
-
-                <div className="space-y-2.5">
-                  {containersForCurrentService.length > 0 ? (
-                    containersForCurrentService.map((c) => (
-                      <button
-                        key={c.id}
-                        type="button"
-                        onClick={() => handleSelectContainer(getContainerValue(c))}
-                        className="w-full text-right p-4 rounded-2xl border border-gray-200 hover:border-primary hover:bg-primary/5 transition-all flex items-center justify-between group"
-                      >
-                        <div>
-                          <h4 className="font-bold text-gray-900 text-sm group-hover:text-primary transition-colors">
-                            {c.name} {c.size ? `(${c.size})` : ""}
-                          </h4>
-                          <p className="text-xs text-gray-500 mt-1">
-                            {c.suitableFor || c.description}
-                          </p>
-                        </div>
-                        {c.priceText && (
-                          <span className="text-xs font-bold text-secondary bg-secondary/10 px-2.5 py-1 rounded-lg shrink-0 mr-2">
-                            {c.priceText}
-                          </span>
-                        )}
-                      </button>
-                    ))
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => handleSelectContainer("حسب المعاينة")}
-                      className="w-full text-right p-4 rounded-2xl border border-gray-200 hover:border-primary hover:bg-primary/5 transition-all"
-                    >
-                      <h4 className="font-bold text-gray-900 text-sm">متابعة لتحديد الحجم مع المندوب</h4>
-                      <p className="text-xs text-gray-500 mt-1">سيقوم فريقنا باقتراح الحجم المناسب بعد معاينة الموقع أو الصور.</p>
-                    </button>
+                  {availablePackages.length === 0 && (
+                    <p className="rounded-2xl border border-amber-100 bg-amber-50 p-4 text-center text-sm text-amber-700">
+                      لا توجد باقات متاحة للحجز حالياً.
+                    </p>
                   )}
                 </div>
               </motion.div>

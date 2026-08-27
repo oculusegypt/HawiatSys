@@ -69,7 +69,7 @@ export function Footer() {
               <li><Link href="/"><span className="text-gray-300 hover:text-white transition-colors cursor-pointer block">الرئيسية</span></Link></li>
               <li><Link href="/about"><span className="text-gray-300 hover:text-white transition-colors cursor-pointer block">من نحن</span></Link></li>
               <li><a href="/#containers" className="text-gray-300 hover:text-white transition-colors block">الحاويات المتاحة</a></li>
-              <li><a href="/#services" className="text-gray-300 hover:text-white transition-colors block">خدماتنا</a></li>
+               <li><a href="/#containers" className="text-gray-300 hover:text-white transition-colors block">الباقات المتاحة</a></li>
               <li><Link href="/faq"><span className="text-gray-300 hover:text-white transition-colors cursor-pointer block font-semibold text-secondary">الأسئلة الشائعة (FAQ)</span></Link></li>
               <li><Link href="/pricing"><span className="text-gray-300 hover:text-white transition-colors cursor-pointer block">أسعار الحاويات</span></Link></li>
               <li><Link href="/areas"><span className="text-gray-300 hover:text-white transition-colors cursor-pointer block">تغطية أحياء الرياض</span></Link></li>
@@ -78,18 +78,15 @@ export function Footer() {
             </ul>
           </div>
 
-          <div>
+           <div>
             <h3 className="text-xl font-bold mb-6 text-secondary relative inline-block">
-              الحاويات والخدمات
+              الباقات المتاحة
               <span className="absolute bottom-0 right-0 w-1/2 h-1 bg-secondary rounded-full -mb-2"></span>
             </h3>
             <ul className="space-y-3">
-              <li><Link href="/pricing"><span className="text-gray-300 hover:text-white transition-colors cursor-pointer block">أسعار تأجير الحاويات</span></Link></li>
-              <li><Link href="/containers/debris"><span className="text-gray-300 hover:text-white transition-colors cursor-pointer block">حاويات الأنقاض (12 إلى 30 ياردة)</span></Link></li>
-              <li><Link href="/containers/waste"><span className="text-gray-300 hover:text-white transition-colors cursor-pointer block">حاويات النفايات والمكابس للمنشآت</span></Link></li>
-              <li><Link href="/containers/contracts"><span className="text-gray-300 hover:text-white transition-colors cursor-pointer block">عقود النظافة وتجديد الرخص</span></Link></li>
-              <li><Link href="/services/transport-rubble-waste-saudi"><span className="text-gray-300 hover:text-white transition-colors cursor-pointer block">نقل وتفريغ مخلفات الهدم والبناء</span></Link></li>
-              <li><Link href="/services/raddm-taswiyat-al-ardi"><span className="text-gray-300 hover:text-white transition-colors cursor-pointer block">ردم وتسوية الأراضي بالمعدات الثقيلة</span></Link></li>
+              <li><Link href="/packages"><span className="text-gray-300 hover:text-white transition-colors cursor-pointer block">استعراض الباقات</span></Link></li>
+              <li><Link href="/pricing"><span className="text-gray-300 hover:text-white transition-colors cursor-pointer block">أسعار الباقات</span></Link></li>
+              <li><a href="/#service-request" className="text-gray-300 hover:text-white transition-colors block">احجز باقتك الآن</a></li>
             </ul>
           </div>
 
