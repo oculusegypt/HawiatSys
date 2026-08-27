@@ -33,6 +33,23 @@ const absoluteUrl = (value) => {
   return /^https?:\/\//i.test(value) ? value : `${baseUrl}${value.startsWith("/") ? "" : "/"}${value}`;
 };
 
+const localImageExists = (value) => {
+  if (!value || /^https?:\/\//i.test(value)) return true;
+  const pathValue = value.split(/[?#]/)[0];
+  const normalizedPath = pathValue.replace(/^\/api\/uploads\//, "/uploads/");
+  const candidates = [
+    join(root, "artifacts", "sabaik-almasa", "public", normalizedPath.replace(/^\/+/, "")),
+    join(root, "artifacts", "api-server", normalizedPath.replace(/^\/+/, "")),
+    join(root, "artifacts", "api-server", "uploads", normalizedPath.split("/").pop() || ""),
+  ];
+  return candidates.some((candidate) => existsSync(candidate));
+};
+
+const normalizeImages = (images = []) => [...new Set(images
+  .filter((image) => typeof image === "string" && image.trim())
+  .map((image) => image.trim())
+  .filter(localImageExists))].slice(0, 8);
+
 const staticPages = [
   ["/", "1.0", "daily"],
   ["/about", "0.9", "monthly"],
@@ -54,14 +71,14 @@ const staticPages = [
 ];
 
 const services = db.prepare(`
-  SELECT title, seo_slug AS slug, images
+  SELECT title, seo_slug AS slug, images, image_url
   FROM services
   WHERE is_active = 1 AND seo_enabled = 1 AND seo_slug IS NOT NULL AND seo_slug != ''
   ORDER BY "order" ASC
 `).all();
 
 const containers = db.prepare(`
-  SELECT name AS title, seo_slug AS slug, images
+  SELECT name AS title, seo_slug AS slug, images, image_url
   FROM containers
   WHERE is_active = 1 AND seo_enabled = 1 AND seo_slug IS NOT NULL AND seo_slug != ''
   ORDER BY "order" ASC
@@ -108,7 +125,8 @@ const addEntry = ({ path, priority, changefreq, title, lastmod = today, images =
 };
 
 for (const [path, priority, changefreq] of staticPages) {
-  addEntry({ path, priority, changefreq, title: siteName });
+  const staticImages = path === "/" ? ["/images/hero-1.webp", "/images/logo.png"] : [];
+  addEntry({ path, priority, changefreq, title: siteName, images: staticImages });
 }
 
 const parseImages = (raw) => {
@@ -126,7 +144,7 @@ for (const service of services) {
     priority: "0.95",
     changefreq: "weekly",
     title: service.title,
-    images: parseImages(service.images),
+    images: normalizeImages(parseImages(service.images).concat(service.image_url || [])),
   });
 }
 
@@ -136,7 +154,7 @@ for (const container of containers) {
     priority: "0.90",
     changefreq: "weekly",
     title: container.title,
-    images: parseImages(container.images),
+    images: normalizeImages(parseImages(container.images).concat(container.image_url || [])),
   });
 }
 
@@ -147,7 +165,7 @@ for (const post of posts) {
     changefreq: "weekly",
     title: post.title,
     lastmod: post.updatedAt || post.publishedAt || today,
-    images: post.coverImage ? [post.coverImage] : [],
+    images: normalizeImages(post.coverImage ? [post.coverImage] : []),
   });
 }
 
@@ -158,7 +176,7 @@ for (const page of seoPages) {
     changefreq: "weekly",
     title: page.title,
     lastmod: page.updatedAt || page.publishedAt || today,
-    images: [page.ogImage || page.coverImage].filter(Boolean),
+    images: normalizeImages([page.ogImage, page.coverImage].filter(Boolean)),
   });
 }
 
@@ -229,7 +247,7 @@ for (const area of ALL_NEIGHBORHOODS) {
     priority: "0.85",
     changefreq: "weekly",
     title,
-    images: ["/images/hero-riyadh-cleaning.jpg"],
+    images: ["/images/hero-1.webp"],
   });
   if (area.arabic) {
     addEntry({
@@ -237,7 +255,7 @@ for (const area of ALL_NEIGHBORHOODS) {
       priority: "0.85",
       changefreq: "weekly",
       title,
-      images: ["/images/hero-riyadh-cleaning.jpg"],
+      images: ["/images/hero-1.webp"],
     });
   }
 }

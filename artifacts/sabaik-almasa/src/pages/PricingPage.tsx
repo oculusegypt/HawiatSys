@@ -8,7 +8,6 @@ import { useServiceRequest } from "@/context/ServiceRequestContext"
 import { useSiteSettings } from "@/context/SiteSettingsContext"
 import { useDocumentSEO } from "@/hooks/useDocumentSEO"
 import { getContainerImage, ARABIC_CATEGORY_NAMES } from "@/components/home/packages/PackageCard"
-import { PUBLIC_PRICING_NOTICE } from "@/lib/pricing"
 import { siteUrl } from "@/lib/siteUrl"
 
 const FACTORS = [
@@ -54,6 +53,9 @@ export default function PricingPage() {
   const whatsappHref = phoneWhatsapp
     ? `https://wa.me/966${phoneWhatsapp.replace(/^0/, "")}?text=${encodeURIComponent("أريد الاستفسار عن مقاسات وأسعار الحاويات")}`
     : ""
+  const pricingNotice = containers.some((container) => Boolean(container.priceText || container.priceNote))
+    ? "تعرض هذه الصفحة المقاسات والملاحظات المنشورة حالياً من فريق العمليات. السعر النهائي يتأكد حسب الموقع ونوع المخلفات وموعد التنفيذ."
+    : "السعر النهائي يحدد بعد مراجعة الموقع ونوع المخلفات وموعد التنفيذ مع فريق العمليات."
 
   useDocumentSEO({
     title,
@@ -132,7 +134,7 @@ export default function PricingPage() {
 
           <div className="rounded-2xl bg-[#fff7e8] border border-[#ead39f] p-4 mb-8 flex items-start gap-3" data-testid="notice-pricing-location">
             <AlertCircle size={18} className="text-[#b37a16] shrink-0 mt-0.5" />
-            <p className="text-sm text-[#765517] leading-relaxed">{PUBLIC_PRICING_NOTICE || "السعر النهائي يحدد حسب الموقع ونوع المخلفات وموعد التنفيذ."}</p>
+            <p className="text-sm text-[#765517] leading-relaxed">{pricingNotice}</p>
           </div>
 
           {isLoading && (

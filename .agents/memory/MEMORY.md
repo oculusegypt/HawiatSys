@@ -29,3 +29,4 @@
 - [Contract location fallback](contract-location-fallback.md) — contract workflows may create a customer site from a manual/map location, and Node/PHP must stay behaviorally aligned.
 - [Contract invoice source](contract-invoice-source.md) — automatic contract invoices must preserve contract totals and carry the selected container and contract address.
 - [Operational work-order boundary](operational-work-order-boundary.md) — contract/container actions must create work_order records; service_requests remain commercial intake records.
+- [SEO archive certification](seo-archive-certification.md) — certify SEO from the extracted final Hostinger archive, not only the Vite output.

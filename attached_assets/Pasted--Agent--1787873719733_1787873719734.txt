@@ -1,0 +1,419 @@
+أكمل العمل **مباشرة من آخر نقطة وصل إليها الـ Agent السابق في المشروع الحالي**. لا تبدأ من الصفر، ولا تعِد تصميم خطة جديدة، ولا تعمل Reset للتعديلات الموجودة.
+
+آخر حالة موثقة للوكيل السابق:
+
+* تم تحسين `ServiceCard.tsx` و`ServicesSection.tsx`.
+* تم إزالة الاعتماد على مكتبة الأسعار الثابتة، وأصبحت بيانات الأسعار/الحاويات تعتمد على الـ API.
+* تم تعديل `generate-sitemap.mjs`.
+* تم تعديل ترتيب بناء Hostinger حتى يتم توليد sitemap قبل إدخالها في الأرشيف.
+* تم تعديل `prerender.mjs` لمعالجة الصور الاحتياطية القديمة.
+* تم تعديل `api-index.php` لإضافة/الحفاظ على صور sitemap الديناميكية.
+* تم التحقق من PHP syntax.
+* تم بناء Hostinger archive سابقًا بنجاح.
+* تم اكتشاف ومناقشة مشكلة stale image references مثل:
+  `service-apartments.jpg`
+  و`logo.webp`.
+* تم تعديل `prerender.mjs` مرة أخيرة لمعالجة بقايا `logo.webp`.
+* **آخر تعديل تم على `prerender.mjs` ولم يتم بعد إثبات دورة Build → Prerender → Sitemap → Archive → SEO Gate كاملة بعد هذا التعديل.**
+
+لذلك من هذه اللحظة اتبع هذا المسار فقط:
+
+# المرحلة 1 — افحص الحالة الحالية
+
+ابدأ بـ:
+
+* `git status`
+* `git diff`
+* راجع آخر تعديلات `prerender.mjs`.
+* راجع فقط الملفات التي تم تغييرها ضمن هذه المهمة.
+
+لا تمسح أي تعديل سابق.
+
+لا تستخدم `git reset --hard`.
+
+لا تستبدل ملفات المشروع بنسخة قديمة.
+
+إذا وجدت تعديلات غير مرتبطة بالمهمة، لا تلمسها.
+
+---
+
+# المرحلة 2 — تحقق من آخر Patch قبل البناء
+
+راجع تحديدًا أن آخر تعديل في `prerender.mjs` الخاص بالصور لم ينتج عنه:
+
+* undefined variables
+* imports ناقصة
+* duplicate declarations
+* صور غير موجودة
+* paths غير صحيحة
+* URLs مطلقة خاطئة
+* تغيير غير مقصود في HTML
+* كسر للـ prerender.
+
+ابحث عن جميع المراجع القديمة مثل:
+
+* `service-apartments`
+* `service-villas`
+* `hero-debris`
+* `logo.webp`
+* `images/logo.webp`
+
+ثم فرّق بين:
+
+1. reference مقصود وموجود.
+2. reference قديم/stale.
+3. reference داخل source code يجب أن يبقى.
+4. reference داخل generated output يجب ألا يبقى.
+
+**لا تحذف اسم ملف لمجرد ظهوره في source إذا كان مستخدمًا كـ fallback صحيح. تحقق من وجوده أولًا.**
+
+---
+
+# المرحلة 3 — SEO الديناميكي
+
+حافظ على الإصلاح الذي تم سابقًا للـ public URL.
+
+ممنوع إضافة production domain hardcoded.
+
+يجب أن يظل المصدر المركزي للـ URL ديناميكيًا، ويُستخدم في:
+
+* canonical
+* `og:url`
+* sitemap
+* JSON-LD
+* absolute image URLs عند الحاجة.
+
+في production يجب أن ينتج النطاق المهيأ:
+
+`https://alsahmm.com`
+
+لكن من configuration/settings وليس hardcoded.
+
+لا تعيد تغيير architecture إذا كانت تعمل.
+
+---
+
+# المرحلة 4 — Homepage SEO
+
+بعد البناء افحص source HTML الحقيقي للصفحة الرئيسية.
+
+يجب أن يحتوي على:
+
+* title
+* meta description
+* canonical واحد
+* `og:title`
+* `og:description`
+* `og:url`
+* `og:image`
+* robots
+* JSON-LD
+* H1 واحد
+* المحتوى الأساسي للصفحة
+* الروابط الداخلية الأساسية.
+
+المهم:
+
+**افحص HTML المصدر قبل JavaScript، وليس DOM بعد hydration.**
+
+---
+
+# المرحلة 5 — H1
+
+تحقق أن:
+
+`homepage H1 count = 1`
+
+وأن الـ H1:
+
+* ظاهر.
+* حقيقي.
+* غير مخفي.
+* ليس fake SEO content.
+* موجود في prerendered HTML.
+
+ثم تحقق أن إصلاح homepage لم يسبب H1 إضافيًا في:
+
+* service pages
+* area pages
+* article pages.
+
+---
+
+# المرحلة 6 — الصور
+
+هذه المرحلة مهمة جدًا لأن آخر Agent كان يعمل على هذه المشكلة.
+
+افحص جميع الصور المستخدمة في:
+
+* homepage
+* service pages
+* area pages
+* article pages
+* OG metadata
+* sitemap images.
+
+لكل image URL:
+
+1. هل الملف موجود فعليًا؟
+2. هل المسار صحيح؟
+3. هل الملف موجود داخل `dist`؟
+4. هل الملف موجود داخل Hostinger archive؟
+5. هل URL النهائي قابل للوصول؟
+6. هل هو production URL؟
+7. هل هو API upload URL أم static asset URL؟
+8. هل الـ sitemap يشير إلى نفس الصورة الصحيحة؟
+
+لا تسمح بوجود references مثل:
+
+`/images/service-apartments.jpg`
+
+إذا كان الملف غير موجود.
+
+ولا تستبدل صورة صحيحة بصورة أخرى لمجرد توحيد الأسماء.
+
+**تحقق أولًا من المصدر الحقيقي للصورة.**
+
+---
+
+# المرحلة 7 — Sitemap
+
+المشكلة السابقة كانت أن build كان ينسخ sitemap القديمة قبل توليد الجديدة.
+
+تحقق الآن أن ترتيب التنفيذ النهائي هو:
+
+**Generate sitemap → Build/copy final assets → Create Hostinger archive**
+
+وليس العكس.
+
+يجب أن يكون:
+
+`public/sitemap.xml`
+
+هو نفسه الموجود داخل:
+
+`dist`
+
+وهو نفسه الموجود داخل:
+
+`Hostinger ZIP`
+
+قارن hashes أو المحتوى إذا أمكن.
+
+تحقق من:
+
+* عدد URLs.
+* عدم وجود duplicates.
+* عدم وجود localhost.
+* عدم وجود preview/staging domains.
+* عدم وجود noindex pages.
+* canonical consistency.
+* الصور داخل sitemap صحيحة.
+* image URLs لا تشير إلى ملفات غير موجودة.
+
+---
+
+# المرحلة 8 — PHP / Hostinger
+
+تحقق من:
+
+* PHP syntax.
+* PHP sitemap generation.
+* robots generation.
+* dynamic public URL.
+* عدم الاعتماد على Host غير موثوق لإنتاج production SEO URLs.
+* عدم كسر API routing.
+* عدم كسر SQLite.
+
+لا تعمل refactor لـ PHP.
+
+أصلح فقط إن ظهر خطأ فعلي.
+
+---
+
+# المرحلة 9 — Build كامل
+
+بعد التأكد من آخر patch:
+
+نفّذ دورة كاملة:
+
+1. TypeScript check.
+2. Build.
+3. Prerender.
+4. Sitemap generation.
+5. Hostinger build.
+6. Archive validation.
+
+لا تستخدم outputs قديمة.
+
+إذا كان هناك generated output قديم يسبب false positive، نظّف فقط الملفات generated التي يعيد build إنشاءها، وليس source files.
+
+---
+
+# المرحلة 10 — SEO Gate
+
+شغّل `seo-quality-gate.mjs` **بعد آخر build وprerender وsitemap وarchive**.
+
+إذا فشل:
+
+* لا تقل PASS.
+* حدد السبب.
+* أصلح أقل تغيير ممكن.
+* أعد الدورة كاملة.
+
+إذا كانت المشكلة Warning وليست Failure، لا تغيّر المشروع لمجرد إزالة warning ما لم يكن له أثر SEO حقيقي.
+
+خصوصًا CTA warnings: لا تضف محتوى تجاري عشوائي فقط لإسكات الفحص.
+
+---
+
+# المرحلة 11 — Final Archive
+
+هذه أهم خطوة.
+
+الأرشيف النهائي يجب أن يكون مبنيًا من **آخر نسخة تم اختبارها**.
+
+بعد إنشاء ZIP:
+
+افتح/استخرج الأرشيف وافحص فعليًا:
+
+* homepage HTML
+* service HTML
+* area HTML
+* article HTML
+* sitemap.xml
+* robots.txt
+* PHP files
+* logo
+* OG image
+* service images
+* area images
+* JS/CSS assets.
+
+لا تعتبر `dist` وحده كافيًا.
+
+---
+
+# المرحلة 12 — تحقق من عدم وجود Regression
+
+بعد اكتمال البناء افحص أن الإصلاحات الأخيرة لم تكسر:
+
+* الصفحة الرئيسية.
+* الخدمات.
+* المناطق.
+* المقالات.
+* الأسعار.
+* الحاويات.
+* الـ API.
+* الصور.
+* Navbar.
+* Footer.
+* admin noindex.
+* PHP.
+* SQLite.
+* prerender.
+
+لا تغيّر UI إضافيًا إلا إذا ظهر خلل حقيقي سببه التعديل الحالي.
+
+---
+
+# المرحلة 13 — الاختبارات غير المتعلقة
+
+إذا فشل اختبار مثل `financial-core` أو `mockup-sandbox` بسبب:
+
+* test fixture ناقص.
+* database initialization.
+* جدول غير موجود.
+* مشكلة مستقلة عن SEO.
+
+لا تصلحه ضمن هذه المهمة.
+
+وثّقه فقط:
+
+`UNRELATED TEST INFRASTRUCTURE FAILURE`
+
+ولا تعتبره SEO failure.
+
+---
+
+# المرحلة 14 — الصورة التي ستظهر للمستخدم ومحركات البحث
+
+في التقرير النهائي وضّح بدقة:
+
+### Open Graph
+
+ما قيمة:
+
+`og:image`
+
+وما اسم الملف ومساره.
+
+### Google Search
+
+لا تدّعي أن Google سيعرض OG image حتمًا.
+
+وضّح أن Google قد يختار صورة من الصفحة وفق أنظمته، بينما `og:image` تتحكم أساسًا في Open Graph/social previews.
+
+### Favicon
+
+وضح ما هو الـ favicon/site icon إن كان مختلفًا.
+
+---
+
+# المرحلة 15 — التقرير النهائي
+
+بعد نجاح كل شيء أعطني تقريرًا نهائيًا بالأرقام الفعلية، وليس كلامًا عامًا:
+
+```text
+TypeScript: PASS
+Build: PASS
+Prerender: PASS
+Prerendered pages: [actual number]
+Sitemap: PASS
+Sitemap URLs: [actual number]
+Sitemap images: [actual number]
+PHP validation: PASS
+SEO Gate: PASS
+Hostinger archive: PASS
+Archive size: [actual size]
+Final archive inspection: PASS
+```
+
+ثم:
+
+```text
+Homepage:
+H1: 1
+Canonical: 1
+OG URL: 1
+OG Image: [actual path]
+JSON-LD: PASS
+Source HTML: PASS
+```
+
+ثم اذكر:
+
+* المصدر الديناميكي للـ public URL.
+* كيف يتم توليد canonical.
+* كيف يتم توليد sitemap.
+* الصورة الفعلية المستخدمة.
+* أي warnings متبقية.
+* أي failures غير مرتبطة بالمهمة.
+
+# شرط الإغلاق النهائي
+
+**لا تعتبر المهمة منتهية إلا بعد أن تكون النسخة الأخيرة التي تم تعديلها هي نفسها التي تم:**
+
+`Build → Prerender → Sitemap → SEO Gate → Hostinger Archive → Archive Inspection`
+
+عليها.
+
+لا تستخدم archive قديم.
+
+لا تستخدم dist قديم.
+
+لا تقل PASS بناءً على اختبار تم قبل آخر تعديل.
+
+إذا نجحت كل الاختبارات، توقف عن التعديل.
+
+**الهدف الآن ليس إضافة Features جديدة؛ الهدف هو الوصول إلى أفضل نسخة Production مستقرة، سليمة SEO، بدون تداخل أو Regression، وبحزمة Hostinger محدثة وجاهزة للرفع.**

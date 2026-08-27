@@ -35,14 +35,14 @@ const SEO_DEFAULTS = {
   region: "منطقة الرياض",
   country: "SA",
   priceRange: "$$",
-  image: "/images/hero-debris-container.jpg",
+  image: "/images/hero-1.webp",
 };
 // Prefer the administrator-configured public URL. If it is empty, all
 // generated URLs stay relative and are resolved by the browser to its
 const SITE_URL = (process.env.SITE_URL || settingMap.site_public_url || "https://sabaik-almasa.com").trim().replace(/\/+$/, "");
 const siteCompanyName = settingMap.company_name?.trim() || SEO_DEFAULTS.companyName;
 const siteDescription = settingMap.site_desc?.trim() || SEO_DEFAULTS.description;
-const siteLogo = settingMap.company_logo?.trim() || "/images/logo.webp";
+const siteLogo = settingMap.company_logo?.trim() || "/images/logo.png";
 let sitePhones = [];
 try {
   const parsed = JSON.parse(settingMap.company_phones || "[]");
@@ -167,7 +167,7 @@ function sanitizeHtml(html) {
 }
 
 function absoluteImg(url) {
-  if (!url) return `${SITE_URL}/logo.webp`;
+  if (!url) return `${SITE_URL}/images/logo.png`;
   if (/^https?:\/\//i.test(url)) return url;
   return `${SITE_URL}${url.startsWith("/") ? "" : "/"}${url}`;
 }
@@ -237,7 +237,7 @@ function renderPage({ title, description, keywords = "", canonical, ogImage, ogT
   // Keep canonical and social URLs absolute so crawlers do not have to infer
   // the preferred origin from a relative URL.
   const canonicalUrl = canonical || `${SITE_URL}/`;
-  const imgUrl = ogImage || `${SITE_URL}/logo.webp`;
+  const imgUrl = ogImage || `${SITE_URL}/images/logo.png`;
   const imgAlt   = title.replace(/\|.*/,"").trim();
 
   // Replace SITE_URL in JSON-LD with a dynamic script so any domain works
@@ -508,7 +508,7 @@ function generateFullHomepageStaticContent() {
   <header style="background:#1e3a5f;color:#fff;padding:12px 20px;border-bottom:1px solid rgba(255,255,255,0.1)">
     <div style="max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
       <div style="display:flex;align-items:center;gap:12px">
-        <img src="/images/logo.webp" alt="${esc(siteCompanyName)}" width="48" height="48" style="height:48px;width:auto;border-radius:8px" />
+        <img src="/images/logo.png" alt="${esc(siteCompanyName)}" width="48" height="48" style="height:48px;width:auto;border-radius:8px" />
         <span style="font-size:20px;font-weight:800">${esc(siteCompanyName)}</span>
       </div>
       <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
@@ -737,20 +737,74 @@ function generateFullHomepageStaticContent() {
   `;
 }
 
+function generateHomepageStaticContent() {
+  const phoneCall = sitePhoneCall || SEO_DEFAULTS.phone;
+  const phoneWa = sitePhoneWhatsapp || phoneCall;
+  const phoneHref = `tel:${phoneCall}`;
+  const waHref = waLink(phoneWa, `السلام عليكم، أرغب في طلب خدمة من ${siteCompanyName}`);
+  const logoUrl = absoluteImg(siteLogo);
+  const heroUrl = absoluteImg(SEO_DEFAULTS.image);
+  const internalLinks = [
+    ["/pricing", "أسعار وخدمات تأجير الحاويات"],
+    ["/packages", "باقات الحاويات المتاحة"],
+    ["/areas", "مناطق التغطية في الرياض"],
+    ["/blog", "دليل تأجير الحاويات ونقل المخلفات"],
+  ];
+
+  return `
+    <header style="border-bottom:1px solid #dbe7ec;background:#ffffff">
+      <div style="max-width:1180px;margin:0 auto;padding:18px 20px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap">
+        <a href="/" style="display:flex;align-items:center;gap:12px;color:#12384b;text-decoration:none;font-weight:800">
+          <img src="${esc(logoUrl)}" alt="${esc(siteCompanyName)}" width="52" height="52" style="width:52px;height:52px;object-fit:contain;border-radius:12px" />
+          <span>${esc(siteCompanyName)}</span>
+        </a>
+        <nav aria-label="الروابط الأساسية" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;font-size:14px">
+          ${internalLinks.slice(0, 3).map(([href, label]) => `<a href="${href}" style="color:#406170;text-decoration:none;font-weight:700">${esc(label)}</a>`).join("")}
+          <a href="${esc(phoneHref)}" style="background:#12384b;color:#fff;padding:10px 16px;border-radius:10px;text-decoration:none;font-weight:800">اتصل الآن</a>
+        </nav>
+      </div>
+    </header>
+    <main style="max-width:1180px;margin:0 auto;padding:28px 20px 56px;color:#163b4c;line-height:1.8">
+      <section style="display:grid;grid-template-columns:minmax(0,1.1fr) minmax(280px,.9fr);align-items:center;gap:34px;padding:28px 0 42px">
+        <div>
+          <p style="margin:0 0 12px;color:#2b8f8b;font-size:14px;font-weight:800">حلول موثوقة للمخلفات في الرياض</p>
+          <h1 style="margin:0 0 18px;color:#12384b;font-size:clamp(28px,5vw,48px);line-height:1.25;font-weight:900">${esc(siteCompanyName)} — تأجير حاويات الأنقاض والنفايات بالرياض</h1>
+          <p style="margin:0 0 24px;max-width:720px;color:#52707c;font-size:18px">${esc(siteDescription)}</p>
+          <div style="display:flex;gap:12px;flex-wrap:wrap">
+            <a href="${esc(waHref)}" style="background:#2b8f8b;color:#fff;padding:13px 22px;border-radius:11px;text-decoration:none;font-weight:800">اطلب عرضًا عبر واتساب</a>
+            <a href="${esc(phoneHref)}" style="border:1px solid #b9ced4;color:#12384b;padding:13px 22px;border-radius:11px;text-decoration:none;font-weight:800">اتصال مباشر ${esc(phoneCall)}</a>
+          </div>
+        </div>
+        <img src="${esc(heroUrl)}" alt="حاويات ونقل مخلفات البناء في الرياض" width="1200" height="675" style="width:100%;height:auto;max-height:340px;object-fit:cover;border-radius:22px;box-shadow:0 18px 40px rgba(18,56,75,.16)" />
+      </section>
+      <section style="border-top:1px solid #e5eef1;padding-top:30px">
+        <h2 style="margin:0 0 10px;color:#12384b;font-size:26px;font-weight:900">تأجير الحاويات ونقل المخلفات بخدمة واضحة</h2>
+        <p style="margin:0 0 20px;color:#52707c;font-size:16px">نوفر حاويات متعددة المقاسات للمنازل والمشاريع والمنشآت، مع التوصيل والسحب ونقل الأنقاض ومخلفات البناء داخل أحياء الرياض.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          ${internalLinks.map(([href, label]) => `<a href="${href}" style="display:inline-block;border:1px solid #d2e2e6;border-radius:10px;padding:9px 13px;color:#246b70;text-decoration:none;font-weight:700;font-size:14px">${esc(label)}</a>`).join("")}
+        </div>
+      </section>
+    </main>
+  `;
+}
+
 function updateIndexSeo(html) {
   const title = siteCompanyName;
   const description = siteDescription;
-  const logo = siteLogo ? absoluteImg(siteLogo) : publicUrl("/logo.webp");
+  const logo = siteLogo ? absoluteImg(siteLogo) : publicUrl("/images/logo.png");
   const replace = (source, pattern, value) => source.replace(pattern, value);
+  const upsert = (source, pattern, tag) => pattern.test(source)
+    ? source.replace(pattern, tag)
+    : source.replace(/<\/head>/i, `${tag}\n</head>`);
   let next = html;
   next = replace(next, /<title>[\s\S]*?<\/title>/i, `<title>${esc(title)}</title>`);
   next = replace(next, /(<meta\s+name="description"\s+content=")[^"]*(")/i, `$1${esc(description)}$2`);
   next = replace(next, /(<meta\s+name="author"\s+content=")[^"]*(")/i, `$1${esc(siteCompanyName)}$2`);
-  next = replace(next, /(<link\s+rel="canonical"\s+href=")[^"]*(")/i, `$1${esc(publicUrl("/"))}$2`);
+  next = upsert(next, /<link\s+rel=["']canonical["'][^>]*>/i, `<link rel="canonical" href="${esc(publicUrl("/"))}" />`);
   next = replace(next, /(<meta\s+property="og:site_name"\s+content=")[^"]*(")/i, `$1${esc(siteCompanyName)}$2`);
   next = replace(next, /(<meta\s+property="og:title"\s+content=")[^"]*(")/i, `$1${esc(title)}$2`);
   next = replace(next, /(<meta\s+property="og:description"\s+content=")[^"]*(")/i, `$1${esc(description)}$2`);
-  next = replace(next, /(<meta\s+property="og:url"\s+content=")[^"]*(")/i, `$1${esc(publicUrl("/"))}$2`);
+  next = upsert(next, /<meta\s+property=["']og:url["'][^>]*>/i, `<meta property="og:url" content="${esc(publicUrl("/"))}" />`);
   next = replace(next, /(<meta\s+property="og:image"\s+content=")[^"]*(")/i, `$1${esc(logo)}$2`);
   next = replace(next, /(<meta\s+property="og:image:alt"\s+content=")[^"]*(")/i, `$1${esc(siteCompanyName)}$2`);
   next = replace(next, /(<meta\s+name="twitter:title"\s+content=")[^"]*(")/i, `$1${esc(title)}$2`);
@@ -761,10 +815,15 @@ function updateIndexSeo(html) {
   const schemas = dynamicHomeSchema().map((schema, index) =>
     `<script id="${schemaIds[index] || `home-schema-${index}`}" type="application/ld+json">\n${JSON.stringify(schema, null, 2)}\n</script>`,
   ).join("\n");
-  const withSchemas = next.replace("</head>", `${schemas}\n</head>`);
+  const withSchemas = next.replace(/<\/head>/i, `${schemas}\n</head>`);
   
-  // Keep clean #root for client SPA mount so React mounts immediately without flash or scroll jumps
-  return withSchemas;
+  // The client clears this mount point before React renders. Keeping a
+  // data-backed shell here makes the first HTML response useful to crawlers
+  // and to users while JavaScript is loading, without duplicating the app UI.
+  return withSchemas.replace(
+    /<div id="root">\s*<\/div>/i,
+    `<div id="root">${generateHomepageStaticContent()}</div>`,
+  );
 }
 
 // Replace the source index metadata during every build so the first HTML
@@ -799,7 +858,7 @@ for (const post of posts) {
   const canonical   = `${SITE_URL}/blog/${encodeURIComponent(slug)}`;
   const title       = post.seo_title || `${post.title} | ${siteCompanyName}`;
   const description = post.seo_description || post.excerpt || post.title;
-  const ogImage     = post.og_image || post.cover_image || `${SITE_URL}/images/service-apartments.jpg`;
+  const ogImage     = post.og_image || post.cover_image || `${SITE_URL}/images/hero-1.webp`;
   const postDate    = post.published_at || post.created_at || new Date().toISOString();
 
   const articleSchema = {
@@ -872,7 +931,7 @@ console.log(`   ✅ ${posts.length} مقالة`);
   const blogCanonical  = `${SITE_URL}/blog`;
   const blogTitle      = `مدونة النظافة والعناية بالمنزل | ${siteCompanyName} بالرياض`;
   const blogDesc       = siteDescription || "مقالات ونصائح تساعدك على اختيار الخدمات المناسبة والعناية بالمكان.";
-  const blogOgImage    = posts[0]?.cover_image || `${SITE_URL}/images/service-apartments.jpg`;
+  const blogOgImage    = posts[0]?.cover_image || `${SITE_URL}/images/hero-1.webp`;
 
   const blogSchema = {
     "@context": "https://schema.org",
@@ -1125,7 +1184,7 @@ for (const c of containers) {
   const canonical = `${SITE_URL}/container/${encodeURIComponent(slug)}`;
   const title     = c.seo_title || `${c.name} بالرياض | ${siteCompanyName}`;
   const desc      = c.seo_description || c.description?.substring(0, 160) || "";
-  const ogImage   = c.image_url || `${SITE_URL}/images/service-apartments.jpg`;
+  const ogImage   = c.image_url || `${SITE_URL}/images/hero-1.webp`;
 
   let featuresList = [];
   try {
@@ -1242,7 +1301,7 @@ for (const page of seoPages) {
   let canonical = `${SITE_URL}/page/${encodeURIComponent(page.slug)}`;
   const title = page.seo_title || `${page.title} | ${siteCompanyName}`;
   const description = page.seo_description || page.excerpt || page.title;
-  const ogImage = `${SITE_URL}/images/service-apartments.jpg`;
+  const ogImage = `${SITE_URL}/images/hero-1.webp`;
 
   const kw = (page.target_keyword || page.title || "").toLowerCase();
   let primaryServiceUrl = null;
@@ -1332,7 +1391,7 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
   const canonical = `${SITE_URL}/pricing`;
   const title = `أسعار وباقات خدمات التنظيف في الرياض 2026 | ${siteCompanyName}`;
   const description = `دليل شامل لأسعار وباقات خدمات تنظيف المنازل، الفلل، الشقق، وغسيل المجالس بالبخار وجلي الرخام بالرياض لعام 2026.`;
-  const ogImage = `${SITE_URL}/images/hero-riyadh-cleaning.jpg`;
+  const ogImage = `${SITE_URL}/images/hero-1.webp`;
 
   const crumbs = [
     { name: "الرئيسية", url: SITE_URL },
@@ -1462,7 +1521,7 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
   const canonical = `${SITE_URL}/faq`;
   const title = `الأسئلة الشائعة حول خدمات التنظيف بالرياض | ${siteCompanyName}`;
   const description = `إجابات شاملة ومفصلة لكافة الأسئلة الشائعة حول أسعار وباقات خدمات تنظيف المنازل، الفلل، غسيل المجالس بالبخار، وجلي الرخام بالرياض.`;
-  const ogImage = `${SITE_URL}/images/hero-riyadh-cleaning.jpg`;
+  const ogImage = `${SITE_URL}/images/hero-1.webp`;
   const crumbs = [
     { name: "الرئيسية", url: SITE_URL },
     { name: "الأسئلة الشائعة", url: canonical }
@@ -1531,7 +1590,7 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
   const canonical = `${SITE_URL}/privacy`;
   const title = `سياسة الخصوصية وحماية البيانات | ${siteCompanyName}`;
   const description = `سياسة الخصوصية وحماية البيانات الشخصية لعملاء خدمات التنظيف وفق الأنظمة واللوائح المعمول بها في المملكة العربية السعودية.`;
-  const ogImage = `${SITE_URL}/images/hero-riyadh-cleaning.jpg`;
+  const ogImage = `${SITE_URL}/images/hero-1.webp`;
   const crumbs = [
     { name: "الرئيسية", url: SITE_URL },
     { name: "سياسة الخصوصية", url: canonical }
@@ -1570,7 +1629,7 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
   const canonical = `${SITE_URL}/terms`;
   const title = `الشروط والأحكام | ${siteCompanyName}`;
   const description = `الشروط والأحكام والضوابط المنظمة لتقديم خدمات تنظيف المنازل، الفلل، غسيل المجالس، وأنظمة السلامة بالرياض.`;
-  const ogImage = `${SITE_URL}/images/hero-riyadh-cleaning.jpg`;
+  const ogImage = `${SITE_URL}/images/hero-1.webp`;
   const crumbs = [
     { name: "الرئيسية", url: SITE_URL },
     { name: "الشروط والأحكام", url: canonical }
@@ -1607,7 +1666,7 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
   const canonical = `${SITE_URL}/contact`;
   const title = `اتصل بنا | ${siteCompanyName} - خدمات التنظيف بالرياض`;
   const description = `تواصل معنا لطلب خدمات تنظيف المنازل والفلل والمجالس بالبخار أو المعاينة الميدانية المجانية في كافة أحياء الرياض.`;
-  const ogImage = `${SITE_URL}/images/hero-riyadh-cleaning.jpg`;
+  const ogImage = `${SITE_URL}/images/hero-1.webp`;
   const crumbs = [
     { name: "الرئيسية", url: SITE_URL },
     { name: "اتصل بنا", url: canonical }
@@ -1663,7 +1722,7 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
   const canonical = `${SITE_URL}/about`;
   const title = `من نحن | ${siteCompanyName} - رواد خدمات التنظيف بالرياض`;
   const description = `تعرف على ${siteCompanyName}، المؤسسة الرائدة في خدمات النظافة الشاملة، غسيل المجالس بالبخار، جلي الرخام، وأنظمة السلامة بالرياض.`;
-  const ogImage = `${SITE_URL}/images/hero-riyadh-cleaning.jpg`;
+  const ogImage = `${SITE_URL}/images/hero-1.webp`;
   const crumbs = [
     { name: "الرئيسية", url: SITE_URL },
     { name: "من نحن", url: canonical }
@@ -1840,7 +1899,7 @@ for (const area of NEIGHBORHOODS) {
   const h1         = `شركة تنظيف منازل وفلل ومكاتب في ${location}`;
   const title      = `شركة تنظيف منازل وفلل ${location} | ${siteCompanyName} — ${sitePhoneWhatsapp}`;
   const description = `افضل شركة تنظيف منازل وفلل ومكاتب في ${location}. تنظيف شقق، تنظيف بعد التشطيب والبناء، غسيل مجالس بالبخار وجلي الرخام. اتصل: ${sitePhoneWhatsapp}`;
-  const ogImage    = `${SITE_URL}/images/service-apartments.jpg`;
+  const ogImage    = `${SITE_URL}/images/hero-1.webp`;
 
   const serviceSchema = {
     "@context": "https://schema.org",
@@ -2039,7 +2098,7 @@ console.log(`   ✅ ${NEIGHBORHOODS.length} صفحة حي (بالعربي وال
     title,
     description,
     canonical,
-    ogImage: `${SITE_URL}/images/service-apartments.jpg`,
+    ogImage: `${SITE_URL}/images/hero-1.webp`,
     keywords: "شركة تنظيف أحياء الرياض, تنظيف منازل شمال الرياض, تنظيف فلل جنوب الرياض, تنظيف شقق شرق الرياض, تنظيف فلل غرب الرياض",
     schemas: [areaListSchema, breadcrumbSchema(crumbs)],
     breadcrumbs: crumbs,

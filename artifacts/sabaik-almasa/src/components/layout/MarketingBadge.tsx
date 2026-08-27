@@ -43,7 +43,7 @@ export function MarketingBadge() {
 
   if (!enabled || !mounted) return null
 
-  const resolvedLogo = logoUrl || `${BASE}/images/logo.webp`
+  const resolvedLogo = logoUrl || `${BASE}/images/logo.png`
   const resolvedName = companyName || "منظومة إدارة الحاويات"
 
   return (

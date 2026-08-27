@@ -14,7 +14,7 @@ const SEO_DEFAULTS = {
   country: "SA",
   postalCode: "13321",
   priceRange: "$$",
-  image: "/images/hero-debris-container.jpg",
+  image: "/images/hero-1.webp",
 } as const
 
 function injectLocalBusinessSchema({
@@ -58,7 +58,7 @@ function injectLocalBusinessSchema({
   }
   const SITE_URL = getSiteUrl().replace(/\/$/, "")
   const toAbsolute = (url?: string) => {
-    if (!url) return `${SITE_URL}/images/logo.webp`
+    if (!url) return `${SITE_URL}/images/logo.png`
     if (url.startsWith("http://") || url.startsWith("https://")) return url
     return `${SITE_URL}${url.startsWith("/") ? url : `/${url}`}`
   }
@@ -103,7 +103,7 @@ function injectLocalBusinessSchema({
         "url": `${SITE_URL}/`,
         "logo": {
           "@type": "ImageObject",
-          "url": toAbsolute(logoUrl || "/images/logo.webp"),
+          "url": toAbsolute(logoUrl || "/images/logo.png"),
           "width": "512",
           "height": "512"
         },

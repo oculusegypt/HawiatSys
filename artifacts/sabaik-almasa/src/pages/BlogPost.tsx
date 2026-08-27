@@ -380,7 +380,7 @@ export default function BlogPost() {
       <Navbar />
 
       {/* Breadcrumb */}
-      <div className="bg-white border-b border-gray-100 px-4 py-3 mt-16">
+      <div className="bg-white border-b border-gray-100 px-4 py-3 mt-20 md:mt-24">
         <div className="container mx-auto flex items-center gap-2 text-sm text-gray-500">
           <Link href="/"><span className="hover:text-primary transition-colors">الرئيسية</span></Link>
           <ChevronRight size={14} className="rotate-180" />
@@ -392,11 +392,11 @@ export default function BlogPost() {
 
       {/* Cover image */}
       {post.coverImage && (
-        <div className="w-full h-64 md:h-96 overflow-hidden">
+        <div className="w-full max-h-[36rem] min-h-64 overflow-hidden bg-[#12384b] flex items-center justify-center">
           <img
             src={post.coverImage.startsWith("http") ? post.coverImage : `${API_BASE}${post.coverImage}`}
             alt={resolvedPost.title}
-            className="w-full h-full object-cover"
+            className="w-full max-h-[36rem] object-contain"
           />
         </div>
       )}

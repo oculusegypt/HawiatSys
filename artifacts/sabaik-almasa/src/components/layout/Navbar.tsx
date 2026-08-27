@@ -8,7 +8,6 @@ import { TrackOrderModal } from "@/components/home/TrackOrderModal"
 const NAV_LINKS = [
   { href: "/", text: "الرئيسية" },
   { href: "/containers", text: "الحاويات" },
-  { href: "/services", text: "الخدمات" },
   { href: "/pricing", text: "الأسعار" },
   { href: "/blog", text: "المدونة" },
   { href: "/faq", text: "الأسئلة الشائعة" },
@@ -94,18 +93,6 @@ export function Navbar() {
                 </button>
               )}
 
-              <a
-                href="https://aiservx.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`hidden lg:inline-flex items-center px-3 py-2 text-xs font-bold transition-colors ${
-                  isScrolled || isInnerPage ? "text-primary/65 hover:text-secondary" : "text-white/75 hover:text-secondary"
-                }`}
-                data-testid="link-aiservx-navbar"
-              >
-                aiservx.com
-              </a>
-
               <Link
                 href="/admin/login"
                 className={`hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-bold transition-all duration-200 ${
@@ -184,16 +171,6 @@ export function Navbar() {
               {l.text}
              </Link>
           ))}
-           <a
-             href="https://aiservx.com"
-             target="_blank"
-             rel="noopener noreferrer"
-             onClick={() => setMenuOpen(false)}
-             className="flex items-center px-4 py-3.5 rounded-xl text-primary/85 hover:text-primary hover:bg-primary/10 font-medium text-[1rem] transition-colors"
-             data-testid="link-aiservx-mobile"
-           >
-             aiservx.com — الشريك التقني
-           </a>
         </nav>
 
         <div className="px-4 pb-8 pt-3 border-t border-[#e7dccb] space-y-2.5">

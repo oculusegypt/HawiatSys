@@ -93,7 +93,7 @@ export default function Blog() {
       <Navbar />
 
       {/* Hero */}
-      <div className="bg-primary text-white pb-16 pt-32 px-4">
+      <div className="bg-primary text-white pb-16 pt-40 md:pt-44 px-4">
         <div className="container mx-auto text-center">
           <div className="inline-flex items-center gap-2 bg-white/10 rounded-full px-4 py-1.5 text-sm font-semibold mb-4 text-secondary">
             <BookOpen size={15} />
@@ -160,7 +160,7 @@ export default function Blog() {
                 <Link key={post.id} href={`/blog/${encodeURIComponent(post.slug)}`}>
                   <article className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer group h-full flex flex-col">
                     {/* Cover */}
-                    <div className="h-48 bg-gradient-to-br from-primary/10 to-secondary/10 relative overflow-hidden shrink-0">
+                    <div className="aspect-[16/10] min-h-56 bg-gradient-to-br from-primary/10 to-secondary/10 relative overflow-hidden shrink-0">
                       {post.coverImage ? (
                         <img
                           src={post.coverImage.startsWith("http") ? post.coverImage : `${API_BASE}${post.coverImage}`}

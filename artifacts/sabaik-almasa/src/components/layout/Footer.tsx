@@ -126,8 +126,8 @@ export function Footer() {
 
          <div className="border-t border-white/10 pt-5 mb-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
            <span className="text-xs text-gray-400">حلول رقمية وتشغيلية للشركات الطموحة</span>
-           <a href="https://aiservx.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-secondary hover:text-white font-bold text-sm transition-colors" data-testid="link-aiservx-footer">
-             aiservx.com <span className="text-gray-400 font-normal">الشريك التقني</span>
+            <a href="https://aiservx.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-secondary hover:text-white font-bold text-sm transition-colors" data-testid="link-aiservx-footer">
+              <span>aiservx.com</span> <span className="text-gray-400 font-normal">مطوّر النظام</span>
            </a>
          </div>
 

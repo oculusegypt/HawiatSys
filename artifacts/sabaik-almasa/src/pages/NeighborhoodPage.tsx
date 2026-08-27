@@ -547,7 +547,7 @@ export default function NeighborhoodPage() {
         "name": `${currentCompany} — فرع ${area.name}`,
         "description": areaDescription,
         "url": `${SITE_URL}/areas/${encodeURIComponent(activeSlug)}`,
-        "image": logoUrl || `${SITE_URL}/images/hero-debris-container.jpg`,
+        "image": logoUrl || `${SITE_URL}/images/hero-1.webp`,
         "priceRange": priceRange || "$$",
         "telephone": `+966${(phoneCall || "0554498403").replace(/^0/, "")}`,
         "address": {

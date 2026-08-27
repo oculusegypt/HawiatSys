@@ -33,7 +33,15 @@ function step(label) {
   console.log(`\n${"─".repeat(60)}\n✦ ${label}`);
 }
 
-// ── 1. بناء الواجهة الأمامية ─────────────────────────────────────────────────
+// ── 1. توليد الخريطة قبل Vite حتى تدخل النسخة الحالية إلى dist ───────────────
+step("توليد خريطة الموقع قبل بناء الواجهة");
+run(
+  "pnpm --filter @workspace/scripts run generate-sitemap",
+  "توليد خريطة الموقع النهائية مع صور الخدمات والمقالات",
+  { SITE_URL: process.env.SITE_URL || undefined },
+);
+
+// ── 2. بناء الواجهة الأمامية ─────────────────────────────────────────────────
 step("بناء الواجهة الأمامية (Vite)");
 const sabaikDistDir = join(ROOT, "artifacts/sabaik-almasa/dist");
 const platformDistDir = join(ROOT, "artifacts/sabaik-platform/dist");
@@ -58,8 +66,7 @@ run(
   "توليد HTML ثابت لجميع مقالات المدونة والخدمات والحاويات",
   {}
 );
-
-// ── 2. نسخ ملفات البناء ───────────────────────────────────────────────────────
+// ── 3. نسخ ملفات البناء ───────────────────────────────────────────────────────
 step("نسخ ملفات الواجهة → build_php/");
 
 // نسخ assets/
@@ -78,7 +85,7 @@ for (const legacyImage of [
 ]) {
   rmSync(join(ROOT, "build_php", legacyImage), { force: true });
 }
-const SKIP_FILES = new Set(["sitemap.xml", "api"]);
+const SKIP_FILES = new Set(["api"]);
 const distPublic = join(ROOT, "artifacts/sabaik-almasa/dist/public");
 
 function copyDirRecursive(srcDir, dstDir) {
@@ -171,10 +178,7 @@ copyFileSync(join(ROOT, "scripts/container-system.php"), join(ROOT, "build_php/a
 console.log("  ✅ تم تجهيز طبقة PHP لنظام الحاويات والمالية والتدقيق");
 console.log("  ✅ تم تجهيز ملف PHP API في build_php/api/index.php لبيئة Hostinger");
 
-// تأكد من حذف sitemap.xml الثابت من build_php/ إن وُجد من بناء سابق
-const staleStatic = join(ROOT, "build_php/sitemap.xml");
-if (existsSync(staleStatic)) rmSync(staleStatic);
-console.log("  ✅ assets/ + الملفات الثابتة + الصفحات المُولَّدة مسبقاً (prerendered) نُسخت");
+console.log("  ✅ assets/ + sitemap.xml + الملفات الثابتة + الصفحات المُولَّدة مسبقاً (prerendered) نُسخت");
 
 // ── 2b. نسخ صفحة CleanFlow Platform التسويقية ─────────────────────────────────
 step("نسخ صفحة CleanFlow Platform التسويقية → build_php/cleanflow-platform/");

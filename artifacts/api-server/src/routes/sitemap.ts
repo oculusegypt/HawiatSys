@@ -77,16 +77,15 @@ const NEIGHBORHOODS = [
 function getStaticPages(base: string, siteName: string) {
   return [
     { path: "/",                               priority: "1.0",  freq: "weekly",  images: [
-      { loc: `${base}/images/hero-riyadh-cleaning.jpg`, title: `${siteName} — شركة تنظيف منازل وفلل بالرياض` },
-      { loc: `${base}/images/logo.webp`,    title: `شعار ${siteName}` },
+      { loc: `${base}/images/hero-1.webp`, title: `${siteName} — خدمات الرياض` },
+      { loc: `${base}/images/logo.png`,    title: `شعار ${siteName}` },
     ]},
     { path: "/about",                          priority: "0.9",  freq: "monthly", images: [
       { loc: `${base}/images/ceo.webp`, title: `رسالة المدير التنفيذي — ${siteName}` },
     ]},
     { path: "/pricing",                        priority: "0.95", freq: "monthly", images: [] },
     { path: "/container/",                     priority: "0.9",  freq: "monthly", images: [
-      { loc: `${base}/images/service-apartments.jpg`, title: "باقة تنظيف الشقق — شركة تنظيف بالرياض" },
-      { loc: `${base}/images/service-villas.jpg`, title: "باقة تنظيف الفلل — شركة تنظيف بالرياض" },
+      { loc: `${base}/images/container-1.webp`, title: "حاويات الأنقاض والنفايات بالرياض" },
     ]},
     { path: "/contact",                        priority: "0.85", freq: "monthly", images: [] },
     { path: "/partners",                       priority: "0.75", freq: "monthly", images: [] },
@@ -200,7 +199,7 @@ async function buildXml(baseUrl: string): Promise<{ xml: string; totalUrls: numb
     lines.push(`    <priority>0.80</priority>`);
     lines.push(`    <xhtml:link rel="alternate" hreflang="ar" href="${escapeXml(url)}"/>`);
     lines.push(`    <image:image>`);
-    lines.push(`      <image:loc>${escapeXml(baseUrl + "/images/service-apartments.jpg")}</image:loc>`);
+    lines.push(`      <image:loc>${escapeXml(baseUrl + "/images/hero-1.webp")}</image:loc>`);
     lines.push(`      <image:title>${escapeXml(`تأجير حاويات ${n.name} الرياض`)}</image:title>`);
     lines.push(`    </image:image>`);
     lines.push(`  </url>`);

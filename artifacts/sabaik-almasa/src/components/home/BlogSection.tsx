@@ -73,7 +73,7 @@ export function BlogSection() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[1, 2, 3].map(i => (
               <div key={i} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 animate-pulse">
-                <div className="h-48 bg-gray-200" />
+                <div className="aspect-[16/10] min-h-56 bg-gray-200" />
                 <div className="p-6 space-y-3">
                   <div className="h-3 bg-gray-200 rounded w-1/3" />
                   <div className="h-5 bg-gray-200 rounded w-3/4" />
@@ -89,7 +89,7 @@ export function BlogSection() {
               <Link key={post.id} href={`/blog/${encodeURIComponent(post.slug)}`}>
                 <article className={`bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer group ${i === 0 ? "md:col-span-1" : ""}`}>
                   {/* Cover */}
-                  <div className="relative h-48 bg-gradient-to-br from-primary/10 to-secondary/10 overflow-hidden">
+                  <div className="relative aspect-[16/10] min-h-56 bg-gradient-to-br from-primary/10 to-secondary/10 overflow-hidden">
                     {post.coverImage ? (
                       <img
                         src={post.coverImage.startsWith("http") ? post.coverImage : `${API_BASE}${post.coverImage}`}

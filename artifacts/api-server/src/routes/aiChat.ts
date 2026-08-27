@@ -124,7 +124,7 @@ function mapDbToContainerCards(
       price: c.pricePerDay > 0 ? c.pricePerDay : undefined,
       priceNote: c.priceNote || c.priceText || "حسب تفاصيل العقار والموقع",
       priceType: c.pricePerDay > 0 ? "fixed" : "quote",
-      image: c.imageUrl || "/images/service-apartments.jpg",
+      image: c.imageUrl || "/images/hero-1.webp",
       priceText: c.priceText || "",
       features: Array.isArray(c.features) ? c.features : [],
       bestFor: c.suitableFor || "",
@@ -145,7 +145,7 @@ function mapContainersToServiceCards(containers: ContainerCard[]): ServiceCard[]
       category,
       title: meta.title,
       description: meta.description,
-      image: first?.image || "/images/service-apartments.jpg",
+      image: first?.image || "/images/hero-1.webp",
       emoji: meta.emoji,
     };
   });
@@ -156,7 +156,7 @@ function mapContainersToServiceCards(containers: ContainerCard[]): ServiceCard[]
       category: "all",
       title: "جميع الباقات والخدمات",
       description: "استعرض كل الباقات المتاحة واختر الخدمة المناسبة لك",
-      image: containers[0]?.image || "/images/service-apartments.jpg",
+      image: containers[0]?.image || "/images/hero-1.webp",
       emoji: "📦",
     },
     ...categoryCards,

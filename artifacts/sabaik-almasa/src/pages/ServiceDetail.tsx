@@ -192,7 +192,7 @@ export default function ServiceDetail() {
     keywords: service?.seoKeywords || `${service?.title || "حاويات"}, تأجير حاويات بالرياض, حاويات أنقاض الرياض, حاويات نفايات الرياض`,
     canonical,
     ogType: "website",
-    ogImage: images[0] || "/images/hero-debris-container.jpg",
+    ogImage: images[0] || "/images/hero-1.webp",
   })
 
   // Schema LD+JSON

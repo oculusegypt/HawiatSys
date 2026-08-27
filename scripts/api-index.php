@@ -577,6 +577,38 @@ try {
             ''
         ];
 
+        $imageCandidates = function ($jsonValue, $fallback = null): array {
+            $items = [];
+            if (is_string($jsonValue) && trim($jsonValue) !== '') {
+                $decoded = json_decode($jsonValue, true);
+                if (is_array($decoded)) {
+                    $items = $decoded;
+                } elseif (filter_var($jsonValue, FILTER_VALIDATE_URL)) {
+                    $items = [$jsonValue];
+                }
+            }
+            if ($fallback) array_unshift($items, $fallback);
+            $unique = [];
+            foreach ($items as $item) {
+                if (!is_string($item) || trim($item) === '') continue;
+                $item = trim($item);
+                if (!in_array($item, $unique, true)) $unique[] = $item;
+            }
+            return array_slice($unique, 0, 8);
+        };
+
+        $addImageTags = function (array $images, string $title) use (&$lines, $baseUrl): void {
+            foreach ($images as $index => $image) {
+                $imageUrl = preg_match('/^https?:\/\//i', $image)
+                    ? $image
+                    : $baseUrl . '/' . ltrim($image, '/');
+                $lines[] = '    <image:image>';
+                $lines[] = '      <image:loc>' . htmlspecialchars($imageUrl, ENT_XML1 | ENT_COMPAT, 'UTF-8') . '</image:loc>';
+                $lines[] = '      <image:title>' . htmlspecialchars($title . ' — صورة ' . ($index + 1), ENT_XML1 | ENT_COMPAT, 'UTF-8') . '</image:title>';
+                $lines[] = '    </image:image>';
+            }
+        };
+
         // Static pages
         foreach ($staticPages as $sp) {
             $u = $baseUrl . $sp['path'];
@@ -585,6 +617,7 @@ try {
             $lines[] = '    <lastmod>' . $today . '</lastmod>';
             $lines[] = '    <changefreq>' . $sp['freq'] . '</changefreq>';
             $lines[] = '    <priority>' . $sp['priority'] . '</priority>';
+            if ($sp['path'] === '') $addImageTags(['/images/hero-1.webp', '/images/logo.png'], 'الصفحة الرئيسية');
             $lines[] = '  </url>';
         }
 
@@ -596,11 +629,12 @@ try {
             $lines[] = '    <lastmod>' . $today . '</lastmod>';
             $lines[] = '    <changefreq>monthly</changefreq>';
             $lines[] = '    <priority>0.8</priority>';
+            $addImageTags(['/images/hero-1.webp'], 'خدمات الشركة في ' . $nh);
             $lines[] = '  </url>';
         }
 
         // Services
-        $servicesStmt = $pdo->query("SELECT seo_slug, seo_title, title FROM services WHERE is_active = 1");
+        $servicesStmt = $pdo->query("SELECT seo_slug, seo_title, title, image_url, images FROM services WHERE is_active = 1");
         $services = $servicesStmt->fetchAll();
         foreach ($services as $srv) {
             $slug = $srv['seo_slug'] ?: '';
@@ -611,13 +645,17 @@ try {
             $lines[] = '    <lastmod>' . $today . '</lastmod>';
             $lines[] = '    <changefreq>weekly</changefreq>';
             $lines[] = '    <priority>0.85</priority>';
+            $addImageTags(
+                $imageCandidates($srv['images'] ?? '', $srv['image_url'] ?? null),
+                (string)($srv['seo_title'] ?: $srv['title'])
+            );
             $lines[] = '  </url>';
         }
 
         // Packages
         $pkgCount = 0;
         try {
-            $pkgStmt = $pdo->query("SELECT seo_slug, name FROM packages WHERE is_active = 1");
+            $pkgStmt = $pdo->query("SELECT seo_slug, name, image_url, images FROM packages WHERE is_active = 1");
             $pkgs = $pkgStmt->fetchAll();
             foreach ($pkgs as $pkg) {
                 $slug = $pkg['seo_slug'] ?: '';
@@ -628,6 +666,10 @@ try {
                 $lines[] = '    <lastmod>' . $today . '</lastmod>';
                 $lines[] = '    <changefreq>weekly</changefreq>';
                 $lines[] = '    <priority>0.85</priority>';
+                $addImageTags(
+                    $imageCandidates($pkg['images'] ?? '', $pkg['image_url'] ?? null),
+                    (string)$pkg['name']
+                );
                 $lines[] = '  </url>';
                 $pkgCount++;
             }
@@ -639,9 +681,10 @@ try {
         $lines[] = '    <lastmod>' . $today . '</lastmod>';
         $lines[] = '    <changefreq>weekly</changefreq>';
         $lines[] = '    <priority>0.8</priority>';
+        $addImageTags(['/images/hero-1.webp'], 'مدونة الشركة');
         $lines[] = '  </url>';
 
-        $postsStmt = $pdo->query("SELECT slug, title, published_at FROM posts WHERE status = 'published' AND is_active = 1");
+        $postsStmt = $pdo->query("SELECT slug, title, cover_image, published_at FROM posts WHERE status = 'published' AND is_active = 1");
         $posts = $postsStmt->fetchAll();
         foreach ($posts as $post) {
             $slug = $post['slug'] ?: '';
@@ -652,11 +695,12 @@ try {
             $lines[] = '    <lastmod>' . substr((string)($post['published_at'] ?: $today), 0, 10) . '</lastmod>';
             $lines[] = '    <changefreq>monthly</changefreq>';
             $lines[] = '    <priority>0.75</priority>';
+            $addImageTags($imageCandidates($post['cover_image'] ?? '', null), (string)$post['title']);
             $lines[] = '  </url>';
         }
 
         // SEO Pages
-        $pagesStmt = $pdo->query("SELECT slug, seo_slug, title, published_at FROM seo_pages WHERE status = 'published' AND is_active = 1");
+        $pagesStmt = $pdo->query("SELECT slug, seo_slug, title, cover_image, og_image, published_at FROM seo_pages WHERE status = 'published' AND is_active = 1");
         $seoPages = $pagesStmt->fetchAll();
         foreach ($seoPages as $sp) {
             $slug = $sp['slug'] ?: $sp['seo_slug'] ?: '';
@@ -667,6 +711,7 @@ try {
             $lines[] = '    <lastmod>' . substr((string)($sp['published_at'] ?: $today), 0, 10) . '</lastmod>';
             $lines[] = '    <changefreq>monthly</changefreq>';
             $lines[] = '    <priority>0.82</priority>';
+            $addImageTags($imageCandidates($sp['cover_image'] ?? '', $sp['og_image'] ?? null), (string)$sp['title']);
             $lines[] = '  </url>';
         }
 
