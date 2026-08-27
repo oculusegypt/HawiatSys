@@ -90,7 +90,6 @@ export function Footer() {
               <li><Link href="/containers/contracts"><span className="text-gray-300 hover:text-white transition-colors cursor-pointer block">عقود النظافة وتجديد الرخص</span></Link></li>
               <li><Link href="/services/transport-rubble-waste-saudi"><span className="text-gray-300 hover:text-white transition-colors cursor-pointer block">نقل وتفريغ مخلفات الهدم والبناء</span></Link></li>
               <li><Link href="/services/raddm-taswiyat-al-ardi"><span className="text-gray-300 hover:text-white transition-colors cursor-pointer block">ردم وتسوية الأراضي بالمعدات الثقيلة</span></Link></li>
-              <li><Link href="/services/cleaning-and-sanitizing-construction-sites"><span className="text-gray-300 hover:text-white transition-colors cursor-pointer block">تنظيف وتطهير المواقع بعد الهدم</span></Link></li>
             </ul>
           </div>
 
