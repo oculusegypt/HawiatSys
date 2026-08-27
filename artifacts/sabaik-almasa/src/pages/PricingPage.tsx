@@ -1,328 +1,248 @@
-import { useEffect } from "react"
+import { useEffect, useMemo } from "react"
 import { Link } from "wouter"
+import { AlertCircle, ArrowLeft, CheckCircle2, ChevronLeft, Clock3, MapPin, MessageCircle, Phone, RefreshCw, Ruler, Scale, Truck } from "lucide-react"
+import { useGetContainers } from "@workspace/api-client-react"
 import { Navbar } from "@/components/layout/Navbar"
 import { Footer } from "@/components/layout/Footer"
 import { useServiceRequest } from "@/context/ServiceRequestContext"
-import { Phone, MessageCircle, ChevronLeft, CheckCircle2, AlertCircle, Box } from "lucide-react"
-import { getSiteUrl } from "@/lib/siteUrl"
 import { useSiteSettings } from "@/context/SiteSettingsContext"
-import { PUBLIC_PRICING_NOTICE, PUBLIC_PRICING_PACKAGES } from "@/lib/pricing"
+import { useDocumentSEO } from "@/hooks/useDocumentSEO"
+import { getContainerImage, ARABIC_CATEGORY_NAMES } from "@/components/home/packages/PackageCard"
+import { PUBLIC_PRICING_NOTICE } from "@/lib/pricing"
+import { siteUrl } from "@/lib/siteUrl"
 
 const FACTORS = [
-  { title: "مقاس الحاوية المطلوب", desc: "تتراوح المقاسات من 12 إلى 30 ياردة لمخلفات الأنقاض، و6 إلى 10 ياردة للنفايات التجارية." },
-  { title: "نوع ووزن المخلفات", desc: "مخلفات الهدم الثقيلة والخرسانة المسلحة تختلف عن مخلفات الترميم الخفيفة أو النفايات العضوية." },
-  { title: "مدة بقاء الحاوية والتفريغات", desc: "المدة القياسية 10 أيام للرد، مع إمكانية جدولة ردود متعددة أو عقود سنوية للمنشآت." },
-  { title: "الموقع وسهولة الوصول بالرياض", desc: "أسطولنا يغطي جميع أحياء شمال، شرق، جنوب، وغرب الرياض مع الالتزام بالسلامة وتفادي الإضرار بالأرصفة." },
+  { icon: Ruler, title: "المقاس والسعة", desc: "نطابق حجم الحاوية مع كمية المخلفات ومساحة الوقوف في موقعك." },
+  { icon: Scale, title: "نوع المخلفات", desc: "الأنقاض والخرسانة والنفايات التجارية تحتاج حلولاً وجدولة مختلفة." },
+  { icon: Clock3, title: "مدة الإيجار", desc: "تظهر مدة البقاء المتاحة لكل حاوية كما سجلها فريق العمليات." },
+  { icon: MapPin, title: "موقع التنفيذ", desc: "يتحدد السعر النهائي بعد مراجعة الحي وسهولة الوصول وموعد التوصيل." },
 ]
 
 const FAQS = [
-  {
-    q: "كم سعر إيجار حاوية الأنقاض 20 ياردة في الرياض؟",
-    a: "سعر إيجار حاوية 20 ياردة هو 500 ريال للرد الواحد شامل التوصيل والسحب والتفريغ في المردم الرسمي لمدة بقاء تصل إلى 10 أيام.",
-  },
-  {
-    q: "كم سعر إيجار حاوية الأنقاض الصغيرة 12 ياردة؟",
-    a: "سعر حاوية 12 ياردة هو 400 ريال للرد، وهي مثالية لمشاريع الترميم الصغيرة والتعديلات الداخلية.",
-  },
-  {
-    q: "هل توفرون عقود نظافة إلكترونية معتمدة للبلدية؟",
-    a: "نعم، نقدم عقود نظافة معتمدة ومربوطة فورياً مع منصة بلدي وأمانة منطقة الرياض لتجديد وإصدار الرخص التجارية.",
-  },
-  {
-    q: "ما هي المدة المسموح بها لبقاء الحاوية في الموقع؟",
-    a: "مدة بقاء الحاوية هي 10 أيام للرد الواحد، ويمكن تمديد المدة أو طلب السحب والتبديل في أي وقت بتواصل سريع.",
-  },
-  {
-    q: "ما هي المناطق التي تخدمونها في الرياض؟",
-    a: "نغطي كافة أحياء الرياض: شمال الرياض (الملقا، الياسمين، النرجس، العارض، حطين)، شرق الرياض (الرمال، القادسية، اليرموك)، جنوب الرياض، وغرب الرياض ووسط العاصمة.",
-  },
-  {
-    q: "كم يستغرق توصيل الحاوية بعد تأكيد الطلب؟",
-    a: "يتم توصيل الحاوية لموقعك خلال ساعتين من تأكيد الطلب للطلبات الفورية، أو في الموعد المحدد للطلبات المجدولة.",
-  },
+  { q: "هل السعر يشمل التوصيل والسحب؟", a: "توضح ملاحظة كل خيار ما يتضمنه العرض، ويؤكد فريق العمليات التفاصيل النهائية قبل التنفيذ." },
+  { q: "كيف أختار المقاس المناسب؟", a: "أرسل نوع المخلفات وصورة أو وصفاً للموقع، وسيرشح لك الفريق المقاس الأقرب لحجم العمل ومساحة الوقوف." },
+  { q: "هل يمكن تحديد موعد مسبق؟", a: "نعم، يمكن تنسيق التوصيل والسحب حسب الموعد المتاح في منطقتك بعد تأكيد الطلب." },
 ]
 
+function parseFeatures(raw: unknown): string[] {
+  if (Array.isArray(raw)) return raw.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+  if (typeof raw === "string") {
+    try {
+      const parsed = JSON.parse(raw)
+      return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string" && item.trim().length > 0) : []
+    } catch {
+      return []
+    }
+  }
+  return []
+}
+
+function parseCategory(category?: string): string {
+  return ARABIC_CATEGORY_NAMES[category || ""] || category || "حلول ميدانية"
+}
+
 export default function PricingPage() {
-  const { companyName, phoneCall, phoneWhatsapp, logoUrl, priceRange, address, city, region, country, isLoaded } = useSiteSettings()
-  const resolvedCompany = companyName || ""
-  const pricingWhatsappHref = `https://wa.me/966${(phoneWhatsapp || "0554498403").replace(/^0/, "")}?text=${encodeURIComponent("أريد الاستفسار عن أسعار تأجير الحاويات")}`
-  const packagesWhatsappHref = `https://wa.me/966${(phoneWhatsapp || "0554498403").replace(/^0/, "")}?text=${encodeURIComponent("أريد طلب تأجير حاوية")}`
+  const { companyName, phoneCall, phoneWhatsapp } = useSiteSettings()
+  const { openModal } = useServiceRequest()
+  const { data, isLoading, isError, refetch } = useGetContainers()
+  const containers = useMemo(
+    () => (data ?? []).filter((container) => container.isActive).sort((a, b) => a.order - b.order),
+    [data],
+  )
+  const title = companyName ? `أسعار الحاويات بالرياض | ${companyName}` : "أسعار الحاويات بالرياض"
+  const description = "تعرف على المقاسات والأسعار والملاحظات المسجلة فعلياً لحاويات سبائك الماسة، ثم اطلب الحاوية المناسبة لموقعك في الرياض."
+  const whatsappHref = phoneWhatsapp
+    ? `https://wa.me/966${phoneWhatsapp.replace(/^0/, "")}?text=${encodeURIComponent("أريد الاستفسار عن مقاسات وأسعار الحاويات")}`
+    : ""
+
+  useDocumentSEO({
+    title,
+    description,
+    keywords: "أسعار الحاويات بالرياض, مقاسات حاويات الأنقاض, تأجير حاويات النفايات",
+    canonical: siteUrl("/pricing"),
+    ogImage: containers[0] ? getContainerImage(containers[0]) : undefined,
+  })
 
   useEffect(() => {
-    if (!isLoaded) return
-    const SITE_URL = getSiteUrl()
-    document.title = companyName ? `أسعار تأجير الحاويات بالرياض | ${companyName}` : "أسعار تأجير الحاويات بالرياض | عروض حصرية وتوصيل فوري"
-
-    const setMeta = (attr: string, name: string, content: string) => {
-      let el = document.querySelector(`meta[${attr}="${name}"]`) as HTMLMetaElement | null
-      if (!el) { el = document.createElement("meta"); el.setAttribute(attr, name); document.head.appendChild(el) }
-      el.content = content
+    const schemaId = "pricing-containers-schema"
+    document.getElementById(schemaId)?.remove()
+    const schema = {
+      "@context": "https://schema.org",
+      "@type": "OfferCatalog",
+      name: "مقاسات وأسعار الحاويات",
+      url: siteUrl("/pricing"),
+      description,
+      itemListElement: containers.map((container, index) => ({
+        "@type": "Offer",
+        position: index + 1,
+        name: container.name,
+        description: [container.description, container.priceNote].filter(Boolean).join(" "),
+        priceSpecification: container.priceText ? { "@type": "PriceSpecification", description: container.priceText } : undefined,
+        itemOffered: { "@type": "Service", name: `تأجير ${container.name}` },
+      })),
     }
-    setMeta("name", "description", `أسعار تأجير حاويات الأنقاض والنفايات والمكابس بالرياض ${companyName ? `من ${companyName}` : ""}. أسعار تبدأ من 400 ريال للرد شامل التوصيل والسحب والتفريغ في المرادم الرسمية.`)
-    setMeta("name", "keywords", "أسعار تأجير الحاويات بالرياض, حاوية 12 ياردة, حاوية 20 ياردة, حاوية 30 ياردة, عقد نظافة بلدي, نقل مخلفات الهدم بالرياض")
-    setMeta("property", "og:title", companyName ? `أسعار تأجير الحاويات بالرياض | ${companyName}` : "أسعار تأجير الحاويات بالرياض")
-    setMeta("property", "og:description", "اطلب حاويتك الآن بأفضل الأسعار مع التوصيل الفوري والتفريغ المعتمد.")
-    setMeta("property", "og:url", `${SITE_URL}/pricing`)
-    setMeta("property", "og:image", `${SITE_URL}/images/hero-debris-container.jpg`)
-    setMeta("property", "og:image:alt", `أسعار تأجير الحاويات بالرياض — ${resolvedCompany}`)
-    setMeta("property", "og:locale", "ar_SA")
-    setMeta("property", "og:site_name", `${resolvedCompany} — تأجير حاويات بالرياض`)
-    setMeta("property", "og:type", "website")
-    setMeta("name", "twitter:card", "summary_large_image")
-    setMeta("name", "twitter:image", `${SITE_URL}/images/hero-debris-container.jpg`)
-    setMeta("name", "twitter:url", `${SITE_URL}/pricing`)
-
-    let canon = document.querySelector("link[rel='canonical']") as HTMLLinkElement | null
-    if (!canon) { canon = document.createElement("link"); canon.rel = "canonical"; document.head.appendChild(canon) }
-    canon.href = `${SITE_URL}/pricing`
-
-    // Pricing schema
-    const existing = document.getElementById("pricing-schema")
-    if (existing) existing.remove()
-    const schemas = [
-      {
-        "@context": "https://schema.org",
-        "@type": "Service",
-        "name": "تأجير حاويات الأنقاض والنفايات بالرياض",
-        "url": `${SITE_URL}/pricing`,
-        "description": "تأجير حاويات 12 و 15 و 20 و 30 ياردة لنقل مخلفات البناء والهدم وعقود النظافة الإلكترونية بالرياض",
-        "provider": {
-          "@type": "LocalBusiness",
-          "name": resolvedCompany,
-          "@id": `${SITE_URL}/#business`,
-          "image": logoUrl || `${SITE_URL}/images/logo.webp`,
-          "priceRange": priceRange || "$$",
-          "telephone": phoneCall ? `+966${phoneCall.replace(/^0/, "")}` : "+966554498403",
-          "address": {
-            "@type": "PostalAddress",
-            "streetAddress": address || "طريق الملك فهد، حي الصحافة",
-            "addressLocality": city || "الرياض",
-            "addressRegion": region || "منطقة الرياض",
-            "addressCountry": country || "SA",
-          },
-        },
-        "areaServed": "الرياض",
-        "hasOfferCatalog": {
-          "@type": "OfferCatalog",
-          "name": "قائمة أسعار الحاويات",
-          "itemListElement": PUBLIC_PRICING_PACKAGES.map((pkg, index) => ({
-            "@type": "Offer",
-            "position": index + 1,
-            "name": pkg.name,
-            "description": pkg.priceNote,
-            "itemOffered": { "@type": "Service", "name": pkg.name },
-          })),
-        },
-      },
-      {
-        "@context": "https://schema.org",
-        "@type": "FAQPage",
-        "mainEntity": FAQS.map(f => ({
-          "@type": "Question",
-          "name": f.q,
-          "acceptedAnswer": { "@type": "Answer", "text": f.a }
-        }))
-      },
-      {
-        "@context": "https://schema.org",
-        "@type": "BreadcrumbList",
-        "itemListElement": [
-          { "@type": "ListItem", "position": 1, "name": "الرئيسية", "item": SITE_URL },
-          { "@type": "ListItem", "position": 2, "name": "أسعار تأجير الحاويات", "item": `${SITE_URL}/pricing` },
-        ]
-      }
-    ]
-    const s = document.createElement("script")
-    s.id = "pricing-schema"
-    s.type = "application/ld+json"
-    s.textContent = JSON.stringify(schemas)
-    document.head.appendChild(s)
-
-    return () => { document.getElementById("pricing-schema")?.remove() }
-  }, [resolvedCompany, phoneCall, logoUrl, priceRange, address, city, region, country, isLoaded])
-
-  const { openModal } = useServiceRequest()
+    const script = document.createElement("script")
+    script.id = schemaId
+    script.type = "application/ld+json"
+    script.textContent = JSON.stringify(schema)
+    document.head.appendChild(script)
+    return () => document.getElementById(schemaId)?.remove()
+  }, [containers, description])
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50" dir="rtl">
+    <div className="field-page min-h-[100dvh] flex flex-col" dir="rtl">
       <Navbar />
-
-      {/* Hero */}
-      <div className="bg-gradient-to-bl from-primary to-primary/80 text-white pt-24 pb-12 px-4">
-        <div className="container mx-auto max-w-5xl">
-          <nav className="flex items-center gap-2 text-white/60 text-sm mb-4">
-            <Link href="/"><span className="hover:text-white transition-colors">الرئيسية</span></Link>
-            <ChevronLeft size={13} />
-            <span className="text-white">أسعار تأجير الحاويات</span>
+      <header className="field-hero pt-32 pb-16 text-white">
+        <div className="container mx-auto px-4 md:px-6 relative z-10">
+          <nav className="flex items-center gap-2 text-sm text-white/60 mb-6" aria-label="مسار الصفحة">
+            <Link href="/" className="hover:text-white" data-testid="link-pricing-home">الرئيسية</Link>
+            <ChevronLeft size={14} />
+            <span className="text-secondary font-bold">الأسعار والمقاسات</span>
           </nav>
-          <h1 className="text-3xl md:text-5xl font-black mb-3 leading-tight">
-            أسعار تأجير الحاويات بالرياض
-            <span className="block text-2xl md:text-3xl text-secondary mt-1">أسعار واضحة وشاملة التوصيل والسحب</span>
-          </h1>
-          <p className="text-white/80 text-lg max-w-2xl leading-relaxed">
-            نوفر لك حاويات الأنقاض والنفايات بمختلف المقاسات في كافة أحياء الرياض. السعر يشمل التوصيل، مدة بقاء تصل إلى 10 أيام، والنقل والتفريغ في المرادم الرسمية.
-          </p>
-          <div className="flex flex-wrap gap-3 mt-6">
-            <a href={`tel:${phoneCall || "0554498403"}`} className="inline-flex items-center gap-2 bg-white text-primary px-5 py-2.5 rounded-xl font-black text-sm hover:bg-secondary hover:text-white transition-colors shadow-lg">
-              <Phone size={16} /> اتصل: {phoneCall || "0554498403"}
-            </a>
-            <a href={pricingWhatsappHref} target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 bg-green-500 text-white px-5 py-2.5 rounded-xl font-black text-sm hover:bg-green-600 transition-colors shadow-lg">
-              <MessageCircle size={16} /> واتساب مباشر
-            </a>
+          <p className="text-secondary font-extrabold text-sm mb-3">بيانات الأسطول قبل أي وعود</p>
+          <h1 className="text-3xl md:text-5xl font-black tracking-tight mb-5">أسعار ومقاسات الحاويات بالرياض</h1>
+          <p className="text-white/75 text-base md:text-lg leading-relaxed max-w-2xl">{description}</p>
+          <div className="flex flex-wrap gap-3 mt-7">
+            <button type="button" onClick={() => openModal()} className="inline-flex items-center gap-2 rounded-xl bg-secondary text-[#12384b] px-5 py-3 font-black hover:bg-white transition-colors" data-testid="button-pricing-request">
+              اطلب مقاسك <ArrowLeft size={16} />
+            </button>
+            {phoneCall && (
+              <a href={`tel:${phoneCall}`} className="inline-flex items-center gap-2 rounded-xl border border-white/25 px-5 py-3 font-bold hover:bg-white/10 transition-colors" data-testid="link-pricing-phone">
+                <Phone size={16} /> {phoneCall}
+              </a>
+            )}
+            {whatsappHref && (
+              <a href={whatsappHref} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-5 py-3 font-bold hover:bg-emerald-600 transition-colors" data-testid="link-pricing-whatsapp">
+                <MessageCircle size={16} /> واتساب
+              </a>
+            )}
           </div>
         </div>
-      </div>
+      </header>
 
-      <main className="flex-1 container mx-auto max-w-5xl px-4 py-12">
+      <main className="flex-1 container mx-auto px-4 md:px-6 py-12 md:py-16">
+        <section aria-labelledby="pricing-list-heading">
+          <div className="flex items-end justify-between gap-4 mb-8">
+            <div>
+              <p className="text-[#3aaea5] text-sm font-extrabold mb-2">المتاح فعلياً</p>
+              <h2 id="pricing-list-heading" className="text-2xl md:text-3xl font-black text-[#12384b]">اختر من مقاسات أسطولنا</h2>
+            </div>
+            {!isLoading && !isError && <span className="text-sm text-[#406170]" data-testid="text-pricing-count">{containers.length} خيارات منشورة</span>}
+          </div>
 
-        {/* Price Cards */}
-        <section className="mb-14">
-          <h2 className="text-2xl font-black text-gray-900 mb-2">جدول مقاسات وأسعار الحاويات</h2>
-          <p className="text-gray-500 mb-8">{PUBLIC_PRICING_NOTICE}</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {PUBLIC_PRICING_PACKAGES.map(c => (
-              <div key={c.name} className={`bg-white rounded-2xl border-2 overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between ${c.highlight ? "border-secondary shadow-secondary/10" : "border-gray-100"}`}>
-                <div>
-                  {c.highlight && (
-                    <div className="bg-secondary text-white text-center py-1.5 text-xs font-black tracking-wide">الحاوية الأكثر طلباً لمشاريع البناء</div>
-                  )}
-                  <div className="h-44 overflow-hidden bg-gray-100">
-                    <img
-                      src={c.img}
-                      alt={c.name}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                      onError={(e) => { e.currentTarget.src = "/api/uploads/container-debris-small.webp" }}
-                    />
-                  </div>
-                  <div className="p-5 space-y-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <h3 className="text-base font-black text-gray-900">{c.name}</h3>
-                        <p className="text-xs text-gray-500">{c.size} — {c.capacity}</p>
+          <div className="rounded-2xl bg-[#fff7e8] border border-[#ead39f] p-4 mb-8 flex items-start gap-3" data-testid="notice-pricing-location">
+            <AlertCircle size={18} className="text-[#b37a16] shrink-0 mt-0.5" />
+            <p className="text-sm text-[#765517] leading-relaxed">{PUBLIC_PRICING_NOTICE || "السعر النهائي يحدد حسب الموقع ونوع المخلفات وموعد التنفيذ."}</p>
+          </div>
+
+          {isLoading && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" aria-label="جار تحميل الأسعار">
+              {[1, 2, 3].map((item) => <div key={item} className="h-[30rem] rounded-3xl bg-white border border-[#d8e9e9] animate-pulse" />)}
+            </div>
+          )}
+
+          {isError && (
+            <div className="rounded-3xl border border-red-200 bg-red-50 p-9 text-center" role="alert" data-testid="status-pricing-error">
+              <h2 className="font-black text-red-900 mb-2">تعذر تحميل بيانات الأسعار</h2>
+              <p className="text-sm text-red-800 mb-5">البيانات الحقيقية لم تصل الآن. أعد المحاولة أو اتصل بفريق العمليات.</p>
+              <button type="button" onClick={() => refetch()} className="inline-flex items-center gap-2 rounded-xl bg-[#12384b] text-white px-5 py-3 font-bold" data-testid="button-retry-pricing">
+                <RefreshCw size={16} /> إعادة المحاولة
+              </button>
+            </div>
+          )}
+
+          {!isLoading && !isError && containers.length === 0 && (
+            <div className="rounded-3xl border border-[#d8e9e9] bg-white p-10 text-center" data-testid="status-pricing-empty">
+              <Truck size={36} className="mx-auto mb-4 text-[#3aaea5]" />
+              <h2 className="text-xl font-black text-[#12384b] mb-2">لا توجد مقاسات منشورة حالياً</h2>
+              <p className="text-[#406170] mb-5">تواصل معنا وسنراجع احتياج موقعك معك مباشرة.</p>
+              <Link href="/contact" className="inline-flex items-center gap-2 rounded-xl bg-[#12384b] text-white px-5 py-3 font-bold" data-testid="link-pricing-contact">تواصل مع العمليات <ArrowLeft size={16} /></Link>
+            </div>
+          )}
+
+          {!isLoading && !isError && containers.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="grid-pricing-containers">
+              {containers.map((container) => {
+                const features = parseFeatures(container.features)
+                const href = `/containers/${encodeURIComponent(container.seoSlug || String(container.id))}`
+                return (
+                  <article key={container.id} className="inventory-card rounded-3xl overflow-hidden flex flex-col" data-testid={`card-pricing-container-${container.id}`}>
+                    <Link href={href} className="inventory-media block relative bg-slate-100" data-testid={`link-pricing-image-${container.id}`}>
+                      <img src={getContainerImage(container)} alt={`${container.name}${container.size ? ` — ${container.size}` : ""} لتأجير الحاويات بالرياض`} width="960" height="640" loading="lazy" className="w-full h-full object-cover" />
+                      <span className="absolute top-4 right-4 rounded-lg bg-[#12384b]/90 text-white px-3 py-1.5 text-xs font-bold">{parseCategory(container.category)}</span>
+                    </Link>
+                    <div className="p-6 flex-1 flex flex-col gap-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h3 className="text-xl font-black text-[#12384b]"><Link href={href} data-testid={`link-pricing-title-${container.id}`}>{container.name}</Link></h3>
+                          {(container.size || container.capacity) && <p className="text-sm text-[#406170] mt-1">{[container.size, container.capacity].filter(Boolean).join(" — ")}</p>}
+                        </div>
+                        {container.priceText && <span className="shrink-0 rounded-lg bg-[#fff1cc] text-[#765517] px-2.5 py-1 text-xs font-black" data-testid={`text-container-price-${container.id}`}>{container.priceText}</span>}
                       </div>
-                      <div className="text-left shrink-0">
-                        <div className="text-xs font-black text-secondary bg-secondary/10 px-2 py-1 rounded-lg">{c.priceLabel}</div>
+                      {container.description && <p className="text-sm text-[#406170] leading-relaxed line-clamp-3" data-testid={`text-container-description-${container.id}`}>{container.description}</p>}
+                      {features.length > 0 && <ul className="space-y-2">{features.slice(0, 4).map((feature, index) => <li key={index} className="flex gap-2 text-xs text-slate-700"><CheckCircle2 size={14} className="text-[#3aaea5] shrink-0" />{feature}</li>)}</ul>}
+                      {container.suitableFor && <p className="text-xs bg-[#f2f8f8] rounded-xl px-3 py-2 text-[#406170]"><strong className="text-[#12384b]">مناسب لـ:</strong> {container.suitableFor}</p>}
+                      <div className="mt-auto pt-4 border-t border-[#d8e9e9]">
+                        {container.priceNote && <p className="text-xs text-[#765517] mb-3">{container.priceNote}</p>}
+                        {container.rentalPeriod && <p className="text-xs text-[#406170] mb-4 flex items-center gap-2"><Clock3 size={14} className="text-[#3aaea5]" />{container.rentalPeriod}</p>}
+                        <button type="button" onClick={() => openModal({ serviceType: container.name, containerName: container.name, containerSize: [container.name, container.size].filter(Boolean).join(" — ") })} className="w-full rounded-xl bg-[#12384b] text-white py-3 font-black text-sm hover:bg-[#3aaea5] transition-colors" data-testid={`button-price-request-${container.id}`}>
+                          اطلب هذه الحاوية
+                        </button>
                       </div>
                     </div>
-                    <p className="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2 leading-relaxed">{c.priceNote}</p>
-                    <ul className="space-y-1.5 pt-1">
-                      {c.best.map(b => (
-                        <li key={b} className="flex items-center gap-2 text-xs text-gray-600">
-                          <CheckCircle2 size={13} className="text-secondary shrink-0" /> {b}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-                <div className="p-5 pt-0">
-                  <button
-                    onClick={() => openModal({ serviceType: "حاويات الأنقاض", containerName: c.name })}
-                    className={`w-full py-2.5 rounded-xl font-black text-xs transition-colors ${c.highlight ? "bg-primary text-white hover:bg-secondary" : "bg-gray-100 text-gray-800 hover:bg-primary hover:text-white"}`}
-                  >
-                    اطلب الحاوية الآن
-                  </button>
-                </div>
+                  </article>
+                )
+              })}
+            </div>
+          )}
+        </section>
+
+        <section className="mt-16" aria-labelledby="pricing-factors-heading">
+          <div className="mb-7">
+            <p className="text-[#3aaea5] text-sm font-extrabold mb-2">كيف يتحدد العرض؟</p>
+            <h2 id="pricing-factors-heading" className="text-2xl md:text-3xl font-black text-[#12384b]">تفاصيل صغيرة تصنع سعراً دقيقاً</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {FACTORS.map(({ icon: Icon, title: factorTitle, desc }) => (
+              <div key={factorTitle} className="bg-white border border-[#d8e9e9] rounded-2xl p-5" data-testid={`card-pricing-factor-${factorTitle}`}>
+                <Icon size={22} className="text-[#3aaea5] mb-4" />
+                <h3 className="font-black text-[#12384b] mb-2">{factorTitle}</h3>
+                <p className="text-sm text-[#406170] leading-relaxed">{desc}</p>
               </div>
             ))}
           </div>
         </section>
 
-        {/* Price Table */}
-        <section className="mb-14 bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
-          <div className="p-6 border-b border-gray-100">
-            <h2 className="text-xl font-black text-gray-900">مقارنة أسعار حاويات الأنقاض والنفايات بالرياض</h2>
+        <section className="mt-16" aria-labelledby="pricing-faq-heading">
+          <div className="mb-7">
+            <p className="text-[#3aaea5] text-sm font-extrabold mb-2">قبل الطلب</p>
+            <h2 id="pricing-faq-heading" className="text-2xl md:text-3xl font-black text-[#12384b]">أسئلة متكررة عن الأسعار</h2>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-100">
-                <tr>
-                  {["المقاس والسعة", "الاستخدام الأنسب", "مدة البقاء", "السعر للرد"].map(h => (
-                    <th key={h} className="text-right px-4 py-3 font-black text-gray-700">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {[
-                  ["حاوية 12 ياردة (10 م³)", "الترميمات والتعديلات الداخلية", "حتى 10 أيام", "400 ر.س"],
-                  ["حاوية 15 ياردة (12 م³)", "أعمال التوسعة والتشطيب", "حتى 10 أيام", "450 ر.س"],
-                  ["حاوية 20 ياردة (16 م³)", "بناء وهدم الفلل والعمائر", "حتى 10 أيام", "500 ر.س"],
-                  ["حاوية 30 ياردة (22 م³)", "المشاريع الكبرى والهدم الشامل", "حتى 10 أيام", "700 ر.س"],
-                  ["حاوية نفايات 6 - 10 ياردة", "المطاعم والمنشآت التجارية", "عقد سنوي", "حسب الموقع والنشاط"],
-                  ["مكبس نفايات 2 ياردة", "المجمعات والهايبرماركت", "عقد توريد وصيانة", "حسب المواصفات"],
-                ].map(row => (
-                  <tr key={row[0]} className="hover:bg-gray-50 transition-colors">
-                    {row.map((cell, i) => (
-                      <td key={i} className={`px-4 py-3 text-xs ${i === 3 ? "font-black text-secondary" : "text-gray-700"}`}>{cell}</td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="p-4 bg-amber-50 border-t border-amber-100 flex items-start gap-2">
-            <AlertCircle size={16} className="text-amber-600 shrink-0 mt-0.5" />
-            <p className="text-xs text-amber-800">{PUBLIC_PRICING_NOTICE}</p>
-          </div>
-        </section>
-
-        {/* Factors */}
-        <section className="mb-14">
-          <h2 className="text-2xl font-black text-gray-900 mb-2">العوامل المحددة لتكلفة الحاوية</h2>
-          <p className="text-gray-500 mb-6">تساعدك هذه العوامل في اختيار المقاس الملائم لمشروعك وتفادي التكاليف الإضافية.</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {FACTORS.map(f => (
-              <div key={f.title} className="bg-white border border-gray-100 rounded-2xl p-5 flex items-start gap-4">
-                <div>
-                  <h3 className="font-black text-gray-900 mb-1 text-sm">{f.title}</h3>
-                  <p className="text-xs text-gray-600 leading-relaxed">{f.desc}</p>
-                </div>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {FAQS.map((faq, index) => (
+              <article key={faq.q} className="bg-white border border-[#d8e9e9] rounded-2xl p-5" data-testid={`card-pricing-faq-${index}`}>
+                <h3 className="font-black text-[#12384b] mb-2">{faq.q}</h3>
+                <p className="text-sm text-[#406170] leading-relaxed">{faq.a}</p>
+              </article>
             ))}
           </div>
         </section>
 
-        {/* FAQs */}
-        <section className="mb-14">
-          <h2 className="text-2xl font-black text-gray-900 mb-6">الأسئلة الشائعة حول أسعار الحاويات</h2>
-          <div className="space-y-4">
-            {FAQS.map(f => (
-              <div key={f.q} className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
-                <h3 className="font-black text-gray-900 mb-2 flex items-start gap-2 text-sm">
-                  <span className="text-primary shrink-0">س:</span> {f.q}
-                </h3>
-                <p className="text-gray-600 text-xs leading-relaxed mr-5">
-                  <span className="text-gray-400 font-bold">ج: </span>{f.a}
-                </p>
-              </div>
-            ))}
+        <section className="mt-16 rounded-3xl bg-[#12384b] text-white p-8 md:p-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div>
+            <p className="text-secondary font-bold text-sm mb-2">لا تخمّن المقاس</p>
+            <h2 className="text-2xl font-black mb-2">فريق العمليات يرشح لك الخيار الأنسب</h2>
+            <p className="text-white/65 text-sm">أرسل الموقع ونوع المخلفات، وسنؤكد السعر والموعد قبل التنفيذ.</p>
           </div>
-        </section>
-
-        {/* CTA */}
-        <section className="bg-gradient-to-l from-primary to-primary/90 rounded-2xl p-8 text-white text-center">
-          <Box size={40} className="mx-auto mb-4 opacity-80" />
-          <h2 className="text-2xl font-black mb-2">هل تحتاج إلى توصيل حاوية فورياً لموقعك؟</h2>
-          <p className="text-white/70 mb-6 max-w-lg mx-auto text-xs">احجز مقاسك الآن وسيصلك أسطولنا في أي حي بالرياض خلال ساعتين.</p>
-          <div className="flex flex-wrap gap-3 justify-center">
-            <button
-              onClick={() => openModal()}
-              className="inline-flex items-center gap-2 bg-secondary text-white px-6 py-3 rounded-xl font-black text-xs hover:bg-white hover:text-primary transition-colors shadow-lg"
-            >
-              <Box size={16} /> اطلب الحاوية الآن
+          <div className="flex flex-wrap gap-3">
+            <button type="button" onClick={() => openModal()} className="inline-flex items-center gap-2 rounded-xl bg-secondary text-[#12384b] px-5 py-3 font-black hover:bg-white transition-colors whitespace-nowrap" data-testid="button-pricing-final-request">
+              ابدأ الطلب <ArrowLeft size={16} />
             </button>
-            <a href={`tel:${phoneCall || "0554498403"}`} className="inline-flex items-center gap-2 bg-white/10 text-white border border-white/20 px-6 py-3 rounded-xl font-black text-xs hover:bg-white/20 transition-colors">
-              <Phone size={16} /> {phoneCall || "0554498403"}
-            </a>
-            <a href={packagesWhatsappHref} target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 bg-green-500 text-white px-6 py-3 rounded-xl font-black text-xs hover:bg-green-600 transition-colors">
-              <MessageCircle size={16} /> واتساب
-            </a>
+            {phoneCall && <a href={`tel:${phoneCall}`} className="inline-flex items-center gap-2 rounded-xl border border-white/20 px-5 py-3 font-bold hover:bg-white/10" data-testid="link-pricing-final-phone"><Phone size={16} /> اتصال</a>}
+            {whatsappHref && <a href={whatsappHref} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-5 py-3 font-bold hover:bg-emerald-600" data-testid="link-pricing-final-whatsapp"><MessageCircle size={16} /> واتساب</a>}
           </div>
         </section>
       </main>
-
       <Footer />
     </div>
   )

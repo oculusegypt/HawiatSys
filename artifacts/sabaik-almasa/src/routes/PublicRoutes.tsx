@@ -10,6 +10,7 @@ const PartnersPage = lazy(() => import("@/pages/PartnersPage"))
 const PackagesPage = lazy(() => import("@/pages/PackagesPage"))
 const PackageDetail = lazy(() => import("@/pages/PackageDetail"))
 const ServiceDetail = lazy(() => import("@/pages/ServiceDetail"))
+const ServicesPage = lazy(() => import("@/pages/ServicesPage"))
 const WhyUsLeadership = lazy(() => import("@/pages/WhyUsLeadership"))
 const WhyUsWhatWe = lazy(() => import("@/pages/WhyUsWhatWe"))
 const WhyUsCommitment = lazy(() => import("@/pages/WhyUsCommitment"))
@@ -61,8 +62,8 @@ export function PublicRoutes() {
         <Route path="/partners" component={PartnersPage} />
         <Route path="/partners/" component={PartnersPage} />
 
-        <Route path="/services" component={Home} />
-        <Route path="/services/" component={Home} />
+        <Route path="/services" component={ServicesPage} />
+        <Route path="/services/" component={ServicesPage} />
         <Route path="/services/:slug" component={ServiceDetail} />
         <Route path="/services/:slug/" component={ServiceDetail} />
         <Route path="/خدماتنا/:slug" component={ServiceDetail} />
@@ -80,6 +81,9 @@ export function PublicRoutes() {
         <Route path="/containers/waste" component={PackagesPage} />
         <Route path="/containers/contracts" component={PackagesPage} />
         <Route path="/containers/contract" component={PackagesPage} />
+        <Route path="/containers/:slug" component={PackageDetail} />
+        <Route path="/containers/:slug/" component={PackageDetail} />
+        <Route path="/container/:slug/" component={PackageDetail} />
         <Route path="/containers/:category" component={PackagesPage} />
         <Route path="/حاويات/:category" component={PackagesPage} />
         <Route path="/packages" component={PackagesPage} />

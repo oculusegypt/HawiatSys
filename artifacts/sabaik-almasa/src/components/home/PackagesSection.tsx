@@ -6,7 +6,7 @@ import { useSiteSettings } from "@/context/SiteSettingsContext"
 import { PackageCard } from "@/components/home/packages/PackageCard"
 
 export function PackagesSection({ initialCategory = "all" }: { initialCategory?: string }) {
-  const { data: apiData, isLoading } = useGetContainers()
+  const { data: apiData, isLoading, isError, refetch } = useGetContainers()
   const { openModal } = useServiceRequest()
   const { companyName, homepageContent } = useSiteSettings()
   const copy = homepageContent.sections?.packages
@@ -14,9 +14,7 @@ export function PackagesSection({ initialCategory = "all" }: { initialCategory?:
   const all: Container[] = (apiData ?? [])
     .filter((c) => c.isActive)
     .sort((a, b) => a.order - b.order)
-  const filtered = all
-
-  if (!isLoading && all.length === 0) return null
+  const filtered = initialCategory === "all" ? all : all.filter((container) => container.category === initialCategory)
 
   return (
     <section id="containers" className="py-24 bg-gray-50">
@@ -55,8 +53,15 @@ export function PackagesSection({ initialCategory = "all" }: { initialCategory?:
           >
             {isLoading
               ? Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="bg-white rounded-2xl shadow-md animate-pulse h-80" />
+                  <div key={i} className="bg-white rounded-3xl border border-slate-100 animate-pulse h-[30rem]" />
                 ))
+              : isError
+                ? (
+                  <div className="col-span-full rounded-3xl border border-red-200 bg-red-50 p-8 text-center" role="alert" data-testid="status-home-containers-error">
+                    <p className="text-red-900 font-bold mb-4">تعذر تحميل الحاويات حالياً.</p>
+                    <button type="button" onClick={() => refetch()} className="rounded-xl bg-primary text-white px-5 py-2.5 font-bold" data-testid="button-retry-home-containers">إعادة المحاولة</button>
+                  </div>
+                )
               : filtered.map((c, i) =>
                   <PackageCard key={c.id} container={c} index={i} companyName={companyName} onRequest={() =>
                     openModal({

@@ -1,4 +1,5 @@
 import React from "react"
+import { Link } from "wouter"
 import type { Container } from "@workspace/api-client-react"
 import { Check, Maximize, Weight, Info, Clock, Phone, MessageCircle } from "lucide-react"
 import { resolveContactNumbers, useSiteSettings } from "@/context/SiteSettingsContext"
@@ -10,7 +11,11 @@ export interface PackageCardProps {
   onRequest: () => void
 }
 
-export const ARABIC_CATEGORY_NAMES: Record<string, string> = {}
+export const ARABIC_CATEGORY_NAMES: Record<string, string> = {
+  debris: "مخلفات البناء والأنقاض",
+  waste: "النفايات التجارية",
+  contract: "عقود النظافة",
+}
 
 function parseImages(raw: unknown): string[] {
   if (Array.isArray(raw)) return raw.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
@@ -77,16 +82,21 @@ export function PackageCard({ container: c, onRequest }: PackageCardProps) {
   const callNumber = c.contactPhone2 || c.contactPhone1 || defaultCall
   const whatsappNumber = c.contactPhone1 || defaultWa
 
-  const categoryArabic = "باقة متاحة"
+  const categoryArabic = ARABIC_CATEGORY_NAMES[c.category || ""] || "حاوية متاحة"
+  const detailSlug = c.seoSlug || String(c.id)
+  const detailHref = `/containers/${encodeURIComponent(detailSlug)}`
 
   return (
-    <div className="bg-white border-2 border-slate-100 hover:border-secondary/40 rounded-3xl overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-300 flex flex-col justify-between group transform hover:-translate-y-1">
-      <div className="relative h-52 overflow-hidden bg-slate-100">
+    <article className="inventory-card bg-white rounded-3xl overflow-hidden flex flex-col justify-between group" data-testid={`card-container-${c.id}`}>
+      <div className="inventory-media relative overflow-hidden bg-slate-100">
         {getContainerImage(c) ? (
           <img
             src={getContainerImage(c)}
             alt={c.name}
+            data-testid={`img-container-${c.id}`}
             className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-700"
+            width="960"
+            height="640"
             loading="lazy"
             onError={(e) => {
               e.currentTarget.src = "/images/container-debris-small.webp"
@@ -117,7 +127,9 @@ export function PackageCard({ container: c, onRequest }: PackageCardProps) {
 
       <div className="p-6 flex-1 flex flex-col gap-3.5">
         <div>
-          <h3 className="text-xl font-extrabold text-slate-900 leading-snug group-hover:text-primary transition-colors">{c.name}</h3>
+          <h3 className="text-xl font-extrabold text-slate-900 leading-snug group-hover:text-primary transition-colors">
+            <Link href={detailHref} className="hover:underline" data-testid={`link-container-detail-${c.id}`}>{c.name}</Link>
+          </h3>
           {(c.size || c.capacity) && (
             <div className="flex flex-wrap gap-2.5 mt-2 text-xs">
               {c.size && (
@@ -174,13 +186,18 @@ export function PackageCard({ container: c, onRequest }: PackageCardProps) {
         <div className="pt-3 mt-auto border-t border-slate-100 space-y-2">
           <button
             onClick={onRequest}
+            type="button"
+            data-testid={`button-request-container-${c.id}`}
             className="w-full text-center bg-primary hover:bg-secondary hover:text-slate-950 text-white font-extrabold py-3 rounded-2xl transition-all duration-300 text-sm shadow-md hover:shadow-xl transform active:scale-98"
           >
-            {"اطلب الباقة الآن ←"}
+            {"اطلب الحاوية الآن ←"}
           </button>
+          <Link href={detailHref} className="block text-center text-xs font-bold text-slate-500 hover:text-primary transition-colors py-1" data-testid={`link-container-read-${c.id}`}>
+            عرض مواصفات الحاوية
+          </Link>
           <PhoneRow callNumber={callNumber} whatsappNumber={whatsappNumber} name={c.name} />
         </div>
       </div>
-    </div>
+    </article>
   )
 }

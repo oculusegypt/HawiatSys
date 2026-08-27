@@ -26,7 +26,10 @@ function findContainer(containers: Container[], slug: string): Container | undef
     const namePart  = toSlug(c.name).toLowerCase()
     const sizePart  = c.size ? toSlug(c.size).toLowerCase() : ""
     const combined  = toSlug(`${c.name}-${c.size}`).toLowerCase()
+    const seoPart   = c.seoSlug ? toSlug(c.seoSlug).toLowerCase() : ""
     return (
+      s === String(c.id).toLowerCase() ||
+      (seoPart && s === seoPart) ||
       s === namePart ||
       s === sizePart ||
       s === combined ||
@@ -37,9 +40,11 @@ function findContainer(containers: Container[], slug: string): Container | undef
 }
 
 export default function PackageDetail() {
-  const [, params] = useRoute("/package/:slug")
-  const slug = params?.slug || ""
-  const { data: apiContainers } = useGetContainers()
+  const [, containerParams] = useRoute("/containers/:slug")
+  const [, legacyParams] = useRoute("/container/:slug")
+  const [, packageParams] = useRoute("/cleaning-packages/:slug")
+  const slug = containerParams?.slug || legacyParams?.slug || packageParams?.slug || ""
+  const { data: apiContainers, isLoading, isError, refetch } = useGetContainers()
   const [container, setContainer] = useState<Container | null>(null)
   const { openModal } = useServiceRequest()
   const { phoneCall, phoneWhatsapp, phones } = useSiteSettings()
@@ -60,8 +65,41 @@ export default function PackageDetail() {
       ? `${container.name}${container.size ? ` ${container.size}` : ""} — الشركة`
       : "تفاصيل الباقة — خدمات التنظيف",
     description: container?.description ?? "تفاصيل وأسعار باقات تنظيف المنازل والفلل بالرياض.",
-    canonical: siteUrl(`/container/${slug}/`),
+      canonical: siteUrl(`/containers/${encodeURIComponent(slug)}`),
   })
+
+  if (isLoading) {
+    return (
+      <div className="min-h-[100dvh] flex flex-col bg-gray-50" dir="rtl">
+        <Navbar />
+        <main className="flex-1 container mx-auto px-4 py-32">
+          <div className="h-10 w-2/3 rounded-xl bg-slate-200 animate-pulse mb-8" />
+          <div className="grid md:grid-cols-2 gap-8">
+            <div className="h-80 rounded-3xl bg-white animate-pulse" />
+            <div className="h-80 rounded-3xl bg-white animate-pulse" />
+          </div>
+        </main>
+        <Footer />
+      </div>
+    )
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-[100dvh] flex flex-col bg-gray-50" dir="rtl">
+        <Navbar />
+        <main className="flex-1 flex items-center justify-center p-6 text-center">
+          <div>
+            <h1 className="text-2xl font-black text-primary mb-3">تعذر تحميل مواصفات الحاوية</h1>
+            <p className="text-gray-500 mb-5">حاول إعادة المحاولة أو تصفح جميع الحاويات.</p>
+            <button type="button" onClick={() => refetch()} className="bg-primary text-white px-5 py-3 rounded-xl font-bold ml-2" data-testid="button-retry-container-detail">إعادة المحاولة</button>
+            <Link href="/containers" className="text-primary font-bold hover:underline" data-testid="link-container-detail-list">عرض الحاويات</Link>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    )
+  }
 
   if (!container && apiContainers) {
     // Not found — redirect to container listing
@@ -70,8 +108,8 @@ export default function PackageDetail() {
         <Navbar />
         <div className="flex-1 flex items-center justify-center text-center px-4 py-20">
           <div>
-            <p className="text-gray-500 text-lg mb-4">الباقة غير موجودة</p>
-            <Link href="/container/" className="text-primary font-bold hover:underline">← عرض جميع باقات النظافة</Link>
+            <p className="text-gray-500 text-lg mb-4">الحاوية غير موجودة</p>
+            <Link href="/containers" className="text-primary font-bold hover:underline" data-testid="link-container-not-found">عرض جميع الحاويات</Link>
           </div>
         </div>
         <Footer />
@@ -89,7 +127,7 @@ export default function PackageDetail() {
           <div className="flex items-center gap-2 text-white/60 text-sm mb-3">
             <Link href="/" className="hover:text-white transition-colors">الرئيسية</Link>
             <ChevronLeft size={14} />
-            <Link href="/container/" className="hover:text-white transition-colors">باقاتنا</Link>
+            <Link href="/containers" className="hover:text-white transition-colors">الحاويات</Link>
             <ChevronLeft size={14} />
             <span className="text-white">{container?.name ?? "..."}</span>
           </div>
@@ -117,6 +155,8 @@ export default function PackageDetail() {
               <img
                 src={getContainerImage(container)}
                 alt={container.name}
+                width="960"
+                height="640"
                 className="w-full h-full object-cover"
               />
             </div>

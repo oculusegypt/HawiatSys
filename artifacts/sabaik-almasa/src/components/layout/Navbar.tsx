@@ -7,7 +7,8 @@ import { TrackOrderModal } from "@/components/home/TrackOrderModal"
 
 const NAV_LINKS = [
   { href: "/", text: "الرئيسية" },
-  { href: "/#containers", text: "الباقات" },
+  { href: "/containers", text: "الحاويات" },
+  { href: "/services", text: "الخدمات" },
   { href: "/pricing", text: "الأسعار" },
   { href: "/blog", text: "المدونة" },
   { href: "/faq", text: "الأسئلة الشائعة" },
@@ -93,6 +94,18 @@ export function Navbar() {
                 </button>
               )}
 
+              <a
+                href="https://aiservx.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`hidden lg:inline-flex items-center px-3 py-2 text-xs font-bold transition-colors ${
+                  isScrolled || isInnerPage ? "text-primary/65 hover:text-secondary" : "text-white/75 hover:text-secondary"
+                }`}
+                data-testid="link-aiservx-navbar"
+              >
+                aiservx.com
+              </a>
+
               <Link
                 href="/admin/login"
                 className={`hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-bold transition-all duration-200 ${
@@ -160,16 +173,27 @@ export function Navbar() {
         </div>
 
         <nav className="flex flex-col px-3 py-5 gap-0.5 flex-1 overflow-y-auto">
-          {NAV_LINKS.map(l => (
-            <a
+           {NAV_LINKS.map(l => (
+             <Link
               key={l.href}
-              href={l.href}
+               href={l.href}
               onClick={() => setMenuOpen(false)}
               className="flex items-center px-4 py-3.5 rounded-xl text-primary/85 hover:text-primary hover:bg-primary/10 font-medium text-[1rem] transition-colors"
+               data-testid={`link-mobile-nav-${l.text}`}
             >
               {l.text}
-            </a>
+             </Link>
           ))}
+           <a
+             href="https://aiservx.com"
+             target="_blank"
+             rel="noopener noreferrer"
+             onClick={() => setMenuOpen(false)}
+             className="flex items-center px-4 py-3.5 rounded-xl text-primary/85 hover:text-primary hover:bg-primary/10 font-medium text-[1rem] transition-colors"
+             data-testid="link-aiservx-mobile"
+           >
+             aiservx.com — الشريك التقني
+           </a>
         </nav>
 
         <div className="px-4 pb-8 pt-3 border-t border-[#e7dccb] space-y-2.5">
@@ -204,13 +228,14 @@ export function Navbar() {
 
 function NavLink({ href, text, isScrolled }: { href: string; text: string; isScrolled: boolean }) {
   return (
-    <a
+    <Link
       href={href}
       className={`font-medium transition-colors hover:text-secondary ${
         isScrolled ? "text-primary/80" : "text-white drop-shadow-md"
       }`}
+      data-testid={`link-nav-${text}`}
     >
       {text}
-    </a>
+    </Link>
   )
 }

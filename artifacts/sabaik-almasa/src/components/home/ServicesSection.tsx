@@ -44,13 +44,15 @@ function ServiceImageCarousel({ images, title, companyName }: { images: string[]
   const next = (e: React.MouseEvent) => { e.stopPropagation(); setIdx(i => (i + 1) % images.length) }
 
   return (
-    <div className="relative w-full h-40 rounded-xl overflow-hidden mb-4 group/carousel">
+    <div className="relative w-full h-56 md:h-64 overflow-hidden mb-0 group/carousel">
       <AnimatePresence mode="wait">
         <motion.img
           key={idx}
           src={images[idx]}
           alt={title ? `${title} بالرياض — ${companyName}` : `خدمات تأجير الحاويات ونقل الأنقاض بالرياض`}
           className="w-full h-full object-cover"
+            width="960"
+            height="640"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -62,16 +64,19 @@ function ServiceImageCarousel({ images, title, companyName }: { images: string[]
       {images.length > 1 && (
         <>
           <button onClick={prev}
+             data-testid={`button-service-image-prev-${title || "service"}`}
             className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-1 opacity-0 group-hover/carousel:opacity-100 transition-opacity">
             <ChevronLeft size={14} />
           </button>
           <button onClick={next}
+             data-testid={`button-service-image-next-${title || "service"}`}
             className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-1 opacity-0 group-hover/carousel:opacity-100 transition-opacity">
             <ChevronRight size={14} />
           </button>
           <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
             {images.map((_, i) => (
               <button key={i} onClick={e => { e.stopPropagation(); setIdx(i) }}
+                 data-testid={`button-service-image-dot-${title || "service"}-${i}`}
                 className={`w-1.5 h-1.5 rounded-full transition-all ${i === idx ? "bg-white w-3" : "bg-white/50"}`} />
             ))}
           </div>

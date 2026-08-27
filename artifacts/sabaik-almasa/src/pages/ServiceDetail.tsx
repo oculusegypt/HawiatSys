@@ -285,7 +285,7 @@ export default function ServiceDetail() {
           <div className="flex items-center gap-2 text-white/70 text-sm mb-4">
             <Link href="/" className="hover:text-white transition-colors">الرئيسية</Link>
             <ChevronLeft size={14} />
-            <Link href="/#services" className="hover:text-white transition-colors">الخدمات</Link>
+             <Link href="/services" className="hover:text-white transition-colors" data-testid="link-service-detail-services">الخدمات</Link>
             <ChevronLeft size={14} />
             <span className="text-secondary font-semibold">{service.title}</span>
           </div>
@@ -335,6 +335,8 @@ export default function ServiceDetail() {
                   <img
                     src={images[0]}
                     alt={`${service.title} بالرياض`}
+                    width="1280"
+                    height="720"
                     className="w-full h-80 md:h-96 object-cover"
                   />
                 </div>

@@ -84,7 +84,7 @@ export function MarketingBadge() {
           </div>
 
           <a
-            href="/#containers"
+            href="/containers"
             aria-label="استعراض الحاويات"
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#d7a936] px-3 py-2 text-xs font-bold text-[#102c42] shadow-lg shadow-black/15 transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#ebc45f]"
           >

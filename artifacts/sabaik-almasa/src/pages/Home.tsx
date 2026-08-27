@@ -210,6 +210,7 @@ function injectLocalBusinessSchema({
 import { HeroSlider } from "@/components/home/HeroSlider"
 import { StatsBar } from "@/components/home/StatsBar"
 import { PackagesSection } from "@/components/home/PackagesSection"
+import { ServicesSection } from "@/components/home/ServicesSection"
 import { AboutSection } from "@/components/home/AboutSection"
 import { HowItWorksSection } from "@/components/home/HowItWorksSection"
 import { WhyChooseUs } from "@/components/home/WhyChooseUs"
@@ -259,7 +260,7 @@ function SectionBlock({
         </>
       )
     case "services":
-      return null
+      return <ServicesSection />
     case "about":
       return <AboutSection />
     case "ceo":

@@ -68,8 +68,8 @@ export function Footer() {
             <ul className="space-y-3">
               <li><Link href="/"><span className="text-gray-300 hover:text-white transition-colors cursor-pointer block">الرئيسية</span></Link></li>
               <li><Link href="/about"><span className="text-gray-300 hover:text-white transition-colors cursor-pointer block">من نحن</span></Link></li>
-              <li><a href="/#containers" className="text-gray-300 hover:text-white transition-colors block">الحاويات المتاحة</a></li>
-               <li><a href="/#containers" className="text-gray-300 hover:text-white transition-colors block">الباقات المتاحة</a></li>
+               <li><Link href="/containers" className="text-gray-300 hover:text-white transition-colors block">الحاويات المتاحة</Link></li>
+               <li><Link href="/services" className="text-gray-300 hover:text-white transition-colors block">الخدمات الميدانية</Link></li>
               <li><Link href="/faq"><span className="text-gray-300 hover:text-white transition-colors cursor-pointer block font-semibold text-secondary">الأسئلة الشائعة (FAQ)</span></Link></li>
               <li><Link href="/pricing"><span className="text-gray-300 hover:text-white transition-colors cursor-pointer block">أسعار الحاويات</span></Link></li>
               <li><Link href="/areas"><span className="text-gray-300 hover:text-white transition-colors cursor-pointer block">تغطية أحياء الرياض</span></Link></li>
@@ -78,15 +78,16 @@ export function Footer() {
             </ul>
           </div>
 
-           <div>
+            <div>
             <h3 className="text-xl font-bold mb-6 text-secondary relative inline-block">
-              الباقات المتاحة
+               الحاويات والخدمات
               <span className="absolute bottom-0 right-0 w-1/2 h-1 bg-secondary rounded-full -mb-2"></span>
             </h3>
             <ul className="space-y-3">
-              <li><Link href="/packages"><span className="text-gray-300 hover:text-white transition-colors cursor-pointer block">استعراض الباقات</span></Link></li>
-              <li><Link href="/pricing"><span className="text-gray-300 hover:text-white transition-colors cursor-pointer block">أسعار الباقات</span></Link></li>
-              <li><a href="/#service-request" className="text-gray-300 hover:text-white transition-colors block">احجز باقتك الآن</a></li>
+               <li><Link href="/containers"><span className="text-gray-300 hover:text-white transition-colors cursor-pointer block">استعراض الحاويات</span></Link></li>
+               <li><Link href="/services"><span className="text-gray-300 hover:text-white transition-colors cursor-pointer block">استعراض الخدمات</span></Link></li>
+               <li><Link href="/pricing"><span className="text-gray-300 hover:text-white transition-colors cursor-pointer block">أسعار الحاويات</span></Link></li>
+               <li><Link href="/contact" className="text-gray-300 hover:text-white transition-colors block">اطلب الخدمة الآن</Link></li>
             </ul>
           </div>
 
@@ -122,6 +123,13 @@ export function Footer() {
           </div>
 
         </div>
+
+         <div className="border-t border-white/10 pt-5 mb-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+           <span className="text-xs text-gray-400">حلول رقمية وتشغيلية للشركات الطموحة</span>
+           <a href="https://aiservx.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-secondary hover:text-white font-bold text-sm transition-colors" data-testid="link-aiservx-footer">
+             aiservx.com <span className="text-gray-400 font-normal">الشريك التقني</span>
+           </a>
+         </div>
 
         {/* Google Maps */}
         {mapEmbed && (

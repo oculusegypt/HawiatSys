@@ -711,3 +711,57 @@ section[id] {
     transition-duration: .01ms !important;
   }
 }
+
+/* ── Field operations UI: editorial rhythm for real inventory ───────────── */
+.field-page {
+  background:
+    radial-gradient(circle at 12% 18%, rgba(58,174,165,.08), transparent 22rem),
+    var(--home-mist);
+}
+
+.field-hero {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(110deg, rgba(18,56,75,.98), rgba(18,56,75,.88)),
+    var(--home-ink);
+}
+
+.field-hero::after {
+  content: "";
+  position: absolute;
+  width: 26rem;
+  height: 26rem;
+  border: 1px solid rgba(201,155,67,.25);
+  border-radius: 999px;
+  left: -11rem;
+  bottom: -15rem;
+  pointer-events: none;
+}
+
+.inventory-card {
+  background: rgba(255,255,255,.9);
+  border: 1px solid var(--home-line);
+  box-shadow: 0 10px 26px rgba(18,56,75,.06);
+  transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+}
+
+.inventory-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(58,174,165,.45);
+  box-shadow: 0 18px 40px rgba(18,56,75,.12);
+}
+
+.inventory-media {
+  min-height: 15rem;
+}
+
+@media (min-width: 768px) {
+  .inventory-media { min-height: 18rem; }
+}
+
+.service-media-edge {
+  margin: -1px -1px 0;
+  border-radius: 1.5rem 1.5rem 0 0;
+  overflow: hidden;
+}
