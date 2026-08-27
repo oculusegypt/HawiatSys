@@ -3563,86 +3563,181 @@ try {
     // ── 28. ADMIN ANALYTICS: GET /api/admin/analytics ──
     if ($path === '/admin/analytics' && $method === 'GET') {
         try {
-            $period = $_GET['period'] ?? 'monthly';
-            $now = date('c');
-            $todayIso = date('Y-m-d') . 'T00:00:00';
-            $weekIso = date('Y-m-d', strtotime('-7 days')) . 'T00:00:00';
-            $monthIso = date('Y-m-d', strtotime('-30 days')) . 'T00:00:00';
-
-            $totalReqs = (int)$pdo->query("SELECT COUNT(*) FROM service_requests")->fetchColumn();
-            $completedReqs = (int)$pdo->query("SELECT COUNT(*) FROM service_requests WHERE status = 'completed'")->fetchColumn();
-            $pendingReqs = (int)$pdo->query("SELECT COUNT(*) FROM service_requests WHERE status = 'pending'")->fetchColumn();
-            $inProgressReqs = (int)$pdo->query("SELECT COUNT(*) FROM service_requests WHERE status = 'in_progress'")->fetchColumn();
-            $cancelledReqs = (int)$pdo->query("SELECT COUNT(*) FROM service_requests WHERE status = 'cancelled'")->fetchColumn();
-
-            // Daily stats for 14 days
-            $daily = [];
-            for ($i = 13; $i >= 0; $i--) {
-                $d = date('Y-m-d', strtotime("-{$i} days"));
-                $dayStart = $d . 'T00:00:00';
-                $dayEnd = $d . 'T23:59:59';
-                $cnt = (int)$pdo->query("SELECT COUNT(*) FROM service_requests WHERE created_at >= '{$dayStart}' AND created_at <= '{$dayEnd}'")->fetchColumn();
-                $daily[] = ['date' => $d, 'count' => $cnt];
+            $utc = new DateTimeZone('UTC');
+            $nowDate = new DateTimeImmutable('now', $utc);
+            $now = $nowDate->format('Y-m-d\TH:i:s.v\Z');
+            $periodKey = (string)($_GET['period'] ?? 'monthly');
+            $todayStart = $nowDate->setTime(0, 0, 0);
+            $periodFrom = null;
+            $periodTo = null;
+            if ($periodKey === 'today') {
+                $periodKey = 'custom';
+                $date = $todayStart->format('Y-m-d');
+                $_GET['from'] = $date;
+                $_GET['to'] = $date;
             }
-
+            if ($periodKey === 'yesterday') {
+                $periodFrom = $todayStart->modify('-1 day');
+                $periodTo = $todayStart;
+            } elseif ($periodKey === 'weekly') {
+                $periodFrom = $nowDate->modify('-7 days');
+            } elseif ($periodKey === 'monthly') {
+                $periodFrom = $nowDate->modify('-30 days');
+            } elseif ($periodKey === 'custom') {
+                $from = (string)($_GET['from'] ?? '');
+                $to = (string)($_GET['to'] ?? '');
+                if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $from) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $to)) {
+                    $periodFrom = new DateTimeImmutable($from . ' 00:00:00', $utc);
+                    $periodTo = new DateTimeImmutable($to . ' 23:59:59.999', $utc);
+                } else {
+                    $periodKey = 'monthly';
+                    $periodFrom = $nowDate->modify('-30 days');
+                }
+            } elseif ($periodKey !== 'all') {
+                $periodKey = 'monthly';
+                $periodFrom = $nowDate->modify('-30 days');
+            }
+            $fromIso = $periodFrom?->format('Y-m-d\TH:i:s.v\Z');
+            $toIso = $periodTo?->format('Y-m-d\TH:i:s.v\Z');
+            $inPeriod = static function (string $value, ?string $from, ?string $to): bool {
+                return (!$from || $value >= $from) && (!$to || $value <= $to);
+            };
+            $countValues = static function (array $rows, callable $value): array {
+                $counts = [];
+                foreach ($rows as $row) {
+                    $key = trim((string)$value($row)) ?: 'غير محدد';
+                    $counts[$key] = ($counts[$key] ?? 0) + 1;
+                }
+                arsort($counts);
+                return $counts;
+            };
+            $rank = static function (array $counts, int $limit = 8): array {
+                $result = [];
+                foreach (array_slice($counts, 0, $limit, true) as $label => $count) {
+                    $result[] = ['label' => $label, 'count' => $count];
+                }
+                return $result;
+            };
+            $sourceFor = static function (array $row): string {
+                $referrer = strtolower(trim((string)($row['referrer'] ?? '')));
+                $utmSource = strtolower(trim((string)($row['utm_source'] ?? $row['utmSource'] ?? '')));
+                $utmMedium = strtolower(trim((string)($row['utm_medium'] ?? $row['utmMedium'] ?? '')));
+                $gclid = trim((string)($row['gclid'] ?? ''));
+                if ($gclid || preg_match('/cpc|ppc|paid|ads|display|banner|cpm/', $utmMedium)) return 'إعلانات Google';
+                if (($utmSource === 'google' && (!$utmMedium || preg_match('/^(organic|search|seo)$/', $utmMedium))) || preg_match('/(^|https?:\/\/|www\.)google\./', $referrer)) return 'بحث Google';
+                if (preg_match('/facebook|instagram|twitter|t\.co|linkedin|youtube|tiktok|snapchat|pinterest/', $utmSource . ' ' . $referrer)) return 'شبكات اجتماعية';
+                return (!$referrer && !$utmSource) ? 'مباشر' : 'إحالات أخرى';
+            };
+            $views = $pdo->query("SELECT session_id, page, referrer, country, city, device_type, utm_source, utm_medium, utm_campaign, gclid, created_at FROM page_views ORDER BY created_at ASC, id ASC")->fetchAll(PDO::FETCH_ASSOC);
+            $selectedViews = array_values(array_filter($views, static fn(array $row): bool => $inPeriod((string)$row['created_at'], $fromIso, $toIso)));
+            $viewsIn = static function (array $rows, ?string $from, ?string $to) use ($inPeriod): array {
+                return array_values(array_filter($rows, static fn(array $row): bool => $inPeriod((string)$row['created_at'], $from, $to)));
+            };
+            $viewSummary = static function (array $rows): array {
+                return ['views' => count($rows), 'unique' => count(array_unique(array_filter(array_map(static fn(array $row): string => (string)($row['session_id'] ?? ''), $rows), static fn(string $id): bool => $id !== '')))];
+            };
+            $todayRows = $viewsIn($views, $todayStart->format('Y-m-d\TH:i:s.v\Z'), null);
+            $weekRows = $viewsIn($views, $nowDate->modify('-7 days')->format('Y-m-d\TH:i:s.v\Z'), null);
+            $monthRows = $viewsIn($views, $nowDate->modify('-30 days')->format('Y-m-d\TH:i:s.v\Z'), null);
+            $sourceCounts = $countValues($selectedViews, $sourceFor);
+            $pageCounts = $countValues($selectedViews, static fn(array $row): string => (string)($row['page'] ?? ''));
+            $referrerCounts = $countValues($selectedViews, static fn(array $row): string => (string)($row['referrer'] ?? '') ?: 'مباشر');
+            $countryCounts = $countValues($selectedViews, static fn(array $row): string => (string)($row['country'] ?? ''));
+            $cityCounts = $countValues($selectedViews, static fn(array $row): string => (string)($row['city'] ?? ''));
+            $deviceCounts = $countValues($selectedViews, static fn(array $row): string => (string)($row['device_type'] ?? 'desktop'));
             $hourly = array_fill(0, 24, 0);
-
-            // Sources
-            $sources = [
-                ['source' => 'بحث Google المجاني', 'count' => max(1, (int)round($totalReqs * 0.65))],
-                ['source' => 'إعلانات Google المأجورة', 'count' => max(1, (int)round($totalReqs * 0.20))],
-                ['source' => 'مباشر', 'count' => max(1, (int)round($totalReqs * 0.15))]
+            $dailyCounts = [];
+            foreach ($selectedViews as $row) {
+                $dateTime = new DateTimeImmutable((string)$row['created_at'], $utc);
+                $hourly[(int)$dateTime->format('G')]++;
+                $day = $dateTime->format('Y-m-d');
+                $dailyCounts[$day] = ($dailyCounts[$day] ?? 0) + 1;
+            }
+            ksort($dailyCounts);
+            $daily = array_map(static fn(string $date, int $count): array => ['date' => $date, 'count' => $count], array_keys($dailyCounts), array_values($dailyCounts));
+            $activeCutoff = $nowDate->modify('-5 minutes')->format('Y-m-d\TH:i:s.v\Z');
+            $pdo->prepare("DELETE FROM active_visitors WHERE last_seen < :cutoff")->execute([':cutoff' => $activeCutoff]);
+            $activeRows = $pdo->query("SELECT page, device_type FROM active_visitors WHERE last_seen >= " . $pdo->quote($activeCutoff) . " ORDER BY last_seen DESC")->fetchAll(PDO::FETCH_ASSOC);
+            $requests = $pdo->query("SELECT status, service_type, created_at, assigned_at, driver_completed_at, acquisition_source, utm_source, utm_medium, utm_campaign, gclid FROM service_requests ORDER BY created_at ASC, id ASC")->fetchAll(PDO::FETCH_ASSOC);
+            $selectedRequests = array_values(array_filter($requests, static fn(array $row): bool => $inPeriod((string)$row['created_at'], $fromIso, $toIso)));
+            $requestCounts = $countValues($selectedRequests, static fn(array $row): string => (string)($row['service_type'] ?? ''));
+            $servicePerformance = [];
+            foreach ($requestCounts as $service => $total) {
+                $serviceRows = array_values(array_filter($selectedRequests, static fn(array $row): bool => ((string)($row['service_type'] ?? '') ?: 'غير محدد') === $service));
+                $completed = count(array_filter($serviceRows, static fn(array $row): bool => $row['status'] === 'completed'));
+                $inProgress = count(array_filter($serviceRows, static fn(array $row): bool => $row['status'] === 'in_progress'));
+                $cancelled = count(array_filter($serviceRows, static fn(array $row): bool => $row['status'] === 'cancelled'));
+                $servicePerformance[] = ['service' => $service, 'total' => $total, 'completed' => $completed, 'inProgress' => $inProgress, 'cancelled' => $cancelled, 'completionRate' => $total ? round($completed / $total * 100, 1) : 0];
+            }
+            $statusCounts = ['pending' => 0, 'inProgress' => 0, 'completed' => 0, 'cancelled' => 0];
+            foreach ($selectedRequests as $request) {
+                $status = (string)$request['status'];
+                if ($status === 'in_progress') $statusCounts['inProgress']++;
+                elseif (array_key_exists($status, $statusCounts)) $statusCounts[$status]++;
+            }
+            $conversionCounts = [];
+            foreach ($selectedViews as $row) $conversionCounts[$sourceFor($row)] = ($conversionCounts[$sourceFor($row)] ?? 0) + 1;
+            foreach ($selectedRequests as $row) {
+                $source = trim((string)($row['acquisition_source'] ?? ''));
+                if (!$source) $source = $sourceFor(['referrer' => '', 'utm_source' => $row['utm_source'] ?? '', 'utm_medium' => $row['utm_medium'] ?? '', 'gclid' => $row['gclid'] ?? '']);
+                $conversionCounts[$source] = $conversionCounts[$source] ?? 0;
+            }
+            $conversionSources = [];
+            foreach ($conversionCounts as $source => $viewsCount) {
+                $ordersForSource = count(array_filter($selectedRequests, static function (array $row) use ($source, $sourceFor): bool {
+                    $requestSource = trim((string)($row['acquisition_source'] ?? ''));
+                    if (!$requestSource) $requestSource = $sourceFor(['referrer' => '', 'utm_source' => $row['utm_source'] ?? '', 'utm_medium' => $row['utm_medium'] ?? '', 'gclid' => $row['gclid'] ?? '']);
+                    return $requestSource === $source;
+                }));
+                $conversionSources[] = ['source' => $source, 'views' => $viewsCount, 'orders' => $ordersForSource, 'rate' => $viewsCount ? round($ordersForSource / $viewsCount * 100, 1) : 0];
+            }
+            usort($conversionSources, static fn(array $a, array $b): int => $b['views'] <=> $a['views']);
+            $avgHours = static function (array $rows, string $start, string $end): float {
+                $durations = [];
+                foreach ($rows as $row) {
+                    if (empty($row[$start]) || empty($row[$end])) continue;
+                    try { $durations[] = (new DateTimeImmutable((string)$row[$end]))->getTimestamp() - (new DateTimeImmutable((string)$row[$start]))->getTimestamp(); } catch (Throwable) {}
+                }
+                return $durations ? round(array_sum($durations) / count($durations) / 3600, 1) : 0;
+            };
+            $comparison = null;
+            if ($periodFrom) {
+                $comparisonTo = $periodFrom;
+                $duration = max(86400, ($periodTo ? $periodTo->getTimestamp() : $nowDate->getTimestamp()) - $periodFrom->getTimestamp());
+                $comparisonFrom = $periodFrom->modify("-{$duration} seconds");
+                $comparisonRows = $viewsIn($views, $comparisonFrom->format('Y-m-d\TH:i:s.v\Z'), $comparisonTo->modify('-0.001 seconds')->format('Y-m-d\TH:i:s.v\Z'));
+                $comparisonRequests = array_values(array_filter($requests, static fn(array $row): bool => $inPeriod((string)$row['created_at'], $comparisonFrom->format('Y-m-d\TH:i:s.v\Z'), $comparisonTo->modify('-0.001 seconds')->format('Y-m-d\TH:i:s.v\Z'))));
+                $comparisonSummary = $viewSummary($comparisonRows);
+                $comparison = ['from' => $comparisonFrom->format('Y-m-d\TH:i:s.v\Z'), 'to' => $comparisonTo->modify('-0.001 seconds')->format('Y-m-d\TH:i:s.v\Z'), 'views' => $comparisonSummary['views'], 'unique' => $comparisonSummary['unique'], 'orders' => count($comparisonRequests), 'conversionRate' => $comparisonSummary['unique'] ? round(count($comparisonRequests) / $comparisonSummary['unique'] * 100, 1) : 0];
+            }
+            $selectedSummary = $viewSummary($selectedViews);
+            $todaySummary = $viewSummary($todayRows);
+            $weekSummary = $viewSummary($weekRows);
+            $monthSummary = $viewSummary($monthRows);
+            $response = [
+                'activeCount' => count($activeRows),
+                'activePages' => array_map(static fn(array $row): array => ['page' => (string)$row['page'], 'device' => (string)$row['device_type']], array_slice($activeRows, 0, 20)),
+                'period' => ['key' => $periodKey, 'from' => $fromIso, 'to' => $toIso, 'views' => $selectedSummary['views'], 'unique' => $selectedSummary['unique']],
+                'today' => $todaySummary, 'week' => $weekSummary, 'month' => $monthSummary,
+                'topPages' => array_map(static fn(array $item): array => ['page' => $item['label'], 'count' => $item['count']], $rank($pageCounts)),
+                'topReferrers' => array_map(static fn(array $item): array => ['referrer' => $item['label'], 'count' => $item['count']], $rank($referrerCounts)),
+                'sources' => array_map(static fn(array $item): array => ['source' => $item['label'], 'count' => $item['count']], $rank($sourceCounts)),
+                'orders' => ['total' => count($selectedRequests), 'completed' => $statusCounts['completed'], 'conversionRate' => $selectedSummary['unique'] ? round(count($selectedRequests) / $selectedSummary['unique'] * 100, 1) : 0, 'statuses' => $statusCounts],
+                'comparison' => $comparison,
+                'servicePerformance' => $servicePerformance,
+                'operationalMetrics' => [
+                    'assigned' => count(array_filter($selectedRequests, static fn(array $row): bool => !empty($row['assigned_at']))),
+                    'averageAssignmentHours' => $avgHours($selectedRequests, 'created_at', 'assigned_at'),
+                    'completed' => count(array_filter($selectedRequests, static fn(array $row): bool => !empty($row['driver_completed_at']))),
+                    'averageCompletionHours' => $avgHours($selectedRequests, 'assigned_at', 'driver_completed_at'),
+                ],
+                'conversionSources' => $conversionSources,
+                'countries' => array_map(static fn(array $item): array => ['country' => $item['label'], 'count' => $item['count']], $rank($countryCounts)),
+                'cities' => array_map(static fn(array $item): array => ['city' => $item['label'], 'count' => $item['count']], $rank($cityCounts)),
+                'devices' => ['mobile' => (int)($deviceCounts['mobile'] ?? 0), 'tablet' => (int)($deviceCounts['tablet'] ?? 0), 'desktop' => (int)($deviceCounts['desktop'] ?? 0)],
+                'hourly' => $hourly, 'daily' => $daily, 'generatedAt' => $now,
             ];
-
-            echo json_encode([
-                'activeCount' => 3,
-                'activePages' => [
-                    ['page' => '/', 'device' => 'mobile'],
-                    ['page' => '/services/تنظيف-منازل-بالرياض', 'device' => 'mobile'],
-                    ['page' => '/pricing', 'device' => 'desktop']
-                ],
-                'period' => [
-                    'key' => $period,
-                    'from' => $monthIso,
-                    'to' => $now,
-                    'views' => $totalReqs * 8 + 45,
-                    'unique' => $totalReqs * 5 + 30
-                ],
-                'today' => ['views' => 12, 'unique' => 8],
-                'week' => ['views' => 85, 'unique' => 54],
-                'month' => ['views' => $totalReqs * 8 + 45, 'unique' => $totalReqs * 5 + 30],
-                'topPages' => [
-                    ['page' => '/', 'count' => 140],
-                    ['page' => '/pricing', 'count' => 85],
-                    ['page' => '/services', 'count' => 62]
-                ],
-                'topReferrers' => [
-                    ['referrer' => 'https://www.google.com/', 'count' => 120],
-                    ['referrer' => 'مباشر', 'count' => 45]
-                ],
-                'sources' => $sources,
-                'orders' => [
-                    'total' => $totalReqs,
-                    'completed' => $completedReqs,
-                    'conversionRate' => $totalReqs > 0 ? (float)round(($completedReqs / max(1, $totalReqs)) * 100, 1) : 0,
-                    'statuses' => [
-                        'pending' => $pendingReqs,
-                        'inProgress' => $inProgressReqs,
-                        'completed' => $completedReqs,
-                        'cancelled' => $cancelledReqs
-                    ]
-                ],
-                'conversionSources' => [
-                    ['source' => 'بحث Google المجاني', 'views' => 120, 'orders' => max(1, (int)round($totalReqs * 0.65)), 'rate' => 14.5],
-                    ['source' => 'مباشر', 'views' => 45, 'orders' => max(1, (int)round($totalReqs * 0.15)), 'rate' => 8.2]
-                ],
-                'countries' => [['country' => 'Saudi Arabia', 'count' => 165]],
-                'cities' => [['city' => 'Riyadh', 'count' => 160]],
-                'devices' => ['mobile' => 130, 'desktop' => 30, 'tablet' => 5],
-                'hourly' => $hourly,
-                'daily' => $daily,
-                'generatedAt' => $now
-            ], JSON_UNESCAPED_UNICODE);
+            echo json_encode($response, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
         } catch (\Exception $e) {
             echo json_encode(['error' => $e->getMessage()]);
         }

@@ -1094,6 +1094,10 @@ function RecordDetails({ record, allRecords, serviceRequests = [], open, onOpenC
 }
 
 function ContainerSearchPanel({ records, loading, onDetails, onEdit }: { records: ContainerSystemRecord[]; loading: boolean; onDetails: (record: ContainerSystemRecord) => void; onEdit: (record: ContainerSystemRecord) => void }) {
+  const searchableRecords = records.filter(record =>
+    record.status !== "archived" &&
+    ["container", "container_asset", "contract", "container_assignment", "appointment", "work_order"].includes(record.kind),
+  )
   return (
     <Card className="overflow-hidden border-slate-200/80 shadow-[0_8px_28px_rgba(15,44,58,.05)]">
       <CardHeader className="border-b border-slate-100 bg-slate-50/60 px-4 py-4 sm:px-5">
@@ -1106,7 +1110,7 @@ function ContainerSearchPanel({ records, loading, onDetails, onEdit }: { records
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        {loading ? <div className="space-y-2 p-4">{[1, 2, 3].map(index => <SkeletonLine key={index} className="h-16" />)}</div> : records.length === 0 ? (
+        {loading ? <div className="space-y-2 p-4">{[1, 2, 3].map(index => <SkeletonLine key={index} className="h-16" />)}</div> : searchableRecords.length === 0 ? (
           <div className="flex min-h-56 flex-col items-center justify-center px-6 text-center">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-400"><Search size={21} /></div>
             <h3 className="mt-4 font-bold text-slate-800">لا توجد نتائج</h3>
@@ -1118,7 +1122,7 @@ function ContainerSearchPanel({ records, loading, onDetails, onEdit }: { records
               <div className="grid grid-cols-[1.1fr_1.2fr_1.2fr_1fr_1fr_auto] gap-3 bg-slate-50 px-4 py-3 text-[10px] font-black text-slate-400">
                 <span>رقم الحاوية</span><span>العميل</span><span>الهاتف</span><span>بداية الإيجار</span><span>نهاية الإيجار</span><span>الحالة</span>
               </div>
-              {records.map(record => {
+              {searchableRecords.map(record => {
                 const payload = record.payload as Record<string, unknown>
                 const code = String(payload.containerCode ?? payload.assetCode ?? payload.code ?? record.reference ?? `#${record.id}`)
                 return <div key={record.id} className="grid grid-cols-[1.1fr_1.2fr_1.2fr_1fr_1fr_auto] items-center gap-3 border-t border-slate-100 px-4 py-3.5 text-xs hover:bg-cyan-50/30" data-testid={`row-container-search-${record.id}`}>

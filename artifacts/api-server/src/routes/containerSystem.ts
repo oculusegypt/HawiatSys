@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { and, desc, eq, like } from "drizzle-orm";
+import { and, desc, eq, like, ne, or } from "drizzle-orm";
 import { db, sqlite, containerSystemAuditTable, containerSystemRecordsTable, serviceRequestsTable, financialTruth, financialPeriods, closeFinancialPeriod, postToFinancialCore, reverseInFinancialCore } from "@workspace/db";
 import type { AdminRequest } from "../middleware/adminAuth";
 import { getSetting } from "./settings";
@@ -794,7 +794,15 @@ router.get("/admin/container-system/records", requireContainerPermission("contai
   const filters = [];
   if (kind) filters.push(eq(containerSystemRecordsTable.kind, kind));
   if (status) filters.push(eq(containerSystemRecordsTable.status, status));
-  if (search) filters.push(like(containerSystemRecordsTable.payload, `%${search}%`));
+  // Archived rows remain available only when explicitly requested. The
+  // default list is the operational registry, not an audit archive.
+  if (!status) filters.push(ne(containerSystemRecordsTable.status, "archived"));
+  if (search) {
+    filters.push(or(
+      like(containerSystemRecordsTable.reference, `%${search}%`),
+      like(containerSystemRecordsTable.payload, `%${search}%`),
+    ));
+  }
   const rows = await db.select().from(containerSystemRecordsTable)
     .where(filters.length ? and(...filters) : undefined)
     .orderBy(desc(containerSystemRecordsTable.updatedAt));

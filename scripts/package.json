@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "upgrade-financial-links": "node upgrade-financial-links.mjs",
+    "cleanup:unused-container-records": "node ./cleanup-unused-container-records.mjs",
     "hello": "tsx ./src/hello.ts",
     "validate:operational": "node ./validate-operational-invariants.mjs",
     "generate-sitemap": "node ./generate-sitemap.mjs",

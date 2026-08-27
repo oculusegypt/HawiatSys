@@ -3,11 +3,10 @@ import { db } from "@workspace/db";
 import { pageViewsTable, activeVisitorsTable } from "@workspace/db";
 import { eq, gte, sql } from "drizzle-orm";
 import crypto from "crypto";
-import { getSetting } from "./settings";
 import { requireAdmin, requireNonDriver, requireSectionPermission } from "../middleware/adminAuth";
 import { conversationsTable, messagesTable } from "@workspace/db";
 import { serviceRequestsTable } from "@workspace/db";
-import { SOURCE_LABELS, sourceForRow } from "../lib/attribution";
+import { sourceForRow } from "../lib/attribution";
 
 const router = Router();
 
@@ -82,12 +81,6 @@ function getComparisonPeriod(period: ReturnType<typeof getPeriod>) {
   };
 }
 
-function viewWeight(row: Parameters<typeof sourceForRow>[0], googleOrganicWeightEnabled: boolean): number {
-  return googleOrganicWeightEnabled && sourceForRow(row) === SOURCE_LABELS.googleOrganic
-    ? 8
-    : 1;
-}
-
 function countBy<T>(
   rows: T[],
   getValue: (row: T) => string,
@@ -128,14 +121,6 @@ router.post("/track", async (req, res) => {
     const utmCampaign = typeof body.utmCampaign === "string" ? body.utmCampaign.slice(0, 160) : "";
     const deviceType = detectDevice(ua);
     const now = isoNow();
-    const googleOrganicWeightEnabled =
-      (await getSetting("analytics_google_search_weight_enabled")) === "true";
-    const weight = (row: {
-      referrer?: string | null;
-      utmSource?: string | null;
-      utmMedium?: string | null;
-      gclid?: string | null;
-    }) => viewWeight(row, googleOrganicWeightEnabled);
 
     await db.insert(pageViewsTable).values({
       sessionId, page, referrer, ipHash: hashIp(ip), deviceType,
@@ -290,7 +275,8 @@ router.get("/admin/analytics", requireAdmin, requireSectionPermission("analytics
     const now = isoNow();
     const period = getPeriod(req);
     const fiveMinAgo = isoAgo(5 * 60 * 1000);
-    const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
+    const nowDate = new Date();
+    const startOfToday = new Date(Date.UTC(nowDate.getUTCFullYear(), nowDate.getUTCMonth(), nowDate.getUTCDate()));
     const todayIso = startOfToday.toISOString();
     const weekIso = isoAgo(7 * 24 * 60 * 60 * 1000);
     const monthIso = isoAgo(30 * 24 * 60 * 60 * 1000);
@@ -298,10 +284,8 @@ router.get("/admin/analytics", requireAdmin, requireSectionPermission("analytics
     const activeRows = await db.select().from(activeVisitorsTable);
     const allRows = await db.select().from(pageViewsTable);
     const allRequests = await db.select().from(serviceRequestsTable);
-    const googleOrganicWeightEnabled =
-      (await getSetting("analytics_google_search_weight_enabled")) === "true";
-    const weight = (row: typeof allRows[number]) =>
-      viewWeight(row, googleOrganicWeightEnabled);
+    // Count recorded visits exactly once so the dashboard matches SQLite/PHP.
+    const weight = (_row: typeof allRows[number]) => 1;
     const rowsIn = (from?: string, to?: string) => allRows.filter(row =>
       (!from || row.createdAt >= from) && (!to || row.createdAt <= to),
     );
@@ -328,7 +312,7 @@ router.get("/admin/analytics", requireAdmin, requireSectionPermission("analytics
 
     const hourly = Array(24).fill(0) as number[];
     for (const row of selectedRows) {
-      const hour = new Date(row.createdAt).getHours();
+      const hour = new Date(row.createdAt).getUTCHours();
       if (hour >= 0 && hour < 24) hourly[hour] += weight(row);
     }
     const dailyCounts = countBy(selectedRows, row => row.createdAt.slice(0, 10), weight);
