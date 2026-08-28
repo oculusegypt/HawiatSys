@@ -423,6 +423,7 @@ export default function Home() {
               homepageContent={homepageContent}
             />
           ))}
+        <SeoPagesLinksSection />
       </main>
 
       <Footer />
