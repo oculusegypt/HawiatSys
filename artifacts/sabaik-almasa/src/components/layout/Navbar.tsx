@@ -24,6 +24,7 @@ export function Navbar() {
   const { logoUrl, isLoaded, orderTrackingEnabled, companyName } = useSiteSettings()
 
   const isInnerPage = location !== "/"
+  const isSolid = isScrolled || isInnerPage
 
   React.useEffect(() => {
     const onScroll = () => setIsScrolled(window.scrollY > 20)
@@ -48,19 +49,24 @@ export function Navbar() {
     return () => document.removeEventListener("keydown", onKey)
   }, [menuOpen])
 
+  React.useEffect(() => {
+    document.body.style.overflow = menuOpen ? "hidden" : ""
+    return () => { document.body.style.overflow = "" }
+  }, [menuOpen])
+
   return (
     <>
       <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          isScrolled || isInnerPage
-            ? "border-b border-slate-200/90 bg-white/95 backdrop-blur-xl shadow-[0_8px_30px_rgba(15,23,42,0.10)] py-3"
+        className={`home-navbar fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+          isSolid
+            ? "is-solid border-b border-slate-200/90 bg-white/95 backdrop-blur-xl shadow-[0_8px_30px_rgba(15,23,42,0.10)] py-3"
             : "border-b border-white/15 bg-slate-950/20 backdrop-blur-[2px] py-5"
         }`}
       >
         <div className="container mx-auto px-4 md:px-6">
           <div className="flex items-center justify-between">
             {/* Logo */}
-            <Link href="/" className="flex items-center gap-2 shrink-0">
+            <Link href="/" className="flex items-center gap-2 shrink-0 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2">
               {isLoaded && logoUrl ? (
                 <img src={logoUrl} alt={companyName || "تأجير حاويات بالرياض"} className="h-10 md:h-12 w-auto object-contain" />
               ) : (
@@ -73,7 +79,7 @@ export function Navbar() {
             {/* Desktop nav */}
             <nav className="hidden md:flex items-center gap-6 lg:gap-8">
               {NAV_LINKS.map(l => (
-                <NavLink key={l.href} href={l.href} text={l.text} isScrolled={isScrolled || isInnerPage} />
+                <NavLink key={l.href} href={l.href} text={l.text} isScrolled={isSolid} location={location} />
               ))}
             </nav>
 
@@ -83,7 +89,7 @@ export function Navbar() {
                 <button
                   onClick={() => setTrackingOpen(true)}
                   className={`hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-bold transition-all duration-200 ${
-                    isScrolled || isInnerPage
+                      isSolid
                       ? "border border-primary/15 text-primary hover:border-primary/35 hover:bg-primary/5"
                       : "border border-white/35 text-white hover:border-secondary hover:bg-white/10"
                   }`}
@@ -96,7 +102,7 @@ export function Navbar() {
               <Link
                 href="/admin/login"
                 className={`hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-bold transition-all duration-200 ${
-                  isScrolled || isInnerPage
+                    isSolid
                     ? "border border-primary/15 text-primary hover:border-primary/35 hover:bg-primary/5"
                     : "border border-white/35 text-white hover:border-secondary hover:bg-white/10"
                 }`}
@@ -118,7 +124,12 @@ export function Navbar() {
                 onClick={() => setMenuOpen(p => !p)}
                 aria-label="القائمة الرئيسية"
                 aria-expanded={menuOpen}
-                className="md:hidden flex items-center justify-center w-10 h-10 rounded-xl text-primary hover:bg-primary/10 active:bg-primary/15 transition-colors"
+                aria-controls="mobile-navigation"
+                className={`md:hidden flex items-center justify-center w-10 h-10 rounded-xl transition-colors ${
+                  isSolid
+                    ? "text-primary hover:bg-primary/10 active:bg-primary/15"
+                    : "text-white hover:bg-white/15 active:bg-white/20"
+                }`}
               >
                 {menuOpen ? <X size={24} /> : <Menu size={24} />}
               </button>
@@ -140,6 +151,8 @@ export function Navbar() {
       {/* Mobile menu drawer */}
       <div
         dir="rtl"
+        id="mobile-navigation"
+        aria-hidden={!menuOpen}
         className={`fixed top-0 right-0 z-[60] h-full w-72 bg-[#fffaf3] shadow-2xl flex flex-col md:hidden transition-transform duration-300 ease-in-out ${
           menuOpen ? "translate-x-0" : "translate-x-full"
         }`}
@@ -165,7 +178,11 @@ export function Navbar() {
               key={l.href}
                href={l.href}
               onClick={() => setMenuOpen(false)}
-              className="flex items-center px-4 py-3.5 rounded-xl text-primary/85 hover:text-primary hover:bg-primary/10 font-medium text-[1rem] transition-colors"
+               className={`flex items-center px-4 py-3.5 rounded-xl font-medium text-[1rem] transition-colors ${
+                 (l.href === "/" ? location === "/" : location === l.href || location.startsWith(`${l.href}/`))
+                   ? "bg-primary/10 text-primary"
+                   : "text-primary/85 hover:text-primary hover:bg-primary/10"
+               }`}
                data-testid={`link-mobile-nav-${l.text}`}
             >
               {l.text}
@@ -203,16 +220,19 @@ export function Navbar() {
   );
 }
 
-function NavLink({ href, text, isScrolled }: { href: string; text: string; isScrolled: boolean }) {
+function NavLink({ href, text, isScrolled, location }: { href: string; text: string; isScrolled: boolean; location: string }) {
+  const isActive = href === "/" ? location === "/" : location === href || location.startsWith(`${href}/`)
   return (
     <Link
       href={href}
-      className={`font-medium transition-colors hover:text-secondary ${
+      aria-current={isActive ? "page" : undefined}
+      className={`group relative rounded-lg px-1 py-2 font-medium transition-colors hover:text-secondary focus:outline-none focus:ring-2 focus:ring-secondary ${
         isScrolled ? "text-primary/80" : "text-white drop-shadow-md"
-      }`}
+      } ${isActive ? "text-secondary" : ""}`}
       data-testid={`link-nav-${text}`}
     >
       {text}
+      <span className={`absolute inset-x-1 -bottom-0.5 h-0.5 origin-center rounded-full bg-secondary transition-transform duration-200 ${isActive ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"}`} aria-hidden="true" />
     </Link>
   )
 }

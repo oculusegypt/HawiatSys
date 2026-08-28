@@ -361,6 +361,39 @@ section[id] {
   background: var(--home-ink);
 }
 
+.home-navbar {
+  --nav-ink: #fff;
+  --nav-muted: rgba(255,255,255,.82);
+}
+
+.home-navbar.is-solid {
+  --nav-ink: var(--home-ink);
+  --nav-muted: rgba(18,56,75,.78);
+}
+
+.home-navbar img {
+  max-width: min(11rem, 30vw);
+}
+
+.home-navbar .group:hover span {
+  transform: scaleX(1);
+}
+
+.hero-control {
+  flex: 0 0 auto;
+}
+
+.hero-controls {
+  width: max-content;
+  max-width: calc(100% - 2rem);
+  padding: .35rem .5rem;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 999px;
+  background: rgba(18,56,75,.3);
+  box-shadow: 0 10px 28px rgba(8,31,43,.16);
+  direction: ltr;
+}
+
 .home-hero::after {
   content: "";
   position: absolute;
@@ -379,6 +412,12 @@ section[id] {
 
 .hero-slide-image {
   filter: saturate(.92) contrast(1.03) brightness(.94);
+}
+
+.hero-slide-fallback {
+  background:
+    radial-gradient(circle at 70% 30%, rgba(58,174,165,.32), transparent 24rem),
+    linear-gradient(135deg, #12384b, #1f6370);
 }
 
 .hero-slide-overlay {
@@ -470,10 +509,12 @@ section[id] {
 
 .home-hero .hero-dots button {
   height: .35rem;
+  width: .55rem;
   background: rgba(210, 243, 239, .42);
 }
 
 .home-hero .hero-dots button[data-active="true"] {
+  width: 2.5rem;
   background: var(--home-gold);
 }
 
@@ -689,13 +730,43 @@ section[id] {
 }
 
 @media (max-width: 767px) {
+  .home-navbar {
+    padding-block: .8rem !important;
+  }
+
+  .home-navbar img {
+    max-width: 8.5rem;
+  }
+
   .home-hero .hero-content {
     text-align: center;
     margin-inline: auto;
   }
 
+  .home-hero .hero-slide-content {
+    padding: 1rem 1rem 1.25rem;
+    border-radius: 1.25rem;
+  }
+
+  .home-hero .hero-title {
+    font-size: clamp(2rem, 9vw, 3.25rem);
+  }
+
   .home-hero .hero-subtitle {
     margin-inline: auto;
+    font-size: 1.05rem;
+    line-height: 1.8;
+    margin-bottom: 1.6rem;
+  }
+
+  .home-hero .hero-controls {
+    bottom: 1.25rem;
+    gap: .35rem;
+  }
+
+  .home-hero .hero-control {
+    height: 2.6rem;
+    width: 2.6rem;
   }
 
   #services .service-grid > *:nth-child(even) {

@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { motion } from "framer-motion"
+import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react"
 import { useGetSlides } from "@workspace/api-client-react"
 import { useServiceRequest } from "@/context/ServiceRequestContext"
 import { useSiteSettings } from "@/context/SiteSettingsContext"
@@ -7,6 +8,10 @@ import { useSiteSettings } from "@/context/SiteSettingsContext"
 export function HeroSlider() {
   const { data: slides, isLoading } = useGetSlides()
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [isPaused, setIsPaused] = useState(false)
+  const [isFocusWithin, setIsFocusWithin] = useState(false)
+  const [failedImages, setFailedImages] = useState<Set<number>>(new Set())
+  const touchStartX = useRef<number | null>(null)
   const { openModal } = useServiceRequest()
   const {
     companyName,
@@ -38,16 +43,45 @@ export function HeroSlider() {
   const centeredCta = heroCtaPosition === "center-center"
 
   useEffect(() => {
-    if (displaySlides.length <= 1) return
+    if (displaySlides.length <= 1 || isPaused || isFocusWithin) return
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % displaySlides.length)
     }, 5000)
     return () => clearInterval(interval)
-  }, [displaySlides.length])
+  }, [displaySlides.length, isPaused, isFocusWithin])
+
+  useEffect(() => {
+    if (currentIndex >= displaySlides.length && displaySlides.length > 0) {
+      setCurrentIndex(0)
+    }
+  }, [currentIndex, displaySlides.length])
+
+  const goToSlide = (index: number) => {
+    if (!displaySlides.length) return
+    setCurrentIndex((index + displaySlides.length) % displaySlides.length)
+  }
+
+  const goToPrevious = () => goToSlide(currentIndex - 1)
+  const goToNext = () => goToSlide(currentIndex + 1)
+
+  const handleTouchStart = (event: React.TouchEvent<HTMLElement>) => {
+    touchStartX.current = event.touches[0]?.clientX ?? null
+  }
+
+  const handleTouchEnd = (event: React.TouchEvent<HTMLElement>) => {
+    if (touchStartX.current === null) return
+    const touchEndX = event.changedTouches[0]?.clientX
+    if (touchEndX === undefined) return
+    const distance = touchEndX - touchStartX.current
+    if (Math.abs(distance) > 45) {
+      distance > 0 ? goToPrevious() : goToNext()
+    }
+    touchStartX.current = null
+  }
 
   if (isLoading) {
     return (
-      <section className="relative h-[85vh] md:h-[100dvh] w-full overflow-hidden bg-primary flex items-center justify-center" aria-busy="true" aria-label="جار تحميل الواجهة الرئيسية">
+      <section className="home-hero relative h-[85vh] md:h-[100dvh] w-full overflow-hidden bg-primary flex items-center justify-center" aria-busy="true" aria-label="جار تحميل الواجهة الرئيسية">
         <div className="container mx-auto px-4">
           <div className="mx-auto h-3 w-28 animate-pulse rounded-full bg-white/20" />
           <div className="mx-auto mt-6 h-12 max-w-3xl animate-pulse rounded-2xl bg-white/10" />
@@ -61,15 +95,35 @@ export function HeroSlider() {
   if (displaySlides.length === 0) return null
 
   return (
-    <section className="relative h-[100dvh] w-full overflow-hidden bg-primary">
+    <section
+      className="home-hero relative h-[100dvh] w-full overflow-hidden bg-primary"
+      aria-roledescription="سلايدر"
+      aria-label="العروض والخدمات"
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onFocus={() => setIsFocusWithin(true)}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          setIsFocusWithin(false)
+        }
+      }}
+    >
       {displaySlides.map((slide, index) => (
         <div
           key={slide.id}
+          role="group"
+          aria-roledescription="شريحة"
+          aria-label={`${index + 1} من ${displaySlides.length}`}
           className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
             index === currentIndex ? "opacity-100 z-10" : "opacity-0 z-0"
           }`}
         >
           <div className="absolute inset-0">
+            {failedImages.has(index) ? (
+              <div className="hero-slide-fallback absolute inset-0" aria-hidden="true" />
+            ) : (
               <img
                 src={slide.imageUrl.trim()}
                 alt={`${slide.title} | ${resolvedCompany}`}
@@ -79,15 +133,16 @@ export function HeroSlider() {
                 loading={index === 0 ? "eager" : "lazy"}
                 fetchPriority={index === 0 ? "high" : "low"}
                 decoding={index === 0 ? "sync" : "async"}
-                onError={(e) => { e.currentTarget.style.display = "none" }}
+                onError={() => setFailedImages((previous) => new Set(previous).add(index))}
               />
-              <div className="hero-slide-overlay absolute inset-0" />
+            )}
+            <div className="hero-slide-overlay absolute inset-0" />
           </div>
 
           <div className="absolute inset-0 z-20 text-[#143b4f]">
-            <div className="container relative mx-auto h-full px-4 md:px-6 text-center border-t-[color:var(--color-sky-500)] border-r-[color:var(--color-sky-500)] border-b-[color:var(--color-sky-500)] border-l-[color:var(--color-sky-500)]">
+            <div className="container relative mx-auto h-full px-4 md:px-6 text-center">
               {heroCompanyVisible && (
-                <div className={`absolute z-30 inline-block px-4 py-1 border border-secondary/50 rounded-full bg-black/25 backdrop-blur-sm ${centeredCompany ? "top-24 md:top-32 left-1/2 -translate-x-1/2" : positionClasses(heroCompanyPosition)}`}>
+                <div className={`hero-eyebrow absolute z-30 inline-flex items-center gap-2 px-4 py-1.5 border rounded-full backdrop-blur-md ${centeredCompany ? "top-24 md:top-32 left-1/2 -translate-x-1/2" : positionClasses(heroCompanyPosition)}`}>
                   <span className="text-secondary font-medium tracking-wider text-sm md:text-base">{resolvedCompany}</span>
                 </div>
               )}
@@ -95,27 +150,27 @@ export function HeroSlider() {
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: index === currentIndex ? 1 : 0, y: index === currentIndex ? 0 : 30 }}
                 transition={{ duration: 0.8, delay: 0.2 }}
-                className={`hero-slide-content absolute inset-x-4 top-1/2 max-w-4xl mx-auto -translate-y-1/2 ${centeredCta ? "flex flex-col items-center" : ""}`}
+                className={`hero-slide-content hero-content absolute inset-x-4 top-1/2 max-w-4xl mx-auto -translate-y-1/2 ${centeredCta ? "flex flex-col items-center" : ""}`}
               >
                 {/* Only the active slide gets h1 */}
                 {index === 0 ? (
-                    <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight drop-shadow-[0_3px_10px_rgba(0,0,0,0.75)]">
+                    <h1 className="hero-title text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight drop-shadow-[0_3px_10px_rgba(0,0,0,0.75)]">
                     {slide.title}
                   </h1>
                 ) : (
-                    <h2 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight drop-shadow-[0_3px_10px_rgba(0,0,0,0.75)]">
+                    <h2 className="hero-title text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight drop-shadow-[0_3px_10px_rgba(0,0,0,0.75)]">
                     {slide.title}
                   </h2>
                 )}
 
-                <p className="text-lg md:text-2xl text-white mb-10 drop-shadow-[0_2px_7px_rgba(0,0,0,0.8)]">
+                <p className="hero-subtitle text-lg md:text-2xl text-white mb-10 drop-shadow-[0_2px_7px_rgba(0,0,0,0.8)]">
                   {slide.subtitle}
                 </p>
 
                 {heroCtaVisible && centeredCta && slide.ctaText && (
                   <button
                     onClick={() => openModal()}
-                    className="inline-flex items-center justify-center h-14 px-8 rounded-md bg-secondary text-white font-bold text-lg hover:bg-white hover:text-primary transition-all duration-300 shadow-xl hover:shadow-2xl"
+                    className="hero-cta inline-flex items-center justify-center h-14 px-8 rounded-xl bg-secondary text-white font-bold text-lg hover:bg-white hover:text-primary transition-all duration-300 shadow-xl hover:shadow-2xl"
                   >
                     {slide.ctaText}
                   </button>
@@ -130,7 +185,7 @@ export function HeroSlider() {
                 >
                   <button
                     onClick={() => openModal()}
-                    className="inline-flex items-center justify-center h-14 px-8 rounded-md bg-secondary text-white font-bold text-lg hover:bg-white hover:text-primary transition-all duration-300 shadow-xl hover:shadow-2xl"
+                    className="hero-cta inline-flex items-center justify-center h-14 px-8 rounded-xl bg-secondary text-white font-bold text-lg hover:bg-white hover:text-primary transition-all duration-300 shadow-xl hover:shadow-2xl"
                   >
                     {slide.ctaText}
                   </button>
@@ -140,17 +195,54 @@ export function HeroSlider() {
           </div>
         </div>
       ))}
-      <div className="absolute bottom-8 left-0 right-0 z-30 flex justify-center gap-3">
-        {displaySlides.map((_, idx) => (
-          <button
-            key={idx}
-            onClick={() => setCurrentIndex(idx)}
-            className={`h-2 rounded-full transition-all duration-300 ${
-              idx === currentIndex ? "w-10 bg-secondary" : "w-3 bg-white/50 hover:bg-white/80"
-            }`}
-          />
-        ))}
-      </div>
+      {failedImages.size > 0 && (
+        <div className="sr-only" role="status">
+          تعذر تحميل بعض الصور، ويتم عرض بقية الشرائح المتاحة.
+        </div>
+      )}
+      {displaySlides.length > 1 && (
+        <div className="hero-controls absolute bottom-8 left-1/2 z-30 flex -translate-x-1/2 items-center gap-3">
+            <button
+              type="button"
+              onClick={goToPrevious}
+              className="hero-control inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/30 bg-black/20 text-white backdrop-blur-md transition hover:border-white/70 hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-secondary"
+              aria-label="الشريحة السابقة"
+            >
+              <ChevronLeft size={21} aria-hidden="true" />
+            </button>
+            <div className="hero-dots flex items-center justify-center gap-2" role="tablist" aria-label="اختيار الشريحة">
+              {displaySlides.map((slide, idx) => (
+                <button
+                  key={slide.id}
+                  type="button"
+                  onClick={() => goToSlide(idx)}
+                  className="h-2.5 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2 focus:ring-offset-transparent"
+                  data-active={idx === currentIndex}
+                  aria-label={`الانتقال إلى الشريحة ${idx + 1}`}
+                  aria-selected={idx === currentIndex}
+                  role="tab"
+                />
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsPaused((previous) => !previous)}
+              className="hero-control inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/30 bg-black/20 text-white backdrop-blur-md transition hover:border-white/70 hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-secondary"
+              aria-label={isPaused ? "تشغيل العرض التلقائي" : "إيقاف العرض التلقائي"}
+              aria-pressed={isPaused}
+            >
+              {isPaused ? <Play size={17} fill="currentColor" aria-hidden="true" /> : <Pause size={17} aria-hidden="true" />}
+            </button>
+            <button
+              type="button"
+              onClick={goToNext}
+              className="hero-control inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/30 bg-black/20 text-white backdrop-blur-md transition hover:border-white/70 hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-secondary"
+              aria-label="الشريحة التالية"
+            >
+              <ChevronRight size={21} aria-hidden="true" />
+            </button>
+        </div>
+      )}
     </section>
   );
 }
