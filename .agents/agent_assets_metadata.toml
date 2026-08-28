@@ -27,14 +27,14 @@ content_type = "application/octet-stream"
 id = "e7Hwi4c_9VUpSkVoGq2Ul"
 uri = "file://cleanflow-services-hostinger.zip"
 type = "unspecified"
-title = "حزمة CleanFlow الجاهزة لـ Hostinger"
-description = "أرشيف ZIP النهائي بعد إصلاح وميض البيانات أثناء التحميل، ويشمل الواجهة، API PHP، قاعدة SQLite، الصور، صفحات SEO، ومنصة CleanFlow."
+title = "حزمة CleanFlow الكاملة لـ Hostinger"
+description = "أرشيف كامل جاهز للرفع إلى public_html، ويشمل الواجهة، قاعدة البيانات، PHP API، uploads، وCleanFlow Platform."
 logical_id = "c612380d-19d8-4641-8c29-e5ac4a484245"
-content_hash = "sha256:25df2952857b7bef75a6d7b35a4a869127f56be48b0a9e8319d0089c4ea64017"
-size = 21037520
-mtime_ms = 1787889125320
-storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:85efca54-8caf-49de-b40b-d97ca882a1b8/c612380d-19d8-4641-8c29-e5ac4a484245/2809bc6d-4ecc-41f1-9907-792317f016bb"
-storage_version_token = "1787889161681145"
+content_hash = "sha256:51eadd3d8ebed1a4f116b342939bf1ed76444776734f33de952ba6b7e4450668"
+size = 20887888
+mtime_ms = 1787891353512
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:a400c986-5522-455f-8918-8ba9d4a470d0/c612380d-19d8-4641-8c29-e5ac4a484245/db97698f-b84e-4eab-9bd8-13c26015e51f"
+storage_version_token = "1787891373803303"
 content_type = "application/octet-stream"
 
 [[outputs]]
