@@ -115,6 +115,23 @@ interface Employee {
   createdAt: string
 }
 
+function normalizeEmployee(raw: Partial<Employee>): Employee {
+  const role = typeof raw.role === "string" ? raw.role : "customer_service"
+  return {
+    id: Number(raw.id) || 0,
+    username: typeof raw.username === "string" ? raw.username : "",
+    name: typeof raw.name === "string" ? raw.name : "",
+    email: typeof raw.email === "string" ? raw.email : null,
+    role,
+    roleLabel: typeof raw.roleLabel === "string" ? raw.roleLabel : role,
+    permissions: Array.isArray(raw.permissions)
+      ? raw.permissions.filter((permission): permission is string => typeof permission === "string")
+      : null,
+    isActive: Number(raw.isActive) === 1 ? 1 : 0,
+    createdAt: typeof raw.createdAt === "string" ? raw.createdAt : "",
+  }
+}
+
 interface FormData {
   username: string
   name: string
@@ -513,8 +530,9 @@ export default function Employees() {
         headers: { Authorization: `Bearer ${token()}` },
       })
       if (!r.ok) throw new Error("فشل تحميل البيانات")
-      const data = await r.json() as Employee[]
-      setEmployees(data)
+       const data = await r.json() as unknown
+       if (!Array.isArray(data)) throw new Error("استجابة غير صالحة")
+       setEmployees(data.map(item => normalizeEmployee(item as Partial<Employee>)))
     } catch {
       toast({ variant: "destructive", title: "فشل تحميل قائمة الموظفين" })
     } finally {
@@ -541,7 +559,7 @@ export default function Employees() {
   }
 
   const filtered = employees.filter(e =>
-    (e.name.includes(search) || e.username.includes(search) || e.roleLabel.includes(search) || (e.email ?? "").includes(search)) &&
+    ([e.name, e.username, e.roleLabel, e.email ?? ""].some(value => value.includes(search))) &&
     (roleFilter === "all" || e.role === roleFilter) &&
     (statusFilter === "all" || (statusFilter === "active" ? e.isActive === 1 : e.isActive !== 1))
   )
