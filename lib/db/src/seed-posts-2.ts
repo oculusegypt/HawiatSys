@@ -669,7 +669,7 @@ const canonicalPostImage = (title: string) => {
   ];
   let hash = 0;
   for (const character of String(title || "")) {
-    hash = (hash * 31 + character.codePointAt(0)) % 2147483647;
+    hash = (hash * 31 + (character.codePointAt(0) ?? 0)) % 2147483647;
   }
   return heroImages[Math.abs(hash) % heroImages.length];
 };
