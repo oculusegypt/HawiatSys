@@ -35,6 +35,10 @@ export function CEOMessage() {
                   src={authorImage} 
                   alt={`${authorName} — ${authorTitle}`}
                   className="w-full h-full object-cover"
+                   width={320}
+                   height={320}
+                   loading="lazy"
+                   decoding="async"
                   onError={(e) => {
                     e.currentTarget.src = "/images/shareek-mawsouq.webp"
                   }}

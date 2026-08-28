@@ -97,6 +97,15 @@ const dynamicServices = db.prepare(`
   ORDER BY "order" ASC
   LIMIT 20
 `).all();
+const heroLcpImage = String(
+  db.prepare(`
+    SELECT image_url
+    FROM hero_slides
+    WHERE is_active = 1
+    ORDER BY "order" ASC, id ASC
+    LIMIT 1
+  `).get()?.image_url || SEO_DEFAULTS.image,
+).trim() || SEO_DEFAULTS.image;
 
 if (!existsSync(join(distPublic, "index.html"))) {
   console.error("❌ لم يُعثر على dist/public/index.html — شغّل vite build أولاً");
@@ -170,6 +179,16 @@ function absoluteImg(url) {
   if (!url) return `${SITE_URL}/images/logo.png`;
   if (/^https?:\/\//i.test(url)) return url;
   return `${SITE_URL}${url.startsWith("/") ? "" : "/"}${url}`;
+}
+
+function imageMimeType(url) {
+  const pathname = String(url || "").split(/[?#]/)[0].toLowerCase();
+  if (pathname.endsWith(".webp")) return "image/webp";
+  if (pathname.endsWith(".jpg") || pathname.endsWith(".jpeg")) return "image/jpeg";
+  if (pathname.endsWith(".gif")) return "image/gif";
+  if (pathname.endsWith(".svg")) return "image/svg+xml";
+  if (pathname.endsWith(".ico")) return "image/x-icon";
+  return "image/png";
 }
 
 function jsonLd(obj) {
@@ -264,6 +283,7 @@ function renderPage({ title, description, keywords = "", canonical, ogImage, ogT
   <meta property="og:description" content="${esc(description)}" />
   <meta property="og:url" content="${esc(canonicalUrl)}" />
   <meta property="og:image" content="${esc(imgUrl)}" />
+  <meta property="og:image:type" content="${imageMimeType(imgUrl)}" />
   <meta property="og:image:alt" content="${esc(imgAlt)}" />
 
   <!-- Twitter Card -->
@@ -274,11 +294,11 @@ function renderPage({ title, description, keywords = "", canonical, ogImage, ogT
   <meta name="twitter:image:alt" content="${esc(imgAlt)}" />
 
   <!-- Favicon -->
-  <link rel="icon" type="image/png" sizes="192x192" href="/favicon.webp" />
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.webp" />
-  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+  <link rel="icon" type="image/x-icon" sizes="16x16 24x24 32x32 48x48 64x64 96x96 128x128 256x256" href="/favicon.ico" />
   <link rel="shortcut icon" href="/favicon.ico" />
-  <link rel="apple-touch-icon" href="/favicon.webp" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
   <link rel="manifest" href="/manifest.json" />
 
   <!-- Schema.org JSON-LD — injected dynamically to replace hardcoded domain -->
@@ -743,7 +763,7 @@ function generateHomepageStaticContent() {
   const phoneHref = `tel:${phoneCall}`;
   const waHref = waLink(phoneWa, `السلام عليكم، أرغب في طلب خدمة من ${siteCompanyName}`);
   const logoUrl = absoluteImg(siteLogo);
-  const heroUrl = absoluteImg(SEO_DEFAULTS.image);
+  const heroUrl = absoluteImg(heroLcpImage);
   const internalLinks = [
     ["/pricing", "أسعار وخدمات تأجير الحاويات"],
     ["/packages", "باقات الحاويات المتاحة"],
@@ -792,6 +812,7 @@ function updateIndexSeo(html) {
   const title = siteCompanyName;
   const description = siteDescription;
   const logo = siteLogo ? absoluteImg(siteLogo) : publicUrl("/images/logo.png");
+  const heroPreload = `<link rel="preload" as="image" href="${esc(absoluteImg(heroLcpImage))}" fetchpriority="high" imagesizes="100vw" data-lcp-hero="true" />`;
   const replace = (source, pattern, value) => source.replace(pattern, value);
   const upsert = (source, pattern, tag) => pattern.test(source)
     ? source.replace(pattern, tag)
@@ -801,11 +822,13 @@ function updateIndexSeo(html) {
   next = replace(next, /(<meta\s+name="description"\s+content=")[^"]*(")/i, `$1${esc(description)}$2`);
   next = replace(next, /(<meta\s+name="author"\s+content=")[^"]*(")/i, `$1${esc(siteCompanyName)}$2`);
   next = upsert(next, /<link\s+rel=["']canonical["'][^>]*>/i, `<link rel="canonical" href="${esc(publicUrl("/"))}" />`);
+  next = upsert(next, /<link[^>]+data-lcp-hero=["']true["'][^>]*>/i, heroPreload);
   next = replace(next, /(<meta\s+property="og:site_name"\s+content=")[^"]*(")/i, `$1${esc(siteCompanyName)}$2`);
   next = replace(next, /(<meta\s+property="og:title"\s+content=")[^"]*(")/i, `$1${esc(title)}$2`);
   next = replace(next, /(<meta\s+property="og:description"\s+content=")[^"]*(")/i, `$1${esc(description)}$2`);
   next = upsert(next, /<meta\s+property=["']og:url["'][^>]*>/i, `<meta property="og:url" content="${esc(publicUrl("/"))}" />`);
   next = replace(next, /(<meta\s+property="og:image"\s+content=")[^"]*(")/i, `$1${esc(logo)}$2`);
+  next = upsert(next, /<meta\s+property=["']og:image:type["'][^>]*>/i, `<meta property="og:image:type" content="${imageMimeType(logo)}" />`);
   next = replace(next, /(<meta\s+property="og:image:alt"\s+content=")[^"]*(")/i, `$1${esc(siteCompanyName)}$2`);
   next = replace(next, /(<meta\s+name="twitter:title"\s+content=")[^"]*(")/i, `$1${esc(title)}$2`);
   next = replace(next, /(<meta\s+name="twitter:description"\s+content=")[^"]*(")/i, `$1${esc(description)}$2`);

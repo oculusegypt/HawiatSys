@@ -51,7 +51,8 @@ export function ServiceCard({
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
             width="960"
             height="640"
-            loading={index < 2 ? "eager" : "lazy"}
+             loading="lazy"
+             decoding="async"
             onError={() => setImageFailed(true)}
           />
         ) : (

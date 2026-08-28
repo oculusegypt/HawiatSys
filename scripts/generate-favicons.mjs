@@ -1,4 +1,5 @@
-import { readFileSync, writeFileSync, copyFileSync, existsSync } from "node:fs";
+import { existsSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -7,52 +8,55 @@ const ROOT = join(__dirname, "..");
 const PUBLIC_DIR = join(ROOT, "artifacts", "sabaik-almasa", "public");
 
 async function generate() {
-  let sharp;
-  try {
-    const sharpModule = await import("sharp");
-    sharp = sharpModule.default;
-  } catch (e) {
-    console.log("Sharp not available yet, waiting...");
+  const source = join(PUBLIC_DIR, "favicon.svg");
+  if (!existsSync(source)) {
+    console.error("favicon.svg not found in public!");
     return;
   }
 
-  const srcPng = join(PUBLIC_DIR, "favicon.webp");
-  if (!existsSync(srcPng)) {
-    console.error("favicon.webp not found in public!");
-    return;
-  }
+  console.log("Generating Google-compliant square favicon assets...");
 
-  console.log("🎨 Generating Google-compliant Favicon suite (multiples of 48px)...");
-
-  // Google Search required sizes: 48x48, 96x96, 144x144, 192x192, 512x512
   const sizes = [
-    { name: "favicon-48x48.png", size: 48 },
-    { name: "favicon-96x96.png", size: 96 },
-    { name: "favicon-144x144.png", size: 144 },
-    { name: "icon-192.png", size: 192 },
-    { name: "icon-512.png", size: 512 },
+    { name: "favicon.png", size: 192 },
+    { name: "favicon-512x512.png", size: 512 },
     { name: "apple-touch-icon.png", size: 180 },
     { name: "favicon-32x32.png", size: 32 },
-    { name: "favicon-16x16.png", size: 16 }
+    { name: "favicon-16x16.png", size: 16 },
   ];
 
   for (const item of sizes) {
-    await sharp(srcPng)
-      .resize(item.size, item.size, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
-      .png()
-      .toFile(join(PUBLIC_DIR, item.name));
+    const target = join(PUBLIC_DIR, item.name);
+    const temporary = `${target}.tmp.png`;
+    execFileSync("magick", [
+      source,
+      "-background",
+      "none",
+      "-resize",
+      `${item.size}x${item.size}`,
+      "-gravity",
+      "center",
+      "-extent",
+      `${item.size}x${item.size}`,
+      temporary,
+    ], { stdio: "inherit" });
+    execFileSync("mv", [temporary, target]);
     console.log(`  ✅ Generated ${item.name} (${item.size}x${item.size})`);
   }
 
-  // Create favicon.ico from 48x48
-  const icoBuffer = await sharp(srcPng)
-    .resize(48, 48, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
-    .png()
-    .toBuffer();
-  writeFileSync(join(PUBLIC_DIR, "favicon.ico"), icoBuffer);
-  console.log("  ✅ Generated favicon.ico (Google Search root fallback)");
+  const icoTarget = join(PUBLIC_DIR, "favicon.ico");
+  const icoTemporary = `${icoTarget}.tmp.ico`;
+  execFileSync("magick", [
+    join(PUBLIC_DIR, "favicon.png"),
+    "-define",
+    "icon:auto-resize=16,24,32,48,64,96,128,256",
+    icoTemporary,
+  ], { stdio: "inherit" });
+  execFileSync("mv", [icoTemporary, icoTarget]);
+  console.log("  ✅ Generated favicon.ico (multi-resolution ICO)");
 
-  console.log("🚀 Favicon suite generated successfully!");
+  const notificationTarget = join(PUBLIC_DIR, "notification-icon.png");
+  execFileSync("cp", [join(PUBLIC_DIR, "favicon.png"), notificationTarget]);
+  console.log("  ✅ Generated square notification-icon.png");
 }
 
 generate().catch(console.error);

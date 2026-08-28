@@ -95,6 +95,10 @@ export function BlogSection() {
                         src={post.coverImage.startsWith("http") ? post.coverImage : `${API_BASE}${post.coverImage}`}
                         alt={post.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        width={960}
+                        height={600}
+                        loading="lazy"
+                        decoding="async"
                       />
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center">

@@ -85,6 +85,10 @@ export function AboutSection() {
                 src={imageUrl}
                 alt={title}
                 className="w-full h-full object-cover"
+                width={960}
+                height={1200}
+                loading="lazy"
+                decoding="async"
               />
               <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-primary to-transparent">
                 <div className="bg-white/10 backdrop-blur-md border border-white/20 p-6 rounded-xl text-white">

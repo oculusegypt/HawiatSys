@@ -38,10 +38,9 @@ self.addEventListener("push", (event) => {
           : "/admin/notifications";
     const options = {
       body: data.message || "لديك إشعار جديد في لوحة الإدارة",
-      // The notification icon must be square. The old wordmark is wide
-      // wordmark, so Android cropped it and often hid the notification icon.
-      icon: new URL("notification-icon.webp", self.registration.scope).href,
-      badge: new URL("notification-icon.webp", self.registration.scope).href,
+      // Keep notification assets square so Android does not crop the identity.
+      icon: new URL("notification-icon.png", self.registration.scope).href,
+      badge: new URL("notification-icon.png", self.registration.scope).href,
       dir: "rtl",
       lang: "ar",
       tag: data.id ? `sabaik-notification-${data.id}` : "sabaik-notification",

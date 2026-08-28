@@ -86,11 +86,16 @@ export function HeroSlider() {
         >
           <div className="absolute inset-0">
               <img
-              src={slide.imageUrl}
-               alt={`${slide.title} | ${resolvedCompany}`}
-               className="hero-slide-image w-full h-full object-cover"
-              onError={(e) => { e.currentTarget.style.display = "none" }}
-            />
+                src={slide.imageUrl.trim()}
+                alt={`${slide.title} | ${resolvedCompany}`}
+                className="hero-slide-image w-full h-full object-cover"
+                width={1672}
+                height={941}
+                loading={index === 0 ? "eager" : "lazy"}
+                fetchPriority={index === 0 ? "high" : "low"}
+                decoding={index === 0 ? "sync" : "async"}
+                onError={(e) => { e.currentTarget.style.display = "none" }}
+              />
               <div className="hero-slide-overlay absolute inset-0" />
           </div>
 

@@ -3703,7 +3703,10 @@ try {
             $activeCutoff = $nowDate->modify('-5 minutes')->format('Y-m-d\TH:i:s.v\Z');
             $pdo->prepare("DELETE FROM active_visitors WHERE last_seen < :cutoff")->execute([':cutoff' => $activeCutoff]);
             $activeRows = $pdo->query("SELECT page, device_type FROM active_visitors WHERE last_seen >= " . $pdo->quote($activeCutoff) . " ORDER BY last_seen DESC")->fetchAll(PDO::FETCH_ASSOC);
-            $requests = $pdo->query("SELECT status, service_type, created_at, assigned_at, driver_completed_at, acquisition_source, utm_source, utm_medium, utm_campaign, gclid FROM service_requests ORDER BY created_at ASC, id ASC")->fetchAll(PDO::FETCH_ASSOC);
+            // Service-request attribution columns are namespaced to avoid
+            // colliding with page_views. Keep the response keys normalized so
+            // the PHP dashboard remains compatible with the Node API.
+            $requests = $pdo->query("SELECT status, service_type, created_at, assigned_at, driver_completed_at, acquisition_source, attribution_utm_source AS utm_source, attribution_utm_medium AS utm_medium, attribution_utm_campaign AS utm_campaign, attribution_gclid AS gclid FROM service_requests ORDER BY created_at ASC, id ASC")->fetchAll(PDO::FETCH_ASSOC);
             $selectedRequests = array_values(array_filter($requests, static fn(array $row): bool => $inPeriod((string)$row['created_at'], $fromIso, $toIso)));
             $requestCounts = $countValues($selectedRequests, static fn(array $row): string => (string)($row['service_type'] ?? ''));
             $servicePerformance = [];

@@ -275,5 +275,44 @@ const xml = [
 
 mkdirSync(dirname(outputPath), { recursive: true });
 writeFileSync(outputPath, xml, "utf8");
+writeFileSync(
+  join(root, "artifacts", "sabaik-almasa", "public", "robots.txt"),
+  [
+    "User-agent: *",
+    "Allow: /",
+    "Disallow: /admin/",
+    "Disallow: /api/",
+    "",
+    "# Tell search engines where the site's canonical URL inventory lives.",
+    `Sitemap: ${baseUrl}/sitemap.xml`,
+    "",
+    "# AI Search Engine Crawlers - Allowed",
+    "User-agent: GPTBot",
+    "Allow: /",
+    "",
+    "User-agent: ChatGPT-User",
+    "Allow: /",
+    "",
+    "User-agent: OAI-SearchBot",
+    "Allow: /",
+    "",
+    "User-agent: Google-Extended",
+    "Allow: /",
+    "",
+    "User-agent: PerplexityBot",
+    "Allow: /",
+    "",
+    "User-agent: ClaudeBot",
+    "Allow: /",
+    "",
+    "User-agent: anthropic-ai",
+    "Allow: /",
+    "",
+    "User-agent: Bytespider",
+    "Disallow: /",
+    "",
+  ].join("\n"),
+  "utf8",
+);
 db.close();
 console.log(`Generated ${entries.length} sitemap URLs at ${outputPath}`);

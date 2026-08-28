@@ -17,6 +17,10 @@ function PartnerLogo({ name, logoUrl }: { name: string; logoUrl: string }) {
       src={logoUrl}
       alt={name}
       className="max-w-full max-h-full object-contain"
+      width={160}
+      height={80}
+      loading="lazy"
+      decoding="async"
       onError={() => setHasError(true)}
     />
   )
