@@ -3,8 +3,8 @@ name: Blog image compatibility
 description: The project decision governing legacy article images and newly created blog drafts.
 ---
 
-Article images are part of the existing content contract and must keep their legacy `cover_image` and `og_image` paths. Do not normalize existing blog images to title- or slug-based files under `/images/content/`. New blog drafts that have no previous image should reuse an existing SEO image rather than creating a new title-based blog asset.
+Content-image migrations may create title-based copies for articles, SEO pages, services, and hero slides when that is an explicit content requirement. Existing source files and old paths must remain available for compatibility, while every database and prerendered HTML reference must resolve to a packaged file.
 
-**Why:** The user explicitly requires existing blog artwork and links to remain unchanged; replacing the paths changes the established content presentation and can break legacy upload references.
+**Why:** Hostinger builds combine mutable SQLite content with static HTML. A cleanup pass that only inspects database references can quarantine assets still used by generated pages, leaving broken images after an otherwise successful build.
 
-**How to apply:** Limit `/images/content/` naming to SEO pages unless the user explicitly requests blog-image migration. Before rebuilding Hostinger, verify that existing posts do not reference `/images/content/` and that any generated blog-only copies are removed.
+**How to apply:** Keep migrations source-preserving and idempotent. Before packaging, protect references from all relevant database image columns and restore previously quarantined referenced assets; then run the archive SEO gate, which checks sitemap and HTML image existence.

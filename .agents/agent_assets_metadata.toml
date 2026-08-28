@@ -27,14 +27,14 @@ content_type = "application/octet-stream"
 id = "e7Hwi4c_9VUpSkVoGq2Ul"
 uri = "file://cleanflow-services-hostinger.zip"
 type = "unspecified"
-title = "حزمة Hostinger المصححة — CleanFlow Services"
-description = "النسخة المحدّثة تشمل إصلاح مصادقة صفحة إدارة التقييمات، مع الواجهة وPHP API وقاعدة SQLite والملفات كاملة."
+title = "حزمة Hostinger الكاملة — CleanFlow Services"
+description = "أرشيف الرفع النهائي الجاهز للاستخراج مباشرة داخل public_html، بعد اجتياز فحص sitemap والصور وSQLite وPHP وسلامة ZIP."
 logical_id = "c612380d-19d8-4641-8c29-e5ac4a484245"
-content_hash = "sha256:e03762c72e82a89709d6f3e550b877b04420bb2fac1291dcfab4e1d5e3819c53"
-size = 20710847
-mtime_ms = 1787941124185
-storage_uri = "gcs://replit-rams-assets-worf/rams/assets/repl:b770ca91-7c23-4aca-b0fe-ba0d4c8f598f/c612380d-19d8-4641-8c29-e5ac4a484245/2091cc05-9005-4166-9b78-d97103aa5abf"
-storage_version_token = "1787941148682925"
+content_hash = "sha256:3d50ea835b5e2a871e99ae62c1b2fecfb66c0c2c37d10fc7cab8de2d37677250"
+size = 45510836
+mtime_ms = 1787943088870
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:677ff48d-70c5-4946-bb2d-9c9eaad7f2b5/c612380d-19d8-4641-8c29-e5ac4a484245/4e3ebc14-d1d5-41d1-bf4b-019eabb3bcd9"
+storage_version_token = "1787943203765972"
 content_type = "application/octet-stream"
 
 [[outputs]]

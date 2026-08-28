@@ -334,7 +334,7 @@ export default function ServiceDetail() {
                 <div className="rounded-3xl overflow-hidden shadow-xl border border-slate-200 bg-white">
                   <img
                     src={images[0]}
-                    alt={`${service.title} بالرياض`}
+                    alt={service.title}
                     width="1280"
                     height="720"
                     className="w-full h-80 md:h-96 object-cover"

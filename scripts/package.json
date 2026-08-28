@@ -9,6 +9,7 @@
     "hello": "tsx ./src/hello.ts",
     "validate:operational": "node ./validate-operational-invariants.mjs",
     "generate-sitemap": "node ./generate-sitemap.mjs",
+    "migrate:content-images": "node ./migrate-content-image-names.mjs",
     "update:arabic-area-slugs": "node ./update-arabic-area-slugs.mjs",
     "seo-quality-gate": "node ./seo-quality-gate.mjs",
     "seed-seo-articles": "node ./seed-seo-articles.mjs",

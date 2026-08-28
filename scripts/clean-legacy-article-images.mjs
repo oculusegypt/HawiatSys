@@ -13,8 +13,9 @@ import {
   readdirSync,
   renameSync,
   rmSync,
+  statSync,
 } from "node:fs";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..");
@@ -36,7 +37,6 @@ const HERO_IMAGES = [
 const isLegacyArticleImage = (value) => {
   const image = String(value || "").trim();
   return (
-    image.includes("/images/content/") ||
     /^\/images\/(?:container-[1-4]\.(?:webp|jpe?g)|hero-[1-4]\.webp)$/i.test(image) ||
     /^\/api\/uploads\/178\d+-[^/]+$/i.test(image)
   );
@@ -87,9 +87,73 @@ function updateHomepageMedia(db) {
   return 1;
 }
 
-function moveUnusedImages() {
+function moveUnusedImages(db) {
   mkdirSync(QUARANTINE_DIR, { recursive: true });
   let moved = 0;
+  const referencedContentFiles = new Set();
+
+  for (const table of ["posts", "seo_pages"]) {
+    const exists = db
+      .prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?")
+      .get(table);
+    if (!exists) continue;
+    const columns = db.prepare(`PRAGMA table_info("${table}")`).all().map((column) => column.name);
+    const imageColumns = ["cover_image", "og_image"].filter((column) => columns.includes(column));
+    if (!imageColumns.length) continue;
+    for (const row of db.prepare(`SELECT ${imageColumns.join(", ")} FROM "${table}" NOT INDEXED`).all()) {
+      for (const value of imageColumns.map((column) => row[column])) {
+        const image = String(value || "").split(/[?#]/, 1)[0];
+        if (image.startsWith("/images/content/")) {
+          referencedContentFiles.add(image.slice("/images/".length));
+        }
+      }
+    }
+  }
+
+  // The title-based migration also creates service galleries and hero images.
+  // Keep those files when the Hostinger build runs its legacy cleanup.
+  for (const table of ["services", "hero_slides"]) {
+    const exists = db
+      .prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?")
+      .get(table);
+    if (!exists) continue;
+    const columns = db.prepare(`PRAGMA table_info("${table}")`).all().map((column) => column.name);
+    const imageColumns = ["image_url", "images"].filter((column) => columns.includes(column));
+    for (const row of db.prepare(`SELECT ${imageColumns.join(", ")} FROM "${table}" NOT INDEXED`).all()) {
+      for (const column of imageColumns) {
+        const values = column === "images"
+          ? (() => {
+              try {
+                const parsed = JSON.parse(row[column] || "[]");
+                return Array.isArray(parsed) ? parsed : [];
+              } catch {
+                return [];
+              }
+            })()
+          : [row[column]];
+        for (const value of values) {
+          const image = String(value || "").split(/[?#]/, 1)[0];
+          if (image.startsWith("/images/content/")) {
+            referencedContentFiles.add(image.slice("/images/".length));
+          }
+        }
+      }
+    }
+  }
+
+  // A previous build may have quarantined a file before this reference-aware
+  // protection was added. Restore referenced assets from the quarantine by
+  // basename before deciding what is unused. The migration intentionally
+  // stores each generated content asset with a unique title-based basename,
+  // so this also repairs an already-built workspace without losing originals.
+  for (const relativeName of referencedContentFiles) {
+    const target = join(PUBLIC_IMAGES, relativeName);
+    if (existsSync(target)) continue;
+    const quarantined = join(QUARANTINE_DIR, relativeName.split("/").pop());
+    if (!existsSync(quarantined)) continue;
+    mkdirSync(join(target, ".."), { recursive: true });
+    renameSync(quarantined, target);
+  }
 
   const move = (source, name) => {
     if (!existsSync(source)) return;
@@ -102,14 +166,33 @@ function moveUnusedImages() {
     moved += 1;
   };
 
-  // Entirely unused, title-based article artwork from the previous project.
+  // Preserve any title-based files still referenced by the current database.
+  // Only unreferenced leftovers are quarantined.
   const legacyContentDir = join(PUBLIC_IMAGES, "content");
   if (existsSync(legacyContentDir)) {
-    for (const name of readdirSync(legacyContentDir)) {
-      move(join(legacyContentDir, name), name);
-    }
-    if (readdirSync(legacyContentDir).length === 0) rmSync(legacyContentDir, { recursive: true, force: true });
+    const walk = (directory) => {
+      for (const name of readdirSync(directory)) {
+        const source = join(directory, name);
+        const relativeName = relative(PUBLIC_IMAGES, source).replaceAll("\\", "/");
+        if (statSync(source).isDirectory()) {
+          walk(source);
+        } else if (!referencedContentFiles.has(relativeName)) {
+          move(source, name);
+        }
+      }
+    };
+    walk(legacyContentDir);
   }
+
+  // Remove only empty folders left behind by quarantining unreferenced files.
+  const removeEmptyDirectories = (directory) => {
+    if (!existsSync(directory)) return;
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      if (entry.isDirectory()) removeEmptyDirectories(join(directory, entry.name));
+    }
+    if (readdirSync(directory).length === 0) rmSync(directory, { recursive: true, force: true });
+  };
+  removeEmptyDirectories(legacyContentDir);
 
   // Timestamped copies in public/images are not served by the app. The live
   // upload source remains under artifacts/api-server/uploads when referenced.
@@ -151,7 +234,7 @@ try {
     homepageSettings: updateHomepageMedia(db),
   }));
   const { articleRows, homepageSettings } = update();
-  const movedFiles = moveUnusedImages();
+  const movedFiles = moveUnusedImages(db);
   console.log(`تم تحديث ${articleRows} سجل مقال و${homepageSettings} إعداد واجهة إلى صور الهيرو الحالية.`);
   console.log(`تم نقل ${movedFiles} صورة غير مستخدمة إلى images/صور حسام.`);
 } finally {
