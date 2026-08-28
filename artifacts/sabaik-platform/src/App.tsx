@@ -592,7 +592,7 @@ function Footer({ onDemo }: { onDemo: () => void }) {
   return (
     <footer className="site-footer">
       <div className="page-shell footer-cta"><div><span className="eyebrow eyebrow-light">الخطوة التالية</span><h2>شغّل شركتك كما تستحق.</h2><p>عرض عملي مخصص لطريقة عملك في الرياض والسعودية.</p></div><Button onClick={onDemo} variant="primary" testId="button-footer-demo">اطلب عرض CleanFlow <ArrowLeft size={17} /></Button></div>
-      <div className="page-shell footer-main"><Logo /><div className="footer-links"><a href="#platform" data-testid="link-footer-platform">المنصة</a><a href="#capabilities" data-testid="link-footer-capabilities">الإمكانات</a><a href="#insights" data-testid="link-footer-insights">التقارير</a><a href="#faq" data-testid="link-footer-faq">الأسئلة الشائعة</a></div><span className="copyright">CleanFlow Platform · تشغيل أوضح، نمو أهدأ</span></div>
+      <div className="page-shell footer-main"><Logo /><div className="footer-links"><a href="#platform" data-testid="link-footer-platform">المنصة</a><a href="#capabilities" data-testid="link-footer-capabilities">الإمكانات</a><a href="#insights" data-testid="link-footer-insights">التقارير</a><a href="#faq" data-testid="link-footer-faq">الأسئلة الشائعة</a><a href="https://taqigroup.com/" data-testid="link-footer-company">موقع تقي جروب</a></div><span className="copyright">CleanFlow Platform · تشغيل أوضح، نمو أهدأ</span></div>
     </footer>
   );
 }

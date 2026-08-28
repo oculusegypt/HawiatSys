@@ -71,6 +71,7 @@ const staticPages = [
   ["/why-us/commitment", "0.8", "monthly"],
   ["/why-us/experience", "0.8", "monthly"],
   ["/blog", "0.9", "daily"],
+  ["/taqi-group-platform", "0.9", "monthly"],
 ];
 
 const services = db.prepare(`
@@ -138,7 +139,11 @@ const addEntry = ({ path, priority, changefreq, title, lastmod = today, images =
 };
 
 for (const [path, priority, changefreq] of staticPages) {
-  const staticImages = path === "/" ? ["/images/hero-1.webp", "/images/logo.png"] : [];
+  const staticImages = path === "/"
+    ? ["/images/hero-1.webp", "/images/logo.png", "/images/seo/taqi-home.jpg"]
+    : path === "/taqi-group-platform"
+      ? []
+      : [];
   addEntry({ path, priority, changefreq, title: siteName, images: staticImages });
 }
 

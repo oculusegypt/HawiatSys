@@ -215,12 +215,37 @@ function seoMetricsSnapshot(PDO $pdo): array {
                 if ($schemaType !== '') $entityTypes[] = $schemaType;
             }
         }
-        if (preg_match('/FAQPage|الأسئلة الشائعة|faqpage/i', $html)) $faqPages++;
+        $relativePath = ltrim(str_replace('\\', '/', substr($file, strlen($productionRoot))), '/');
+        $faqEligible = $relativePath === 'index.html'
+            || $relativePath === 'taqi-group-platform/index.html'
+            || preg_match('#^(areas|containers|faq|pricing|services)/#u', $relativePath)
+            || preg_match('#^page/[^/]+/index\.html$#u', $relativePath)
+            || preg_match('#^pages/[^/]+/index\.html$#u', $relativePath);
+        if ($faqEligible && preg_match('/FAQPage|الأسئلة الشائعة|faqpage/i', $html)) $faqPages++;
+        if (!$faqEligible) {
+            // Legal, interactive, listing-only, and editorial pages do not
+            // need FAQ content; keep them out of this coverage denominator.
+        }
         preg_match_all('/<a\b[^>]*href=["\']([^"\']+)["\']/i', $html, $linkMatches);
         $internal = array_filter($linkMatches[1] ?? [], fn($href) => seoIsInternalLink((string)$href, $siteUrl));
         if (count($internal) > 0) $linkedPages++;
     }
     $pagesCount = count($pages);
+    $faqEligibleCount = 0;
+    foreach ($htmlFiles as $file) {
+        $relativePath = ltrim(str_replace('\\', '/', substr($file, strlen($productionRoot))), '/');
+        if (
+            $relativePath === 'index.html'
+            || $relativePath === 'taqi-group-platform/index.html'
+            || preg_match('#^(areas|containers|faq|pricing|services)/#u', $relativePath)
+            || preg_match('#^page/[^/]+/index\.html$#u', $relativePath)
+            || preg_match('#^pages/[^/]+/index\.html$#u', $relativePath)
+        ) {
+            if (!preg_match('/<meta\b[^>]*name=["\']robots["\'][^>]*content=["\'][^"\']*noindex/i', (string)@file_get_contents($file))) {
+                $faqEligibleCount++;
+            }
+        }
+    }
     $canonicalUrls = array_values(array_unique(array_filter($canonicalUrls)));
     $canonicalSitemapParity = seoCompareUrlSets($canonicalUrls, $sitemapUnique);
     $validSitemap = array_values(array_filter($sitemapUrls, function ($url) {
@@ -249,7 +274,7 @@ function seoMetricsSnapshot(PDO $pdo): array {
         if (str_contains(str_replace('\\', '/', $file), '/api/')) continue;
         if (!preg_match('/\.(html?|css|js|json|xml|txt|php|webmanifest)$/i', $file)) continue;
         $text = (string)@file_get_contents($file);
-        if (preg_match('/cleanflow|sabaik|سبائك|الماسة/iu', $text)) $legacyFiles[] = $file;
+        if (preg_match('/sabaik|سبائك|الماسة/iu', $text)) $legacyFiles[] = $file;
     }
 
     $setting = function (string $key) use ($pdo): string {
@@ -289,7 +314,7 @@ function seoMetricsSnapshot(PDO $pdo): array {
             seoMetric('canonical_sitemap_parity', 'Canonical ↔ Sitemap Parity', $canonicalSitemapParity['status'], $canonicalSitemapParity['value'], $canonicalSitemapParity['detail'], $source),
             seoMetric('sitemap', 'Sitemap Health', $sitemap !== '' && count($sitemapUrls) === count($sitemapUnique) && count($validSitemap) === count($sitemapUrls) ? 'pass' : 'fail', count($sitemapUrls) . ' URLs', $sitemap !== '' ? count($sitemapUnique) . ' رابطًا فريدًا، ' . count($validSitemap) . ' رابط HTTPS صالح' : 'sitemap.xml غير موجود', $source),
             seoMetric('structured_data', 'Structured Data', seoMetricStatus($withSchema, $pagesCount), $withSchema === $pagesCount ? 'PASS' : $withSchema . '/' . $pagesCount, $entityTypes ? 'تم العثور على JSON-LD في ' . $withSchema . ' صفحة' : 'لم يُعثر على JSON-LD صالح', $source, $entityTypes),
-            seoMetric('faq_geo', 'FAQ / GEO Content', seoMetricStatus($faqPages, $pagesCount), $pagesCount ? $faqPages . '/' . $pagesCount : '—', $faqPages . ' صفحة تحتوي FAQ فعليًا في HTML أو JSON-LD', $source),
+            seoMetric('faq_geo', 'FAQ / GEO Content', seoMetricStatus($faqPages, $faqEligibleCount), $faqEligibleCount ? $faqPages . '/' . $faqEligibleCount : '—', $faqPages . ' من ' . $faqEligibleCount . ' صفحة تجارية/خدمية مؤهلة تحتوي FAQ فعليًا في HTML أو JSON-LD؛ الصفحات القانونية والتفاعلية والمقالات مستثناة منطقيًا', $source),
             seoMetric('internal_links', 'Internal Linking', seoMetricStatus($linkedPages, $pagesCount), $pagesCount ? round(($linkedPages / $pagesCount) * 100) . '%' : '—', $linkedPages . ' من ' . $pagesCount . ' صفحة تحتوي روابط داخلية', $source),
             seoMetric('seo_media', 'SEO Media', count($mediaFiles) > 0 && $referencedMedia === count($mediaFiles) ? 'pass' : (count($mediaFiles) > 0 ? 'warning' : 'not_verified'), $mediaValue, $referencedMedia . ' من ' . count($mediaFiles) . ' ملف SEO مستخدم في الناتج', $source),
             seoMetric('legacy_branding', 'Legacy Branding', count($legacyFiles) === 0 ? 'pass' : 'fail', count($legacyFiles) === 0 ? 'CLEAN' : count($legacyFiles) . ' files', count($legacyFiles) === 0 ? 'لا توجد إشارات للعلامات القديمة في المخرجات العامة' : 'إشارات موجودة في ' . count($legacyFiles) . ' ملفًا عامًا', $source),

@@ -120,3 +120,17 @@ mtime_ms = 1787949620429
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:065236b2-92d6-40f3-83cc-661b3ce1dd34/e1521409-1673-4d27-ab9b-f8ee2f924540/62bcefd1-700b-4909-a535-c2d9dfdc9ffd"
 storage_version_token = "1787949639685523"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "vardMRmaVE2zxKTFKnDnX"
+uri = "file://taqi-group-hostinger.zip"
+type = "unspecified"
+title = "حزمة Hostinger الكاملة — Taqi Group"
+description = "أرشيف كامل محدث يضم الواجهة الثابتة، لوحة الإدارة وقسم صحة SEO، PHP API، قاعدة SQLite، الصفحات المولدة، sitemap، robots، uploads، ومنصة التشغيل. يُستخرج مباشرة داخل public_html."
+logical_id = "9bf9def0-a387-4ee1-a74b-659381cde139"
+content_hash = "sha256:b2e5ea6f2ee80ef3298ed343dfb297967a1f90efcf84cc61dfe78731e0e914de"
+size = 38365368
+mtime_ms = 1787959758978
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:bcc9505c-16fc-43dc-ad5a-65ebdaafb446/9bf9def0-a387-4ee1-a74b-659381cde139/4513544b-caf0-4768-a96d-cb8f61c2a933"
+storage_version_token = "1787959845258526"
+content_type = "application/octet-stream"

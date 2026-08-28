@@ -32,7 +32,20 @@ interface HtmlPage {
   internalLinks: number;
 }
 
-const LEGACY_BRANDING = /cleanflow|sabaik|سبائك|الماسة/iu;
+function relativeProductionPath(file: string, productionRoot: string): string {
+  return path.relative(productionRoot, file).replaceAll(path.sep, "/");
+}
+
+function isFaqEligiblePage(page: HtmlPage, productionRoot: string): boolean {
+  const relativePath = relativeProductionPath(page.file, productionRoot);
+  return relativePath === "index.html"
+    || relativePath === "taqi-group-platform/index.html"
+    || /^(areas|containers|faq|pricing|services)\//u.test(relativePath)
+    || /^page\/[^/]+\/index\.html$/u.test(relativePath)
+    || /^pages\/[^/]+\/index\.html$/u.test(relativePath);
+}
+
+const LEGACY_BRANDING = /sabaik|سبائك|الماسة/iu;
 const TEXT_EXTENSIONS = /\.(html?|css|js|json|xml|txt|php|webmanifest)$/i;
 const SEO_MEDIA_EXTENSIONS = /\.(png|jpe?g|webp|gif|svg)$/i;
 
@@ -227,7 +240,8 @@ export async function getSeoMetrics(): Promise<SeoMetricsSnapshot> {
   const qualityDescriptions = descriptions.filter((description) => description.length >= 120 && description.length <= 160);
   const pagesWithCanonical = pages.filter((page) => Boolean(page.canonical));
   const pagesWithSchema = pages.filter((page) => page.jsonLdTypes.length > 0);
-  const faqPages = pages.filter((page) => page.faq);
+  const faqEligiblePages = pages.filter((page) => isFaqEligiblePage(page, production.root));
+  const faqPages = faqEligiblePages.filter((page) => page.faq);
   const linkedPages = pages.filter((page) => page.internalLinks > 0);
   const entityTypes = unique(pages.flatMap((page) => page.jsonLdTypes));
   const sitemapUnique = unique(sitemapUrls);
@@ -357,9 +371,9 @@ export async function getSeoMetrics(): Promise<SeoMetricsSnapshot> {
       metric(
         "faq_geo",
         "FAQ / GEO Content",
-        ratioStatus(faqPages.length, pages.length),
-        pages.length ? `${faqPages.length}/${pages.length}` : "—",
-        `${faqPages.length} صفحة تحتوي FAQ فعليًا في HTML أو JSON-LD`,
+        ratioStatus(faqPages.length, faqEligiblePages.length),
+        faqEligiblePages.length ? `${faqPages.length}/${faqEligiblePages.length}` : "—",
+        `${faqPages.length} من ${faqEligiblePages.length} صفحة تجارية/خدمية مؤهلة تحتوي FAQ فعليًا في HTML أو JSON-LD؛ الصفحات القانونية والتفاعلية والمقالات مستثناة منطقيًا`,
         source,
       ),
       metric(

@@ -18,6 +18,10 @@
       <image:loc>https://taqigroup.com/images/logo.png</image:loc>
       <image:title>مؤسسة تقي — صورة 2</image:title>
     </image:image>
+    <image:image>
+      <image:loc>https://taqigroup.com/images/seo/taqi-home.jpg</image:loc>
+      <image:title>مؤسسة تقي — صورة 3</image:title>
+    </image:image>
   </url>
 
   <url>
@@ -130,6 +134,14 @@
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
     <xhtml:link rel="alternate" hreflang="ar" href="https://taqigroup.com/blog"/>
+  </url>
+
+  <url>
+    <loc>https://taqigroup.com/taqi-group-platform</loc>
+    <lastmod>2026-08-28</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://taqigroup.com/taqi-group-platform"/>
   </url>
 
   <url>

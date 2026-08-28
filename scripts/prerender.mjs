@@ -1584,7 +1584,7 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
     "إجابات واضحة حول مقاسات وأسعار تأجير حاويات الأنقاض والنفايات، التوصيل والسحب، ونقل مخلفات البناء داخل الرياض.",
     "الأسئلة الشائعة حول تأجير الحاويات",
   );
-  const ogImage = `${SITE_URL}/images/seo/taqi-containers.jpg`;
+  const ogImage = `${SITE_URL}/images/seo/taqi-faq.jpg`;
   const crumbs = [
     { name: "الرئيسية", url: SITE_URL },
     { name: "الأسئلة الشائعة", url: canonical }
@@ -1656,7 +1656,7 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
     "سياسة الخصوصية وحماية البيانات الشخصية لعملاء تأجير الحاويات ونقل مخلفات البناء وفق الأنظمة واللوائح المعمول بها في المملكة العربية السعودية.",
     "سياسة الخصوصية وحماية البيانات",
   );
-  const ogImage = `${SITE_URL}/images/hero-1.webp`;
+  const ogImage = `${SITE_URL}/images/seo/taqi-legal.jpg`;
   const crumbs = [
     { name: "الرئيسية", url: SITE_URL },
     { name: "سياسة الخصوصية", url: canonical }
