@@ -33,6 +33,114 @@ function step(label) {
   console.log(`\n${"─".repeat(60)}\n✦ ${label}`);
 }
 
+const SOURCE_DB = join(ROOT, "data/sabaik.db");
+const ARCHIVE_SOURCE_DB = join(ROOT, "build_php/.archive-source.db");
+
+function quoteIdentifier(value) {
+  return `"${String(value).replaceAll('"', '""')}"`;
+}
+
+function inspectDatabase(dbPath) {
+  const db = new Database(dbPath, { readonly: true });
+  try {
+    const integrity = db.pragma("integrity_check", { simple: true });
+    const tables = db
+      .prepare("SELECT name, rootpage FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
+      .all();
+    return { integrity, tables };
+  } finally {
+    db.close();
+  }
+}
+
+function prepareArchiveSourceDatabase() {
+  rmSync(ARCHIVE_SOURCE_DB, { force: true });
+  rmSync(`${ARCHIVE_SOURCE_DB}-wal`, { force: true });
+  rmSync(`${ARCHIVE_SOURCE_DB}-shm`, { force: true });
+  mkdirSync(dirname(ARCHIVE_SOURCE_DB), { recursive: true });
+
+  const sourceInfo = inspectDatabase(SOURCE_DB);
+  if (sourceInfo.integrity === "ok") {
+    copyFileSync(SOURCE_DB, ARCHIVE_SOURCE_DB);
+    for (const suffix of ["-wal", "-shm"]) {
+      if (existsSync(`${SOURCE_DB}${suffix}`)) copyFileSync(`${SOURCE_DB}${suffix}`, `${ARCHIVE_SOURCE_DB}${suffix}`);
+    }
+    console.log("  ✅ قاعدة المصدر سليمة — ستُستخدم مباشرة في الأرشيف");
+    return;
+  }
+
+  console.warn(`  ⚠️ قاعدة المصدر غير سليمة — سيتم إنشاء نسخة أرشيفية آمنة: ${sourceInfo.integrity}`);
+  const fallbackCandidates = [
+    join(ROOT, "build_php/data/sabaik.db"),
+    join(ROOT, "backups/sabaik-before-container-record-reset-20260825-110138.db"),
+    join(ROOT, "backups/sabaik-before-final-seo-hardening.db"),
+    join(ROOT, "data/sabaik_7dbd.db"),
+  ];
+  const fallback = fallbackCandidates.find((candidate) => {
+    if (!existsSync(candidate)) return false;
+    try {
+      return inspectDatabase(candidate).integrity === "ok";
+    } catch {
+      return false;
+    }
+  });
+  if (!fallback) throw new Error("لم أعثر على نسخة SQLite سليمة يمكن استخدامها لبناء الأرشيف");
+  copyFileSync(fallback, ARCHIVE_SOURCE_DB);
+  console.log(`  ✅ النسخة السليمة الأساسية: ${fallback.replace(`${ROOT}/`, "")}`);
+
+  const badRootPages = new Set(
+    [...String(sourceInfo.integrity).matchAll(/\bTree\s+(\d+)\b/g)].map((match) => Number(match[1])),
+  );
+  const sourceDb = new Database(SOURCE_DB, { readonly: true });
+  const archiveDb = new Database(ARCHIVE_SOURCE_DB);
+  try {
+    archiveDb.pragma("foreign_keys=OFF");
+    const sourceTables = sourceInfo.tables;
+    const copyTable = archiveDb.transaction((table, columns, rows) => {
+      const tableName = quoteIdentifier(table);
+      const columnList = columns.map(quoteIdentifier).join(", ");
+      archiveDb.prepare(`DELETE FROM ${tableName}`).run();
+      const insert = archiveDb.prepare(
+        `INSERT INTO ${tableName} (${columnList}) VALUES (${columns.map(() => "?").join(", ")})`,
+      );
+      for (const row of rows) insert.run(...columns.map((column) => row[column]));
+    });
+
+    let copiedTables = 0;
+    for (const table of sourceTables) {
+      if (badRootPages.has(Number(table.rootpage))) {
+        console.warn(`  ⏭  تم تجاوز الجدول المتضرر ${table.name} (rootpage ${table.rootpage})`);
+        continue;
+      }
+      const sourceTable = quoteIdentifier(table.name);
+      const sourceColumns = sourceDb.prepare(`PRAGMA table_info(${sourceTable})`).all().map((column) => column.name);
+      const archiveColumns = archiveDb.prepare(`PRAGMA table_info(${sourceTable})`).all().map((column) => column.name);
+      const columns = sourceColumns.filter((column) => archiveColumns.includes(column));
+      if (columns.length !== sourceColumns.length || columns.length === 0) {
+        console.warn(`  ⏭  تم تجاوز ${table.name} لاختلاف مخطط الأعمدة`);
+        continue;
+      }
+      let rows;
+      try {
+        rows = sourceDb.prepare(
+          `SELECT ${columns.map(quoteIdentifier).join(", ")} FROM ${sourceTable} NOT INDEXED`,
+        ).all();
+      } catch (error) {
+        console.warn(`  ⏭  تعذر قراءة ${table.name}: ${error.message}`);
+        continue;
+      }
+      copyTable(table.name, columns, rows);
+      copiedTables += 1;
+    }
+    console.log(`  ✅ تم دمج ${copiedTables} جدولاً سليماً من أحدث نسخة للمشروع`);
+  } finally {
+    archiveDb.close();
+    sourceDb.close();
+  }
+}
+
+prepareArchiveSourceDatabase();
+
 // ── 1. توليد الخريطة قبل Vite حتى تدخل النسخة الحالية إلى dist ───────────────
 step("توليد خريطة الموقع قبل بناء الواجهة");
 run(
@@ -113,7 +221,7 @@ console.log("  ✅ تم نسخ جميع المجلدات والصفحات الث
 // المدونة والباقات بعد نقل الموقع إلى Hostinger بنفس مسارات الواجهة الحالية.
 {
   const compatibilityImages = new Set();
-  const imageDb = new Database(join(ROOT, "data/sabaik.db"), { readonly: true });
+  const imageDb = new Database(ARCHIVE_SOURCE_DB, { readonly: true });
   for (const table of imageDb
     .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
     .all()) {
@@ -194,7 +302,7 @@ console.log("  ✅ صفحة CleanFlow + الشعار + الأصول نُسخت")
 step("WAL checkpoint على قاعدة البيانات الأصلية");
 
 {
-  const srcDb = new Database(join(ROOT, "data/sabaik.db"));
+  const srcDb = new Database(ARCHIVE_SOURCE_DB);
   srcDb.pragma("wal_checkpoint(TRUNCATE)");
   srcDb.close();
   console.log("  ✅ WAL checkpoint");
@@ -206,8 +314,8 @@ step("نسخ وتحويل قاعدة البيانات");
 const DEST_DB = join(ROOT, "build_php/data/sabaik.db");
 mkdirSync(dirname(DEST_DB), { recursive: true });
 
-// انسخ أولاً
-copyFileSync(join(ROOT, "data/sabaik.db"), DEST_DB);
+// انسخ أولاً من النسخة الآمنة التي أُعدت أعلى الملف.
+copyFileSync(ARCHIVE_SOURCE_DB, DEST_DB);
 
 {
   const db = new Database(DEST_DB);
@@ -323,7 +431,7 @@ rmSync(uploadsDir, { recursive: true, force: true });
 mkdirSync(uploadsDir, { recursive: true });
 const sourceUploadsDir = join(ROOT, "artifacts/api-server/uploads");
 const referencedUploads = new Set();
-const sourceDb = new Database(join(ROOT, "data/sabaik.db"), { readonly: true });
+const sourceDb = new Database(ARCHIVE_SOURCE_DB, { readonly: true });
 try {
   const tables = sourceDb
     .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
@@ -419,7 +527,7 @@ console.log("  ✅ .htaccess مكتوبان مع Authorization passthrough");
 // فرعي باسم build_php؛ لأن مسارات /api و /uploads و /data تعتمد على جذر الموقع.
 step("كتابة معلومات النسخة وتعليمات النشر");
 {
-  const sourceDb = new Database(join(ROOT, "data/sabaik.db"), { readonly: true });
+  const sourceDb = new Database(ARCHIVE_SOURCE_DB, { readonly: true });
   const tableCounts = {};
   for (const table of sourceDb
     .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
@@ -484,6 +592,10 @@ step("تنظيف اسم العلامة القديمة من ملفات Hostinger"
   walk(join(ROOT, "build_php"));
   console.log(`  ✅ ملفات الأرشيف تستخدم اسم الإعدادات: ${siteName}`);
 }
+
+rmSync(ARCHIVE_SOURCE_DB, { force: true });
+rmSync(`${ARCHIVE_SOURCE_DB}-wal`, { force: true });
+rmSync(`${ARCHIVE_SOURCE_DB}-shm`, { force: true });
 
 step("إنشاء الأرشيف cleanflow-services-hostinger.zip");
 const zipPath = join(ROOT, "cleanflow-services-hostinger.zip");

@@ -31,4 +31,3 @@
 - [Operational work-order boundary](operational-work-order-boundary.md) — contract/container actions must create work_order records; service_requests remain commercial intake records.
 - [SEO archive certification](seo-archive-certification.md) — certify SEO from the extracted final Hostinger archive, not only the Vite output.
 - [Prerender first-paint protection](prerender-first-paint-protection.md) — hide database snapshots immediately for JS clients while preserving them for crawlers and no-JS visitors.
-- [Hostinger patch asset parity](hostinger-patch-asset-parity.md) — update archives must carry every root asset referenced by HTML or the service worker, while preserving data and uploads.
