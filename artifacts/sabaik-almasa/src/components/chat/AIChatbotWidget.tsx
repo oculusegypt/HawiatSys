@@ -13,7 +13,7 @@ import { LiveSupportChat } from "./LiveSupportChat"
 import { getHighAccuracyPosition } from "@/lib/reverseGeocode"
 import { DraggableMapPicker } from "@/components/ui/DraggableMapPicker"
 import { useSiteSettings } from "@/context/SiteSettingsContext"
-import { playNotificationChime, sendVisitorHeartbeat, getKnownCustomerInfo, getVisitorTracking } from "@/lib/visitorAttribution"
+import { playNotificationChime, unlockNotificationAudio, sendVisitorHeartbeat, getKnownCustomerInfo, getVisitorTracking } from "@/lib/visitorAttribution"
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -69,6 +69,7 @@ interface BotMessage {
 // ─── API ──────────────────────────────────────────────────────────────────
 
 const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
+const DISMISSED_INVITATION_KEY = "cleanflow_dismissed_visitor_invitation"
 
 async function sendToBot(message: string, flowState: FlowState, conversationId: number | null) {
   const res = await fetch(`${API_BASE}/api/ai/chat`, {
@@ -935,6 +936,15 @@ export function AIChatbotWidget({ onOpenChange }: { onOpenChange?: (open: boolea
         const data = await response.json() as { invitation?: { message?: string; createdAt?: string } | null }
         if (data.invitation?.message) {
           const createdAt = String(data.invitation.createdAt ?? "")
+          let dismissedAt = ""
+          try {
+            dismissedAt = localStorage.getItem(DISMISSED_INVITATION_KEY) || ""
+          } catch {}
+          if (createdAt && createdAt === dismissedAt) {
+            setVisitorInvitation(null)
+            lastInvitationAtRef.current = createdAt
+            return
+          }
           setVisitorInvitation({ message: data.invitation.message, createdAt })
           if (createdAt && createdAt !== lastInvitationAtRef.current) {
             lastInvitationAtRef.current = createdAt
@@ -951,6 +961,8 @@ export function AIChatbotWidget({ onOpenChange }: { onOpenChange?: (open: boolea
   const acceptVisitorInvitation = async (event: React.FormEvent) => {
     event.preventDefault()
     if (!invitationName.trim() || !invitationPhone.trim() || invitationSubmitting) return
+    unlockNotificationAudio()
+    playNotificationChime()
     setInvitationSubmitting(true)
     try {
       const response = await fetch(`${API_BASE}/api/visitor/invitation/accept`, {
@@ -975,6 +987,7 @@ export function AIChatbotWidget({ onOpenChange }: { onOpenChange?: (open: boolea
         packageName: packageName || undefined,
       }
       localStorage.setItem("cleanflow_live_chat_session", JSON.stringify(chatSession))
+      localStorage.removeItem(DISMISSED_INVITATION_KEY)
       sessionStorage.setItem("support_conversation_id", String(data.conversationId))
       sessionStorage.setItem("customer_name", clientName)
       sessionStorage.setItem("customer_phone", phone)
@@ -986,6 +999,16 @@ export function AIChatbotWidget({ onOpenChange }: { onOpenChange?: (open: boolea
     } finally {
       setInvitationSubmitting(false)
     }
+  }
+
+  const dismissVisitorInvitation = () => {
+    if (visitorInvitation?.createdAt) {
+      try {
+        localStorage.setItem(DISMISSED_INVITATION_KEY, visitorInvitation.createdAt)
+      } catch {}
+      lastInvitationAtRef.current = visitorInvitation.createdAt
+    }
+    setVisitorInvitation(null)
   }
 
   // 2. Heartbeat Presence loop every 15s
@@ -1381,7 +1404,7 @@ export function AIChatbotWidget({ onOpenChange }: { onOpenChange?: (open: boolea
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between">
                   <p className="text-xs font-black text-emerald-400">الدعم المباشر يدعوك للتواصل</p>
-                  <button onClick={() => setVisitorInvitation(null)} className="p-0.5 text-gray-400 hover:text-white" aria-label="إغلاق الدعوة"><X size={13} /></button>
+                   <button onClick={dismissVisitorInvitation} className="p-0.5 text-gray-400 hover:text-white" aria-label="إغلاق الدعوة"><X size={13} /></button>
                 </div>
                 <p className="mt-1 text-xs leading-relaxed text-gray-200">{visitorInvitation.message}</p>
               </div>
@@ -1439,7 +1462,11 @@ export function AIChatbotWidget({ onOpenChange }: { onOpenChange?: (open: boolea
 
       {/* Toggle FAB */}
       <motion.button
-        onClick={() => botDisabled ? setLiveChatOpen((v) => !v) : setIsOpen((v) => !v)}
+        onClick={() => {
+          unlockNotificationAudio()
+          if (botDisabled) setLiveChatOpen((v) => !v)
+          else setIsOpen((v) => !v)
+        }}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.92 }}
          className={`fixed bottom-6 left-4 sm:left-6 z-50 h-14 w-14 rounded-2xl text-white shadow-xl flex items-center justify-center ${

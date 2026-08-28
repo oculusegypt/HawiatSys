@@ -37,6 +37,7 @@ import {
   NotificationStatusStrip,
 } from "@/components/admin/NotificationBell";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
+import { unlockNotificationAudio } from "@/lib/visitorAttribution";
 
 const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || "";
 // ── Nav items with section keys for permission filtering ──────────────────────
@@ -458,6 +459,18 @@ export default function AdminLayout({
       return next;
     });
   };
+
+  useEffect(() => {
+    // Prime Web Audio during the first admin interaction so later polling
+    // notifications can play even though they arrive outside a click handler.
+    const unlock = () => unlockNotificationAudio();
+    window.addEventListener("pointerdown", unlock, { once: true, passive: true });
+    window.addEventListener("keydown", unlock, { once: true });
+    return () => {
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
+    };
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem("admin_token");

@@ -13,14 +13,14 @@ logical_id = "2d4a7433-8698-4c44-9aa7-312b089d3a9c"
 id = "M455l1c0gprcp62URuZhP"
 uri = "file://sabaik-update.zip"
 type = "unspecified"
-title = "حزمة التحديث الآمنة بعد إصلاح تفاصيل الفاتورة"
-description = "الحزمة الموصى بها للنسخة الحية؛ تحتوي على الكود والأصول فقط ولا تستبدل data/ أو uploads/."
+title = "حزمة التحديث النهائية لـ Hostinger"
+description = "آخر نسخة من حزمة التحديث بعد إضافة إصلاح الدعوة والصوت، favicon الكامل، صورة الشعار لمعاينة Google، صفحات SEO، ملفات API، والتوجيه. لا تحتوي على data/ أو uploads/."
 logical_id = "dd2f77f0-5f7e-42ad-893d-b823952e1890"
-content_hash = "sha256:0fa1d288fa0359879092c7b7ba79f504f0efa7dfbc397c5bf8104d60d3253424"
-size = 2339543
-mtime_ms = 1787547533342
-storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:4b4f4174-b0ea-4a4b-a977-8e6750b3d16e/dd2f77f0-5f7e-42ad-893d-b823952e1890/80160591-ca3e-4e63-ab3b-96b3dd6d544f"
-storage_version_token = "1787547541940711"
+content_hash = "sha256:9ae7d522f1a4f53aea6f3ba2b8e724f107f8d5f9985e190637b94127449a5d2e"
+size = 3625077
+mtime_ms = 1787890657480
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:bac131fe-157f-4f14-8470-5e8e3f0216fb/dd2f77f0-5f7e-42ad-893d-b823952e1890/29e72725-0933-4cc1-8652-3b4a753e3e70"
+storage_version_token = "1787890675795561"
 content_type = "application/octet-stream"
 
 [[outputs]]

@@ -12,7 +12,7 @@ import { useSiteSettings } from "@/context/SiteSettingsContext"
 import { useGetContainers, useGetConversation } from "@workspace/api-client-react"
 import type { Container } from "@workspace/api-client-react"
 import { PackageFormMessage } from "@/components/chat/PackageFormMessage"
-import { playNotificationChime, sendVisitorHeartbeat } from "@/lib/visitorAttribution"
+import { playNotificationChime, unlockNotificationAudio, sendVisitorHeartbeat } from "@/lib/visitorAttribution"
 
 const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
 
@@ -95,6 +95,9 @@ function ContactForm({ onStartChat, phones, phoneCall, phoneWhatsapp, supportHou
     if (phone.trim().length < 9) errs.phone = "رقم الجوال غير صحيح"
     if (Object.keys(errs).length) { setErrors(errs); return }
 
+    // Unlock audio from the visitor's submit gesture and confirm the chat start.
+    unlockNotificationAudio()
+    playNotificationChime()
     setLoading(true)
     try {
       const res = await fetch(`${API_BASE}/api/conversations`, {

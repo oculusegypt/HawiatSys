@@ -55,6 +55,7 @@ const STAGING = join(ROOT, "_update_staging");
 rmSync(STAGING, { recursive: true, force: true });
 mkdirSync(join(STAGING, "assets"),     { recursive: true });
 mkdirSync(join(STAGING, "api"),        { recursive: true });
+mkdirSync(join(STAGING, "images"),     { recursive: true });
 
 // أصول Vite
 cpSync(
@@ -85,12 +86,24 @@ copyFileSync(
   join(ROOT, "artifacts/sabaik-almasa/dist/public/index.html"),
   join(STAGING, "index.html")
 );
-for (const publicFile of ["sw.js", "notification-icon.webp"]) {
+for (const publicFile of [
+  "sw.js",
+  "notification-icon.png",
+  "notification-icon.webp",
+  "favicon.svg",
+  "favicon.png",
+  "favicon-16x16.png",
+  "favicon-32x32.png",
+  "favicon-512x512.png",
+  "favicon.ico",
+]) {
   const source = join(ROOT, "artifacts/sabaik-almasa/public", publicFile);
   if (existsSync(source)) {
     copyFileSync(source, join(STAGING, publicFile));
   }
 }
+const logoSource = join(ROOT, "artifacts/sabaik-almasa/public/images/logo.png");
+if (existsSync(logoSource)) copyFileSync(logoSource, join(STAGING, "images/logo.png"));
 console.log("  ✅ assets/ و index.html وملفات الإشعارات");
 
 // صفحات SEO المولدة مسبقاً تحمل روابط hashed إلى JavaScript. يجب تحديثها
@@ -144,7 +157,8 @@ writeFileSync(join(STAGING, "UPLOAD_INSTRUCTIONS.txt"), [
   "ارفع هذه الملفات فقط إلى public_html/:",
   "  • assets/       ← مجلد كامل",
   "  • index.html    ← ملف واحد",
-  "  • sw.js و notification-icon.webp ← ملفات إشعارات الهاتف",
+  "  • sw.js و notification-icon.png و notification-icon.webp ← ملفات إشعارات الهاتف",
+  "  • favicon.* و images/logo.png ← هوية الموقع وصورة المعاينة",
   "  • api/index.php و api/container-system.php و api/.htaccess ← ملفات API",
   "  • .htaccess ← ملف التوجيه الرئيسي (استبدله إن كان لديك الإصدار القديم)",
   "",
@@ -170,6 +184,6 @@ const sizeKb = Math.round(
 );
 console.log(`\n${"═".repeat(60)}`);
 console.log(`✅ جاهز: sabaik-update.zip (${sizeKb} KB)`);
-console.log(`   يحتوي على: assets/ + index.html + sw.js + notification-icon.webp + api/index.php + api/container-system.php + .htaccess`);
+  console.log(`   يحتوي على: assets/ + index.html + favicon.* + images/logo.png + sw.js + notification-icon.png + notification-icon.webp + api/index.php + api/container-system.php + .htaccess`);
 console.log(`   لا يحتوي على: uploads/ ولا data/ (بياناتك بأمان ✔)`);
 console.log(`${"═".repeat(60)}\n`);
