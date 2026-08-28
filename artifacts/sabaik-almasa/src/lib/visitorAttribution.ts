@@ -147,7 +147,7 @@ export function getKnownCustomerInfo() {
     let convId = Number(sessionStorage.getItem("support_conversation_id") || localStorage.getItem("support_conversation_id") || "0")
     let orderId = Number(sessionStorage.getItem("last_order_id") || localStorage.getItem("last_order_id") || "0")
 
-    const sessionKeys = ["sabaik_live_chat_session", "hawiat_live_chat_session", "alsahm_live_chat_session", "cleanflow_live_chat_session"]
+    const sessionKeys = ["cleanflow_live_chat_session", "hawiat_live_chat_session", "alsahm_live_chat_session"]
     for (const key of sessionKeys) {
       const chatRaw = localStorage.getItem(key)
       if (chatRaw) {

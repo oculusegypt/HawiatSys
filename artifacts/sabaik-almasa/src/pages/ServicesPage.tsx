@@ -40,7 +40,7 @@ export default function ServicesPage() {
     [data],
   )
   const pageTitle = companyName ? `خدمات نقل المخلفات والحاويات بالرياض | ${companyName}` : "خدمات نقل المخلفات والحاويات بالرياض"
-  const pageDescription = "استعرض خدمات سبائك الماسة الفعلية في الرياض: تأجير الحاويات، نقل مخلفات البناء، عقود النظافة والخدمات الميدانية المرتبطة."
+  const pageDescription = "استعرض خدمات مؤسسة تقي جروب الفعلية في الرياض: تأجير الحاويات، نقل مخلفات البناء، عقود النظافة والخدمات الميدانية المرتبطة."
 
   useDocumentSEO({
     title: pageTitle,

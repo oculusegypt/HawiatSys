@@ -17,7 +17,7 @@ export async function reverseGeocode(lat: number, lng: number): Promise<GeoAddre
     `&format=json&addressdetails=1&zoom=18&accept-language=ar`
 
   const res = await fetch(url, {
-    headers: { "Accept-Language": "ar", "User-Agent": "SabaikAlmasa/1.0" },
+    headers: { "Accept-Language": "ar", "User-Agent": "CleanFlowServices/1.0" },
   })
 
   if (!res.ok) throw new Error("Nominatim error")

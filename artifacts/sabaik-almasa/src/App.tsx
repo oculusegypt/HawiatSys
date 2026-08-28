@@ -83,18 +83,22 @@ function SettingsErrorShell({ onRetry }: { onRetry: () => void }) {
 }
 
 function SettingsBootstrap() {
+  const [location] = useLocation()
   const { isLoaded, isError, reload } = useSiteSettings()
-  if (!isLoaded) return <SettingsLoadingShell />
-  if (isError) return <SettingsErrorShell onRetry={reload} />
+  const isLoginRoute = location === "/admin/login"
+
+  // The login screen does not need public site settings. Keeping it outside the
+  // settings gate prevents a slow public-settings request from flashing a
+  // bootstrap screen before the credentials form.
+  if (!isLoginRoute && !isLoaded) return <SettingsLoadingShell />
+  if (!isLoginRoute && isError) return <SettingsErrorShell onRetry={reload} />
   return (
     <>
-      <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
-        <AnonymousAnalyticsTracker />
-        <ScrollToTop />
-        <SiteIdentitySEO />
-        <Router />
-        <FloatingContactButtons />
-      </WouterRouter>
+      <AnonymousAnalyticsTracker />
+      <ScrollToTop />
+      <SiteIdentitySEO />
+      <Router />
+      <FloatingContactButtons />
       <MarketingBadge />
       <ServiceRequestModal />
       <Toaster />
@@ -156,7 +160,9 @@ function App() {
       <TooltipProvider>
         <SiteSettingsProvider>
           <ServiceRequestProvider>
-            <SettingsBootstrap />
+            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+              <SettingsBootstrap />
+            </WouterRouter>
           </ServiceRequestProvider>
         </SiteSettingsProvider>
       </TooltipProvider>

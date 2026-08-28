@@ -19,7 +19,7 @@ const Database = require("better-sqlite3");
 const db = new Database(dbPath, { readonly: true });
 const settingRows = db.prepare("SELECT key, value FROM site_settings").all();
 const settingMap = Object.fromEntries(settingRows.map(row => [row.key, row.value]));
-const siteName = String(settingMap.company_name || "").trim() || "مؤسسة السهم كلين";
+const siteName = String(settingMap.company_name || "").trim() || "مؤسسة تقي جروب";
 const baseUrl = requirePublicOrigin({ settings: settingMap });
 
 const xmlEscape = (value) => String(value)

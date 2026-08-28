@@ -50,7 +50,7 @@ async function runLiveComparison() {
     size: html.length,
     h1: html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.[1]?.trim() || "NONE",
     h2s: [...html.matchAll(/<h2[^>]*>([\s\S]*?)<\/h2>/gi)].map(m => m[1].replace(/<[^>]+>/g, "").trim()),
-    hasHero: html.includes("Hero") || html.includes("مؤسسة السهم كلين لخدمات تنظيف"),
+    hasHero: html.includes("Hero") || html.includes("مؤسسة تقي جروب لخدمات تنظيف"),
     hasServices: html.includes("تنظيف الفلل والقصور") && html.includes("تنظيف الشقق السكنية"),
     hasPrices: html.includes("350") && html.includes("750") && html.includes("900"),
     hasReviews: html.includes("4.9") && html.includes("184"),

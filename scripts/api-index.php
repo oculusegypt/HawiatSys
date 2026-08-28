@@ -1879,7 +1879,7 @@ try {
 
     // 10g. AI Chat Welcome & Message: /api/ai/chat/welcome and /api/ai/chat
     if ($path === '/ai/chat/welcome' && $method === 'GET') {
-        $siteName = 'مؤسسة سبائك الماسة';
+        $siteName = 'مؤسسة تقي جروب';
         try {
             $stmt = $pdo->query("SELECT value FROM site_settings WHERE key = 'company_name' LIMIT 1");
             $v = $stmt->fetchColumn();
@@ -1906,7 +1906,7 @@ try {
             $step = $flowState['step'] ?? 'main_menu';
             $data = is_array($flowState['data'] ?? null) ? $flowState['data'] : [];
 
-            $siteName = 'مؤسسة سبائك الماسة';
+            $siteName = 'مؤسسة تقي جروب';
             try {
                 $stmt = $pdo->query("SELECT value FROM site_settings WHERE key = 'company_name' LIMIT 1");
                 $v = $stmt->fetchColumn();
@@ -3423,7 +3423,7 @@ try {
                     'content' => $p['content'] ?? '',
                     'excerpt' => $p['excerpt'] ?? '',
                     'coverImage' => $p['cover_image'] ?? '',
-                    'author' => $p['author'] ?? 'مؤسسة سبائك الماسة',
+                    'author' => $p['author'] ?? 'مؤسسة تقي جروب',
                     'category' => $p['category'] ?? 'حاويات الأنقاض',
                     'tags' => $p['tags'] ?? '[]',
                     'status' => $p['status'] ?? 'published',

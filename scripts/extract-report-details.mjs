@@ -20,7 +20,7 @@ console.log("H1s:", h1s);
 console.log("H2s:", h2s);
 
 // Check if Hero, Core Services, Prices, 4.9/148, FAQ, Areas are in raw HTML:
-console.log("Hero in HTML:", homeHtml.includes("HeroSlider") || homeHtml.includes("hero-slider") || (homeHtml.includes("مؤسسة السهم كلين") && homeHtml.includes("0554498403")));
+console.log("Hero in HTML:", homeHtml.includes("HeroSlider") || homeHtml.includes("hero-slider") || (homeHtml.includes("مؤسسة تقي جروب") && homeHtml.includes("0554498403")));
 console.log("Services in HTML:", homeHtml.includes("ServicesSection") || homeHtml.includes("تنظيف الشقق السكنية"));
 console.log("Prices in HTML:", homeHtml.includes("750") || homeHtml.includes("350"));
 console.log("Rating 4.9/148 in HTML:", homeHtml.includes("4.9") && homeHtml.includes("148"));

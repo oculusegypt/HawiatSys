@@ -267,10 +267,34 @@ function OperationsExceptions() {
 // ─── System Status Card ──────────────────────────────────────────────────────
 
 function SystemStatus() {
-  const [settings, setSettings] = useState({ requests_locked: "false", support_status: "unavailable" })
-  useEffect(() => {
-    fetch(`${API_BASE}/api/settings`).then(r => r.json()).then(setSettings).catch(() => { })
-  }, [])
+  const [settings, setSettings] = useState<{ requests_locked: string; support_status: string } | null>(null)
+  const [error, setError] = useState(false)
+  const load = () => {
+    setError(false)
+    fetch(`${API_BASE}/api/settings`, { cache: "no-store" })
+      .then(response => {
+        if (!response.ok) throw new Error(`Settings request failed with ${response.status}`)
+        return response.json()
+      })
+      .then(data => setSettings({
+        requests_locked: String(data.requests_locked ?? "false"),
+        support_status: String(data.support_status ?? "unavailable"),
+      }))
+      .catch(() => setError(true))
+  }
+  useEffect(() => { load() }, [])
+
+  if (!settings && !error) {
+    return <div className="h-[188px] animate-pulse rounded-2xl border border-gray-100 bg-white shadow-sm" aria-label="جاري تحميل حالة النظام" />
+  }
+  if (!settings) {
+    return (
+      <div className="bg-white rounded-2xl border border-red-100 shadow-sm p-5">
+        <p className="text-sm font-bold text-red-700">تعذر تحميل حالة النظام.</p>
+        <button type="button" onClick={load} className="mt-3 text-xs font-bold text-primary hover:underline">إعادة المحاولة</button>
+      </div>
+    )
+  }
 
   const isLocked = settings.requests_locked === "true"
   const supportStatus = settings.support_status
@@ -351,10 +375,10 @@ const DUMMY: Stats = {
 const PIE_COLORS = ["#3b82f6", "#f59e0b", "#10b981", "#8b5cf6", "#ef4444", "#06b6d4"]
 
 export default function AdminDashboard() {
-  const { data: rawStats, isLoading, refetch, isFetching } = useGetAdminStats()
+  const { data: rawStats, isLoading, isError, refetch, isFetching } = useGetAdminStats()
   const [lastRefresh, setLastRefresh] = useState(new Date())
 
-  const stats: Stats = (rawStats as unknown as Stats) || DUMMY
+  const stats = rawStats as unknown as Stats
 
   // Auto-refresh every 30s
   useEffect(() => {
@@ -368,13 +392,24 @@ export default function AdminDashboard() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 gap-4">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-          className="w-10 h-10 border-3 border-primary border-t-transparent rounded-full"
-        />
-        <p className="text-gray-500 font-medium">جاري تحميل الإحصاءات...</p>
+      <div className="space-y-6" aria-busy="true" aria-label="جاري تحميل لوحة القيادة">
+        <div className="h-20 animate-pulse rounded-2xl bg-white" />
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          {Array.from({ length: 4 }, (_, index) => <div key={index} className="h-32 animate-pulse rounded-2xl bg-white" />)}
+        </div>
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          {Array.from({ length: 4 }, (_, index) => <div key={index} className="h-32 animate-pulse rounded-2xl bg-white" />)}
+        </div>
+        <div className="h-72 animate-pulse rounded-2xl bg-white" />
+      </div>
+    )
+  }
+  if (isError || !stats) {
+    return (
+      <div className="flex min-h-64 flex-col items-center justify-center gap-3 rounded-2xl border border-red-100 bg-white p-8 text-center">
+        <AlertTriangle className="text-red-500" size={24} />
+        <p className="font-bold text-red-800">تعذر تحميل إحصاءات لوحة القيادة.</p>
+        <button type="button" onClick={() => void refetch()} className="text-sm font-bold text-primary hover:underline">إعادة المحاولة</button>
       </div>
     )
   }

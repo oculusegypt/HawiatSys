@@ -224,8 +224,6 @@ import { AdsSection } from "@/components/home/AdsSection"
 import { SeoPagesLinksSection } from "@/components/home/SeoPagesLinksSection"
 import { CEOMessage } from "@/components/home/CEOMessage"
 
-const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
-
 function SectionBlock({
   id,
   phoneCall,

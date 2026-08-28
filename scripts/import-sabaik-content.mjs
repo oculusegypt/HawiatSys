@@ -186,7 +186,7 @@ try {
           content: item.content || "",
           excerpt: item.excerpt || "",
           coverImage: item.coverImage || "",
-          author: item.author || "سبائك الماسة",
+          author: item.author || "مؤسسة تقي جروب",
           category: item.category || "عام",
           tags: typeof item.tags === "string" ? item.tags : JSON.stringify(item.tags || []),
           status: item.status || "published",
@@ -274,12 +274,12 @@ try {
   console.error("Error importing pages:", err);
 }
 
-// 6. Update Testimonials, Values, Partners, Slides to Sabaik Almasa
+// 6. Update Testimonials, Values, Partners, Slides to Taqi Group
 try {
   db.exec(`
     DELETE FROM testimonials;
     INSERT INTO testimonials (client_name, company, content, rating, is_active, created_at) VALUES
-    ('م. فهد السبيعي', 'مدير مشاريع إنشائية', 'تعاملنا مع سبائك الماسة في عدة مشاريع كبرى بالرياض، التزام رائع في مواعيد تسليم الحاويات وسحبها فور الامتلاء وسرعة استجابة لا مثيل لها.', 5, 1, datetime('now')),
+    ('م. فهد السبيعي', 'مدير مشاريع إنشائية', 'تعاملنا مع مؤسسة تقي جروب في عدة مشاريع كبرى بالرياض، التزام رائع في مواعيد تسليم الحاويات وسحبها فور الامتلاء وسرعة استجابة لا مثيل لها.', 5, 1, datetime('now')),
     ('أبو راشد القحطاني', 'صاحب فيلا - حي النرجس', 'طلبت حاوية 15 ياردة لأعمال الترميم، وصلت في نفس اليوم وتم سحبها بكل سهولة، أسعارهم مناسبة جداً وخدمة راقية.', 5, 1, datetime('now')),
     ('شركة إعمار نجد للمقاولات', 'إدارة المشاريع', 'شريك لوجستي ممتاز لإدارة مخلفات البناء والهدم. أسطول حديث وتنسيق مستمر دون أي تأخير.', 5, 1, datetime('now')),
     ('سلطان الشمري', 'صاحب مجمع مطاعم', 'عقد النظافة وتأجير مكبس النفايات سهل علينا الكثير وضمن لنا الامتثال لجميع اشتراطات أمانة الرياض.', 5, 1, datetime('now'));

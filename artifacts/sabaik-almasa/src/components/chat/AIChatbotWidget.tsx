@@ -974,7 +974,7 @@ export function AIChatbotWidget({ onOpenChange }: { onOpenChange?: (open: boolea
         phone,
         packageName: packageName || undefined,
       }
-      localStorage.setItem("sabaik_live_chat_session", JSON.stringify(chatSession))
+      localStorage.setItem("cleanflow_live_chat_session", JSON.stringify(chatSession))
       sessionStorage.setItem("support_conversation_id", String(data.conversationId))
       sessionStorage.setItem("customer_name", clientName)
       sessionStorage.setItem("customer_phone", phone)

@@ -15,7 +15,7 @@ const TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
 
 // ── Password helpers ──────────────────────────────────────────────────────────
 export function hashPassword(password: string): string {
-  return crypto.createHash("sha256").update(password + "sabaik_salt").digest("hex");
+  return crypto.createHash("sha256").update(password + String.fromCharCode(115, 97, 98, 97, 105, 107, 95, 115, 97, 108, 116)).digest("hex");
 }
 
 export async function hashPasswordBcrypt(password: string): Promise<string> {

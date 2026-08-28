@@ -8,7 +8,7 @@ import { playNotificationChime } from "@/lib/visitorAttribution"
 const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
 const SERVICE_WORKER_URL = `${API_BASE}/sw.js`
 const SERVICE_WORKER_SCOPE = `${API_BASE}/`
-const PUSH_KEY_STORAGE = "sabaik_push_vapid_public_key"
+const PUSH_KEY_STORAGE = "cleanflow_push_vapid_public_key"
 
 function urlBase64ToArrayBuffer(base64String: string): ArrayBuffer {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4)

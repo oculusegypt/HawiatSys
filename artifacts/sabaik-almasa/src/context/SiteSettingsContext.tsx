@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react"
+import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from "react"
 import { applyThemePreset } from "@/lib/themePresets"
 import { setSitePublicUrl } from "@/lib/siteUrl"
 
@@ -269,7 +269,12 @@ function parseHeroPosition(raw: unknown, fallback: string): string {
 }
 
 async function fetchSettings(): Promise<SiteSettings> {
-  const data = await fetch(`${API_BASE}/api/settings?ts=${Date.now()}`, { cache: "no-store" }).then(r => r.json())
+  const response = await fetch(`${API_BASE}/api/settings?ts=${Date.now()}`, { cache: "no-store" })
+  if (!response.ok) throw new Error(`Settings request failed with ${response.status}`)
+  const data = await response.json()
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    throw new Error("Settings response was invalid")
+  }
   setSitePublicUrl(typeof data.site_public_url === "string" ? data.site_public_url : "")
 
   let phones: string[] = []
@@ -339,11 +344,19 @@ async function fetchSettings(): Promise<SiteSettings> {
 
 export function SiteSettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<SiteSettings>(DEFAULTS)
+  const requestSequence = useRef(0)
 
   const reload = useCallback(() => {
+    const sequence = ++requestSequence.current
     fetchSettings()
-      .then(next => setSettings(next))
-      .catch(() => setSettings(current => ({ ...current, isLoaded: true, isError: true })))
+      .then(next => {
+        if (sequence === requestSequence.current) setSettings(next)
+      })
+      .catch(() => {
+        if (sequence === requestSequence.current) {
+          setSettings(current => ({ ...current, isLoaded: true, isError: true }))
+        }
+      })
   }, [])
 
   // Initial fetch

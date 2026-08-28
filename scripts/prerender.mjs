@@ -28,7 +28,7 @@ const distPublic = join(ROOT, "artifacts/sabaik-almasa/dist/public");
 const settingRows = db.prepare("SELECT key, value FROM site_settings").all();
 const settingMap = Object.fromEntries(settingRows.map(row => [row.key, row.value]));
 const SEO_DEFAULTS = {
-  companyName: "مؤسسة سبائك الماسة",
+  companyName: "مؤسسة تقي جروب",
   description: "تأجير حاويات الأنقاض والنفايات والمكابس ونقل مخلفات البناء والهدم وعقود النظافة الإلكترونية بالرياض.",
   phone: "0554498403",
   address: "الرياض",
@@ -139,40 +139,14 @@ const jsHref  = jsMatch?.[1] || "/assets/index.js";
 // ── أدوات مساعدة ──────────────────────────────────────────────────────────
 function esc(s)  { return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 function raw(s)  { return String(s || ""); }
-function replaceLegacyCompanyName(value) {
-  const currentLegacyName = "السهم كلين";
-  const currentLegacyInstitution = `مؤسسة ${currentLegacyName}`;
-  let normalized = String(value || "")
-    .replace(/مؤسسة\s+السهم كلين\s+الماسة/g, siteCompanyName)
-    .replace(/شركة\s+السهم كلين\s+الماسة/g, siteCompanyName)
-    .replace(/السهم كلين\s+الماسة/g, siteCompanyName)
-    .replace(/منصة\s+حاويات/g, siteCompanyName);
-  if (siteCompanyName !== currentLegacyInstitution) {
-    normalized = normalized
-      .replace(new RegExp(currentLegacyInstitution, "g"), siteCompanyName)
-      .replace(new RegExp(currentLegacyName, "g"), siteCompanyName);
-  }
-  return normalized;
-}
-
 function sanitizeHtml(html) {
-  let sanitized = (html || "")
+  return (html || "")
     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
     .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, "")
     .replace(/\son\w+="[^"]*"/gi, "")
     .replace(/\son\w+='[^']*'/gi, "")
-    .replace(/مؤسسة\s+السهم كلين\s+الماسة/g, siteCompanyName)
-    .replace(/شركة\s+السهم كلين\s+الماسة/g, siteCompanyName)
-    .replace(/السهم كلين\s+الماسة/g, siteCompanyName)
-    .replace(/منصة\s+حاويات/g, siteCompanyName)
     // تحويل روابط الصور النسبية إلى root-relative (تعمل مع أي دومين)
     .replace(/src="(?!https?:\/\/|\/\/)([^/""][^"]*?)"/g, (_, p) => `src="/${p.replace(/^\/+/, "")}"`);
-  if (siteCompanyName !== "مؤسسة السهم كلين") {
-    sanitized = sanitized
-      .replace(/مؤسسة\s+السهم\s+كلين/g, siteCompanyName)
-      .replace(/السهم\s+كلين/g, siteCompanyName);
-  }
-  return sanitized;
 }
 
 function absoluteImg(url) {
@@ -250,9 +224,6 @@ function homeSeoLinksNoscript() {
 
 // ── المولّد الرئيسي للصفحة ────────────────────────────────────────────────
 function renderPage({ title, description, keywords = "", canonical, ogImage, ogType = "website", schemas = [], breadcrumbs = [], bodyContent }) {
-  title = replaceLegacyCompanyName(title);
-  description = replaceLegacyCompanyName(description);
-  keywords = replaceLegacyCompanyName(keywords);
   // Keep canonical and social URLs absolute so crawlers do not have to infer
   // the preferred origin from a relative URL.
   const canonicalUrl = canonical || `${SITE_URL}/`;
@@ -516,7 +487,7 @@ function generateFullHomepageStaticContent() {
     <section id="hero" style="text-align:center;padding:40px 16px;background:linear-gradient(180deg,#ebf8ff 0%,#fff 100%);border-radius:20px;margin-bottom:40px;border:1px solid #bee3f8">
       <span style="display:inline-block;background:#ebf4ff;color:#2b6cb0;padding:6px 16px;border-radius:20px;font-size:14px;font-weight:700;margin-bottom:16px">⭐ الخيار الأول لخدمات تنظيف المنازل والفلل بالرياض</span>
       <h1 style="font-size:clamp(26px,5vw,42px);font-weight:900;color:#1e3a5f;margin:0 0 16px;line-height:1.3">
-        مؤسسة السهم كلين لخدمات تنظيف المنازل والفلل بالرياض
+        مؤسسة تقي جروب لخدمات تنظيف المنازل والفلل بالرياض
       </h1>
       <p style="font-size:18px;color:#4a5568;max-width:850px;margin:0 auto 24px;line-height:1.8">
         نقدم خدمات النظافة المتخصصة والشاملة للفلل، القصور، الشقق، والمباني بعد التشطيب، وغسيل المجالس والمفروشات بالبخار 140°، وجلي وتلميع الرخام بالألماس، وصيانة وتنظيف المكيفات مع ضمان 100% وسرعة وصول خلال 30 إلى 45 دقيقة لكافة أحياء الرياض.
@@ -617,7 +588,7 @@ function generateFullHomepageStaticContent() {
     <!-- Why Choose Us & Trust Evidence -->
     <section id="why-us" style="margin-bottom:48px;padding:32px 24px;background:#1e3a5f;color:#fff;border-radius:20px">
       <div style="text-align:center;margin-bottom:28px">
-        <h2 style="font-size:26px;font-weight:800;margin:0 0 8px">لماذا تختار مؤسسة السهم كلين بالرياض؟</h2>
+        <h2 style="font-size:26px;font-weight:800;margin:0 0 8px">لماذا تختار مؤسسة تقي جروب بالرياض؟</h2>
         <p style="font-size:16px;color:#cbd5e0;margin:0">نلتزم بأعلى معايير الجودة والاحترافية لتقديم تجربة تنظيف استثنائية</p>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px">
@@ -698,7 +669,7 @@ function generateFullHomepageStaticContent() {
       </div>
       <div style="display:flex;flex-direction:column;gap:12px">
         <div style="padding:18px 20px;background:#fff;border:1px solid #e2e8f0;border-radius:12px">
-          <h3 style="font-size:16px;font-weight:800;color:#1e3a5f;margin:0 0 6px">ما هي الخدمات التي تقدمها مؤسسة السهم كلين بالرياض؟</h3>
+          <h3 style="font-size:16px;font-weight:800;color:#1e3a5f;margin:0 0 6px">ما هي الخدمات التي تقدمها مؤسسة تقي جروب بالرياض؟</h3>
           <p style="font-size:14px;color:#4a5568;margin:0;line-height:1.7">نقدم تنظيف الفلل، القصور، الشقق، المباني بعد التشطيب وإزالة الإسمنت، غسيل المجالس والكنب بالبخار 140°، جلي وتلميع الرخام بالألماس، تنظيف المكيفات سبليت، وتعقيم الخزانات ومكافحة الحشرات.</p>
         </div>
         <div style="padding:18px 20px;background:#fff;border:1px solid #e2e8f0;border-radius:12px">

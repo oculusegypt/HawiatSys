@@ -37,16 +37,16 @@ export default function Chat() {
   const callNumber = phoneCall || phones.find(number => !isWhatsappNumber(number, phoneWhatsapp)) || phones[0] || ""
   const [conversationId, setConversationId] = useState<number | null>(
     () => {
-      const saved = localStorage.getItem("sabaik_chat_id")
+      const saved = localStorage.getItem("cleanflow_chat_id")
       return saved ? parseInt(saved) : null
     }
   )
   const [activePackageName, setActivePackageName] = useState(
-    () => localStorage.getItem("sabaik_chat_package_name") || ""
+    () => localStorage.getItem("cleanflow_chat_package_name") || ""
   )
   
-  const [name, setName] = useState(() => localStorage.getItem("sabaik_chat_name") || "")
-  const [phone, setPhone] = useState(() => localStorage.getItem("sabaik_chat_phone") || "")
+  const [name, setName] = useState(() => localStorage.getItem("cleanflow_chat_name") || "")
+  const [phone, setPhone] = useState(() => localStorage.getItem("cleanflow_chat_phone") || "")
   const [input, setInput] = useState("")
   const [packageId, setPackageId] = useState("")
   const [uploading, setUploading] = useState(false)
@@ -70,10 +70,10 @@ export default function Chat() {
     setName(conversation.clientName)
     setPhone(conversation.phone)
     setActivePackageName(conversation.packageName || "")
-    localStorage.setItem("sabaik_chat_name", conversation.clientName)
-    localStorage.setItem("sabaik_chat_phone", conversation.phone)
+    localStorage.setItem("cleanflow_chat_name", conversation.clientName)
+    localStorage.setItem("cleanflow_chat_phone", conversation.phone)
     if (conversation.packageName) {
-      localStorage.setItem("sabaik_chat_package_name", conversation.packageName)
+      localStorage.setItem("cleanflow_chat_package_name", conversation.packageName)
     }
   }, [conversation])
 
@@ -96,15 +96,15 @@ export default function Chat() {
     } }, {
       onSuccess: (res) => {
         setConversationId(res.id)
-        localStorage.setItem("sabaik_chat_id", res.id.toString())
-        localStorage.setItem("sabaik_chat_name", name)
-        localStorage.setItem("sabaik_chat_phone", phone)
+      localStorage.setItem("cleanflow_chat_id", res.id.toString())
+      localStorage.setItem("cleanflow_chat_name", name)
+      localStorage.setItem("cleanflow_chat_phone", phone)
         const selectedPackageName = selectedPackage?.name ?? ""
         setActivePackageName(selectedPackageName)
         if (selectedPackageName) {
           localStorage.setItem("sabaik_chat_package_name", selectedPackageName)
         } else {
-          localStorage.removeItem("sabaik_chat_package_name")
+          localStorage.removeItem("cleanflow_chat_package_name")
         }
       }
     })
@@ -275,10 +275,10 @@ export default function Chat() {
                 variant="ghost" 
                 size="sm" 
                 onClick={() => {
-                  localStorage.removeItem("sabaik_chat_id")
-                   localStorage.removeItem("sabaik_chat_name")
-                   localStorage.removeItem("sabaik_chat_phone")
-                   localStorage.removeItem("sabaik_chat_package_name")
+                  localStorage.removeItem("cleanflow_chat_id")
+                   localStorage.removeItem("cleanflow_chat_name")
+                   localStorage.removeItem("cleanflow_chat_phone")
+                   localStorage.removeItem("cleanflow_chat_package_name")
                   setConversationId(null)
                    setActivePackageName("")
                 }}

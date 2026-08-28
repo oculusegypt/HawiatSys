@@ -20,7 +20,7 @@ console.log("Schemas Count:", schemas.length);
 console.log("Raw HTML Size (bytes):", rawHome.length);
 
 // Check if Hero/Content is in raw HTML or JS only:
-const hasHeroInHtml = rawHome.includes("مؤسسة السهم كلين") && (rawHome.includes("تنظيف المنازل والفلل") || rawHome.includes("hero") || rawHome.includes("خدمات"));
+const hasHeroInHtml = rawHome.includes("مؤسسة تقي جروب") && (rawHome.includes("تنظيف المنازل والفلل") || rawHome.includes("hero") || rawHome.includes("خدمات"));
 const hasServicesInHtml = rawHome.includes("تنظيف الفلل") || rawHome.includes("تنظيف الشقق");
 const hasPricesInHtml = rawHome.includes("750") || rawHome.includes("350") || rawHome.includes("ريال");
 const hasRatingInHtml = rawHome.includes("4.9") || rawHome.includes("148");

@@ -22,7 +22,7 @@ export function replaceLegacyCompanyName(value: unknown, companyName: string): s
 
   // The current configured name can itself be a legacy phrase. Only replace
   // it when the administrator has chosen a different name, otherwise a bare
-  // phrase replacement would turn "مؤسسة السهم كلين" into a duplicated prefix.
+  // phrase replacement would turn "مؤسسة تقي جروب" into a duplicated prefix.
   if (resolvedName !== currentLegacyInstitution) {
     normalized = normalized
       .replace(new RegExp(currentLegacyInstitution, "g"), resolvedName)

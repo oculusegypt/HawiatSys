@@ -565,7 +565,7 @@ function ChatInterface({ conversationId, clientName, phone, packageName, isSound
 
 // ─── Session persistence helpers ─────────────────────────────────────────────
 
-const SESSION_KEY = "sabaik_live_chat_session"
+const SESSION_KEY = "cleanflow_live_chat_session"
 
 interface ChatSession {
   conversationId: number

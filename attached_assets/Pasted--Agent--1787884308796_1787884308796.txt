@@ -1,0 +1,400 @@
+**استلم الحالة الحالية وكمل من حيث توقف الـAgent السابق تمامًا. لا تبدأ من الصفر، ولا تعيد قراءة/تدقيق المشروع كاملًا إلا عند الحاجة لإكمال التعديلات الحالية.**
+
+الـAgent السابق كان قد نفّذ بالفعل جزءًا كبيرًا من المهمة، ثم بدأ تنفيذ مشكلة الـFlash وتنظيف اسم **"سبائك الماسة"** وتوقف بسبب انتهاء الحصة.
+
+### الحالة الحالية التي يجب أن تعتبرها نقطة الاستئناف
+
+تم بالفعل:
+
+* قراءة التعليمات والـskills المطلوبة.
+* فحص `main.tsx` و`App.tsx` و`PublicRoutes.tsx` و`AdminRoutes.tsx`.
+* فحص `SiteSettingsContext.tsx`.
+* فحص `AdminLayout.tsx`.
+* فحص `Login.tsx`.
+* فحص `Home.tsx`.
+* فحص `Dashboard.tsx`.
+* فحص `Analytics.tsx`.
+* فحص `BlogPost.tsx` و`SeoPage.tsx` وملفات أخرى ذات صلة.
+* فحص قاعدة البيانات والبحث داخلها.
+* فحص `purge-legacy-name.mjs`.
+* فحص `prerender.mjs` و`build-hostinger.mjs`.
+* تم تحديد وجود مسارات/مراجع قديمة مرتبطة بـ`Sabaik / sabaik` بالإضافة إلى النص العربي.
+* تم البدء فعليًا في إزالة منطق `replaceLegacyCompanyName`.
+* تم تعديل عدد من ملفات الواجهة بالفعل.
+* تم تعديل `SiteSettingsContext.tsx`.
+* تم تعديل `App.tsx`.
+* تم تعديل `Home.tsx`.
+* تم تعديل `NeighborhoodPage.tsx`.
+* تم تعديل `BlogPost.tsx`.
+* تم تعديل `SeoPage.tsx`.
+* تم تعديل `SEOPanel.tsx`.
+* تم تعديل `Blog.tsx`.
+* تم تعديل `Testimonials.tsx`.
+* تم تعديل `TrackOrderModal.tsx`.
+* تم تعديل `Analytics.tsx`.
+* تم تعديل `ServiceCard.tsx`.
+* تم تعديل `reverseGeocode.ts`.
+* تم تعديل `visitorAttribution.ts`.
+* تم تعديل `LiveSupportChat.tsx`.
+* تم تعديل `AIChatbotWidget.tsx`.
+* تم تعديل `NotificationBell.tsx`.
+* تم تعديل `Chat.tsx`.
+* تم تعديل `sw.js`.
+* تم تعديل `auth.ts`.
+* تم تعديل `analytics.ts`.
+* تم تعديل `prerender.mjs`.
+* بدأ تعديل/تنظيف سكربتات إزالة الاسم القديم.
+
+**هذه التعديلات الحالية هي نقطة العمل. لا تتراجع عنها ولا تعيد تنفيذها بطريقة مختلفة إلا إذا كان هناك خطأ مثبت.**
+
+---
+
+# المطلوب الآن: الاستكمال فقط
+
+## 1. أكمل إصلاح Flash / Loading
+
+المشكلة:
+
+عند فتح معظم الصفحات تظهر حالة/بيانات مؤقتة، ثم تختفي، ثم يظهر المحتوى الحقيقي بعد اكتمال التحميل.
+
+المطلوب معالجة **السبب المشترك** وليس إضافة spinner تجميلي.
+
+راجع التعديلات التي بدأها الـAgent السابق، ثم أكملها.
+
+خصوصًا:
+
+* `App.tsx`
+* `SiteSettingsContext.tsx`
+* `Login.tsx`
+* `AdminLayout.tsx`
+* `Home.tsx`
+* `Analytics.tsx`
+* `Dashboard.tsx`
+* أي Auth provider / route guard
+* أي global bootstrap/loading state
+
+تأكد أن التطبيق لا يعرض:
+
+`initial/default data → تختفي → real data`
+
+ولا:
+
+`authenticated view → تختفي → login/loading`
+
+ولا:
+
+`login → تختفي → content`
+
+ولا:
+
+`old content → replacement content`
+
+إذا كانت البيانات لم تصل بعد، اعرض Skeleton/loading state مناسبًا بدل بيانات وهمية.
+
+**لا تضف timeout لإخفاء المشكلة.**
+
+ولا تجعل كل التطبيق ينتظر API بلا داعٍ.
+
+---
+
+# 2. أكمل حذف "سبائك الماسة" بالكامل
+
+الـAgent السابق بدأ هذه المهمة بالفعل.
+
+لا تعيد البحث من الصفر؛ **تابع من آخر حالة للبحث والتعديلات الحالية**.
+
+المطلوب النهائي:
+
+عدم وجود أي أثر حقيقي للاسم أو مشتقاته في المشروع.
+
+افحص وأكمل التنظيف في:
+
+* React
+* TypeScript
+* JavaScript
+* PHP
+* JSON
+* Markdown
+* SQL
+* SQLite
+* migrations
+* seeds
+* fixtures
+* mock data
+* scripts
+* build scripts
+* prerender
+* sitemap
+* SEO
+* metadata
+* titles
+* descriptions
+* JSON-LD
+* OpenGraph
+* canonical
+* routes
+* redirects
+* public
+* static HTML
+* docs
+* `.agents`
+* memory/project docs
+* tests
+* snapshots
+* generated files
+* Hostinger build files
+
+وابحث عن جميع الصيغ:
+
+* `سبائك الماسة`
+* `سبائك الماسه`
+* `سبائك`
+* `الماسة`
+* `Sabaik`
+* `Sabaik Almasa`
+* `sabaik`
+* `sabaik-almasa`
+* `sabaik.db`
+* أي slug أو identifier أو path مشتق منه
+
+لكن انتبه:
+
+**لا تحذف كلمة عربية عامة لمجرد أنها تحتوي جزءًا من الاسم إذا كانت كلمة صحيحة ومستقلة وغير مرتبطة بالهوية القديمة.**
+
+المطلوب إزالة **الهوية القديمة** وليس تخريب اللغة أو المحتوى الصحيح.
+
+---
+
+# 3. قاعدة البيانات
+
+الـAgent السابق فحص قاعدة البيانات وبدأ تنظيفها.
+
+أكمل من نفس الحالة.
+
+افحص جميع الحقول النصية والجداول ذات الصلة:
+
+* settings
+* pages
+* articles
+* services
+* categories
+* SEO
+* titles
+* descriptions
+* slugs
+* navigation
+* company/site identity
+* seed/demo records
+
+إذا وجدت سجلات مرتبطة بالهوية القديمة:
+
+* عدّل الحقول الصحيحة إلى هوية المشروع الحالية،
+* أو احذف السجل فقط إذا ثبت أنه سجل قديم/وهمي خاص بالهوية السابقة.
+
+**لا تحذف بيانات إنتاج سليمة بشكل عشوائي.**
+
+والأهم:
+
+بعد تنظيف قاعدة البيانات، تأكد أن الـseed/migration/import/reset لا يعيد الاسم مرة أخرى.
+
+---
+
+# 4. الأسماء القديمة في الملفات والمسارات
+
+إذا كان هناك:
+
+`data/sabaik.db`
+
+أو directories/files تحمل `sabaik`، لا تغيّرها بشكل أعمى.
+
+أولًا حدّد كل references إليها.
+
+إذا كان تغيير الاسم آمنًا، نفذه في:
+
+* PHP
+* scripts
+* build
+* deployment
+* database references
+
+ثم اختبر النظام كاملًا.
+
+إذا كان هناك سبب تقني يمنع تغيير اسم artifact directory أو مسار داخلي خاص بالبيئة، لا تكسر النظام فقط لإزالة كلمة من اسم داخلي؛ لكن **لا تسمح بتسرب الهوية القديمة إلى الإنتاج أو المحتوى أو SEO أو قاعدة البيانات.**
+
+---
+
+# 5. مهم جدًا: المشروع لا يدعم Node في الإنتاج
+
+لا تنس هذه النقطة.
+
+**Production = Hostinger + PHP + SQLite + static frontend.**
+
+لا تضف أي اعتماد تشغيل Production على:
+
+* Node server
+* Express
+* Node API
+* reverse proxy يحتاج Node
+
+Node مسموح فقط كـbuild/test tooling إذا كان موجودًا أصلًا.
+
+أي API Production يجب أن يعمل من:
+
+`PHP router / api-index.php`
+
+---
+
+# 6. Analytics
+
+الإصلاح السابق لمسار Analytics موجود بالفعل:
+
+`POST /api/admin/analytics/clear`
+
+تمت إضافة العملية إلى PHP، وتم التحقق سابقًا من:
+
+* 401 بدون auth
+* 200 مع admin صالح
+* العمل على DB مؤقتة
+
+**لا تعدّل هذا الإصلاح بلا سبب.**
+
+لكن أثناء إصلاح الـFlash تأكد أن صفحة Analytics لا تعرض بيانات مؤقتة أو بيانات صفرية ثم تستبدلها.
+
+---
+
+# 7. لا تكرر الأعمال المغلقة
+
+لا تعيد:
+
+* SEO audit كامل
+* خطة modernization
+* تقرير architecture جديد
+* إعادة تصميم UI
+* إعادة بناء النظام من الصفر
+
+إلا إذا اكتشفت dependency مباشرة مرتبطة بالمهمتين الحالية.
+
+الـSEO السابق كان قد نجح:
+
+* SEO quality gate
+* sitemap
+* canonical
+* OG
+* JSON-LD
+* robots
+* favicon
+* Hostinger archive
+* verify-build-output
+
+حافظ على ذلك.
+
+---
+
+# 8. بعد إكمال التعديلات
+
+نفذ مباشرة:
+
+### Source verification
+
+ابحث مرة أخيرة عن كل صيغ الاسم القديم.
+
+النتيجة المطلوبة:
+
+**صفر occurrences حقيقية مرتبطة بـ"سبائك الماسة".**
+
+### Database verification
+
+افحص SQLite بعد التنظيف.
+
+### Seed verification
+
+تأكد أن تشغيل seed/reset/import لا يعيد الاسم.
+
+### Build
+
+* typecheck
+* PHP lint
+* tests الموجودة
+* build
+* prerender
+* sitemap
+* Hostinger build
+
+### Archive
+
+استخرج الأرشيف النهائي.
+
+ثم ابحث **داخل الأرشيف المستخرج نفسه** عن:
+
+`سبائك الماسة`
+`سبائك الماسه`
+`سبائك`
+`الماسة`
+`Sabaik`
+`sabaik`
+`sabaik-almasa`
+`sabaik.db`
+
+ولا تعتبر source نظيفًا إذا كان archive يحتوي على نسخة قديمة.
+
+### UI
+
+اختبر:
+
+* Login
+* Home
+* Dashboard
+* Analytics
+* Reports
+* Admin
+* صفحة خدمة
+* صفحة مقال
+* صفحة منطقة
+
+راقب أول render.
+
+المطلوب:
+
+**لا Flash للمحتوى.**
+
+### Runtime
+
+تحقق من:
+
+* Console
+* Network
+* API errors
+* auth state
+* settings loading
+
+---
+
+# شرط مهم جدًا قبل إعلان الانتهاء
+
+لا تقل:
+
+"تم البحث"
+أو
+"تم تعديل الملفات"
+أو
+"يبدو أن المشكلة اختفت".
+
+أريد إثباتًا.
+
+في النهاية أعطني:
+
+1. السبب الحقيقي لمشكلة Flash.
+2. الملفات التي عدلتها لحلها.
+3. كيف أصبح أول render يعمل.
+4. الصفحات التي اختبرتها.
+5. نتيجة اختبار الـFlash.
+6. كل مصادر "سبائك الماسة" التي وجدتها قبل التنظيف.
+7. ما تم تنظيفه من DB.
+8. ما تم تنظيفه من seeds/scripts.
+9. نتيجة البحث النهائي في source.
+10. نتيجة البحث النهائي في archive.
+11. typecheck/PHP/build results.
+12. SEO gate result.
+13. أي تحذير متبقٍ فقط إذا كان حقيقيًا.
+
+**أهم شيء: استأنف من الملفات والتعديلات الحالية التي تركها الـAgent السابق. لا تبدأ من الصفر ولا تمسح التعديلات الحالية. نفّذ ما تبقى حتى الإغلاق الكامل.**

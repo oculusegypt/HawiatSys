@@ -21,11 +21,11 @@ for (const dbPath of dbFiles) {
     db.prepare(`
       UPDATE posts 
       SET 
-        title = REPLACE(REPLACE(REPLACE(title, 'مؤسسة السهم كلين', 'مؤسسة السهم كلين'), 'مؤسسة السهم كلين', 'مؤسسة السهم كلين'), 'السهم كلين', 'السهم كلين'),
-        content = REPLACE(REPLACE(REPLACE(content, 'مؤسسة السهم كلين', 'مؤسسة السهم كلين'), 'مؤسسة السهم كلين', 'مؤسسة السهم كلين'), 'السهم كلين', 'السهم كلين'),
-        author = REPLACE(REPLACE(REPLACE(author, 'مؤسسة السهم كلين', 'مؤسسة السهم كلين'), 'مؤسسة السهم كلين', 'مؤسسة السهم كلين'), 'السهم كلين', 'مؤسسة السهم كلين'),
-        seo_title = REPLACE(REPLACE(REPLACE(seo_title, 'مؤسسة السهم كلين', 'مؤسسة السهم كلين'), 'مؤسسة السهم كلين', 'مؤسسة السهم كلين'), 'السهم كلين', 'مؤسسة السهم كلين'),
-        seo_description = REPLACE(REPLACE(REPLACE(seo_description, 'مؤسسة السهم كلين', 'مؤسسة السهم كلين'), 'مؤسسة السهم كلين', 'مؤسسة السهم كلين'), 'السهم كلين', 'مؤسسة السهم كلين')
+        title = REPLACE(REPLACE(REPLACE(title, 'مؤسسة تقي جروب', 'مؤسسة تقي جروب'), 'مؤسسة تقي جروب', 'مؤسسة تقي جروب'), 'تقي جروب', 'تقي جروب'),
+        content = REPLACE(REPLACE(REPLACE(content, 'مؤسسة تقي جروب', 'مؤسسة تقي جروب'), 'مؤسسة تقي جروب', 'مؤسسة تقي جروب'), 'تقي جروب', 'تقي جروب'),
+        author = REPLACE(REPLACE(REPLACE(author, 'مؤسسة تقي جروب', 'مؤسسة تقي جروب'), 'مؤسسة تقي جروب', 'مؤسسة تقي جروب'), 'تقي جروب', 'مؤسسة تقي جروب'),
+        seo_title = REPLACE(REPLACE(REPLACE(seo_title, 'مؤسسة تقي جروب', 'مؤسسة تقي جروب'), 'مؤسسة تقي جروب', 'مؤسسة تقي جروب'), 'تقي جروب', 'مؤسسة تقي جروب'),
+        seo_description = REPLACE(REPLACE(REPLACE(seo_description, 'مؤسسة تقي جروب', 'مؤسسة تقي جروب'), 'مؤسسة تقي جروب', 'مؤسسة تقي جروب'), 'تقي جروب', 'مؤسسة تقي جروب')
     `).run();
     console.log("  ✅ تم تنظيف جدول posts");
   } catch (e) { console.log("  posts:", e.message); }
@@ -35,10 +35,10 @@ for (const dbPath of dbFiles) {
     db.prepare(`
       UPDATE services 
       SET 
-        title = REPLACE(REPLACE(REPLACE(title, 'مؤسسة السهم كلين', 'مؤسسة السهم كلين'), 'مؤسسة السهم كلين', 'مؤسسة السهم كلين'), 'السهم كلين', 'مؤسسة السهم كلين'),
-        description = REPLACE(REPLACE(REPLACE(description, 'مؤسسة السهم كلين', 'مؤسسة السهم كلين'), 'مؤسسة السهم كلين', 'مؤسسة السهم كلين'), 'السهم كلين', 'مؤسسة السهم كلين'),
-        seo_title = REPLACE(REPLACE(REPLACE(seo_title, 'مؤسسة السهم كلين', 'مؤسسة السهم كلين'), 'مؤسسة السهم كلين', 'مؤسسة السهم كلين'), 'السهم كلين', 'مؤسسة السهم كلين'),
-        seo_description = REPLACE(REPLACE(REPLACE(seo_description, 'مؤسسة السهم كلين', 'مؤسسة السهم كلين'), 'مؤسسة السهم كلين', 'مؤسسة السهم كلين'), 'السهم كلين', 'مؤسسة السهم كلين')
+        title = REPLACE(REPLACE(REPLACE(title, 'مؤسسة تقي جروب', 'مؤسسة تقي جروب'), 'مؤسسة تقي جروب', 'مؤسسة تقي جروب'), 'تقي جروب', 'مؤسسة تقي جروب'),
+        description = REPLACE(REPLACE(REPLACE(description, 'مؤسسة تقي جروب', 'مؤسسة تقي جروب'), 'مؤسسة تقي جروب', 'مؤسسة تقي جروب'), 'تقي جروب', 'مؤسسة تقي جروب'),
+        seo_title = REPLACE(REPLACE(REPLACE(seo_title, 'مؤسسة تقي جروب', 'مؤسسة تقي جروب'), 'مؤسسة تقي جروب', 'مؤسسة تقي جروب'), 'تقي جروب', 'مؤسسة تقي جروب'),
+        seo_description = REPLACE(REPLACE(REPLACE(seo_description, 'مؤسسة تقي جروب', 'مؤسسة تقي جروب'), 'مؤسسة تقي جروب', 'مؤسسة تقي جروب'), 'تقي جروب', 'مؤسسة تقي جروب')
     `).run();
     console.log("  ✅ تم تنظيف جدول services");
   } catch (e) { console.log("  services:", e.message); }
@@ -48,12 +48,12 @@ for (const dbPath of dbFiles) {
     db.prepare(`
       UPDATE seo_pages 
       SET 
-        title = REPLACE(REPLACE(REPLACE(title, 'مؤسسة السهم كلين', 'مؤسسة السهم كلين'), 'مؤسسة السهم كلين', 'مؤسسة السهم كلين'), 'السهم كلين', 'مؤسسة السهم كلين'),
-        content = REPLACE(REPLACE(REPLACE(content, 'مؤسسة السهم كلين', 'مؤسسة السهم كلين'), 'مؤسسة السهم كلين', 'مؤسسة السهم كلين'), 'السهم كلين', 'مؤسسة السهم كلين'),
-        excerpt = REPLACE(REPLACE(REPLACE(excerpt, 'مؤسسة السهم كلين', 'مؤسسة السهم كلين'), 'مؤسسة السهم كلين', 'مؤسسة السهم كلين'), 'السهم كلين', 'مؤسسة السهم كلين'),
-        seo_title = REPLACE(REPLACE(REPLACE(seo_title, 'مؤسسة السهم كلين', 'مؤسسة السهم كلين'), 'مؤسسة السهم كلين', 'مؤسسة السهم كلين'), 'السهم كلين', 'مؤسسة السهم كلين'),
-        seo_description = REPLACE(REPLACE(REPLACE(seo_description, 'مؤسسة السهم كلين', 'مؤسسة السهم كلين'), 'مؤسسة السهم كلين', 'مؤسسة السهم كلين'), 'السهم كلين', 'مؤسسة السهم كلين'),
-        seo_keywords = REPLACE(REPLACE(REPLACE(seo_keywords, 'مؤسسة السهم كلين', 'مؤسسة السهم كلين'), 'مؤسسة السهم كلين', 'مؤسسة السهم كلين'), 'السهم كلين', 'مؤسسة السهم كلين')
+        title = REPLACE(REPLACE(REPLACE(title, 'مؤسسة تقي جروب', 'مؤسسة تقي جروب'), 'مؤسسة تقي جروب', 'مؤسسة تقي جروب'), 'تقي جروب', 'مؤسسة تقي جروب'),
+        content = REPLACE(REPLACE(REPLACE(content, 'مؤسسة تقي جروب', 'مؤسسة تقي جروب'), 'مؤسسة تقي جروب', 'مؤسسة تقي جروب'), 'تقي جروب', 'مؤسسة تقي جروب'),
+        excerpt = REPLACE(REPLACE(REPLACE(excerpt, 'مؤسسة تقي جروب', 'مؤسسة تقي جروب'), 'مؤسسة تقي جروب', 'مؤسسة تقي جروب'), 'تقي جروب', 'مؤسسة تقي جروب'),
+        seo_title = REPLACE(REPLACE(REPLACE(seo_title, 'مؤسسة تقي جروب', 'مؤسسة تقي جروب'), 'مؤسسة تقي جروب', 'مؤسسة تقي جروب'), 'تقي جروب', 'مؤسسة تقي جروب'),
+        seo_description = REPLACE(REPLACE(REPLACE(seo_description, 'مؤسسة تقي جروب', 'مؤسسة تقي جروب'), 'مؤسسة تقي جروب', 'مؤسسة تقي جروب'), 'تقي جروب', 'مؤسسة تقي جروب'),
+        seo_keywords = REPLACE(REPLACE(REPLACE(seo_keywords, 'مؤسسة تقي جروب', 'مؤسسة تقي جروب'), 'مؤسسة تقي جروب', 'مؤسسة تقي جروب'), 'تقي جروب', 'مؤسسة تقي جروب')
     `).run();
     console.log("  ✅ تم تنظيف جدول seo_pages");
   } catch (e) { console.log("  seo_pages:", e.message); }
@@ -62,7 +62,7 @@ for (const dbPath of dbFiles) {
   try {
     db.prepare(`
       UPDATE site_settings 
-      SET value = REPLACE(REPLACE(REPLACE(value, 'مؤسسة السهم كلين', 'مؤسسة السهم كلين'), 'مؤسسة السهم كلين', 'مؤسسة السهم كلين'), 'السهم كلين', 'مؤسسة السهم كلين')
+      SET value = REPLACE(REPLACE(REPLACE(value, 'مؤسسة تقي جروب', 'مؤسسة تقي جروب'), 'مؤسسة تقي جروب', 'مؤسسة تقي جروب'), 'تقي جروب', 'مؤسسة تقي جروب')
     `).run();
     console.log("  ✅ تم تنظيف جدول site_settings");
   } catch (e) { console.log("  site_settings:", e.message); }
@@ -71,7 +71,7 @@ for (const dbPath of dbFiles) {
   try {
     db.prepare(`
       UPDATE testimonials 
-      SET content = REPLACE(REPLACE(REPLACE(content, 'مؤسسة السهم كلين', 'مؤسسة السهم كلين'), 'مؤسسة السهم كلين', 'مؤسسة السهم كلين'), 'السهم كلين', 'مؤسسة السهم كلين')
+      SET content = REPLACE(REPLACE(REPLACE(content, 'مؤسسة تقي جروب', 'مؤسسة تقي جروب'), 'مؤسسة تقي جروب', 'مؤسسة تقي جروب'), 'تقي جروب', 'مؤسسة تقي جروب')
     `).run();
     console.log("  ✅ تم تنظيف جدول testimonials");
   } catch (e) { console.log("  testimonials:", e.message); }
@@ -81,8 +81,8 @@ for (const dbPath of dbFiles) {
     db.prepare(`
       UPDATE containers 
       SET 
-        name = REPLACE(REPLACE(REPLACE(name, 'مؤسسة السهم كلين', 'مؤسسة السهم كلين'), 'مؤسسة السهم كلين', 'مؤسسة السهم كلين'), 'السهم كلين', 'مؤسسة السهم كلين'),
-        description = REPLACE(REPLACE(REPLACE(description, 'مؤسسة السهم كلين', 'مؤسسة السهم كلين'), 'مؤسسة السهم كلين', 'مؤسسة السهم كلين'), 'السهم كلين', 'مؤسسة السهم كلين')
+        name = REPLACE(REPLACE(REPLACE(name, 'مؤسسة تقي جروب', 'مؤسسة تقي جروب'), 'مؤسسة تقي جروب', 'مؤسسة تقي جروب'), 'تقي جروب', 'مؤسسة تقي جروب'),
+        description = REPLACE(REPLACE(REPLACE(description, 'مؤسسة تقي جروب', 'مؤسسة تقي جروب'), 'مؤسسة تقي جروب', 'مؤسسة تقي جروب'), 'تقي جروب', 'مؤسسة تقي جروب')
     `).run();
     console.log("  ✅ تم تنظيف جدول containers");
   } catch (e) { console.log("  containers:", e.message); }

@@ -1,4 +1,4 @@
-/* Web Push service worker for Sabaik admin notifications. */
+/* Web Push service worker for CleanFlow admin notifications. */
 self.addEventListener("install", () => {
   void self.skipWaiting();
 });
@@ -43,7 +43,7 @@ self.addEventListener("push", (event) => {
       badge: new URL("notification-icon.png", self.registration.scope).href,
       dir: "rtl",
       lang: "ar",
-      tag: data.id ? `sabaik-notification-${data.id}` : "sabaik-notification",
+      tag: data.id ? `cleanflow-notification-${data.id}` : "cleanflow-notification",
       renotify: true,
       silent: false,
       data: { url: targetPath, notificationId: data.id, refId: data.refId, refType: data.refType },

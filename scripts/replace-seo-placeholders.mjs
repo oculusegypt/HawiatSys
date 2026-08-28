@@ -4,7 +4,7 @@ import path from 'path';
 const dbPath = path.resolve('data/sabaik.db');
 const db = new Database(dbPath);
 
-const siteName = "مؤسسة السهم كلين";
+const siteName = "مؤسسة تقي جروب";
 const phone = "0554498403";
 
 // Generate rich, premium, comprehensive Arabic SEO content for each page topic

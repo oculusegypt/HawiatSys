@@ -69,7 +69,7 @@ export function ServiceCard({
           <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-secondary text-[#12384b] shadow-lg">
             <Icon size={23} />
           </span>
-          <span className="text-xs font-bold text-white/85">سبائك الماسة · الرياض</span>
+          <span className="text-xs font-bold text-white/85">تقي جروب · الرياض</span>
         </div>
       </div>
 

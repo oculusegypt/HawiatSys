@@ -736,6 +736,14 @@ export default function Analytics() {
   const hasVisits = Boolean(data && (data.period.views > 0 || data.period.unique > 0 || data.daily.some(item => item.count > 0)))
   const selectedPeriodLabel = periodLabel(period)
 
+  if (loading && !data) {
+    return <LoadingState />
+  }
+
+  if (error && !data) {
+    return <ErrorState message={error} onRetry={() => void load()} />
+  }
+
   return (
     <div dir="rtl" className="min-h-[100dvh] space-y-5 bg-[#f6f8fb] px-1 pb-8 text-slate-800 sm:space-y-6">
       <header className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
@@ -785,7 +793,7 @@ export default function Analytics() {
         </CardContent>
       </Card>
 
-      {loading && !data ? <LoadingState /> : error && !data ? <ErrorState message={error} onRetry={() => void load()} /> : data ? (
+      {data ? (
         <>
           <DecisionBrief data={data} periodLabelValue={selectedPeriodLabel} />
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
