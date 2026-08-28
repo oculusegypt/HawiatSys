@@ -27,14 +27,14 @@ content_type = "application/octet-stream"
 id = "e7Hwi4c_9VUpSkVoGq2Ul"
 uri = "file://cleanflow-services-hostinger.zip"
 type = "unspecified"
-title = "حزمة Hostinger الكاملة — CleanFlow Services"
-description = "أرشيف رفع كامل للموقع، يتضمن صفحات HTML المولدة مسبقًا، واجهة PHP وSQLite، الأصول، uploads المستخدمة، sitemap، وCleanFlow Platform. استخرج المحتويات مباشرة داخل public_html/."
+title = "أرشيف Hostinger النهائي — Taqi Group"
+description = "أرشيف PHP + SQLite كامل جاهز للرفع إلى public_html، مولّد باستخدام https://taqigroup.com ومجتاز لفحص SEO النهائي."
 logical_id = "c612380d-19d8-4641-8c29-e5ac4a484245"
-content_hash = "sha256:ab9fd0d658fcdeac5d4d66c9e1b728ea0bb3ac585ad610d65c83ab9028e6b196"
-size = 19358381
-mtime_ms = 1787894289827
-storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:f2c88458-36e4-4f95-ba8b-96bcb8d62ed5/c612380d-19d8-4641-8c29-e5ac4a484245/ba479bf6-9520-4fd2-b47b-e3dd36463cd9"
-storage_version_token = "1787894315093023"
+content_hash = "sha256:9f892370ca04826034aef48d1dfd813a349ddeb14704353886464b0d2e2d5054"
+size = 22630922
+mtime_ms = 1787927282838
+storage_uri = "gcs://replit-rams-assets-worf/rams/assets/repl:f0657b1c-2c29-49c6-8eb5-2719ea01b02c/c612380d-19d8-4641-8c29-e5ac4a484245/71579058-d1fc-4db9-8812-163e255e638d"
+storage_version_token = "1787927353943628"
 content_type = "application/octet-stream"
 
 [[outputs]]
