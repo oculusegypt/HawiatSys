@@ -95,6 +95,7 @@ function SettingsBootstrap() {
   return (
     <>
       <AnonymousAnalyticsTracker />
+      <MarketingMeasurementScripts />
       <ScrollToTop />
       <SiteIdentitySEO />
       <Router />
@@ -129,6 +130,54 @@ function AnonymousAnalyticsTracker() {
     }, 30000);
     return () => window.clearInterval(timer);
   }, [location]);
+
+  return null;
+}
+
+function MarketingMeasurementScripts() {
+  const { analyticsGoogleTagId, facebookPixelId, isLoaded } = useSiteSettings();
+
+  useEffect(() => {
+    if (!isLoaded) return;
+
+    const googleId = /^G-[A-Z0-9]+$/i.test(analyticsGoogleTagId) ? analyticsGoogleTagId : "";
+    const pixelId = /^\d{5,20}$/.test(facebookPixelId) ? facebookPixelId : "";
+    const googleScriptId = "google-tag-script";
+    const facebookScriptId = "facebook-pixel-script";
+    const analyticsWindow = window as typeof window & {
+      dataLayer?: unknown[];
+      gtag?: (...args: unknown[]) => void;
+    };
+
+    document.getElementById(googleScriptId)?.remove();
+    document.getElementById(facebookScriptId)?.remove();
+
+    if (googleId) {
+      const script = document.createElement("script");
+      script.id = googleScriptId;
+      script.async = true;
+      script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(googleId)}`;
+      document.head.appendChild(script);
+      analyticsWindow.dataLayer = analyticsWindow.dataLayer || [];
+      analyticsWindow.gtag = (...args: unknown[]) => {
+        analyticsWindow.dataLayer?.push(args);
+      };
+      analyticsWindow.gtag("js", new Date());
+      analyticsWindow.gtag("config", googleId, { anonymize_ip: true });
+    }
+
+    if (pixelId) {
+      const script = document.createElement("script");
+      script.id = facebookScriptId;
+      script.textContent = `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','${pixelId}');fbq('track','PageView');`;
+      document.head.appendChild(script);
+    }
+
+    return () => {
+      document.getElementById(googleScriptId)?.remove();
+      document.getElementById(facebookScriptId)?.remove();
+    };
+  }, [analyticsGoogleTagId, facebookPixelId, isLoaded]);
 
   return null;
 }

@@ -115,6 +115,7 @@ export interface SocialLinks {
   tiktok: string
   snapchat: string
   youtube: string
+  linkedin: string
 }
 
 interface SiteSettings {
@@ -135,6 +136,8 @@ interface SiteSettings {
   paymentMethods: string
   publicUrl: string
   socialLinks: SocialLinks
+  analyticsGoogleTagId: string
+  facebookPixelId: string
   supportStatus: string
   supportHours: string
   email: string
@@ -183,7 +186,9 @@ const DEFAULTS: SiteSettings = {
   priceRange: "",
   paymentMethods: "",
   publicUrl: "",
-  socialLinks: { facebook: "", x: "", instagram: "", tiktok: "", snapchat: "", youtube: "" },
+  socialLinks: { facebook: "", x: "", instagram: "", tiktok: "", snapchat: "", youtube: "", linkedin: "" },
+  analyticsGoogleTagId: "",
+  facebookPixelId: "",
   supportStatus: "",
   supportHours: "",
   email: "",
@@ -318,7 +323,10 @@ async function fetchSettings(): Promise<FetchedSiteSettings> {
       tiktok: typeof data.social_tiktok === "string" ? data.social_tiktok.trim() : "",
       snapchat: typeof data.social_snapchat === "string" ? data.social_snapchat.trim() : "",
       youtube: typeof data.social_youtube === "string" ? data.social_youtube.trim() : "",
+      linkedin: typeof data.social_linkedin === "string" ? data.social_linkedin.trim() : "",
     },
+    analyticsGoogleTagId: typeof data.analytics_google_tag_id === "string" ? data.analytics_google_tag_id.trim() : "",
+    facebookPixelId: typeof data.facebook_pixel_id === "string" ? data.facebook_pixel_id.trim() : "",
     supportStatus: typeof data.support_status === "string" ? data.support_status.trim() : "",
     supportHours: typeof data.support_hours === "string" && data.support_hours.trim()
       ? data.support_hours.trim()

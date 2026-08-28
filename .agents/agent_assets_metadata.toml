@@ -27,14 +27,14 @@ content_type = "application/octet-stream"
 id = "e7Hwi4c_9VUpSkVoGq2Ul"
 uri = "file://cleanflow-services-hostinger.zip"
 type = "unspecified"
-title = "cleanflow-services-hostinger.zip"
-description = "حزمة الإنتاج النهائية لـ Hostinger — 459 ملفًا، دون الصور القديمة أو مجلد صور حسام."
+title = "حزمة Hostinger الإنتاجية"
+description = "أرشيف الموقع الكامل الجاهز للاستخراج مباشرة داخل public_html على Hostinger."
 logical_id = "c612380d-19d8-4641-8c29-e5ac4a484245"
-content_hash = "sha256:cebf079812c28a27e0e1c41dfc7634d0d88fbb4fdfdf40cb70a06dedb913f8fb"
-size = 38468053
-mtime_ms = 1787944851851
-storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:620ad251-4c1b-4537-bf2b-c092b72d087d/c612380d-19d8-4641-8c29-e5ac4a484245/099c3481-2975-42c9-b95e-4031a2bafe75"
-storage_version_token = "1787944927177923"
+content_hash = "sha256:cb8d333443d5aacad1175951d4cee728606c4fe89ab6c37f5ddf64a83cda540f"
+size = 38154559
+mtime_ms = 1787949582774
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:065236b2-92d6-40f3-83cc-661b3ce1dd34/c612380d-19d8-4641-8c29-e5ac4a484245/9307e2f7-5882-4447-aab1-16d4e6e752dd"
+storage_version_token = "1787949638338482"
 content_type = "application/octet-stream"
 
 [[outputs]]
@@ -83,14 +83,14 @@ content_type = "application/octet-stream"
 id = "A-CSegx-6d_7hZERpAaag"
 uri = "file://cleanflow-legacy-images-archive.zip"
 type = "unspecified"
-title = "cleanflow-legacy-images-archive.zip"
-description = "أرشيف مستقل للصور القديمة ومحتويات مجلد صور حسام، محفوظ خارج حزمة الإنتاج."
+title = "أرشيف الصور القديمة المنفصل"
+description = "أرشيف احتياطي مستقل للصور القديمة؛ لا يتم رفعه إلى public_html."
 logical_id = "0fb09598-22ad-4ff3-a9da-1db06871bf5d"
-content_hash = "sha256:d708010377ec08823ebab8db2a612e70fccba6c16547c1ee67f53024a4f359b3"
-size = 10255242
-mtime_ms = 1787944834309
-storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:620ad251-4c1b-4537-bf2b-c092b72d087d/0fb09598-22ad-4ff3-a9da-1db06871bf5d/78afe3df-23e6-4f55-959f-1259b08bff05"
-storage_version_token = "1787944927916835"
+content_hash = "sha256:db974b2b3dbb7649516c8a226bc3c1b858a131966670c300908599f2a0571151"
+size = 10255243
+mtime_ms = 1787949564545
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:065236b2-92d6-40f3-83cc-661b3ce1dd34/0fb09598-22ad-4ff3-a9da-1db06871bf5d/afc7bc83-5af3-437c-900f-22c8a0a48882"
+storage_version_token = "1787949639085408"
 content_type = "application/octet-stream"
 
 [[outputs]]
@@ -106,3 +106,17 @@ mtime_ms = 1787944834314
 storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:620ad251-4c1b-4537-bf2b-c092b72d087d/5a707a0e-6c7f-44d7-a2b2-865adb78e10b/f03ad981-d02a-49a8-97cc-e4c2718e1579"
 storage_version_token = "1787944928485268"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "aDKXhLCg7FwGVTQIdj-mY"
+uri = "file://docs/hostinger-build-2026-08-28.md"
+type = "text"
+title = "تقرير بناء Hostinger الكامل"
+description = "تقرير الإصدار والتحقق وتعليمات الرفع باللغة العربية."
+logical_id = "e1521409-1673-4d27-ab9b-f8ee2f924540"
+content_hash = "sha256:9f46866243e0c3c6962e1e3cb8e3155da76655391d8433060587fff6e57af0bc"
+size = 7421
+mtime_ms = 1787949620429
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:065236b2-92d6-40f3-83cc-661b3ce1dd34/e1521409-1673-4d27-ab9b-f8ee2f924540/62bcefd1-700b-4909-a535-c2d9dfdc9ffd"
+storage_version_token = "1787949639685523"
+content_type = "text/markdown"

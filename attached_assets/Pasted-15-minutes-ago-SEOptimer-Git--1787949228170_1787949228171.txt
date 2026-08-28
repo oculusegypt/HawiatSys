@@ -1,0 +1,400 @@
+15 minutes ago
+سأقرأ تقرير SEOptimer، ثم سأثبت نقطة فصل واضحة في Git قبل أي تعديل، باعتبار نظام السيو الحالي مكتملًا حتى هذه اللحظة. بعد ذلك سأطبق حلول المشكلات الـ14 الواردة في التقرير، وأتحقق من البناء والنسخة النهائية دون خلطها مع الحالة السابقة.
+
+
+
+Show less
+
+Opened Pasted--SEO-14-SEOptimer-taqi-1787947217056_1787947217057.txt
+Loaded skill reading-uploaded-files
+Loaded skill react-vite
+
+Opened seo-archive-certification.md
+
+Opened prerender-first-paint-protection.md
+
+Opened blog-image-compatibility.md
+Auditing Git status
+
+Auditing Git status
+Auditing Git status
+
+I need to execute a plan to audit the current state before making any modifications. This involves checking the Git status and log, and possibly creating a baseline commit, since the user wants comments on Git before the document. First, I'll run a read-only audit, using git diff/status and grep. I should open all important files, but I need to confirm that they're truly opened. I'll inspect the Git status and log, and check for relevant SEO terms and scripts.
+
+التقرير واضح: المطلوب ليس إضافة وسوم سطحية، بل إصلاح البنية الفعلية للمحتوى والـHTML والـSchema والتحليلات والصور، مع إبقاء الروابط والصفحات والمحتوى الحالي. سأجري الآن فحصًا سريعًا للحالة الحالية، ثم أسجل نقطة الفصل في Git قبل أي ملف تعديل.
+
+
+
+Show less
+
+Checked git status
+
+Found files
+
+Searched for "schema|json-ld|organiza…"
+
+Read files
+Committing baseline
+
+Committing baseline
+Committing baseline
+
+I need to finalize the baseline commit. The user requested a comment on Git before the document, but the attached report is untracked. It's probably better to commit the current code snapshot since the report is user input and not part of the project. We can create an empty commit to mark this boundary with a message like "SEO baseline complete before 14-issue remediation." I'll consider including the commit comment in both Arabic and English before I proceed with auditing and analyzing the relevant files.
+
+فحص الحالة أظهر أن الفرع نظيف، وأن النسخة الحالية هي آخر نقطة محفوظة. سأضع الآن Commit فاصلًا فارغًا على Git باسم واضح يعلن اكتمال نظام السيو الحالي قبل بدء إصلاحات التقرير، ثم أبني التعديلات بعده فقط.
+
+
+
+Committed changes
+تم إنشاء نقطة الفصل في Git بنجاح. سأنتقل الآن إلى الـAudit التقني الفعلي: مصدر البيانات، آلية الـprerender، الـSchema، التتبع، الروابط، FAQ، والصور، ثم سأطبق فقط ما يثبت التقرير وجود نقص فيه.
+
+
+
+Show less
+
+Opened index.html
+
+Opened App.tsx
+
+Opened main.tsx
+
+Opened useDocumentSEO.ts
+
+Opened siteUrl.ts
+
+Opened FaqPage.tsx
+
+Reading prerender.mjs
+
+Opened generate-sitemap.mjs
+
+Opened seo-quality-gate.mjs
+
+Opened build-hostinger.mjs
+Inspecting prerender chunks
+
+Inspecting prerender chunks
+Inspecting prerender chunks
+
+I need to take some action and inspect the prerender chunks. I'm also wondering if there’s a current schema in place, as it doesn't seem likely. It would be helpful to search for specifics to clarify this situation. I think I'm focusing on what steps to take next in order to get a better understanding of these chunks. Let's see what I can uncover!
+
+
+Searched for "render|html|json-ld|sch…"
+Continuing the process
+
+Continuing the process
+Continuing the process
+
+I need to keep moving forward without getting caught up in questions. It seems I have to consider all 14 aspects. Some things might be outside my control, like backlinks and entities across platforms like YouTube, LinkedIn, and Facebook pixels. I'll implement trustworthy sources and check site settings or any existing public links. It’s essential to inspect the relevant code and utilize grep for JSON-LD separately with precision.
+
+
+Searched for "application/ld+json|use…"
+
+Searched for "function .*SEO|jsonLd|s…"
+
+Searched for "site_public_url|company…"
+
+Found files
+Auditing and implementing data accuracy
+
+Auditing and implementing data accuracy
+Auditing and implementing data accuracy
+
+I need to implement an audit for the current report, which says 14. There’s a need for a robust solution to ensure there’s no duplicate tracking or fabricated GBP/social links. I’ll inspect the settings context and index API response fields along with existing social links. Maybe the public website has the company address configured in the database. I could query the local database in read-only mode through the shell and use scripts to check the database. Getting exact data is crucial.
+
+
+Opened SiteSettingsContext.tsx
+
+Opened settings.ts
+
+Opened Footer.tsx
+
+Opened Home.tsx
+
+Opened prerender.mjs
+
+Opened prerender.mjs
+
+Opened prerender.mjs
+
+Opened prerender.mjs
+
+Opened public-origin.mjs
+
+Ran scripts/db-inspect.mjs
+Evaluating frontend content delivery
+
+Evaluating frontend content delivery
+Evaluating frontend content delivery
+
+I’m considering the need for static content in frontend sources. One issue is that the rendering of snapshots is large due to duplicate content in full HTML and React. It looks like the index #seo-static-page-content is hidden, which crawlers can still see, but React may render everything. To improve, I think server-rendering the core in static HTML would help. However, the current index.html lacks static content until prerendering, while the archive does provide it.
+
+
+Opened prerender.mjs
+Loaded skill integrations
+Optimizing Organization Graph
+
+Optimizing Organization Graph
+Planning SEO Changes
+
+I need to take action right away and inspect the existing git files, which shouldn't be too many. It seems that I might need to use the design subagent, but since this is focused on backend/content changes for SEO, there's no substantial visual design needed. I can edit directly.
+
+My plan is to create shared SEO helpers in a specific file and fix the current client home schema by avoiding fake defaults while ensuring that values fall back appropriately. I want actual data in place, particularly for the company name.Reviewing Company Information and Schema
+
+I’m considering using "مؤسسة تقي جروب" as a fallback for the company name, but the actual name is "مؤسسة تقي," which seems a bit odd. I want to rely on the settings more appropriately.
+
+I need to centralize the graph, including various components like Organization, LocalBusiness, and WebSite. I'll also ensure that social links are configured correctly without including fake information. For the aggregate rating, I want to avoid it unless I have actual reviews from the database. Additionally, no fake pricing should be specified for the hasOfferCatalog.Optimizing Organization Graph
+
+I'm focusing on using only the Organization graph. I should include the company address fields only if they are properly configured and currently present.
+
+I’ll pull the telephone information from the phone call data, ensuring it reflects what's actual. For the areaServed, I think it might be sufficient to include only the city and region without mentioning the country.
+
+Additionally, I need to set up the contact point with the telephone and available languages. For useDocumentSEO, I’ll make sure to use the current site URL in the canonical. Finally, I’ll update the footer to display only the configured social links and remove any fabricated ones.
+
+
+Opened SiteSettings.tsx
+Considering file edits
+
+Considering file edits
+Considering file edits
+
+I need to edit several files, and I'm thinking that I might use apply_patch. To start, I should inspect the admin social form, particularly around line 600. Maybe I'll need to use regex to help me with that, so keeping that in mind will be useful! My plan is to take a close look at those lines and determine the best way to proceed with the edits I need to make.
+
+
+Searched for "social_(facebook|youtub…"
+Implementing settings
+
+Implementing settings
+Implementing settings
+
+I'm focusing on the current settings where there are admin placeholders, specifically mentioning AIservx as fake social. I need to either remove these placeholders or properly mark the actual URLs. There's also a need to inspect the relevant part of the code around form lines 680-810 to ensure everything is in order. It's important that I carefully check this area to avoid any issues down the line.
+
+
+Opened SiteSettings.tsx
+Documenting backlink strategy
+
+Documenting backlink strategy
+Figuring out analytics settings
+
+I need to address some analytics settings since the existing page doesn't have an analytics ID field. I’m thinking of adding fields for analytics_google_tag_id and facebook_pixel_id, but do we have actual values for those? It seems like we can set up UI settings for conditional script loading. However, real tracking can only work if there's a valid tracking ID. It looks like we can't create an external account or measurement ID right now. If necessary, I’ll note that the code path is prepared but not closed until saved.Addressing integration needs
+
+Since there's no API key or integration required, the user might need to provide an ID, but they prefer not to be prompted unless necessary. We can leave it as "not fully closed," but I must report why if that’s the case. For the Facebook Pixel, we also need a valid Pixel ID and should implement conditional scripts with settings. We can use existing site settings if there are no user IDs added. Moreover, we must ensure connection and absence of fake links while assessing third-party social entities.Documenting backlink strategy
+
+I’ve noticed we don't have any external backlink data available. Instead, I could create documentation that outlines our strategy without claiming actual backlinks. As for friendly URLs, the current slugs are mostly in Arabic and percent-encoded; I'm wondering if they’re technically friendly? SEOptimer might recognize them as such, but I need to audit the URL patterns. Maybe I can search for external links using the ? in hrefs and think about adding URL normalization in the App routes. I'll need to inspect those public routes.
+
+
+Opened PublicRoutes.tsx
+Revising the rendering approach
+
+Revising the rendering approach
+Evaluating URL strategies
+
+I'm thinking about how the current route can handle duplicate variants without redirect issues. I’m considering adding a CanonicalPathRedirect effect to App for normalizing trailing slashes or legacy aliases without changing URLs. I could also introduce rel=canonical to manage non-friendly URLs, especially for the Arabic ones. However, changing any URL would need careful handling of redirects. I might suggest documentation to explain the canonical slugs and avoid unnecessary changes due to potential SEO impacts.Revising the rendering approach
+
+I'm considering removing rootElement.replaceChildren() and finding a way to manage the prerender root that aligns with how React works. Since the root contains static content and a loading shell, I wonder if using React.createRoot on the existing HTML is acceptable. There's a warning about using createRoot like that. Maybe I should make the prerender static content outside the root and leave the root as empty or just the loading shell to avoid any direct mutations and memory violations.
+
+Addressing inline styles removal
+
+Addressing inline styles removal
+Considering inline style issues
+
+I’m looking into eliminating inline styles from our prerendered static HTML by using class names and a small CSS file, static-seo.css. However, it seems that the seo-quality-gate tool may not be addressing all inline styles, which is an issue since user wants to keep them. I see many inline styles in the generated static HTML and we’ve got to focus on both admin and public sources to simplify this, particularly while preserving the necessary styles.Addressing inline styles removal
+
+I'm considering adding a stripInlineStyles function before embedding body content. This way, I can sanitize the renderPage body content by removing style attributes. The appearance of static content won’t be a major issue since it’ll remain readable without JavaScript. The user requested that we take out unnecessary inline styles without disrupting the live design. However, this approach will remove static fallback styles but won't eliminate inline styles in the admin or public sources.
+
+Improving schema structure
+
+Improving schema structure
+Improving schema structure
+
+I think it’s a good idea to remove the aggregateRating since it’s likely fake, and that seems critical. I also want to add Organization and local business references. The dynamicHomeSchema currently returns four blocks: business, website, FAQ, and breadcrumb. To tidy things up, we should create one @graph block with nodes to avoid duplicate identities across pages. The user specifically requested an Entity Graph, so I’ll focus on implementing that in both prerender and client.
+
+Planning SEO Audit Script
+
+Planning SEO Audit Script
+Planning SEO Audit Script
+
+I need to add an SEO audit script to verify a few key things. First, I want to ensure that the unique meta descriptions are between 120 and 160 characters across the extracted archive. I should check that there are no fake AI service mentions, no aggregate ratings, and no inline styles in public HTML — maybe using an extension like seo-quality-gate. I'll also incorporate checks for schema entities, source reports for analytics or pixels, and I'll need to validate links.
+
+بدأت مرحلة التنفيذ على نقطة الفصل الجديدة. التغييرات الأساسية ستكون: إزالة القيم الوهمية من الـSchema والروابط الاجتماعية، ربط Organization/LocalBusiness/WebSite/WebPage/ContactPoint/AreaServed، إضافة مسارات إعداد حقيقية للتحليلات وFacebook Pixel وLinkedIn دون تشغيلها بلا معرفات، وتقليل تكرار HTML الذي يرفع نسبة الـRendering.
+
+
+
+Show less
+
+Edited main.tsx
+
+Edited SiteSettingsContext.tsx
+
+Edited settings.ts
+
+Edited Footer.tsx
+
+Edited SiteSettings.tsx
+Addressing app analytics and schema patching
+
+Addressing app analytics and schema patching
+Addressing app analytics and schema patching
+
+I need to continue with adding app analytics and patching the schema for the home function. I might apply a patch, but it could be extensive. The plan is to keep everything that’s already there while simplifying some functions, like replacing lines 9 to 209. I want to consider adding an email to the injectLocalBusinessSchema function, which currently lacks that detail. Python could help me out, but I can only apply patches for file edits in smaller portions.
+
+Troubleshooting patch failure
+
+Troubleshooting patch failure
+Troubleshooting patch failure
+
+I see that the patch failed, and it might be due to the position order. I need to inspect the application lines around the area where the patch was applied. This could help me figure out what went wrong and how I can fix it. I'll make sure to take a closer look at those lines to find the issue. Alright, let's get to work on that!
+
+
+Opened App.tsx
+Patching TypeScript declarations
+
+Patching TypeScript declarations
+Patching TypeScript declarations
+
+I need to patch something exactly, and I see that window.dataLayer isn't typed in TypeScript. I might have to add global declarations in my App, possibly with declare global. To avoid issues, I can use (window as typeof window & {dataLayer?: unknown[]; gtag?: (...args: unknown[])=>void}). Alternatively, I could type a local analyticsWindow. It looks like it's time to get this patch done!
+
+
+Edited App.tsx
+
+Edited Home.tsx
+Fixing social links bug
+
+Fixing social links bug
+Fixing social links bug
+
+I need to catch a bug in the Home import where the SocialLinks now includes LinkedIn. The sameAs object values should also include LinkedIn, and I don't think we need the contactPoint, which might be undefined. JSON.stringify seems to omit that. I need to patch the admin analytics UI, and it looks like the page settings load assigns DEFAULTS with new fields, so I'll inspect lines 230-280 and consider adding a card after social links.
+
+
+Opened SiteSettings.tsx
+Adding analytics card
+
+Adding analytics card
+Adding analytics card
+
+I need to continue working on the settings UI, specifically adding the analytics card, probably after the social settings. I'll plan to use the patch application to implement this change. It’s a relatively straightforward next step, but I want to ensure it integrates smoothly with the rest of the UI elements. I’ll double-check everything to keep things tidy and user-friendly. This should enhance functionality and provide users with valuable insights!
+
+
+Edited SiteSettings.tsx
+Refining homepage content
+
+Refining homepage content
+Optimizing site settings
+
+I need to make sure that I save the necessary fields and default loads. It seems like I should replace SEO_DEFAULTS with real details instead of fake ones, maybe only using an image and the actual company name.
+
+I'll remove any fallback numbers to ensure we don’t have placeholders. For sitePhoneWhatsapp, I want to avoid empty links in calls to action. I'll also adjust the default city and make some updates to the homepage styles as I sanitize the content.Refining homepage content
+
+I’m realizing that generateHomepageStaticContent is directly embedded in updateIndexSeo instead of using renderPage, so I might need to strip that. I’ll wrap it in ${stripInlineStyles(generateHomepageStaticContent())}.
+
+There are inline styles in the noscript section—if that's included, I should use cleanStaticHtml to remove them. I need to define stripInlineStyles to clear out style attributes without affecting the essential page styles.
+
+I want to ensure that bodyContent handles emojis cautiously, as the user prefers no emojis for design reasons.
+
+
+Edited prerender.mjs
+
+Opened prerender.mjs
+Updating dynamic schema
+
+Updating dynamic schema
+Updating dynamic schema
+
+I need to continue working on patching the dynamicHomeSchema. I should focus on replacing parts and specifically look at the addressData surrounding earlier lines. Reading through lines 330-345 should give me the context I need to make the necessary updates. It's important to be thorough to ensure the patch functions correctly!
+
+
+Opened prerender.mjs
+
+Edited prerender.mjs
+
+Searched for "function sanitizeHtml|f…"
+
+Opened prerender.mjs
+Refining code for efficiency
+
+Refining code for efficiency
+Refining code for efficiency
+
+I need to patch the response by rendering the page and removing any inline code. It's essential to get rid of the fake generateFullHomepage function since it's considered dead code, and it might confuse search evaluators. I'll aim to eliminate unnecessary fallbacks too. I’m thinking that generateFullHomepageStaticContent should just return generateHomepageStaticContent(). This'll simplify things significantly! I’ll look at deleting lines 491 to around 686 and continue searching for the next function.
+
+
+Searched for "^function |^async funct…"
+Unifying FAQ content
+
+Unifying FAQ content
+Unifying FAQ content
+
+I'm thinking there might be hardcoded FAQs in dynamicHomeSchema that aren’t sourced from FaqPage. The user wants these unified, so I’m considering if I should import the FAQ content instead. However, prerendering probably can’t import TypeScript. What if I define a FAQ_ITEMS constant shared manually to align with FaqPage? I also need to inspect the FaqPage data to see how it all fits together.
+
+
+Opened FaqPage.tsx
+Evaluating FAQ integration
+
+Evaluating FAQ integration
+Evaluating FAQ integration
+
+I'm thinking about continuing on with the patching for renderPage and main static. Maybe we don’t really need to manually unify the FAQ? It could be beneficial to share constants in Home and prerender. Perhaps I should change Home's dynamic schema if the FAQ values are likely to be the same as prerender. I’m considering removing the FAQ schema from the homepage altogether since FAQs might not appear there, but I should ensure it aligns with the user's request for a rich FAQ.
+
+
+Searched for "FAQPage|mainEntity|FAQS…"
+
+Edited prerender.mjs
+Finding public path for CSS
+
+Finding public path for CSS
+Finding public path for CSS
+
+I need to keep going! It looks like I need to add some static CSS to the public directory. First, I’ll have to locate the right public path where the files can go. It’s important to make sure everything is in the right spot so that the styles apply correctly. Let’s keep this organized as I proceed, ensuring everything is set up properly for the best results!
+
+
+Listed files
+
+Opened prerender.mjs
+
+Created seo-static.css
+Identifying patch issues
+
+Identifying patch issues
+Identifying patch issues
+
+I'm encountering a problem with the patch that failed due to a mismatch, possibly because line content differs from what’s expected. My guess is that the border might be off. It's essential to apply the pieces exactly to avoid these problems. I need to figure out what the style block patch requires, so I can address the mismatch effectively. It feels a bit frustrating, but I'm determined to get it right!
+
+
+Edited prerender.mjs
+
+Opened prerender.mjs
+
+Edited prerender.mjs
+Continuing with updates
+
+Continuing with updates
+Continuing with updates
+
+I need to work on the patch for a dead fallback and the generated homepage content. Also, the CSS in the updateIndex should link to a static CSS file, but I think the index source is copied from the Vite public root. I still need to make generateFullHomepageStaticContent properly fake. It makes sense to change the patch fallback to empty instead of fake content and to consider removing any invalid placeholders that may not be needed. I'll use the apply patch to replace lines 491-495.
+
+
+Edited prerender.mjs
+
+Opened index.html
+Updating description length
+
+Updating description length
+Updating description length
+
+I need to continue with the task. I could make the description longer, but it seems that the site-public-url has an unknown domain, which will be enforced by the build script. That’s fine, though! I should update the description since the current one is only 137 characters in Arabic, and the report suggests it might be too short. I need to ensure it truthfully describes the service and location, so let's work on patching that length, including the OG description!
+
+
+Edited index.html
+أكملت إزالة الروابط الافتراضية وحماية نقطة تركيب React، وبدأت الآن توحيد التوليد الثابت مع إعدادات الموقع. سأتحقق أيضًا من وجود موصل رسمي مناسب للتحليلات قبل اعتبار أي تتبع خارجي جاهزًا؛ لن أضيف معرفًا أو حسابًا غير مؤكد.
+
+
+
+Show less
+
+Checked analytics integration availability
+
+Searched integrations for "Google Analytics and website measurement | Facebook Pixel website tracking" — 3 results
+Loaded skill workflows
+
+Worked for 6 minutes
+You've reached your daily free quota limit. It will reset at 12:00 AM UTC.

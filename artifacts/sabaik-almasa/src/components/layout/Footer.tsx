@@ -1,6 +1,6 @@
 import * as React from "react"
 import { Link } from "wouter"
-import { Phone, Mail, MapPin, Map, Facebook, Instagram, Youtube, Twitter, Music2, Ghost } from "lucide-react"
+import { Phone, Mail, MapPin, Map, Facebook, Instagram, Youtube, Twitter, Music2, Ghost, Linkedin } from "lucide-react"
 import { getSafeMapEmbedUrl, useSiteSettings } from "@/context/SiteSettingsContext"
 
 export function Footer() {
@@ -18,15 +18,15 @@ export function Footer() {
   const address = [siteSettings.address, siteSettings.city, siteSettings.region]
     .filter(Boolean)
     .join("، ")
-  const socialHandle = "Aiservx"
   const socialItems = [
-    { key: "facebook", label: "فيسبوك", href: siteSettings.socialLinks.facebook || `https://www.facebook.com/${socialHandle}`, Icon: Facebook },
-    { key: "x", label: "منصة X", href: siteSettings.socialLinks.x || `https://x.com/${socialHandle}`, Icon: Twitter },
-    { key: "instagram", label: "إنستجرام", href: siteSettings.socialLinks.instagram || `https://www.instagram.com/${socialHandle}/`, Icon: Instagram },
-    { key: "tiktok", label: "تيك توك", href: siteSettings.socialLinks.tiktok || `https://www.tiktok.com/@${socialHandle}`, Icon: Music2 },
-    { key: "snapchat", label: "سناب شات", href: siteSettings.socialLinks.snapchat || `https://www.snapchat.com/add/${socialHandle}`, Icon: Ghost },
-    { key: "youtube", label: "يوتيوب", href: siteSettings.socialLinks.youtube || `https://www.youtube.com/@${socialHandle}`, Icon: Youtube },
-  ]
+    { key: "facebook", label: "فيسبوك", href: siteSettings.socialLinks.facebook, Icon: Facebook },
+    { key: "x", label: "منصة X", href: siteSettings.socialLinks.x, Icon: Twitter },
+    { key: "instagram", label: "إنستجرام", href: siteSettings.socialLinks.instagram, Icon: Instagram },
+    { key: "tiktok", label: "تيك توك", href: siteSettings.socialLinks.tiktok, Icon: Music2 },
+    { key: "snapchat", label: "سناب شات", href: siteSettings.socialLinks.snapchat, Icon: Ghost },
+    { key: "youtube", label: "يوتيوب", href: siteSettings.socialLinks.youtube, Icon: Youtube },
+    { key: "linkedin", label: "LinkedIn", href: siteSettings.socialLinks.linkedin, Icon: Linkedin },
+  ].filter((item) => Boolean(item.href))
 
   return (
     <footer className="bg-primary text-white pt-16 pb-8">
@@ -41,16 +41,16 @@ export function Footer() {
             )}
              {description && <p className="text-gray-300 text-sm leading-relaxed">{description}</p>}
             <div className="pt-2" aria-label="حسابات التواصل الاجتماعي">
-              <p className="mb-2 text-xs font-bold text-gray-400">حسابنا على وسائل التواصل: <span className="text-secondary" dir="ltr">{socialHandle}</span></p>
-              <div className="flex flex-wrap gap-2">
+               {socialItems.length > 0 && <p className="mb-2 text-xs font-bold text-gray-400">حساباتنا الموثقة على وسائل التواصل</p>}
+               <div className="flex flex-wrap gap-2">
                 {socialItems.map(({ key, label, href, Icon }) => (
                   <a
                     key={key}
                     href={href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    aria-label={`${label} — ${socialHandle}`}
-                    title={`${label} — ${socialHandle}`}
+                     aria-label={label}
+                     title={label}
                     className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 text-gray-300 transition-all hover:-translate-y-0.5 hover:border-secondary hover:bg-secondary hover:text-primary"
                   >
                     <Icon size={18} />
@@ -143,7 +143,7 @@ export function Footer() {
                 src={mapEmbed}
                 width="100%"
                 height="280"
-                style={{ border: 0, display: "block" }}
+                 className="block h-[280px] w-full border-0"
                 allowFullScreen
                 loading="lazy"
                 referrerPolicy="strict-origin-when-cross-origin"

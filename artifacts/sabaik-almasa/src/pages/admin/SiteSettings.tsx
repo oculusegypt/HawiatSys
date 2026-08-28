@@ -79,6 +79,9 @@ interface SiteSettings {
   social_tiktok: string
   social_snapchat: string
   social_youtube: string
+  social_linkedin: string
+  analytics_google_tag_id: string
+  facebook_pixel_id: string
   stats_items: string
   platform_promo_enabled: string
 }
@@ -121,6 +124,9 @@ const DEFAULTS: SiteSettings = {
   social_tiktok: "",
   social_snapchat: "",
   social_youtube: "",
+  social_linkedin: "",
+  analytics_google_tag_id: "",
+  facebook_pixel_id: "",
   stats_items: JSON.stringify(DEFAULT_STATS),
   platform_promo_enabled: "true",
 }
@@ -331,7 +337,7 @@ function GeneralTab() {
   const isLocked = settings.requests_locked === "true"
   const supportStatus = settings.support_status || "unavailable"
   const promoEnabled = settings.platform_promo_enabled !== "false"
-  const filledSocials = [settings.social_facebook, settings.social_x, settings.social_instagram, settings.social_tiktok, settings.social_snapchat, settings.social_youtube].filter(Boolean).length
+  const filledSocials = [settings.social_facebook, settings.social_x, settings.social_instagram, settings.social_tiktok, settings.social_snapchat, settings.social_youtube, settings.social_linkedin].filter(Boolean).length
   const publicUrl = settings.site_public_url || "سيُكتشف تلقائيًا من النطاق الحالي"
 
   return (
@@ -721,12 +727,13 @@ function GeneralTab() {
              </div>
              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                {([
-                 ["social_facebook", "فيسبوك", "https://www.facebook.com/AIservx"],
-                 ["social_x", "X", "https://x.com/AIservx"],
-                 ["social_instagram", "إنستجرام", "https://www.instagram.com/AIservx"],
-                 ["social_tiktok", "تيك توك", "https://www.tiktok.com/@AIservx"],
-                 ["social_snapchat", "سناب شات", "https://www.snapchat.com/add/AIservx"],
-                 ["social_youtube", "يوتيوب", "https://www.youtube.com/@AIservx"],
+                  ["social_facebook", "فيسبوك", "https://www.facebook.com/اسم-الحساب"],
+                  ["social_x", "X", "https://x.com/اسم-الحساب"],
+                  ["social_instagram", "إنستجرام", "https://www.instagram.com/اسم-الحساب"],
+                  ["social_tiktok", "تيك توك", "https://www.tiktok.com/@اسم-الحساب"],
+                  ["social_snapchat", "سناب شات", "https://www.snapchat.com/add/اسم-الحساب"],
+                  ["social_youtube", "يوتيوب", "https://www.youtube.com/@اسم-القناة"],
+                  ["social_linkedin", "LinkedIn", "https://www.linkedin.com/company/اسم-المنشأة"],
                ] as const).map(([key, label, placeholder]) => (
                  <div key={key} className="space-y-1">
                    <label className="text-xs font-bold text-gray-600">{label}</label>
@@ -735,6 +742,37 @@ function GeneralTab() {
                ))}
              </div>
            </div>
+
+            <div className="space-y-3 rounded-2xl border border-blue-200/70 bg-blue-50/40 p-4">
+              <div>
+                <label className="text-sm font-bold text-gray-700">القياس التسويقي والتحليلات</label>
+                <p className="mt-1 text-xs leading-5 text-gray-500">
+                  اختياري. لا يتم تحميل أي كود خارجي إلا بعد إدخال معرف حقيقي محفوظ من الحساب الرسمي، لتجنب التتبع المكرر أو الوهمي.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-600">Google Analytics 4 / Google tag</label>
+                  <Input
+                    value={settings.analytics_google_tag_id}
+                    onChange={e => setSettings(s => ({ ...s, analytics_google_tag_id: e.target.value }))}
+                    placeholder="G-XXXXXXXXXX"
+                    className="bg-white font-mono text-xs"
+                    dir="ltr"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-600">Facebook Pixel ID</label>
+                  <Input
+                    value={settings.facebook_pixel_id}
+                    onChange={e => setSettings(s => ({ ...s, facebook_pixel_id: e.target.value }))}
+                    placeholder="أدخل الرقم فقط"
+                    className="bg-white font-mono text-xs"
+                    dir="ltr"
+                  />
+                </div>
+              </div>
+            </div>
 
           {/* Google Maps embed */}
            <div className="space-y-2">
@@ -791,6 +829,9 @@ function GeneralTab() {
              social_tiktok: settings.social_tiktok,
              social_snapchat: settings.social_snapchat,
              social_youtube: settings.social_youtube,
+              social_linkedin: settings.social_linkedin,
+              analytics_google_tag_id: settings.analytics_google_tag_id,
+              facebook_pixel_id: settings.facebook_pixel_id,
              support_hours: settings.support_hours,
             })
            }} disabled={saving} className="bg-primary hover:bg-primary/90 text-white">

@@ -7,14 +7,6 @@ import type { SocialLinks } from "@/context/SiteSettingsContext"
 import { useDocumentSEO } from "@/hooks/useDocumentSEO"
 
 const SEO_DEFAULTS = {
-  companyName: "تأجير الحاويات بالرياض",
-  phone: "0555888767",
-  address: "طريق الملك فهد، حي الصحافة",
-  city: "الرياض",
-  region: "منطقة الرياض",
-  country: "SA",
-  postalCode: "13321",
-  priceRange: "$$",
   image: "/images/seo/cleanflow-home.jpg",
 } as const
 
@@ -68,7 +60,7 @@ function injectLocalBusinessSchema({
     if (d.startsWith("00")) return `+${d.slice(2)}`
     if (d.startsWith("0")) return `+966${d.slice(1)}`
     if (d.startsWith("966")) return `+${d}`
-    return `+966${d}`
+    return d ? `+${d}` : ""
   }
   const sameAs: string[] = []
   try {
@@ -78,132 +70,89 @@ function injectLocalBusinessSchema({
       })
     }
   } catch {}
-  const schemaPhones = (phones && phones.length) ? phones : [SEO_DEFAULTS.phone]
-  const whatsapp = schemaPhones[0] ? `https://wa.me/${toInternational(schemaPhones[0]).replace("+", "")}` : ""
-  if (whatsapp) sameAs.push(whatsapp)
+  const schemaPhones = phones?.filter((phone) => phone.trim().length > 0) ?? []
   const addressData = {
     "@type": "PostalAddress",
-    streetAddress: address || SEO_DEFAULTS.address,
-    addressLocality: city || SEO_DEFAULTS.city,
-    addressRegion: region || SEO_DEFAULTS.region,
-    addressCountry: country || SEO_DEFAULTS.country,
-    postalCode: postalCode || SEO_DEFAULTS.postalCode,
+    ...(address ? { streetAddress: address } : {}),
+    ...(city ? { addressLocality: city } : {}),
+    ...(region ? { addressRegion: region } : {}),
+    ...(country ? { addressCountry: country } : {}),
+    ...(postalCode ? { postalCode } : {}),
   }
-  const resolvedCompanyName = companyName || SEO_DEFAULTS.companyName
-  const resolvedDesc = description || "تأجير حاويات الأنقاض والنفايات بالرياض: توصيل وسحب الحاويات ونقل مخلفات البناء والهدم."
+  const resolvedCompanyName = companyName || "مؤسسة تقي جروب"
+  const resolvedDesc = description || "تأجير حاويات الأنقاض والنفايات ونقل مخلفات البناء والهدم داخل الرياض."
+  const schemaPhoneValues = schemaPhones.map(toInternational).filter(Boolean)
+  const contactPoint = schemaPhoneValues.length > 0 ? {
+    "@type": "ContactPoint",
+    "telephone": schemaPhoneValues.length === 1 ? schemaPhoneValues[0] : schemaPhoneValues,
+    "contactType": "customer service",
+    "areaServed": "SA",
+    "availableLanguage": ["ar"],
+  } : undefined
+  const localBusiness = {
+    "@type": ["LocalBusiness", "WasteManagementService"],
+    "@id": `${SITE_URL}/#local-business`,
+    "name": resolvedCompanyName,
+    "description": resolvedDesc,
+    "url": `${SITE_URL}/`,
+    "parentOrganization": { "@id": `${SITE_URL}/#organization` },
+    "logo": {
+      "@type": "ImageObject",
+      "url": toAbsolute(logoUrl || "/images/logo.png"),
+    },
+    "image": {
+      "@type": "ImageObject",
+      "url": toAbsolute(SEO_DEFAULTS.image),
+    },
+    ...(schemaPhoneValues.length ? { "telephone": schemaPhoneValues.length === 1 ? schemaPhoneValues[0] : schemaPhoneValues } : {}),
+    ...(priceRange ? { "priceRange": priceRange } : {}),
+    ...(paymentMethods ? { "paymentAccepted": paymentMethods } : {}),
+    ...(Object.keys(addressData).length > 1 ? { "address": addressData } : {}),
+    ...(latitude && longitude ? {
+      "geo": { "@type": "GeoCoordinates", "latitude": latitude, "longitude": longitude },
+    } : {}),
+    ...(city ? { "areaServed": { "@type": "City", "name": city } } : {}),
+    ...(contactPoint ? { "contactPoint": contactPoint } : {}),
+    ...(sameAs.length ? { "sameAs": [...new Set(sameAs)] } : {}),
+  }
 
   script.textContent = JSON.stringify({
     "@context": "https://schema.org",
     "@graph": [
       {
-        "@type": ["LocalBusiness", "WasteManagementService"],
-        "@id": `${SITE_URL}/#business`,
+        "@type": "Organization",
+        "@id": `${SITE_URL}/#organization`,
         "name": resolvedCompanyName,
-        "alternateName": companyName ? [companyName, `حاويات ${companyName}`, "تأجير حاويات بالرياض"] : ["تأجير حاويات بالرياض", "حاويات أنقاض الرياض"],
-        "description": resolvedDesc,
         "url": `${SITE_URL}/`,
-        "logo": {
-          "@type": "ImageObject",
-          "url": toAbsolute(logoUrl || "/images/logo.png"),
-          "width": "512",
-          "height": "512"
-        },
-        "image": {
-          "@type": "ImageObject",
-          "url": toAbsolute(SEO_DEFAULTS.image),
-          "width": "1200",
-          "height": "675"
-        },
-        "primaryImageOfPage": {
-          "@type": "ImageObject",
-          "url": toAbsolute(SEO_DEFAULTS.image),
-          "width": "1200",
-          "height": "675"
-        },
-        "telephone": schemaPhones.length === 1 ? toInternational(schemaPhones[0]) : schemaPhones.map(toInternational),
-        "priceRange": priceRange || SEO_DEFAULTS.priceRange,
-        "currenciesAccepted": "SAR",
-        "paymentAccepted": paymentMethods || "Cash, Credit Card, Bank Transfer, Mada",
-        "address": addressData,
-        "geo": {
-          "@type": "GeoCoordinates",
-          "latitude": latitude || "24.7937",
-          "longitude": longitude || "46.6371"
-        },
-        "areaServed": [
-          { "@type": "City", "name": "الرياض", "sameAs": "https://www.wikidata.org/wiki/Q3692" },
-          { "@type": "Country", "name": "المملكة العربية السعودية" }
-        ],
-        "openingHours": "Mo-Su 00:00-23:59",
-        "hasOfferCatalog": {
-          "@type": "OfferCatalog",
-          "name": companyName ? `حاويات وخدمات ${companyName} بالرياض` : "حاويات وخدمات تأجير الحاويات بالرياض",
-          "itemListElement": [
-            {
-              "@type": "Offer",
-              "name": "حاوية أنقاض صغيرة (12 ياردة)",
-              "price": "400",
-              "priceCurrency": "SAR",
-              "availability": "https://schema.org/InStock",
-              "itemOffered": {
-                "@type": "Service",
-                "name": "تأجير حاوية أنقاض 12 ياردة",
-                "description": "حاوية مثالية لمشاريع الترميم الصغيرة والتعديلات السكنية"
-              }
-            },
-            {
-              "@type": "Offer",
-              "name": "حاوية أنقاض متوسطة (15 ياردة)",
-              "price": "450",
-              "priceCurrency": "SAR",
-              "availability": "https://schema.org/InStock",
-              "itemOffered": {
-                "@type": "Service",
-                "name": "تأجير حاوية أنقاض 15 ياردة",
-                "description": "حاوية مناسبة لمشاريع الهدم الجزئي والتشطيبات الموسعة"
-              }
-            },
-            {
-              "@type": "Offer",
-              "name": "حاوية أنقاض كبيرة (20 ياردة)",
-              "price": "500",
-              "priceCurrency": "SAR",
-              "availability": "https://schema.org/InStock",
-              "itemOffered": {
-                "@type": "Service",
-                "name": "تأجير حاوية أنقاض 20 ياردة",
-                "description": "الحاوية الأكثر طلباً لمشاريع البناء والهدم والإنشاءات"
-              }
-            },
-            {
-              "@type": "Offer",
-              "name": "حاوية أنقاض جامبو (30 ياردة)",
-              "price": "700",
-              "priceCurrency": "SAR",
-              "availability": "https://schema.org/InStock",
-              "itemOffered": {
-                "@type": "Service",
-                "name": "تأجير حاوية أنقاض 30 ياردة",
-                "description": "حاوية للمشاريع الكبرى والمجمعات وعمليات الإزالة الشاملة"
-              }
-            }
-          ]
-        },
-        "sameAs": sameAs
+        "logo": { "@type": "ImageObject", "url": toAbsolute(logoUrl || "/images/logo.png") },
+        ...(description ? { "description": description } : {}),
+        ...(sameAs.length ? { "sameAs": [...new Set(sameAs)] } : {}),
       },
+      localBusiness,
       {
         "@type": "WebSite",
         "@id": `${SITE_URL}/#website`,
         "url": `${SITE_URL}/`,
         "name": resolvedCompanyName,
         "inLanguage": "ar",
-        "publisher": { "@id": `${SITE_URL}/#business` },
+        "publisher": { "@id": `${SITE_URL}/#organization` },
         "potentialAction": {
           "@type": "SearchAction",
           "target": `${SITE_URL}/blog?q={search_term_string}`,
           "query-input": "required name=search_term_string"
         }
-      }
+      },
+      {
+        "@type": "WebPage",
+        "@id": `${SITE_URL}/#webpage`,
+        "url": `${SITE_URL}/`,
+        "name": resolvedCompanyName,
+        "description": resolvedDesc,
+        "isPartOf": { "@id": `${SITE_URL}/#website` },
+        "about": { "@id": `${SITE_URL}/#local-business` },
+        "publisher": { "@id": `${SITE_URL}/#organization` },
+        "inLanguage": "ar",
+      },
     ]
   })
 }

@@ -30,12 +30,6 @@ const settingMap = Object.fromEntries(settingRows.map(row => [row.key, row.value
 const SEO_DEFAULTS = {
   companyName: "مؤسسة تقي جروب",
   description: "تأجير حاويات الأنقاض والنفايات والمكابس ونقل مخلفات البناء والهدم وعقود النظافة الإلكترونية بالرياض.",
-  phone: "0555888767",
-  address: "الرياض",
-  city: "الرياض",
-  region: "منطقة الرياض",
-  country: "SA",
-  priceRange: "$$",
   image: "/images/hero-1.webp",
 };
 // The administrator-configured public URL is the only production origin.
@@ -48,9 +42,8 @@ try {
   const parsed = JSON.parse(settingMap.company_phones || "[]");
   if (Array.isArray(parsed)) sitePhones = parsed.filter(phone => typeof phone === "string" && phone.trim());
 } catch {}
-if (!sitePhones.length) sitePhones = ["0555888767", "0580595555"];
-const sitePhoneWhatsapp = settingMap.company_phone_whatsapp || sitePhones[1] || "0580595555";
-const sitePhoneCall = settingMap.company_phone_call || sitePhones[0] || "0555888767";
+const sitePhoneWhatsapp = settingMap.company_phone_whatsapp?.trim() || "";
+const sitePhoneCall = settingMap.company_phone_call?.trim() || "";
 const sitePhoneAdditional = sitePhones.find(phone => phone !== sitePhoneWhatsapp && phone !== sitePhoneCall)
   || sitePhones.find(phone => phone !== sitePhoneWhatsapp)
   || "";
@@ -71,19 +64,19 @@ const socialLinks = [
   settingMap.social_youtube,
 ].map(value => String(value || "").trim()).filter(Boolean);
 const address = {
-  address: settingMap.company_address?.trim() || SEO_DEFAULTS.address,
-  city: settingMap.company_city?.trim() || SEO_DEFAULTS.city,
-  region: settingMap.company_region?.trim() || SEO_DEFAULTS.region,
-  country: settingMap.company_country?.trim() || SEO_DEFAULTS.country,
+  address: settingMap.company_address?.trim() || "",
+  city: settingMap.company_city?.trim() || "",
+  region: settingMap.company_region?.trim() || "",
+  country: settingMap.company_country?.trim() || "",
   postalCode: settingMap.company_postal_code?.trim() || "",
 };
 function buildAddressSchema() {
   return {
     "@type": "PostalAddress",
-    streetAddress: address.address || SEO_DEFAULTS.address,
-    addressLocality: address.city || SEO_DEFAULTS.city,
-    addressRegion: address.region || SEO_DEFAULTS.region,
-    addressCountry: address.country || SEO_DEFAULTS.country,
+    ...(address.address ? { streetAddress: address.address } : {}),
+    ...(address.city ? { addressLocality: address.city } : {}),
+    ...(address.region ? { addressRegion: address.region } : {}),
+    ...(address.country ? { addressCountry: address.country } : {}),
     ...(address.postalCode ? { postalCode: address.postalCode } : {}),
   };
 }
@@ -147,6 +140,10 @@ function sanitizeHtml(html) {
     .replace(/\son\w+='[^']*'/gi, "")
     // تحويل روابط الصور النسبية إلى root-relative (تعمل مع أي دومين)
     .replace(/src="(?!https?:\/\/|\/\/)([^/""][^"]*?)"/g, (_, p) => `src="/${p.replace(/^\/+/, "")}"`);
+}
+
+function stripInlineStyles(html) {
+  return (html || "").replace(/\sstyle\s*=\s*(?:"[^"]*"|'[^']*')/gi, "");
 }
 
 function absoluteImg(url) {
@@ -298,15 +295,6 @@ function renderPage({ title, description, keywords = "", canonical, ogImage, ogT
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
-  <style>
-    /*
-      Keep SEO content available when JavaScript is disabled, but do not let
-      it flash in a normal browser while the live React/API page boots.
-    */
-    #seo-static-page-content { display: none; }
-    html.no-js #seo-static-page-content { display: block; }
-  </style>
-
   <!-- App assets -->
   ${leafletCss}
   ${preloads.join("\n  ")}
@@ -315,22 +303,14 @@ function renderPage({ title, description, keywords = "", canonical, ogImage, ogT
 <body>
   <!-- SEO-visible content for search engines & AI overviews -->
   <div id="seo-static-page-content" class="seo-crawler-content">
-    <div style="font-family:'Cairo',Arial,sans-serif;direction:rtl;max-width:920px;margin:0 auto;padding:24px 16px;color:#1a202c;line-height:1.8">
-      <nav aria-label="breadcrumb" style="font-size:14px;color:#718096;margin-bottom:20px">${breadcrumbHtml(breadcrumbs)}</nav>
-      ${bodyContent}
+    <div class="seo-static-shell">
+      <nav aria-label="breadcrumb" class="seo-static-breadcrumb">${breadcrumbHtml(breadcrumbs)}</nav>
+      ${stripInlineStyles(bodyContent)}
     </div>
   </div>
 
   <!-- React mounts here — replaces loading indicator with full styled app -->
-  <div id="root">
-    <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:'Cairo',Arial,sans-serif;background:#f7fafc">
-      <div style="text-align:center;color:#718096">
-        <div style="width:40px;height:40px;border:4px solid #e2e8f0;border-top-color:#1e3a5f;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px"></div>
-        <p style="font-size:14px;margin:0">جاري التحميل...</p>
-      </div>
-    </div>
-    <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
-  </div>
+  <div id="root"><div class="app-loading-shell" aria-live="polite"><div class="app-loading-spinner" aria-hidden="true"></div><p>جاري التحميل...</p></div></div>
 
   <script type="module" crossorigin src="${esc(jsHref)}"></script>
 </body>
@@ -345,39 +325,32 @@ function publicUrl(path = "/") {
 function dynamicHomeSchema() {
   const addressData = buildAddressSchema();
   const sameAs = [...socialLinks];
-  if (sitePhoneWhatsapp) sameAs.push(`https://wa.me/${toInternational(sitePhoneWhatsapp).replace("+", "")}`);
-  const business = {
-    "@context": "https://schema.org",
+  const phoneValues = sitePhones.map(toInternational).filter(Boolean);
+  const contactPoint = phoneValues.length ? {
+    "@type": "ContactPoint",
+    telephone: phoneValues.length === 1 ? phoneValues[0] : phoneValues,
+    contactType: "customer service",
+    areaServed: address.country || "SA",
+    availableLanguage: ["ar"],
+  } : null;
+  const localBusiness = {
     "@type": ["LocalBusiness", "ProfessionalService"],
-    "@id": `${publicUrl("/")}#business`,
+    "@id": `${publicUrl("/")}#local-business`,
     "name": siteCompanyName,
     ...(siteDescription ? { description: siteDescription } : {}),
     "url": publicUrl("/"),
+    "parentOrganization": { "@id": `${publicUrl("/")}#organization` },
     "logo": absoluteImg(siteLogo),
     "image": absoluteImg(settingMap.company_image?.trim() || siteLogo || SEO_DEFAULTS.image),
-    "telephone": sitePhones.length === 1 ? toInternational(sitePhones[0]) : sitePhones.map(toInternational),
-    "priceRange": settingMap.company_price_range?.trim() || SEO_DEFAULTS.priceRange,
+    ...(phoneValues.length ? { telephone: phoneValues.length === 1 ? phoneValues[0] : phoneValues } : {}),
+    ...(settingMap.company_price_range?.trim() ? { priceRange: settingMap.company_price_range.trim() } : {}),
     ...(settingMap.company_payment_methods ? { paymentAccepted: settingMap.company_payment_methods } : {}),
-    "address": addressData,
+    ...(Object.keys(addressData).length > 1 ? { address: addressData } : {}),
     ...(Number.isFinite(coordinates.latitude) && Number.isFinite(coordinates.longitude)
       ? { geo: { "@type": "GeoCoordinates", latitude: coordinates.latitude, longitude: coordinates.longitude } }
       : {}),
-    "areaServed": { "@type": "City", name: address.city || "الرياض" },
-    "openingHoursSpecification": [
-      {
-        "@type": "OpeningHoursSpecification",
-        "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
-        "opens": "07:00",
-        "closes": "23:00"
-      }
-    ],
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.9",
-      "reviewCount": "184",
-      "bestRating": "5",
-      "worstRating": "1"
-    },
+    ...(address.city ? { areaServed: { "@type": "City", name: address.city } } : {}),
+    ...(contactPoint ? { contactPoint } : {}),
     ...(dynamicServices.length ? {
       hasOfferCatalog: {
         "@type": "OfferCatalog",
@@ -395,18 +368,42 @@ function dynamicHomeSchema() {
     ...(sameAs.length ? { sameAs: [...new Set(sameAs)] } : {}),
   };
   return [
-    business,
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "@id": `${publicUrl("/")}#organization`,
+      "name": siteCompanyName,
+      "url": publicUrl("/"),
+      "logo": absoluteImg(siteLogo),
+      ...(siteDescription ? { description: siteDescription } : {}),
+      ...(sameAs.length ? { sameAs: [...new Set(sameAs)] } : {}),
+    },
+    localBusiness,
     {
       "@context": "https://schema.org",
       "@type": "WebSite",
+      "@id": `${publicUrl("/")}#website`,
       "url": publicUrl("/"),
       "name": siteCompanyName,
       "inLanguage": "ar",
+      "publisher": { "@id": `${publicUrl("/")}#organization` },
       "potentialAction": {
         "@type": "SearchAction",
         "target": `${publicUrl("/blog")}?q={search_term_string}`,
         "query-input": "required name=search_term_string"
       }
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "@id": `${publicUrl("/")}#webpage`,
+      "url": publicUrl("/"),
+      "name": siteCompanyName,
+      ...(siteDescription ? { description: siteDescription } : {}),
+      "isPartOf": { "@id": `${publicUrl("/")}#website` },
+      "about": { "@id": `${publicUrl("/")}#local-business` },
+      "publisher": { "@id": `${publicUrl("/")}#organization` },
+      "inLanguage": "ar",
     },
     {
       "@context": "https://schema.org",
@@ -478,8 +475,8 @@ function generateFullHomepageStaticContent() {
   // is the single source of truth for static rendering.
   return generateHomepageStaticContent();
 
-  const phoneCall = sitePhoneCall || "0555888767";
-  const phoneWa = sitePhoneWhatsapp || "0580595555";
+  const phoneCall = sitePhoneCall;
+  const phoneWa = sitePhoneWhatsapp;
   const waUrl = waLink(phoneWa, "السلام عليكم، أرغب في طلب حاوية ونقل مخلفات بالرياض");
 
   return `
@@ -784,12 +781,7 @@ function updateIndexSeo(html) {
     document.documentElement.classList.remove("no-js");
     document.documentElement.classList.add("js");
   </script>
-  <style>
-    /* Keep the SEO snapshot for crawlers/no-JS clients, never as stale first paint for live users. */
-    #seo-static-page-content { display: none; }
-    html.no-js #seo-static-page-content { display: block; }
-    html.no-js #app-loading-shell { display: none; }
-  </style>`,
+  <link rel="stylesheet" href="/seo-static.css" />`,
   );
   next = replace(next, /<title>[\s\S]*?<\/title>/i, `<title>${esc(title)}</title>`);
   next = replace(next, /(<meta\s+name="description"\s+content=")[^"]*(")/i, `$1${esc(description)}$2`);
@@ -814,21 +806,12 @@ function updateIndexSeo(html) {
   ).join("\n");
   const withSchemas = next.replace(/<\/head>/i, `${schemas}\n</head>`);
   
-  // The client clears this mount point before React renders. Keep the
-  // data-backed snapshot for crawlers/no-JS clients, but hide it immediately
-  // for live users so stale content cannot flash before the API response.
+  // Keep the data-backed snapshot outside React's mount point. It remains
+  // available to crawlers/no-JS clients and is hidden before the app paints.
   return withSchemas.replace(
     /<div id="root">\s*<\/div>/i,
-    `<div id="root">
-      <div id="seo-static-page-content" class="seo-crawler-content">${generateHomepageStaticContent()}</div>
-      <div id="app-loading-shell" style="min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:'Tajawal',Arial,sans-serif;background:#f7fafc">
-        <div style="text-align:center;color:#718096">
-          <div style="width:40px;height:40px;border:4px solid #e2e8f0;border-top-color:#1e3a5f;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px"></div>
-          <p style="font-size:14px;margin:0">جاري تجهيز البيانات الحقيقية...</p>
-        </div>
-      </div>
-      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
-    </div>`,
+    `<div id="seo-static-page-content" class="seo-crawler-content">${stripInlineStyles(generateHomepageStaticContent())}</div>
+    <div id="root"><div id="app-loading-shell" class="app-loading-shell" aria-live="polite"><div class="app-loading-spinner" aria-hidden="true"></div><p>جاري تجهيز البيانات الحقيقية...</p></div></div>`,
   );
 }
 

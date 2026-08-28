@@ -41,6 +41,9 @@ const DEFAULTS: Record<string, string> = {
   social_tiktok: "",
   social_snapchat: "",
   social_youtube: "",
+  social_linkedin: "",
+  analytics_google_tag_id: "",
+  facebook_pixel_id: "",
   homepage_content: "{}",
   // Stats bar
   stats_items: JSON.stringify([]),
