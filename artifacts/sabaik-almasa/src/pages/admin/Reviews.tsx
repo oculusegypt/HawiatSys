@@ -42,11 +42,16 @@ export default function AdminReviews() {
   const [editingReview, setEditingReview] = useState<Review | null>(null)
   const [actionLoading, setActionLoading] = useState<number | null>(null)
 
+  const getAuthHeaders = (): Record<string, string> => {
+    const token = localStorage.getItem("admin_token")
+    return token ? { Authorization: `Bearer ${token}` } : {}
+  }
+
   const loadData = async () => {
     try {
       setIsLoading(true)
       const [revRes, svcRes] = await Promise.all([
-        fetch("/api/admin/reviews"),
+        fetch("/api/admin/reviews", { headers: getAuthHeaders() }),
         fetch("/api/services"),
       ])
       if (revRes.ok) {
@@ -73,7 +78,7 @@ export default function AdminReviews() {
       setActionLoading(id)
       const res = await fetch(`/api/admin/reviews/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify({ status }),
       })
       if (res.ok) {
@@ -92,7 +97,10 @@ export default function AdminReviews() {
     if (!confirm("هل أنت متأكد من حذف هذا التقييم نهائياً؟")) return
     try {
       setActionLoading(id)
-      const res = await fetch(`/api/admin/reviews/${id}`, { method: "DELETE" })
+      const res = await fetch(`/api/admin/reviews/${id}`, {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+      })
       if (res.ok) {
         setReviews((prev) => prev.filter((r) => r.id !== id))
       }
@@ -110,7 +118,7 @@ export default function AdminReviews() {
       setActionLoading(editingReview.id)
       const res = await fetch(`/api/admin/reviews/${editingReview.id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify({
           customerName: editingReview.customerName,
           customerCity: editingReview.customerCity,
