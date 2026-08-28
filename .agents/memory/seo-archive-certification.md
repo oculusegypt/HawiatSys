@@ -14,3 +14,9 @@ The prerender step must also replace the root HTML public-origin placeholder; ot
 **Why:** Vite copies the source placeholder into the first response, while React settings load asynchronously after the page has already begun rendering.
 
 **How to apply:** Assert that the extracted archive homepage contains the configured origin in `site-public-url`, canonical, OG URL, JSON-LD, sitemap, and robots.
+
+The SEO gate must resolve the public origin through the same explicit build override used by sitemap generation when the development setting is intentionally blank.
+
+**Why:** The development database may leave the public URL empty for runtime auto-detection, while a production archive still needs one canonical HTTPS origin.
+
+**How to apply:** Pass the production origin explicitly during archive certification and compare the extracted archive against that origin.

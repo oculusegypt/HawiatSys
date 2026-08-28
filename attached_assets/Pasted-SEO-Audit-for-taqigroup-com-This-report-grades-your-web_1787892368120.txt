@@ -1,0 +1,508 @@
+SEO Audit for taqigroup.com
+This report grades your website based on the strength of various SEO factors such as On Page Optimization, Off Page Links, Social and more. The overall Grade is on a A+ to F- scale, with most major, industry leading websites in the A range. Improving your grade will generally make your website perform better for users and rank better in search engines. There are recommendations for improving your website at the bottom of the report. Feel free to reach out to us if you’d like us to help with improving your website’s SEO!
+Audit Results
+Your page could be better
+
+
+On-Page SEO
+
+GEO
+
+Links
+
+Usability
+
+Performance
+
+Report Generated: 28 August 4:43AM UTC
+Recommendations
+Execute a Link Building Strategy
+Links
+High Priority
+Increase length of Meta Description
+On-Page SEO
+Low Priority
+Add Identity Schema
+GEO
+Low Priority
+Update Link URLs to be more readable
+Links
+Low Priority
+Create Google Business Profile
+Other
+Low Priority
+Reduce Rendered Content
+GEO
+Low Priority
+Add FAQ / Q&A Content
+GEO
+Low Priority
+Optimize for Mobile PageSpeed Insights
+Usability
+Low Priority
+Create and link an associated YouTube Channel
+Other
+Low Priority
+Create and link an associated LinkedIn Profile
+Other
+Low Priority
+Implement an Analytics Tracking Tool
+On-Page SEO
+Low Priority
+Add Business Address and Phone Number to site
+Other
+Low Priority
+Add Local Business Schema
+Other
+Low Priority
+Install a Facebook Pixel
+Other
+Low Priority
+Remove Inline Styles
+Performance
+Low Priority
+On-Page SEO Results
+Your On-Page SEO is very good!
+Congratulations, your On-Page SEO is well optimized. On-Page SEO is important to ensure Search Engines can understand your content appropriately and help it rank for relevant keywords. You can continue to build on your strong position through testing content improvements for gradual gains.
+Title Tag
+You have a Title Tag of optimal length (between 50 and 60 characters).
+مؤسسة تقي | تأجير حاويات الأنقاض والنفايات بالرياض
+Length : 50
+Meta Description Tag
+Your page has a Meta Description Tag however, your Meta Description should ideally be between 120 and 160 characters (including spaces).
+مؤسسة تقي جروب لخدمات تأجير الحاويات ونقل الأنقاض ومخلفات البناء في الرياض.
+Length : 75
+A Meta Description is important for search engines to understand the content of your page, and is often shown as the description text blurb in search results.
+SERP Snippet Preview
+This illustrates how your page may appear in Search Results. Note, this is intended as a guide and Search Engines are more frequently generating this content dynamically.
+
+مؤسسة تقي
+https://taqigroup.com
+مؤسسة تقي | تأجير حاويات الأنقاض والنفايات بالرياض
+مؤسسة تقي جروب لخدمات تأجير الحاويات ونقل الأنقاض ومخلفات البناء في الرياض.
+Hreflang Usage
+Your page is not making use of Hreflang attributes.
+Language
+Your page is using the Lang Attribute.
+Declared: Arabic
+H1 Header Tag Usage
+Your page has a H1 Tag.
+H2-H6 Header Tag Usage
+Your page is making use multiple levels of Header Tags.
+Header Tag	Frequency	
+H2	15	
+H3	28	
+H4	7	
+H5	0	
+H6	0	
+Keyword Consistency
+Your page's main keywords are distributed well across the important HTML Tags.
+Individual Keywords
+Keyword	Title	Meta Description Tag	Headings Tags	Page Frequency	
+الرياض	
+44	
+الحاويات	
+25	
+تقي	
+16	
+الحاوية	
+15	
+حاويات	
+15	
+تأجير	
+14	
+اطلب	
+13	
+الأنقاض	
+13	
+Phrases
+Phrase	Title	Meta Description Tag	Headings Tags	Page Frequency	
+في الرياض	
+11	
+تقي جروب	
+11	
+تأجير الحاويات	
+10	
+مؤسسة تقي	
+9	
+ونقل الأنقاض	
+7	
+نقل الأنقاض	
+5	
+البناء والهدم	
+5	
+الحاويات ونقل	
+5	
+Generally a page should be targeted to rank for particular set of keywords or phrases. These keywords should be used with some consistency in page content (naturally and without stuffing) to maximize ranking potential for those keywords. This means these keywords should be present across the most important HTML Tags of the page, and used with some frequency in the general page text content. The keyword consistency check illustrates the keywords we have identified appearing most frequently in these areas.
+
+If the keywords and phrases identified don't match your intended ranking keywords, and do not show a level of consistency, you should consider amending your core page content to better include these.
+
+Learn more in our guide
+
+Amount of Content
+Your page has a good level of textual content, which will assist in it's ranking potential.
+Word Count: 1604
+Image Alt Attributes
+You do not have any images missing Alt Attributes on your page.
+Canonical Tag
+Your page is using the Canonical Tag.
+https://taqigroup.com/
+Noindex Tag Test
+Your page is not using the Noindex Tag which prevents indexing.
+Noindex Header Test
+Your page is not using the Noindex Header which prevents indexing.
+SSL Enabled
+Your website has SSL enabled.
+HTTPS Redirect
+Your page successfully redirects to a HTTPS (SSL secure) version.
+Robots.txt
+Your website appears to have a robots.txt file.
+http://taqigroup.com/robots.txt
+Search Engines Blocked by Robots.txt
+Your page is crawlable by the major search engines.
+No major search engines are blocked in your robots.txt.
+XML Sitemaps
+Your website appears to have an XML Sitemap.
+https://taqigroup.com/sitemap.xml
+Analytics
+We could not detect an analytics tool installed on your page.
+Website analytics tools like Google Analytics assist you in measuring, analyzing and ultimately improving traffic to your page.
+Schema.org Structured Data
+You are using JSON-LD Schema on your page.
+Generative Engine Optimization (GEO)
+Your Generative Engine Optimization could be better
+Your page has some level positioning for Generative Engine Optimization (GEO). GEO is important to ensure LLMs and AI Search Engines can effectively crawl your content and understand the underlying entity structure. Consider additional enhancements to improve visibility in LLMs as this is becoming a rapidly growing traffic source.
+Rendered Content (LLM Readability)
+Your page has a high level of rendering (changes to the HTML).
+Rendering Percentage: 1008%
+Dynamically rendering a lot of page content risks some important information being missed by LLMs that generally do not read this content.
+Llms.txt
+Your website appears to have a llms.txt file.
+Llms.txt is a proposed standard for websites to guide large language models (LLMs) to better understand your site's content.
+http://taqigroup.com/llms.txt
+AI Crawlers Blocked by Robots.txtNew
+Your robots.txt allows the major AI crawlers to access your site.
+No major AI crawlers are blocked in your robots.txt.
+Identity SchemaNew
+No Organization or Person Schema identified on the page.
+The absence of Organization or Person Schema can make it harder for Search Engines and LLMs to identify the ownership of a website and confidently answer brand, company or person queries.
+Entity DefinitionNew
+Your page clearly defines the entity it represents.
+تعرّف الصفحة مؤسسة تقي جروب بوضوح، وتشرح خدمات تأجير الحاويات ونقل الأنقاض وإدارة المخلفات ومجال تغطيتها.
+Contact TransparencyNew
+Your page clearly provides business details and contact points.
+توفر الصفحة عنواناً بالرياض، وأربعة أرقام هاتف، وواتساب، ونموذج طلب، وحساباً اجتماعياً، مع غياب بيانات التسجيل.
+Answer AlignmentNew
+Your page includes little question-and-answer style content.
+تذكر الصفحة قسم الأسئلة الشائعة وبعض العناوين الاستفهامية، لكنها لا تعرض إجابات منظمة وكاملة ضمن المحتوى الظاهر.
+Citation ReadinessNew
+Your page contains easily citable facts, quotes or statistics.
+تقدم الصفحة تفاصيل قابلة للاقتباس عن الأسعار، والأحجام، والمناطق، والمدد، والخدمات، والتراخيص، وأوقات التوصيل.
+Content StructureNew
+Your page is well structured and easy for AI to parse.
+تنظم الصفحة المحتوى بعناوين واضحة، وبطاقات خدمات، وقوائم، وخطوات مرقمة، ونماذج، وفقرات قصيرة سهلة المسح البصري.
+Content FreshnessNew
+Your page shows clear signals that its content is current.
+تتضمن الصفحة مقالات مؤرخة في أغسطس ٢٠٢٦، وحقوقاً محفوظة لعام ٢٠٢٦، وأسعاراً وخدمات تشغيلية حديثة.
+Authority & Trust SignalsNew
+Your page shows authority and trust signals, though these could be stronger.
+تعرض الصفحة تقييمات عملاء مسماة، وشريكاً معتمداً، وعقوداً موثقة، ومعايير بيئية، لكنها تفتقر إلى شهادات أو مصادر خارجية واضحة.
+Links
+Backlink Summary
+You have a reasonably weak level of backlink activity to this page.
+Search Engines use backlinks as a strong indicator of a page's authority, relevance and ranking potential. There are various strategies available to gain links to a page to improve this factor
+Domain
+Strength
+
+Page
+Strength
+
+31
+Total Backlinks
+24
+Referring Domains
+31
+Nofollow Backlinks
+0
+Dofollow Backlinks
+0
+Edu Backlinks
+0
+Gov Backlinks
+4
+IPs
+4
+Subnets
+Backlinks are links to your site from another site. Search Engines can see these interconnections and use them as a strong signal of the importance and authority of your page or content. Backlinks are one of the most important ranking factors, and in general, more links from authoritative websites will improve the ranking ability of your site. Building Backlinks can be a difficult and time consuming activity, though the rewards are large when done successfully.
+
+We recommend having a strategy in place for Building Backlinks to your site. Some common methods including adding your site to relevant online directories, asking other sites to link to you, performing outreach and guest blogging on other websites or creating 'lead magnet' content that encourages linking.
+
+Learn more in our guide
+
+Top Backlinks
+These are the highest value external pages we have found linking to your site.
+Domain
+strength	Referring Page URL	Referring Page Title	Anchor Text
+66	https://quero.party/report/22683	👲 Domain Report 👲	taqigroup.com
+65	https://urls-shortener.eu/share/22683	❤️ URL Shared ❤️	taqigroup.com
+64	https://bye.fyi/report/22684	👲 Domain Report 👲	taqigroup.com
+63	https://drjack.world/report/22683	👲 Domain Report 👲	taqigroup.com
+62	https://atomizelink.icu/report/22683	👲 Domain Report 👲	taqigroup.com
+59	https://byteshort.xyz/report/22683	👲 Domain Report 👲	taqigroup.com
+58	https://backlinks-checker.com/share/22683	❤️ URL Shared ❤️	taqigroup.com
+58	https://shortenurls.eu/share/1678354	❤️ URL Shared ❤️	taqigroup.com
+58	https://metamagic.top/stats/22684	✅ Website Stats 📊	taqigroup.com
+58	https://anchorurl.cloud/share/22683	❤️ URL Shared ❤️	taqigroup.com
+Top Pages by Backlinks
+These are the pages on your site with the most the backlinks from other sites.
+URL	Backlinks	
+https://taqigroup.com/	31	
+Top Anchors by Backlinks
+These are the top pieces of Anchor Text we found used to link to your site.
+Anchor	Backlinks	
+taqigroup.com	31	
+Top Referring Domain Geographies
+These are the Top Geographies we have found linking to your site.
+Top TLDs
+24
+Referring
+Domains
+top
+5
+com
+4
+eu
+3
+app
+1
+Other
+11
+Top Countries
+24
+Referring
+Domains
+FI
+20
+SG
+2
+US
+2
+On-Page Link Structure
+We found 84 total links. 13% of your links are external links and are sending authority to other sites. % of your links are nofollow links, meaning authority is not being passed to those destination pages.
+On-Page Links
+84
+Total
+Internal Links
+73
+External Links: Follow
+11
+External Links: Nofollow
+0
+Friendly Links
+Some of your link URLs do not appear friendly to humans or search engines.
+We would recommend making URLs as readable as possible by reducing length, file names, code strings and special characters.
+Usability
+Your usability is good
+Your page is mostly usable across devices. Usability is important to maximize your available audience and minimize user bounce rates (which can indirectly affect your search engine rankings).
+Device Rendering
+This check visually demonstrates how your page renders on different devices. It is important that your page is optimized for mobile and tablet experiences as today the majority of web traffic comes from these sources.
+Google's Core Web Vitals
+Google is indicating that they do not have 'sufficient real-world speed data for this page' in order to make a Core Web Vitals assessment. This can occur for smaller websites or those that are not crawl-able by Google.
+Use of Mobile Viewports
+Your page specifies a Viewport matching the device's size, allowing it to render appropriately across devices.
+Google's PageSpeed Insights - Mobile
+Google is indicating that your page is scoring poorly on their Mobile PageSpeed Insights evaluation.
+
+Note that this evaluation is being performed from US servers and the results may differ slightly from an evaluation carried out from Google's PageSpeed Web Interface as that reporting localizes to the region in which you are running the report.
+Google has indicated that the performance of a webpage is becoming more important from a user and subsequently ranking perspective.
+Lab Data	Value
+First Contentful Paint	4.3 s
+Speed Index	7.2 s
+Largest Contentful Paint	5.9 s
+Time to Interactive	5.9 s
+Total Blocking Time	0.03 s
+Cumulative Layout Shift	0
+Opportunities	Estimated Savings
+Avoid multiple page redirects	0.63 s
+Reduce unused JavaScript	0.3 s
+Google's PageSpeed Insights - Desktop
+Google is indicating that your page is scoring well on their Desktop PageSpeed Insights evaluation.
+Lab Data	Value
+First Contentful Paint	0.8 s
+Speed Index	1.1 s
+Largest Contentful Paint	0.8 s
+Time to Interactive	0.8 s
+Total Blocking Time	0 s
+Cumulative Layout Shift	0
+Opportunities	Estimated Savings
+Avoid multiple page redirects	0.19 s
+Flash Used?
+No Flash content has been identified on your page.
+iFrames Used?
+There are no iFrames detected on your page.
+Favicon
+Your page has specified a Favicon.
+Email Privacy
+No email addresses have been found in plain text on your page.
+Legible Font Sizes
+The text on your page appears to be legible across devices.
+Tap Target Sizing
+The links and buttons on your page appear to be appropriately sized for a user to easily tap on a touchscreen.
+Performance Results
+Your performance is very good!
+Congratulations, your page has performed very well in our testing meaning it should be reasonably fast and responsive for users. Performance is important to ensure a good user experience, and reduced bounce rates (which can also indirectly affect your search engine rankings). Continue to monitor your performance over time to ensure there are no periodic fluctuations.
+Website Load Speed
+Your page loads in a reasonable amount of time.
+Server Response
+0.220s
+All Page Content Loaded
+0.6s
+All Page Scripts Complete
+1.8s
+Website Download Size
+Your page's file size is reasonably low which is good for Page Load Speed and user experience.
+Download Page Size
+2.43MB
+Download Page Size Breakdown
+2.43MB
+Total
+HTML
+0MB
+CSS
+0.04MB
+JS
+0.31MB
+Images
+1.84MB
+Other
+0.23MB
+Compression Usage (Gzip, Deflate, Brotli)
+Your website appears to be using a reasonable level of compression.
+Compression Rate
+32%
+Compression Rates
+HTML
+72% compressed of 0.02MB
+CSS
+86% compressed of 0.29MB
+JS
+71% compressed of 1.07MB
+Images
+0% compressed of 1.84MB
+Other
+39% compressed of 0.37MB
+Total
+32% compressed of 3.60MB
+Resources Breakdown
+This check displays the total number of files that need to be retrieved from web servers to load your page.
+54
+
+Total Objects
+
+1
+
+Number of HTML Pages
+
+11
+
+Number of JS Resources
+
+3
+
+Number of CSS Resources
+
+10
+
+Number of Images
+
+29
+
+Other Resources
+
+Google Accelerated Mobile Pages (AMP)
+This page does not appear to have AMP Enabled.
+JavaScript Errors
+Your page is not reporting any JavaScript errors.
+HTTP2 Usage
+Your website is using the recommended HTTP/2+ Protocol.
+Optimize Images
+All of the images on your page appear to be optimized.
+Minification
+All your JavaScript and CSS files appear to be minified.
+Deprecated HTML
+No deprecated HTML tags have been found within your page.
+Inline Styles
+Your page appears to be using Inline Styles.
+Inline Styles are an older coding practice and discouraged in favor of using CSS style sheets, due to their ability to degrade page load performance and unnecessarily complicate HTML Code.
+Social Results
+Facebook Page Linked
+Your page has a link to a Facebook Page.
+	https://facebook.com/Aiservx
+Facebook Open Graph Tags
+Your page is using Facebook Open Graph Tags.
+Facebook Pixel
+We have not detected a Facebook Pixel on your page.
+Facebook's Pixel is a useful piece of analytics code that allows you to retarget visitors if you decide to run Facebook Ads in future.
+X (formerly Twitter) Account Linked
+Your page has a link to a X Profile.
+	https://x.com/Aiservx
+X Cards
+Your page is using X Cards.
+Instagram Linked
+Your page has a link to an Instagram Profile.
+	https://instagram.com/Aiservx
+LinkedIn Page Linked
+No associated LinkedIn Profile found linked on your page.
+YouTube Channel Linked
+No associated YouTube Channel found linked on your page.
+YouTube Channel Activity
+No associated YouTube Channel found linked on your page.
+Local SEO
+Address & Phone Shown on Website
+We can't identify one or both of these components on the page. Missing: Address
+Phone	+1 0557870222
+Local Business Schema
+No Local Business Schema identified on the page.
+Google Business Profile Identified
+No Google Business Profile was identified that links to this website.
+Google Business Profile Completeness
+No Google Business Profile was identified that links to this website.
+Google Reviews
+No Google Business Profile was identified that links to this website.
+Technology Results
+Technology List
+These software or coding libraries have been identified on your page.
+Technology	Version
+	Hostinger	
+	Hostinger CDN	
+	HTTP/3	
+	Leaflet	
+Server IP Address
+148.135.128.19
+DNS Servers
+nebula.dns-parking.com
+aurora.dns-parking.com
+Web Server
+hcdn
+Charset
+text/html
+DMARC Record
+This site appears to have a valid DMARC record in place.
+v=DMARC1; p=none
+SPF Record
+This site appears to have an SPF record.
+v=spf1 include:_spf.mail.hostinger.com ~all
+Review Child Pages
+Page
+/about
+/admin/login
+/areas
+/areas/al-diriyah
+/areas/central-riyadh
+/areas/east-riyadh
+/areas/north-riyadh
+/areas/south-riyadh
+/areas/west-riyadh
+/areas/جنوب-الرياض
+/areas/حي-الحائر
+/areas/حي-الروضة

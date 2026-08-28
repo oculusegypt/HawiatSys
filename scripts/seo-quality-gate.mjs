@@ -16,6 +16,7 @@ import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
+import { resolvePublicOrigin } from "./public-origin.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(join(root, "lib", "db", "package.json"));
@@ -26,10 +27,14 @@ const distSitemap = join(root, "artifacts", "sabaik-almasa", "dist", "public", "
 const buildSitemap = join(root, "build_php", "sitemap.xml");
 
 const db = new Database(join(root, "data", "sabaik.db"), { readonly: true });
-const siteUrl = String(
+const configuredSiteUrl = String(
   db.prepare("SELECT value FROM site_settings WHERE key = 'site_public_url'").get()?.value || "",
-).trim().replace(/\/+$/, "");
+).trim();
 db.close();
+const siteUrl = resolvePublicOrigin({
+  settings: { site_public_url: configuredSiteUrl },
+  env: process.env,
+});
 
 const failures = [];
 const pass = (message) => console.log(`PASS ${message}`);
@@ -41,7 +46,7 @@ const requireFile = (file, label) => {
 const sha256 = (file) => createHash("sha256").update(readFileSync(file)).digest("hex");
 const count = (source, pattern) => (source.match(pattern) || []).length;
 
-if (!siteUrl || !/^https:\/\//i.test(siteUrl)) fail("site_public_url must be a configured HTTPS origin");
+if (!siteUrl || !/^https:\/\//i.test(siteUrl)) fail("a valid public HTTPS origin must be configured or passed as SITE_URL");
 if (siteUrl && /localhost|replit\.dev|replit\.app/i.test(siteUrl)) fail("site_public_url points to a non-production origin");
 else if (siteUrl) pass(`configured origin ${siteUrl}`);
 
