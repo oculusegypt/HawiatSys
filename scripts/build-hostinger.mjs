@@ -108,10 +108,7 @@ function prepareArchiveSourceDatabase() {
 
     let copiedTables = 0;
     for (const table of sourceTables) {
-      if (badRootPages.has(Number(table.rootpage))) {
-        console.warn(`  ⏭  تم تجاوز الجدول المتضرر ${table.name} (rootpage ${table.rootpage})`);
-        continue;
-      }
+      const tableIsKnownCorrupt = badRootPages.has(Number(table.rootpage));
       const sourceTable = quoteIdentifier(table.name);
       const sourceColumns = sourceDb.prepare(`PRAGMA table_info(${sourceTable})`).all().map((column) => column.name);
       const archiveColumns = archiveDb.prepare(`PRAGMA table_info(${sourceTable})`).all().map((column) => column.name);
@@ -126,8 +123,11 @@ function prepareArchiveSourceDatabase() {
           `SELECT ${columns.map(quoteIdentifier).join(", ")} FROM ${sourceTable} NOT INDEXED`,
         ).all();
       } catch (error) {
-        console.warn(`  ⏭  تعذر قراءة ${table.name}: ${error.message}`);
+        console.warn(`  ⏭  تعذر قراءة ${table.name}${tableIsKnownCorrupt ? " (جدول متضرر)" : ""}: ${error.message}`);
         continue;
+      }
+      if (tableIsKnownCorrupt) {
+        console.warn(`  ⚠️ تمت قراءة ${table.name} عبر NOT INDEXED رغم تلف فهرسه`);
       }
       copyTable(table.name, columns, rows);
       copiedTables += 1;

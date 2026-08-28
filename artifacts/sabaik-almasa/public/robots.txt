@@ -4,7 +4,7 @@ Disallow: /admin/
 Disallow: /api/
 
 # Tell search engines where the site's canonical URL inventory lives.
-Sitemap: https://taqigroup.com/sitemap.xml
+Sitemap: https://hawiat.aiservx.com/sitemap.xml
 
 # AI Search Engine Crawlers - Allowed
 User-agent: GPTBot

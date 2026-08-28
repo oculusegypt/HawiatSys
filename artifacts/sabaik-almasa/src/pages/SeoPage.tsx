@@ -285,8 +285,8 @@ export default function SeoPage() {
         </div>
 
         {image && (
-          <div className="h-48 w-full overflow-hidden bg-primary/10 md:h-72">
-            <img src={image} alt={seoImageAlt(page.title)} className="h-full w-full object-cover" width="1200" height="675" data-testid="img-seo-page-cover" />
+          <div className="flex min-h-64 max-h-[36rem] w-full items-center justify-center overflow-hidden bg-slate-100 px-2 md:px-6">
+            <img src={image} alt={seoImageAlt(page.title)} className="block h-auto max-h-[36rem] max-w-full object-contain" width="1200" height="675" data-testid="img-seo-page-cover" />
           </div>
         )}
 
