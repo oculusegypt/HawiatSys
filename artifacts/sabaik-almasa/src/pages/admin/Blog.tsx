@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { useToast } from "@/hooks/use-toast"
-import { replaceLegacyCompanyName, useSiteSettings } from "@/context/SiteSettingsContext"
+import { normalizeCompanyText, useSiteSettings } from "@/context/SiteSettingsContext"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -369,7 +369,7 @@ export default function AdminBlog() {
         ...f,
         title, excerpt, category,
         tags:     JSON.stringify(tagsArr),
-        readTime, author: replaceLegacyCompanyName(db.author || companyName, companyName),
+        readTime, author: normalizeCompanyText(db.author || companyName),
         seoSlug: slugify(title), slug: slugify(title),
       }))
 
@@ -398,7 +398,7 @@ export default function AdminBlog() {
         ...f,
         title, excerpt, category,
         tags: JSON.stringify(tagsArr), readTime,
-        author: replaceLegacyCompanyName(db.author || companyName, companyName),
+        author: normalizeCompanyText(db.author || companyName),
         content:        dc.content       || f.content,
         seoTitle:       ds.seoTitle      || "",
         seoDescription: ds.seoDescription || "",

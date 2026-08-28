@@ -20,7 +20,7 @@ import {
 } from "lucide-react"
 import { useServiceRequest } from "@/context/ServiceRequestContext"
 import { getSiteUrl } from "@/lib/siteUrl"
-import { replaceLegacyCompanyName, useSiteSettings } from "@/context/SiteSettingsContext"
+import { normalizeCompanyText, useSiteSettings } from "@/context/SiteSettingsContext"
 
 export interface AreaData {
   name: string
@@ -522,8 +522,8 @@ export default function NeighborhoodPage() {
   const { companyName, phoneCall, phoneWhatsapp, logoUrl, priceRange, address, city, region, country } = useSiteSettings()
   const currentCompany = companyName || ""
 
-  const areaTitle = area ? replaceLegacyCompanyName(area.title, currentCompany) : ""
-  const areaDescription = area ? replaceLegacyCompanyName(area.description, currentCompany) : ""
+  const areaTitle = area ? normalizeCompanyText(area.title) : ""
+  const areaDescription = area ? normalizeCompanyText(area.description) : ""
 
   useEffect(() => {
     if (!area) return

@@ -3,7 +3,7 @@ import { Link, useRoute } from "wouter"
 import { Navbar } from "@/components/layout/Navbar"
 import { Footer } from "@/components/layout/Footer"
 import { useServiceRequest } from "@/context/ServiceRequestContext"
-import { replaceLegacyCompanyName, useSiteSettings } from "@/context/SiteSettingsContext"
+import { normalizeCompanyText, useSiteSettings } from "@/context/SiteSettingsContext"
 import { getSiteUrl, sitePath, siteUrl } from "@/lib/siteUrl"
 import {
   ArrowRight,
@@ -138,12 +138,12 @@ export default function SeoPage() {
         if (cancelled) return
         const resolvedData = {
           ...data,
-          title: replaceLegacyCompanyName(data.title, companyName),
-          excerpt: replaceLegacyCompanyName(data.excerpt, companyName),
-          content: replaceLegacyCompanyName(data.content, companyName),
-          seoTitle: replaceLegacyCompanyName(data.seoTitle, companyName),
-          seoDescription: replaceLegacyCompanyName(data.seoDescription, companyName),
-          seoKeywords: replaceLegacyCompanyName(data.seoKeywords, companyName),
+          title: normalizeCompanyText(data.title),
+          excerpt: normalizeCompanyText(data.excerpt),
+          content: normalizeCompanyText(data.content),
+          seoTitle: normalizeCompanyText(data.seoTitle),
+          seoDescription: normalizeCompanyText(data.seoDescription),
+          seoKeywords: normalizeCompanyText(data.seoKeywords),
         }
         setPage(resolvedData)
         setLoading(false)
@@ -152,7 +152,7 @@ export default function SeoPage() {
         const description = resolvedData.seoDescription || resolvedData.excerpt
         const canonical = siteUrl(sitePath(resolvedData.canonicalUrl || window.location.pathname))
         const image = toAbsoluteAsset(resolvedData.ogImage || resolvedData.coverImage)
-        const resolvedTitle = replaceLegacyCompanyName(`${title} | ${companyName || "الشركة"}`, companyName)
+        const resolvedTitle = normalizeCompanyText(`${title} | ${companyName || "الشركة"}`)
         document.title = resolvedTitle
         setMeta("description", description)
         setMeta("keywords", resolvedData.seoKeywords || resolvedData.targetKeyword)

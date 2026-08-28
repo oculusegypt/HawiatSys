@@ -4,7 +4,7 @@ import { useGetTestimonials, useCreateTestimonial } from "@workspace/api-client-
 import { Star, Quote } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { replaceLegacyCompanyName, useSiteSettings } from "@/context/SiteSettingsContext"
+import { normalizeCompanyText, useSiteSettings } from "@/context/SiteSettingsContext"
 
 export function Testimonials() {
   const { data: testimonials, refetch } = useGetTestimonials()
@@ -90,7 +90,7 @@ export function Testimonials() {
               </div>
               
               <p className="text-gray-700 leading-relaxed mb-8 relative z-10 min-h-[80px]">
-                 "{replaceLegacyCompanyName(testimonial.content, companyName)}"
+                 "{normalizeCompanyText(testimonial.content)}"
               </p>
               
               <div className="flex items-center gap-4 border-t border-gray-100 pt-6">

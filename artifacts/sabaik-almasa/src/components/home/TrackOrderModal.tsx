@@ -7,7 +7,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { replaceLegacyCompanyName, useSiteSettings } from "@/context/SiteSettingsContext"
+import { normalizeCompanyText, useSiteSettings } from "@/context/SiteSettingsContext"
 
 const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
 
@@ -262,7 +262,7 @@ export function TrackOrderModal({ isOpen, onClose, initialId }: TrackOrderModalP
                           <span className={`text-sm font-bold ${cfg.color}`}>{cfg.label}</span>
                         </div>
                       </div>
-                     <p className={`text-sm ${cfg.color} font-medium`}>{replaceLegacyCompanyName(cfg.desc, companyName)}</p>
+                     <p className={`text-sm ${cfg.color} font-medium`}>{normalizeCompanyText(cfg.desc)}</p>
                     </div>
 
                     {/* Progress steps (not cancelled) */}

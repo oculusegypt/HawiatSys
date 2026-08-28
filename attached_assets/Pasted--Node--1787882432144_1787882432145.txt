@@ -1,0 +1,371 @@
+كمل التنفيذ من الحالة الحالية، لكن انتبه جيدًا: **مشروعي لا يدعم Node في الإنتاج ولا أريد أي حل يعتمد على Node/Express. الإنتاج هو Hostinger + PHP + SQLite، وأي Node موجود في المستودع هو للتطوير/البناء فقط ما لم يثبت العكس.**
+
+هناك الآن مشكلتان حقيقيتان يجب إغلاقهما بالكامل، ولا أريد خطة أو تدقيقًا جديدًا. **نفّذ مباشرة ثم اختبر.**
+
+---
+
+# أولًا: مشكلة Flash / Loading في جميع الصفحات
+
+حاليًا عند فتح:
+
+* لوحة التقارير والتحليلات
+* صفحة تسجيل الدخول
+* والصفحات الأخرى عمومًا
+
+تظهر بيانات/عناصر أولية أثناء التحميل ثم تختفي، وبعد اكتمال التحميل يظهر المحتوى الحقيقي.
+
+هذا السلوك **مرفوض بصريًا**.
+
+لا أريد مجرد زيادة `setTimeout` أو إخفاء المشكلة بـspinner عشوائي.
+
+أريد تحديد السبب المعماري الحقيقي، وغالبًا سيكون واحدًا أو أكثر من:
+
+* hydration mismatch
+* initial state خاطئ
+* تحميل settings بعد أول render
+* auth state غير محسوم
+* API data تبدأ بقيمة افتراضية ثم تستبدل
+* route/page rendering قبل اكتمال bootstrap
+* skeleton غير موحد
+* مكونات تعرض بيانات fallback ثم تستبدلها بالبيانات الحقيقية
+* React effect يعيد تركيب المحتوى بعد mount
+* layout أو context يعيد render الصفحة مرتين
+* SSR/prerender/static HTML لا يطابق أول React render
+
+## المطلوب
+
+افحص المشكلة على مستوى **النظام كله** وليس صفحة واحدة.
+
+ابحث عن جميع الأنماط التي تسبب:
+
+* content flash
+* stale initial content
+* placeholder content ثم replacement
+* flash of authenticated/unauthenticated state
+* flash of default settings
+* flash of empty/default analytics
+* layout shift بسبب انتظار البيانات
+
+ثم أصلح السبب المشترك قدر الإمكان.
+
+### شرط مهم
+
+لا تجعل المستخدم يرى:
+`بيانات قديمة → تختفي → بيانات حقيقية`
+
+ولا:
+`محتوى افتراضي → يختفي → محتوى API`
+
+ولا:
+`صفحة كاملة → تختفي → صفحة أخرى`
+
+بل يجب أن يكون هناك **loading state مقصود ومتناسق** إلى أن تتوفر البيانات اللازمة.
+
+إذا كانت البيانات لا يمكن عرضها قبل API، اعرض Skeleton مناسبًا للمكان بدل عرض بيانات وهمية.
+
+أما البيانات التي يمكن معرفتها من الـURL أو static build فلا تنتظر API بلا داعٍ.
+
+## اختبر ذلك على الأقل في:
+
+* Login
+* Home
+* Dashboard
+* Analytics
+* Reports
+* أي صفحات تعتمد على SiteSettings
+* أي صفحات تعتمد على Authentication
+* الصفحات التي تعتمد على API data
+* صفحات الإدارة
+* صفحات العملاء/الخدمات إن وجدت
+
+استخدم browser/runtime inspection وتأكد أن أول حالة مرئية للمستخدم هي الحالة الصحيحة أو Skeleton، وليس محتوى خاطئًا مؤقتًا.
+
+**لا أريد إصلاح صفحة Analytics فقط إذا كان السبب موجودًا في Context/Layout مشترك.**
+
+---
+
+# ثانيًا: إزالة "سبائك الماسة" بالكامل من المشروع
+
+هناك ظهور لعبارة:
+
+**"سبائك الماسة"**
+
+في بعض:
+
+* العناوين
+* المواضيع
+* الصفحات
+* البيانات
+* وربما قاعدة البيانات
+
+أريد حذف هذا الاسم **بالكامل من المشروع**.
+
+ليس فقط من الواجهة.
+
+## ابحث في كامل المشروع عن جميع الصيغ المحتملة
+
+ابحث عن:
+
+`سبائك الماسة`
+
+وكذلك احتمالات:
+
+* سبائك
+* الماسة
+* سبائك الماسه
+* سبائك-الماسة
+* سبائك_الماسة
+* `Sabaik`
+* `Sabaik Almasa`
+* `sabaik`
+* `sabaik-almasa`
+* أي slug أو identifier أو seed مرتبط بالاسم
+
+وابحث في:
+
+* React
+* TypeScript
+* JavaScript
+* PHP
+* JSON
+* Markdown
+* SQL
+* SQLite
+* migrations
+* seeds
+* fixtures
+* mock data
+* demo data
+* scripts
+* build scripts
+* prerender scripts
+* sitemap generation
+* static HTML
+* metadata
+* SEO
+* JSON-LD
+* titles
+* descriptions
+* keywords
+* canonical/OG data
+* routes
+* redirects
+* configuration
+* environment examples
+* documentation
+* `.agents`
+* memory/project docs
+* test files
+* snapshots
+* generated files
+* public/
+* dist/build إن كانت موجودة
+* أي ملفات قديمة أو compatibility files
+
+**لا تفترض أن حذف النص من React يكفي.**
+
+---
+
+# قاعدة البيانات
+
+هذه أهم نقطة.
+
+افحص SQLite وقاعدة البيانات الفعلية المستخدمة في المشروع.
+
+ابحث عن الاسم داخل:
+
+* جميع الجداول
+* جميع الأعمدة النصية
+* site settings
+* pages
+* articles
+* services
+* categories
+* SEO fields
+* titles
+* descriptions
+* slugs
+* navigation
+* tenants/companies
+* seed records
+* demo records
+
+حدد كل record يحتوي على الاسم أو مشتقاته.
+
+ثم أزل/استبدل هذه البيانات بشكل صحيح.
+
+**لا تحذف سجلات سليمة بالكامل لمجرد أنها مرتبطة بصفحة؛ عدّل الحقول المطلوبة أو احذف السجلات الوهمية/القديمة فقط إذا ثبت أنها خاصة بـ"سبائك الماسة".**
+
+---
+
+# Seeds / Scripts
+
+هذه النقطة إلزامية.
+
+حتى لو حذفت البيانات من SQLite، يجب ألا يعود الاسم عند تشغيل:
+
+* seed
+* migration
+* reset
+* demo-data
+* setup
+* import
+* fixture
+* deployment script
+* build script
+
+ابحث عن المصدر الذي أنشأ هذه البيانات أصلًا وأزله.
+
+الهدف:
+
+**بعد حذف الاسم، تشغيل أي seed/reset/build/import متاح في المشروع يجب ألا يعيد "سبائك الماسة".**
+
+---
+
+# SEO
+
+بعد التنظيف، تحقق خصوصًا من:
+
+* `<title>`
+* meta description
+* H1
+* H2
+* JSON-LD
+* OpenGraph
+* Twitter metadata
+* canonical
+* breadcrumbs
+* sitemap
+* robots
+* structured data
+* internal links
+* article metadata
+* service metadata
+* location metadata
+
+ولا أريد أن يتحول الحذف إلى إدخال محتوى تجاري عشوائي بديل.
+
+استخدم الهوية/المحتوى الصحيح الموجود أصلًا للمشروع.
+
+---
+
+# مهم جدًا: لا تستخدم Node كحل إنتاجي
+
+مرة أخرى:
+
+**الإنتاج = Hostinger + PHP + SQLite.**
+
+لا تضف:
+
+* Express route جديد كحل للإنتاج
+* Node server dependency
+* Node runtime requirement
+* reverse proxy يتطلب Node
+* أي API production architecture تعتمد على Node
+
+إذا احتجت تعديل API للإنتاج، عدّل:
+
+`PHP router / api-index.php`
+
+والملفات التي تدخل فعلًا في أرشيف Hostinger.
+
+Node يمكن استخدامه فقط أثناء build/test المحلي إذا كان جزءًا من toolchain، وليس كمتطلب تشغيل للإنتاج.
+
+---
+
+# بعد التنفيذ
+
+لا تتوقف عند تعديل الملفات.
+
+نفذ دورة تحقق حقيقية:
+
+### Code
+
+* search كامل عن "سبائك الماسة" وكل مشتقاتها
+* تأكد أن النتائج الإنتاجية = صفر
+* typecheck
+* اختبارات المشروع المتاحة
+* PHP lint
+* تحقق من SQLite
+* تحقق من seeds/scripts
+
+### UI
+
+اختبر عدة صفحات فعلية في المتصفح.
+
+تأكد أن:
+
+* لا يوجد content flash
+* لا يوجد stale content
+* لا تظهر بيانات ثم تختفي
+* لا يظهر login state خاطئ لحظيًا
+* لا تظهر analytics data قديمة ثم تختفي
+* الـSkeleton يظهر فقط عند الحاجة
+* لا يوجد layout jump غير ضروري
+
+### Production build
+
+نفذ:
+
+* build
+* prerender
+* sitemap
+* build Hostinger
+* استخراج الأرشيف النهائي
+* فحص الأرشيف نفسه
+
+ثم ابحث داخل **الأرشيف النهائي المستخرج** مرة أخرى عن:
+
+`سبائك الماسة`
+`سبائك`
+`الماسة`
+`Sabaik`
+`sabaik`
+
+يجب ألا تجد أي أثر حقيقي متعلق بهذا الاسم.
+
+### SEO
+
+شغّل الـSEO quality gate مرة أخرى.
+
+### PHP/Hostinger
+
+تحقق أن النسخة النهائية تحتوي على:
+
+* PHP API
+* SQLite
+* static frontend
+* assets
+* sitemap
+* robots
+* favicon
+* جميع الملفات المطلوبة للإنتاج
+
+ولا تجعل نجاح Node/Express المحلي معيارًا لنجاح الإنتاج.
+
+---
+
+# المطلوب في التقرير النهائي
+
+أعطني فقط بعد التنفيذ:
+
+1. **سبب Flash المحتوى الحقيقي**
+2. **الإصلاح الذي نفذته لمنعه**
+3. الصفحات التي اختبرتها
+4. هل اختفى الـFlash أم لا
+5. كل أماكن "سبائك الماسة" التي وجدتها
+6. ما الذي حُذف/تعدل في قاعدة البيانات
+7. ما الذي حُذف من seeds/scripts/docs
+8. نتيجة البحث النهائي عن الاسم ومشتقاته
+9. نتيجة typecheck/PHP/build
+10. نتيجة SEO gate
+11. نتيجة فحص أرشيف Hostinger النهائي
+12. أي مشكلة متبقية فقط إن كانت حقيقية
+
+**ممنوع أن تكتفي بقول "تم البحث". أريد نتائج البحث الفعلية وإثبات أن الاسم لم يعد موجودًا وأن مشكلة الـFlash تم حلها.**
+
+ابدأ التنفيذ الآن.
+لا تعيد بناء خطة.
+لا تعيد تدقيق SEO الذي أُغلق سابقًا.
+لا تغيّر التصميم بلا سبب.
+ولا تضف Node إلى الإنتاج.

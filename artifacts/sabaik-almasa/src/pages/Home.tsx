@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import { Navbar } from "@/components/layout/Navbar"
 import { Footer } from "@/components/layout/Footer"
 import { getSiteUrl } from "@/lib/siteUrl"
@@ -89,7 +89,7 @@ function injectLocalBusinessSchema({
     postalCode: postalCode || SEO_DEFAULTS.postalCode,
   }
   const resolvedCompanyName = companyName || SEO_DEFAULTS.companyName
-  const resolvedDesc = description || (companyName ? `${companyName} لتأجير حاويات الأنقاض والنفايات بالرياض: حاويات 6 إلى 30 ياردة، عقود نظافة معتمدة للبلدية، ونقل مخلفات البناء والهدم 24/7.` : "تأجير حاويات الأنقاض والنفايات بالرياض: حاويات 6 إلى 30 ياردة، عقود نظافة معتمدة للبلدية، ونقل مخلفات البناء والهدم 24/7.")
+  const resolvedDesc = description || "تأجير حاويات الأنقاض والنفايات بالرياض: توصيل وسحب الحاويات ونقل مخلفات البناء والهدم."
 
   script.textContent = JSON.stringify({
     "@context": "https://schema.org",
@@ -327,24 +327,6 @@ function SectionBlock({
   }
 }
 
-const DEFAULT_SECTIONS_ORDER = [
-  "hero",
-  "stats",
-  "packages",
-  "services",
-  "about",
-  "ceo",
-  "how_it_works",
-  "why_choose_us",
-  "areas",
-  "values",
-  "testimonials",
-  "partners",
-  "blog",
-  "service_request",
-  "contact",
-]
-
 export default function Home() {
   const siteSettings = useSiteSettings()
   const {
@@ -366,10 +348,9 @@ export default function Home() {
     paymentMethods,
     socialLinks,
     publicUrl,
-    isLoaded,
+    sectionsOrder,
+    hiddenSections,
   } = siteSettings
-  const [sectionsOrder, setSectionsOrder] = useState<string[]>(DEFAULT_SECTIONS_ORDER)
-  const [hiddenSections, setHiddenSections] = useState<string[]>([])
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "instant" })
@@ -416,34 +397,12 @@ export default function Home() {
     isLoaded,
   ])
 
-  useEffect(() => {
-    fetch(`${API_BASE}/api/settings`)
-      .then(r => r.json())
-      .then(data => {
-        try {
-          if (data.sections_order) {
-            const parsed: string[] = JSON.parse(data.sections_order)
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              setSectionsOrder(parsed)
-            }
-          }
-          if (data.sections_hidden) {
-            const hidden: string[] = JSON.parse(data.sections_hidden)
-            if (Array.isArray(hidden)) {
-              setHiddenSections(hidden)
-            }
-          }
-        } catch {}
-      })
-      .catch(() => {})
-  }, [])
-
   return (
     <div className="min-h-screen bg-background font-sans" dir="rtl">
       <Navbar />
 
       <main>
-        {sectionsOrder
+        {(sectionsOrder.length ? sectionsOrder : ["hero", "stats", "packages", "services", "about", "ceo", "how_it_works", "why_choose_us", "areas", "values", "testimonials", "partners", "blog", "service_request", "contact"])
           .filter(id => !hiddenSections.includes(id))
           .map(id => (
             <SectionBlock

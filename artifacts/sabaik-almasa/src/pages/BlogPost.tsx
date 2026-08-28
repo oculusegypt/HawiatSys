@@ -10,7 +10,7 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { useServiceRequest } from "@/context/ServiceRequestContext"
 import { getSiteUrl, sitePath, siteUrl } from "@/lib/siteUrl"
-import { replaceLegacyCompanyName, useSiteSettings } from "@/context/SiteSettingsContext"
+import { normalizeCompanyText, useSiteSettings } from "@/context/SiteSettingsContext"
 
 const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
 interface Post {
@@ -236,14 +236,14 @@ export default function BlogPost() {
         const desc      = d.seoDescription || d.excerpt
 
         if (!isLoaded) return
-        const resolvedTitle = replaceLegacyCompanyName(`${title} | مدونة ${companyName || "الشركة"}`, companyName)
-        const resolvedDescription = replaceLegacyCompanyName(desc, companyName)
-        const resolvedAuthor = replaceLegacyCompanyName(d.author || companyName || "الشركة", companyName)
-        const resolvedContent = replaceLegacyCompanyName(d.content || "", companyName)
+        const resolvedTitle = normalizeCompanyText(`${title} | مدونة ${companyName || "الشركة"}`)
+        const resolvedDescription = normalizeCompanyText(desc)
+        const resolvedAuthor = normalizeCompanyText(d.author || companyName || "الشركة")
+        const resolvedContent = normalizeCompanyText(d.content || "")
         document.title = resolvedTitle
 
         setMeta("description",        resolvedDescription)
-        setMeta("keywords",           replaceLegacyCompanyName(d.seoKeywords, companyName))
+        setMeta("keywords",           normalizeCompanyText(d.seoKeywords))
         setMeta("robots",             "index, follow")
         setMeta("og:type",            "article", "property")
         setMeta("og:title",           resolvedTitle, "property")
@@ -368,12 +368,12 @@ export default function BlogPost() {
   const postUrl = siteUrl(`/blog/${post.slug}`)
   const resolvedPost = {
     ...post,
-    title: replaceLegacyCompanyName(post.title, companyName),
-    excerpt: replaceLegacyCompanyName(post.excerpt, companyName),
-    content: replaceLegacyCompanyName(post.content, companyName),
-    author: replaceLegacyCompanyName(post.author, companyName),
+    title: normalizeCompanyText(post.title),
+    excerpt: normalizeCompanyText(post.excerpt),
+    content: normalizeCompanyText(post.content),
+    author: normalizeCompanyText(post.author),
   }
-  const tags = getTags(post.tags).map(tag => replaceLegacyCompanyName(tag, companyName))
+  const tags = getTags(post.tags).map(tag => normalizeCompanyText(tag))
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50" dir="rtl">

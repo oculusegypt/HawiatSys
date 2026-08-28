@@ -49,6 +49,59 @@ function Router() {
   );
 }
 
+function SettingsLoadingShell() {
+  return (
+    <div className="min-h-screen bg-background p-4 sm:p-8" dir="rtl" aria-busy="true" aria-label="جاري تجهيز الموقع">
+      <div className="mx-auto max-w-7xl space-y-6">
+        <div className="h-16 animate-pulse rounded-2xl bg-primary/10" />
+        <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+          <div className="h-72 animate-pulse rounded-3xl bg-primary/10" />
+          <div className="h-72 animate-pulse rounded-3xl bg-primary/5" />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="h-28 animate-pulse rounded-2xl bg-primary/5" />
+          <div className="h-28 animate-pulse rounded-2xl bg-primary/5" />
+          <div className="h-28 animate-pulse rounded-2xl bg-primary/5" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function SettingsErrorShell({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background p-6 text-center" dir="rtl">
+      <div className="w-full max-w-md rounded-3xl border border-primary/10 bg-white p-8 shadow-xl">
+        <h1 className="text-xl font-bold text-primary">تعذر تجهيز الموقع</h1>
+        <p className="mt-3 text-sm leading-7 text-gray-500">لم نتمكن من تحميل إعدادات الموقع. أعد المحاولة للمتابعة.</p>
+        <button type="button" onClick={onRetry} className="mt-6 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-white transition hover:opacity-90">
+          إعادة المحاولة
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function SettingsBootstrap() {
+  const { isLoaded, isError, reload } = useSiteSettings()
+  if (!isLoaded) return <SettingsLoadingShell />
+  if (isError) return <SettingsErrorShell onRetry={reload} />
+  return (
+    <>
+      <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+        <AnonymousAnalyticsTracker />
+        <ScrollToTop />
+        <SiteIdentitySEO />
+        <Router />
+        <FloatingContactButtons />
+      </WouterRouter>
+      <MarketingBadge />
+      <ServiceRequestModal />
+      <Toaster />
+    </>
+  )
+}
+
 function AnonymousAnalyticsTracker() {
   const [location] = useLocation();
 
@@ -103,16 +156,7 @@ function App() {
       <TooltipProvider>
         <SiteSettingsProvider>
           <ServiceRequestProvider>
-            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
-              <AnonymousAnalyticsTracker />
-              <ScrollToTop />
-              <SiteIdentitySEO />
-              <Router />
-              <FloatingContactButtons />
-            </WouterRouter>
-            <MarketingBadge />
-            <ServiceRequestModal />
-            <Toaster />
+            <SettingsBootstrap />
           </ServiceRequestProvider>
         </SiteSettingsProvider>
       </TooltipProvider>

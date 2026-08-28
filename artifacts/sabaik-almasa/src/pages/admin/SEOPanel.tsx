@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
-import { replaceLegacyCompanyName, useSiteSettings } from "@/context/SiteSettingsContext"
+import { normalizeCompanyText, useSiteSettings } from "@/context/SiteSettingsContext"
 
 const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
 const currentOrigin = () => typeof window !== "undefined" ? window.location.origin : ""
@@ -250,9 +250,9 @@ export default function SEOPanel() {
   const [keywords, setKeywords] = useState<Keyword[]>(DEFAULT_KEYWORDS)
   const [meta, setMeta] = useState<SeoMeta>(() => ({
     ...DEFAULT_META,
-    title: replaceLegacyCompanyName(DEFAULT_META.title, companyName),
-    description: replaceLegacyCompanyName(DEFAULT_META.description, companyName),
-    ogTitle: replaceLegacyCompanyName(DEFAULT_META.ogTitle, companyName),
+    title: normalizeCompanyText(DEFAULT_META.title),
+    description: normalizeCompanyText(DEFAULT_META.description),
+    ogTitle: normalizeCompanyText(DEFAULT_META.ogTitle),
   }))
   const [metaDirty, setMetaDirty] = useState(false)
   const [savingMeta, setSavingMeta] = useState(false)

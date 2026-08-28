@@ -149,7 +149,11 @@ interface SiteSettings {
   heroCtaVisible: boolean
   heroCompanyPosition: string
   heroCtaPosition: string
+  sectionsOrder: string[]
+  hiddenSections: string[]
   isLoaded: boolean
+  isError: boolean
+  reload: () => void
 }
 
 export function resolveContactNumbers(
@@ -194,35 +198,38 @@ const DEFAULTS: SiteSettings = {
   heroCtaVisible: true,
   heroCompanyPosition: "center-center",
   heroCtaPosition: "center-center",
+  sectionsOrder: [],
+  hiddenSections: [],
   isLoaded: false,
+  isError: false,
 }
 
 const SiteSettingsContext = createContext<SiteSettings>(DEFAULTS)
 
-export function replaceLegacyCompanyName(value: string, companyName: string): string {
-  if (!value) return value
-  const resolvedName = (companyName || "").trim()
-
-  let normalized = value
-    .replace(/مؤسسة\s+سبائك\s+الماسة(\s+لتأجير\s+الحاويات(\s+ونقل\s+الأنقاض)?)?/g, resolvedName || "خدمات تأجير الحاويات")
-    .replace(/شركة\s+سبائك\s+الماسة/g, resolvedName || "خدمات تأجير الحاويات")
-    .replace(/حاويات\s+سبائك\s+الماسة(\s+المتاحة)?/g, resolvedName ? `حاويات ${resolvedName}` : "الحاويات المتاحة")
-    .replace(/سبائك\s+الماسة/g, resolvedName || "تأجير الحاويات")
-    .replace(/مؤسسة\s+السهم\s+كلين(\s+لخدمات\s+التنظيف\s+بالرياض)?/g, resolvedName || "خدمات تأجير الحاويات")
-    .replace(/شركة\s+السهم\s+كلين/g, resolvedName || "خدمات تأجير الحاويات")
-    .replace(/السهم\s+كلين/g, resolvedName || "تأجير الحاويات")
-
-  return normalized
+export function normalizeCompanyText(value: string): string {
+  return value
 }
 
-function parseHomepageContent(raw: unknown, companyName = ""): HomepageContent {
+function parseHomepageContent(raw: unknown): HomepageContent {
   if (typeof raw !== "string" || !raw.trim()) return {}
   try {
-    const cleanStr = replaceLegacyCompanyName(raw, companyName)
-    const parsed = JSON.parse(cleanStr)
+    const parsed = JSON.parse(raw)
     return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed as HomepageContent : {}
   } catch {
     return {}
+  }
+}
+
+function parseStringArray(raw: unknown): string[] {
+  if (Array.isArray(raw)) return raw.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+  if (typeof raw !== "string" || !raw.trim()) return []
+  try {
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed)
+      ? parsed.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+      : []
+  } catch {
+    return []
   }
 }
 
@@ -277,14 +284,10 @@ async function fetchSettings(): Promise<SiteSettings> {
     : trackingValue === true || trackingValue === "true" || trackingValue === 1 || trackingValue === "1"
 
   const compName = typeof data.company_name === "string" && data.company_name.trim() ? data.company_name.trim() : ""
-  if (typeof window !== "undefined" && compName) {
-    try { localStorage.setItem("cached_company_name", compName) } catch {}
-  }
-
   return {
     logoUrl: typeof data.company_logo === "string" ? data.company_logo.trim() : "",
     companyName: compName,
-    description: typeof data.site_desc === "string" ? replaceLegacyCompanyName(data.site_desc.trim(), compName) : "",
+    description: typeof data.site_desc === "string" ? data.site_desc.trim() : "",
     phones,
     phoneCall: typeof data.company_phone_call === "string" ? data.company_phone_call.trim() : "",
     phoneWhatsapp: typeof data.company_phone_whatsapp === "string" ? data.company_phone_whatsapp.trim() : "",
@@ -313,9 +316,9 @@ async function fetchSettings(): Promise<SiteSettings> {
     email: typeof data.company_email === "string" ? data.company_email.trim() : "",
     mapEmbed: data.company_map_embed || "",
     footerDescription: typeof data.company_footer_description === "string"
-      ? replaceLegacyCompanyName(data.company_footer_description, compName)
+      ? data.company_footer_description
       : "",
-    homepageContent: parseHomepageContent(data.homepage_content, compName),
+    homepageContent: parseHomepageContent(data.homepage_content),
     statsItems: parseStatsItems(data.stats_items),
     orderTrackingEnabled,
     themePreset: (() => {
@@ -327,23 +330,20 @@ async function fetchSettings(): Promise<SiteSettings> {
     heroCtaVisible: parseBooleanSetting(data.hero_cta_visible, true),
     heroCompanyPosition: parseHeroPosition(data.hero_company_position, "center-center"),
     heroCtaPosition: parseHeroPosition(data.hero_cta_position, "center-center"),
+    sectionsOrder: parseStringArray(data.sections_order),
+    hiddenSections: parseStringArray(data.sections_hidden),
     isLoaded: true,
+    isError: false,
   }
 }
 
 export function SiteSettingsProvider({ children }: { children: ReactNode }) {
-  const [settings, setSettings] = useState<SiteSettings>(() => {
-    const cachedName = typeof window !== "undefined" ? localStorage.getItem("cached_company_name") || "" : ""
-    return {
-      ...DEFAULTS,
-      companyName: cachedName,
-    }
-  })
+  const [settings, setSettings] = useState<SiteSettings>(DEFAULTS)
 
   const reload = useCallback(() => {
     fetchSettings()
       .then(next => setSettings(next))
-      .catch(() => setSettings(current => ({ ...current, isLoaded: true })))
+      .catch(() => setSettings(current => ({ ...current, isLoaded: true, isError: true })))
   }, [])
 
   // Initial fetch
