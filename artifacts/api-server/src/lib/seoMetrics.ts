@@ -182,6 +182,33 @@ function getOrigin(value: string): string {
   }
 }
 
+function compareUrlSets(canonicalUrls: string[], sitemapUrls: string[]): {
+  status: SeoMetricStatus;
+  value: string;
+  detail: string;
+} {
+  if (!canonicalUrls.length || !sitemapUrls.length) {
+    return {
+      status: "not_verified",
+      value: "NOT VERIFIED",
+      detail: "لا توجد مجموعة Canonical وSitemap مكتملة للمقارنة",
+    };
+  }
+
+  const canonicalSet = new Set(canonicalUrls);
+  const sitemapSet = new Set(sitemapUrls);
+  const matched = [...canonicalSet].filter((url) => sitemapSet.has(url)).length;
+  const unionSize = new Set([...canonicalSet, ...sitemapSet]).size;
+  const ratio = unionSize ? matched / unionSize : 0;
+  const status: SeoMetricStatus = ratio >= 1 ? "pass" : ratio >= 0.8 ? "warning" : "fail";
+
+  return {
+    status,
+    value: `${Math.round(ratio * 100)}%`,
+    detail: `${matched} رابطًا متطابقًا من ${canonicalSet.size} canonical و${sitemapSet.size} رابط Sitemap`,
+  };
+}
+
 export async function getSeoMetrics(): Promise<SeoMetricsSnapshot> {
   const projectRoot = findProjectRoot();
   const production = getProductionRoot(projectRoot);
@@ -255,6 +282,7 @@ export async function getSeoMetrics(): Promise<SeoMetricsSnapshot> {
   const source = production.label;
   const hasBuild = fs.existsSync(path.join(production.root, "index.html")) && htmlFiles.length > 0;
   const seoMediaValue = mediaFiles.length ? `${referencedMedia.length}/${mediaFiles.length}` : "—";
+  const canonicalSitemapParity = compareUrlSets(canonicalUrls, sitemapUnique);
 
   return {
     generatedAt: new Date().toISOString(),
@@ -267,6 +295,14 @@ export async function getSeoMetrics(): Promise<SeoMetricsSnapshot> {
         hasBuild ? "pass" : "not_verified",
         hasBuild ? `${canonicalUrls.length} routes` : "—",
         hasBuild ? `${htmlFiles.length} HTML files موجودة، مع ${canonicalUrls.length} canonical فريد` : "لم يُعثر على ناتج HTML قابل للفحص",
+        source,
+      ),
+      metric(
+        "page_count",
+        "Indexable HTML Pages / Routes",
+        hasBuild ? "pass" : "not_verified",
+        hasBuild ? `${pages.length} pages / ${sitemapUnique.length} routes` : "NOT VERIFIED",
+        hasBuild ? `${pages.length} صفحة HTML قابلة للفهرسة، مع ${sitemapUnique.length} رابط Sitemap` : "لم يُعثر على ناتج HTML قابل للفحص",
         source,
       ),
       metric(
@@ -291,6 +327,14 @@ export async function getSeoMetrics(): Promise<SeoMetricsSnapshot> {
         ratioStatus(pagesWithCanonical.length, pages.length),
         pages.length ? `${Math.round((pagesWithCanonical.length / pages.length) * 100)}%` : "—",
         `${pagesWithCanonical.length} من ${pages.length} صفحة لديها canonical`,
+        source,
+      ),
+      metric(
+        "canonical_sitemap_parity",
+        "Canonical ↔ Sitemap Parity",
+        canonicalSitemapParity.status,
+        canonicalSitemapParity.value,
+        canonicalSitemapParity.detail,
         source,
       ),
       metric(

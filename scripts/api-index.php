@@ -112,6 +112,42 @@ function seoOrigin(string $value): string {
         . (!empty($parts['port']) ? ':' . (int)$parts['port'] : '');
 }
 
+function seoIsInternalLink(string $href, string $siteUrl): bool {
+    $href = trim($href);
+    if ($href === '' || str_starts_with($href, '#') || str_starts_with(strtolower($href), 'javascript:')) return false;
+    if (str_starts_with($href, '/')) return !str_starts_with($href, '/admin') && !str_starts_with($href, '/api');
+    $parts = parse_url($href);
+    if (!is_array($parts) || empty($parts['scheme']) || empty($parts['host'])) return false;
+    $origin = strtolower((string)$parts['scheme']) . '://' . strtolower((string)$parts['host'])
+        . (!empty($parts['port']) ? ':' . (int)$parts['port'] : '');
+    return $origin === $siteUrl;
+}
+
+function seoCompareUrlSets(array $canonicalUrls, array $sitemapUrls): array {
+    $canonicalUrls = array_values(array_unique(array_filter($canonicalUrls)));
+    $sitemapUrls = array_values(array_unique(array_filter($sitemapUrls)));
+    if (count($canonicalUrls) === 0 || count($sitemapUrls) === 0) {
+        return [
+            'status' => 'not_verified',
+            'value' => 'NOT VERIFIED',
+            'detail' => 'لا توجد مجموعة Canonical وSitemap مكتملة للمقارنة',
+        ];
+    }
+
+    $canonicalSet = array_fill_keys($canonicalUrls, true);
+    $sitemapSet = array_fill_keys($sitemapUrls, true);
+    $matched = count(array_intersect_key($canonicalSet, $sitemapSet));
+    $unionSize = count(array_unique(array_merge($canonicalUrls, $sitemapUrls)));
+    $ratio = $unionSize > 0 ? $matched / $unionSize : 0;
+    $status = $ratio >= 1.0 ? 'pass' : ($ratio >= 0.8 ? 'warning' : 'fail');
+
+    return [
+        'status' => $status,
+        'value' => round($ratio * 100) . '%',
+        'detail' => $matched . ' رابطًا متطابقًا من ' . count($canonicalSet) . ' canonical و' . count($sitemapSet) . ' رابط Sitemap',
+    ];
+}
+
 function seoProductionFiles(string $root): array {
     $files = [];
     if (!is_dir($root)) return $files;
@@ -122,7 +158,7 @@ function seoProductionFiles(string $root): array {
         foreach ($iterator as $file) {
             if (!$file->isFile()) continue;
             $path = str_replace('\\', '/', $file->getPathname());
-            if (str_contains($path, '/assets/') || str_contains($path, '/api/') || str_contains($path, '/cleanflow-platform/')) continue;
+            if (str_contains($path, '/assets/') || str_contains($path, '/cleanflow-platform/')) continue;
             $files[] = $path;
         }
     } catch (Throwable $e) {
@@ -181,22 +217,27 @@ function seoMetricsSnapshot(PDO $pdo): array {
         }
         if (preg_match('/FAQPage|الأسئلة الشائعة|faqpage/i', $html)) $faqPages++;
         preg_match_all('/<a\b[^>]*href=["\']([^"\']+)["\']/i', $html, $linkMatches);
-        $internal = array_filter($linkMatches[1] ?? [], fn($href) => str_starts_with($href, '/') && !str_starts_with($href, '/admin') && !str_starts_with($href, '/api'));
+        $internal = array_filter($linkMatches[1] ?? [], fn($href) => seoIsInternalLink((string)$href, $siteUrl));
         if (count($internal) > 0) $linkedPages++;
     }
     $pagesCount = count($pages);
     $canonicalUrls = array_values(array_unique(array_filter($canonicalUrls)));
+    $canonicalSitemapParity = seoCompareUrlSets($canonicalUrls, $sitemapUnique);
     $validSitemap = array_values(array_filter($sitemapUrls, function ($url) {
         $parts = parse_url($url);
         return is_array($parts) && ($parts['scheme'] ?? '') === 'https' && !preg_match('/\s|[<>]/', $url);
     }));
 
     $mediaFiles = array_values(array_filter($files, fn($file) => str_contains(str_replace('\\', '/', $file), '/images/seo/') && preg_match('/\.(png|jpe?g|webp|gif|svg)$/i', $file)));
-    $referencedMedia = 0;
+    $mediaPaths = [];
     foreach ($mediaFiles as $mediaFile) {
-        $mediaPath = '/images/seo/' . basename($mediaFile);
-        foreach ($pages as $html) {
-            if (str_contains($html, $mediaPath)) {
+        $mediaPaths[] = '/images/' . ltrim(str_replace(str_replace('\\', '/', $productionRoot) . '/images/', '', str_replace('\\', '/', $mediaFile)), '/');
+    }
+    $referencedMedia = 0;
+    foreach (array_values(array_unique($mediaPaths)) as $mediaPath) {
+        foreach ($files as $file) {
+            if (!preg_match('/\.(html?|css|js|json|xml|txt|php|webmanifest)$/i', $file)) continue;
+            if (str_contains((string)@file_get_contents($file), $mediaPath)) {
                 $referencedMedia++;
                 break;
             }
@@ -205,6 +246,7 @@ function seoMetricsSnapshot(PDO $pdo): array {
 
     $legacyFiles = [];
     foreach ($files as $file) {
+        if (str_contains(str_replace('\\', '/', $file), '/api/')) continue;
         if (!preg_match('/\.(html?|css|js|json|xml|txt|php|webmanifest)$/i', $file)) continue;
         $text = (string)@file_get_contents($file);
         if (preg_match('/cleanflow|sabaik|سبائك|الماسة/iu', $text)) $legacyFiles[] = $file;
@@ -240,9 +282,11 @@ function seoMetricsSnapshot(PDO $pdo): array {
         'siteUrl' => $siteUrl,
         'metrics' => [
             seoMetric('prerender', 'SEO HTML / Prerender', $pagesCount > 0 ? 'pass' : 'not_verified', $pagesCount > 0 ? count($canonicalUrls) . ' routes' : '—', $pagesCount > 0 ? count($htmlFiles) . ' HTML files موجودة، مع ' . count($canonicalUrls) . ' canonical فريد' : 'لم يُعثر على ناتج HTML قابل للفحص', $source),
+            seoMetric('page_count', 'Indexable HTML Pages / Routes', $pagesCount > 0 ? 'pass' : 'not_verified', $pagesCount > 0 ? $pagesCount . ' pages / ' . count($sitemapUnique) . ' routes' : 'NOT VERIFIED', $pagesCount > 0 ? $pagesCount . ' صفحة HTML قابلة للفهرسة، مع ' . count($sitemapUnique) . ' رابط Sitemap' : 'لم يُعثر على ناتج HTML قابل للفحص', $source),
             seoMetric('meta_coverage', 'Meta Description Coverage', seoMetricStatus($descriptions, $pagesCount), $pagesCount ? round(($descriptions / $pagesCount) * 100) . '%' : '—', $descriptions . ' من ' . $pagesCount . ' صفحة قابلة للفهرسة لديها وصف', $source),
             seoMetric('meta_quality', 'Meta Description Quality', seoMetricStatus($qualityDescriptions, $pagesCount), $pagesCount ? round(($qualityDescriptions / $pagesCount) * 100) . '%' : '—', $qualityDescriptions . ' وصفًا ضمن 120–160 حرفًا', $source),
             seoMetric('canonical_coverage', 'Canonical Coverage', seoMetricStatus($withCanonical, $pagesCount), $pagesCount ? round(($withCanonical / $pagesCount) * 100) . '%' : '—', $withCanonical . ' من ' . $pagesCount . ' صفحة لديها canonical', $source),
+            seoMetric('canonical_sitemap_parity', 'Canonical ↔ Sitemap Parity', $canonicalSitemapParity['status'], $canonicalSitemapParity['value'], $canonicalSitemapParity['detail'], $source),
             seoMetric('sitemap', 'Sitemap Health', $sitemap !== '' && count($sitemapUrls) === count($sitemapUnique) && count($validSitemap) === count($sitemapUrls) ? 'pass' : 'fail', count($sitemapUrls) . ' URLs', $sitemap !== '' ? count($sitemapUnique) . ' رابطًا فريدًا، ' . count($validSitemap) . ' رابط HTTPS صالح' : 'sitemap.xml غير موجود', $source),
             seoMetric('structured_data', 'Structured Data', seoMetricStatus($withSchema, $pagesCount), $withSchema === $pagesCount ? 'PASS' : $withSchema . '/' . $pagesCount, $entityTypes ? 'تم العثور على JSON-LD في ' . $withSchema . ' صفحة' : 'لم يُعثر على JSON-LD صالح', $source, $entityTypes),
             seoMetric('faq_geo', 'FAQ / GEO Content', seoMetricStatus($faqPages, $pagesCount), $pagesCount ? $faqPages . '/' . $pagesCount : '—', $faqPages . ' صفحة تحتوي FAQ فعليًا في HTML أو JSON-LD', $source),
