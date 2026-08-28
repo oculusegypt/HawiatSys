@@ -28,6 +28,7 @@ export function Navbar() {
 
   React.useEffect(() => {
     const onScroll = () => setIsScrolled(window.scrollY > 20)
+    onScroll()
     window.addEventListener("scroll", onScroll)
     return () => window.removeEventListener("scroll", onScroll)
   }, [])
@@ -60,7 +61,7 @@ export function Navbar() {
         className={`home-navbar fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           isSolid
             ? "is-solid border-b border-slate-200/90 bg-white/95 backdrop-blur-xl shadow-[0_8px_30px_rgba(15,23,42,0.10)] py-3"
-            : "border-b border-white/15 bg-slate-950/20 backdrop-blur-[2px] py-5"
+            : "border-b border-transparent bg-transparent shadow-none backdrop-blur-0 py-5"
         }`}
       >
         <div className="container mx-auto px-4 md:px-6">
