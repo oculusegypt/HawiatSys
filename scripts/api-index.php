@@ -27,8 +27,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') {
 
 /**
  * The database setting is the production source of truth for canonical URLs.
- * Request Host is intentionally not used: preview/staging hosts must never
- * leak into sitemap or SEO output.
+ * If an older deployment has no setting yet, use the current public host only
+ * after rejecting local and Replit preview hosts. New archives persist SITE_URL
+ * into site_settings during the build.
  */
 function configuredPublicOrigin(PDO $pdo): string {
     $value = '';
@@ -38,7 +39,16 @@ function configuredPublicOrigin(PDO $pdo): string {
     } catch (Throwable $e) {
         return '';
     }
-    if ($value === '') return '';
+    if ($value === '') {
+        $host = trim((string)($_SERVER['HTTP_X_FORWARDED_HOST'] ?? $_SERVER['HTTP_HOST'] ?? ''));
+        $host = trim(explode(',', $host)[0]);
+        $proto = strtolower(trim(explode(',', (string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ''))[0]));
+        if ($proto !== 'http' && $proto !== 'https') {
+            $proto = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        }
+        if ($host === '') return '';
+        $value = $proto . '://' . $host;
+    }
     $parts = parse_url($value);
     $scheme = strtolower((string)($parts['scheme'] ?? ''));
     $host = strtolower((string)($parts['host'] ?? ''));

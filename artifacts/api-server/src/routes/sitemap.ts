@@ -8,9 +8,15 @@ import { requireAdmin, requireSectionPermission } from "../middleware/adminAuth"
 
 const router = Router();
 
-// Path to the frontend public folder (api-server cwd = artifacts/api-server)
+// Resolve the frontend public folder from either the workspace root or the
+// api-server package directory. The managed workflow may use either cwd.
 function getSitemapPath(): string {
-  return path.resolve(process.cwd(), "../sabaik-almasa/public/sitemap.xml");
+  const candidates = [
+    path.resolve(process.cwd(), "artifacts/sabaik-almasa/public/sitemap.xml"),
+    path.resolve(process.cwd(), "../sabaik-almasa/public/sitemap.xml"),
+    path.resolve(process.cwd(), "../../artifacts/sabaik-almasa/public/sitemap.xml"),
+  ];
+  return candidates.find((candidate) => fs.existsSync(path.dirname(candidate))) ?? candidates[0];
 }
 
 /** Detect the canonical base URL from the incoming request */
@@ -382,6 +388,7 @@ router.post(
       },
     });
   } catch (err: any) {
+    req.log?.error({ err }, "Failed to save sitemap");
     res.status(500).json({ error: err?.message || "فشل حفظ الخريطة" });
   }
   },

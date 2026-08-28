@@ -338,6 +338,26 @@ copyFileSync(ARCHIVE_SOURCE_DB, DEST_DB);
   ];
 
   db.transaction(() => {
+    const requestedOrigin = String(process.env.SITE_URL ?? "").trim();
+    let publicOrigin = "";
+    try {
+      const parsed = new URL(requestedOrigin);
+      const host = parsed.hostname.toLowerCase();
+      if (
+        (parsed.protocol === "http:" || parsed.protocol === "https:") &&
+        host &&
+        !/localhost|127\.0\.0\.1|0\.0\.0\.0|replit\.(dev|app)$/i.test(host)
+      ) {
+        publicOrigin = `${parsed.protocol}//${host}${parsed.port ? `:${parsed.port}` : ""}`;
+      }
+    } catch {}
+    if (publicOrigin) {
+      db.prepare(
+        "INSERT INTO site_settings (key, value, updated_at) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+      ).run("site_public_url", publicOrigin, new Date().toISOString());
+      console.log(`  ✅ تم حفظ رابط الموقع العام داخل الإعدادات: ${publicOrigin}`);
+    }
+
     // Resolve all legacy editorial mentions to the administrator-configured
     // company name before the SQLite file is packaged. This keeps imported blog
     // content and testimonials aligned with site settings on shared hosting.
