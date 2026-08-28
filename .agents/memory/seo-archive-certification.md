@@ -20,3 +20,9 @@ The SEO gate must resolve the public origin through the same explicit build over
 **Why:** The development database may leave the public URL empty for runtime auto-detection, while a production archive still needs one canonical HTTPS origin.
 
 **How to apply:** Pass the production origin explicitly during archive certification and compare the extracted archive against that origin.
+
+Unicode filenames in sitemap and prerendered HTML are commonly percent-encoded by `URL`; archive image checks must decode the URL pathname before looking up the extracted file.
+
+**Why:** The files can exist with Arabic names while a literal filesystem lookup of `/images/content/%D8...jpg` reports them as missing, producing a false release failure.
+
+**How to apply:** Decode URL pathnames in the SEO gate, then normalize `/api/uploads/` to `/uploads/` before checking archive files.

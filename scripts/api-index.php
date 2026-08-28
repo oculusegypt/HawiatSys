@@ -605,12 +605,15 @@ try {
             throw new RuntimeException('site_public_url is not configured with a valid public origin');
         }
 
+        // Public area URLs are Arabic slugs. Keep the stored/displayed area
+        // names Arabic as well; English keys are accepted by the app only as
+        // legacy aliases and must not be emitted into the sitemap.
         $neighborhoods = [
-            'north-riyadh', 'al-malqa', 'al-yasmin', 'al-narjis', 'al-aarid', 'hittin', 'al-sahafa', 'al-nafal', 'al-aqiq', 'al-rabi', 'al-ghadeer', 'al-wadi', 'al-nada', 'al-falah',
-            'south-riyadh', 'badr', 'al-hair', 'al-shifa', 'al-aziziyah', 'al-dar-al-baida', 'al-manakh', 'al-iskan',
-            'east-riyadh', 'al-qadesiya', 'al-naseem', 'al-rawdah', 'al-khaleej', 'al-nahdah', 'al-manar', 'al-yarmouk', 'al-munsiyah', 'al-hamra', 'al-qurtubah', 'al-shuhada',
-            'west-riyadh', 'al-suwaidi', 'al-uraija', 'dhahrat-laban', 'al-hazm', 'al-badiyah', 'shubra', 'al-awali',
-            'central-riyadh', 'al-olaya', 'al-sulaimaniya', 'al-malaz', 'al-murabba', 'al-batha', 'al-wizarat', 'al-futah'
+            'شمال-الرياض', 'حي-الملقا', 'حي-الياسمين', 'حي-النرجس', 'حي-العارض', 'حي-حطين', 'حي-الصحافة', 'حي-النفل', 'حي-العقيق', 'حي-الربيع', 'حي-الغدير', 'حي-الوادي', 'حي-الندى', 'حي-الفلاح',
+            'جنوب-الرياض', 'حي-بدر', 'حي-الحائر', 'حي-الشفا', 'حي-العزيزية', 'حي-الدار-البيضاء', 'حي-المناخ', 'حي-الإسكان',
+            'شرق-الرياض', 'حي-القادسية', 'حي-النسيم', 'حي-الروضة', 'حي-الخليج', 'حي-النهضة', 'حي-المنار', 'حي-اليرموك', 'حي-المونسية', 'حي-الحمراء', 'حي-قرطبة', 'حي-الشهداء',
+            'غرب-الرياض', 'حي-السويدي', 'حي-العريجاء', 'حي-ظهرة-لبن', 'حي-الحزم', 'حي-البديعة', 'حي-شبرا', 'حي-العوالي',
+            'وسط-الرياض', 'حي-العليا', 'حي-السليمانية', 'حي-الملز', 'حي-المربع', 'حي-البطحاء', 'حي-الوزارات', 'حي-الفوطة'
         ];
 
         $staticPages = [
@@ -743,7 +746,7 @@ try {
         $addImageTags(['/images/hero-1.webp'], 'مدونة الشركة');
         $lines[] = '  </url>';
 
-        $postsStmt = $pdo->query("SELECT slug, title, cover_image, published_at FROM posts WHERE status = 'published' AND is_active = 1");
+        $postsStmt = $pdo->query("SELECT slug, title, cover_image, og_image, published_at FROM posts WHERE status = 'published' AND is_active = 1");
         $posts = $postsStmt->fetchAll();
         foreach ($posts as $post) {
             $slug = $post['slug'] ?: '';
@@ -754,7 +757,16 @@ try {
             $lines[] = '    <lastmod>' . substr((string)($post['published_at'] ?: $today), 0, 10) . '</lastmod>';
             $lines[] = '    <changefreq>monthly</changefreq>';
             $lines[] = '    <priority>0.75</priority>';
-            $addImageTags($imageCandidates($post['cover_image'] ?? '', null), (string)$post['title']);
+            // Always expose a real image for an article, even when an older
+            // record has no cover image. og_image is preferred as the first
+            // fallback, followed by the shared blog image.
+            $addImageTags(
+                $imageCandidates(
+                    $post['cover_image'] ?? '',
+                    $post['og_image'] ?? '/images/seo/cleanflow-blog.jpg'
+                ),
+                (string)$post['title']
+            );
             $lines[] = '  </url>';
         }
 
@@ -1909,6 +1921,47 @@ try {
         } catch (\Exception $e) {
             echo json_encode([], JSON_UNESCAPED_UNICODE);
         }
+        exit;
+    }
+
+    if (preg_match('#^/admin/employees/(\d+)$#', $path, $m) && $method === 'DELETE') {
+        $targetId = (int)$m[1];
+        $currentAdminId = (int)($admin['id'] ?? 0);
+        $currentRole = (string)($admin['role'] ?? '');
+
+        if ($targetId === $currentAdminId) {
+            http_response_code(400);
+            echo json_encode(['error' => 'لا يمكنك حذف حسابك الخاص'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        $targetStmt = $pdo->prepare("SELECT id, role FROM admins WHERE id = :id LIMIT 1");
+        $targetStmt->execute([':id' => $targetId]);
+        $target = $targetStmt->fetch();
+        if (!$target) {
+            http_response_code(404);
+            echo json_encode(['error' => 'الموظف غير موجود'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        if ($currentRole === 'manager' && ($target['role'] ?? '') === 'admin') {
+            http_response_code(403);
+            echo json_encode(['error' => 'لا يمكنك حذف حساب مدير النظام'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        if (($target['role'] ?? '') === 'admin') {
+            $adminCount = (int)$pdo->query("SELECT COUNT(*) FROM admins WHERE role = 'admin'")->fetchColumn();
+            if ($adminCount <= 1) {
+                http_response_code(400);
+                echo json_encode(['error' => 'لا يمكن حذف آخر مدير للنظام'], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+        }
+
+        $deleteStmt = $pdo->prepare("DELETE FROM admins WHERE id = :id");
+        $deleteStmt->execute([':id' => $targetId]);
+        echo json_encode(['message' => 'تم حذف الموظف بنجاح'], JSON_UNESCAPED_UNICODE);
         exit;
     }
 

@@ -82,6 +82,9 @@ node scripts/build-hostinger.mjs
 ```
 ينتج الملف **`cleanflow-services-hostinger.zip`**. هذا الأمر يعمل في بيئة البناء فقط؛ لا يتم تشغيله على Hostinger.
 
+توثيق آخر حزمة ونتائج فحصها موجود في:
+`docs/hostinger-build-2026-08-28.md`.
+
 بعد استخراج الأرشيف في `public_html/` يجب أن تكون البنية الأساسية:
 ```text
 public_html/

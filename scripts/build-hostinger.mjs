@@ -139,6 +139,14 @@ function prepareArchiveSourceDatabase() {
   }
 }
 
+// Normalize article media and quarantine unused legacy images before taking
+// the archive database snapshot and generating the sitemap.
+run(
+  "node scripts/clean-legacy-article-images.mjs",
+  "استبدال صور المقالات القديمة ونقل الصور غير المستخدمة",
+  {},
+);
+
 prepareArchiveSourceDatabase();
 
 // ── 1. توليد الخريطة قبل Vite حتى تدخل النسخة الحالية إلى dist ───────────────
@@ -556,6 +564,15 @@ step("كتابة معلومات النسخة وتعليمات النشر");
     tableCounts[table.name] = sourceDb.prepare(`SELECT COUNT(*) AS count FROM "${safeTable}"`).get().count;
   }
   sourceDb.close();
+  const sitemap = readFileSync(join(ROOT, "build_php/sitemap.xml"), "utf8");
+  const sitemapUrls = [...sitemap.matchAll(/<loc>[^<]+<\/loc>/g)].length;
+  const sitemapImages = [...sitemap.matchAll(/<image:loc>[^<]+<\/image:loc>/g)].length;
+  const arabicAreaUrls = [...sitemap.matchAll(/<loc>[^<]+\/areas\/%D[^<]+<\/loc>/g)].length;
+  const articleUrlsWithImages = sitemap
+    .split("<url>")
+    .filter((block) => block.includes("/blog/") && block.includes("<image:loc>"))
+    .length;
+  const publicOrigin = sitemap.match(/<loc>(https?:\/\/[^/]+)/)?.[1] || "";
   writeFileSync(
     join(ROOT, "build_php/BUILD_INFO.json"),
     JSON.stringify({
@@ -563,6 +580,14 @@ step("كتابة معلومات النسخة وتعليمات النشر");
       builtAt: new Date().toISOString(),
       sourceDatabase: "data/sabaik.db",
       tableCounts,
+      verification: {
+        publicOrigin,
+        sitemapUrls,
+        sitemapImages,
+        arabicAreaUrls,
+        articleUrlsWithImages,
+        command: "SITE_URL=https://your-domain.tld pnpm --filter @workspace/scripts run seo-quality-gate",
+      },
       deployment: "Extract the archive contents directly into public_html; do not keep a build_php subfolder.",
     }, null, 2),
     "utf8",
@@ -578,7 +603,12 @@ step("كتابة معلومات النسخة وتعليمات النشر");
       "3) لا تترك مجلداً باسم build_php داخل public_html.",
       "4) خذ نسخة احتياطية من data/ و uploads/ قبل الاستبدال إذا كان الموقع يعمل مسبقاً.",
       "",
-      "يشمل الأرشيف قاعدة البيانات وواجهة PHP والواجهة الرئيسية وCleanFlow Platform وجميع الأصول.",
+       "يشمل الأرشيف قاعدة البيانات وواجهة PHP والواجهة الرئيسية وCleanFlow Platform وجميع الأصول.",
+       "يتضمن api/index.php مسار DELETE /api/admin/employees/{id} مع حماية الحساب الحالي وآخر مدير.",
+       "روابط المناطق العامة في sitemap.xml عربية، وصور المقالات وصفحات SEO تشير فقط إلى ملفات موجودة داخل الأرشيف.",
+       "",
+       "التحقق بعد البناء (على بيئة البناء):",
+       "SITE_URL=https://your-domain.tld pnpm --filter @workspace/scripts run seo-quality-gate",
     ].join("\n"),
     "utf8",
   );

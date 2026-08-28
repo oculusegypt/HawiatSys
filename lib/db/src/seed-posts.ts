@@ -762,15 +762,18 @@ const newPosts = [
 
 // Insert only posts whose slug doesn't already exist
 const canonicalPostImage = (title: string) => {
-  if (/مجالس|كنب|سجاد|بخار/.test(title)) return "/images/service-majlis.jpg";
-  if (/مكيفات/.test(title)) return "/images/service-ac.jpg";
-  if (/حشرات|مبيدات/.test(title)) return "/images/service-pest.jpg";
-  if (/خزانات/.test(title)) return "/images/service-tanks.jpg";
-  if (/رخام|سيراميك|بلاط/.test(title)) return "/images/service-marble.jpg";
-  if (/واجهات|مكاتب|شركات/.test(title)) return "/images/service-facades.jpg";
-  if (/بعد البناء|التشطيب/.test(title)) return "/images/service-postconstruction.jpg";
-  if (/فلل|قصور|شمال الرياض/.test(title)) return "/images/service-villas.jpg";
-  return "/images/service-apartments.jpg";
+  const heroImages = [
+    "/images/Taqi-hero1.webp",
+    "/images/Taqi-hero2.webp",
+    "/images/Taqi-hero3.webp",
+    "/images/Taqi-hero4.webp",
+    "/images/Taqi-hero5.webp",
+  ];
+  let hash = 0;
+  for (const character of String(title || "")) {
+    hash = (hash * 31 + character.codePointAt(0)) % 2147483647;
+  }
+  return heroImages[Math.abs(hash) % heroImages.length];
 };
 
 let inserted = 0;

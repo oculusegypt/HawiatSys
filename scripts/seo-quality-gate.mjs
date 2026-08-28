@@ -43,6 +43,13 @@ const requireFile = (file, label) => {
   if (existsSync(file)) pass(label);
   else fail(`${label}: missing ${file}`);
 };
+const decodePath = (value) => {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+};
 const sha256 = (file) => createHash("sha256").update(readFileSync(file)).digest("hex");
 const count = (source, pattern) => (source.match(pattern) || []).length;
 
@@ -98,7 +105,7 @@ if (archiveDir) {
     try {
       const parsed = new URL(url);
       if (parsed.origin !== siteUrl) return false;
-      const localPath = parsed.pathname.replace(/^\/api\/uploads\//, "/uploads/");
+       const localPath = decodePath(parsed.pathname).replace(/^\/api\/uploads\//, "/uploads/");
       return !existsSync(join(archiveDir, localPath.replace(/^\/+/, "")));
     } catch {
       return true;
@@ -172,7 +179,7 @@ if (archiveDir) {
         return true;
       }
     }
-    const localPath = pathname.replace(/^\/api\/uploads\//, "/uploads/");
+    const localPath = decodePath(pathname).replace(/^\/api\/uploads\//, "/uploads/");
     return !existsSync(join(archiveDir, localPath.replace(/^\/+/, "")));
   });
   if (badHtmlImages.length === 0) pass(`HTML images resolve (${referencedImages.size})`);

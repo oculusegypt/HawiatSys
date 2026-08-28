@@ -98,7 +98,8 @@ const legacyContainerRows = tableExists("containers") ? db.prepare(`
 const containers = packageRows.length ? packageRows : legacyContainerRows;
 
 const posts = db.prepare(`
-  SELECT title, slug, cover_image AS coverImage, published_at AS publishedAt, updated_at AS updatedAt
+  SELECT title, slug, cover_image AS coverImage, og_image AS ogImage,
+         published_at AS publishedAt, updated_at AS updatedAt
   FROM posts
   WHERE status = 'published' AND is_active = 1 AND slug IS NOT NULL AND slug != ''
   ORDER BY published_at DESC
@@ -152,6 +153,18 @@ const parseImages = (raw) => {
   }
 };
 
+const articleImage = (post) => {
+  const text = `${post.slug || ""} ${post.title || ""}`.toLowerCase();
+  const keywordMedia = [
+    [["سعر", "أسعار", "تكلفة", "pricing"], "/images/seo/cleanflow-pricing.jpg"],
+    [["مناطق", "أحياء", "تغطية", "areas"], "/images/seo/cleanflow-areas.jpg"],
+    [["مطاعم", "مصانع", "مستودعات", "منشآت"], "/images/seo/cleanflow-services.jpg"],
+    [["حاويات", "أنقاض", "مخلفات", "هدم", "بناء", "ترميم", "رفع", "نقل"], "/images/seo/cleanflow-containers.jpg"],
+  ];
+  return keywordMedia.find(([keywords]) => keywords.some(keyword => text.includes(keyword)))?.[1]
+    || "/images/seo/cleanflow-blog.jpg";
+};
+
 const seoPageImage = (page) => {
   if (page.ogImage || page.coverImage) return page.ogImage || page.coverImage;
   const text = `${page.slug || ""} ${page.title || ""} ${page.targetKeyword || ""}`.toLowerCase();
@@ -193,7 +206,7 @@ for (const post of posts) {
     changefreq: "weekly",
     title: post.title,
     lastmod: post.updatedAt || post.publishedAt || today,
-    images: normalizeImages(post.coverImage ? [post.coverImage] : []),
+    images: normalizeImages([post.coverImage, post.ogImage, articleImage(post)].filter(Boolean)),
   });
 }
 

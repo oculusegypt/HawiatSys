@@ -80,6 +80,14 @@ const NEIGHBORHOODS = [
   { slug: "al-futah", name: "حي الفوطة" },
 ];
 
+function getArabicAreaSlug(name: string): string {
+  if (name === "حي عوالي الرياض") return "حي-العوالي";
+  return name
+    .replace("حي الشفاء", "حي الشفا")
+    .trim()
+    .replace(/\s+/g, "-");
+}
+
 function getStaticPages(base: string, siteName: string) {
   return [
     { path: "/",                               priority: "1.0",  freq: "weekly",  images: [
@@ -133,7 +141,7 @@ async function buildXml(baseUrl: string): Promise<{ xml: string; totalUrls: numb
   } catch {}
 
   // Fetch published blog posts
-  let blogPosts: Array<{ slug: string; title: string; coverImage: string; publishedAt: string | null; updatedAt: string }> = [];
+  let blogPosts: Array<{ slug: string; title: string; coverImage: string; ogImage: string; publishedAt: string | null; updatedAt: string }> = [];
   try {
     const rows = await db
       .select()
@@ -144,6 +152,7 @@ async function buildXml(baseUrl: string): Promise<{ xml: string; totalUrls: numb
       slug:        r.slug || r.seo_slug || "",
       title:       r.title || "",
       coverImage:  r.cover_image || r.coverImage || "",
+      ogImage:     r.og_image || r.ogImage || "",
       publishedAt: r.published_at || r.publishedAt || null,
       updatedAt:   r.updated_at  || r.updatedAt  || today,
     })).filter(r => r.slug);
@@ -196,7 +205,7 @@ async function buildXml(baseUrl: string): Promise<{ xml: string; totalUrls: numb
 
   // Neighborhood area pages (12 areas of Riyadh)
   for (const n of NEIGHBORHOODS) {
-    const url = `${baseUrl}/areas/${n.slug}`;
+    const url = `${baseUrl}/areas/${encodeURIComponent(getArabicAreaSlug(n.name))}`;
     lines.push(`  <!-- حي: ${n.name} -->`);
     lines.push(`  <url>`);
     lines.push(`    <loc>${escapeXml(url)}</loc>`);
@@ -312,8 +321,9 @@ async function buildXml(baseUrl: string): Promise<{ xml: string; totalUrls: numb
     lines.push(`    <changefreq>monthly</changefreq>`);
     lines.push(`    <priority>0.75</priority>`);
     lines.push(`    <xhtml:link rel="alternate" hreflang="ar" href="${escapeXml(url)}"/>`);
-    if (post.coverImage) {
-      const imgLoc = post.coverImage.startsWith("http") ? post.coverImage : `${baseUrl}${post.coverImage}`;
+    const articleImage = post.coverImage || post.ogImage || "/images/seo/cleanflow-blog.jpg";
+    if (articleImage) {
+      const imgLoc = articleImage.startsWith("http") ? articleImage : `${baseUrl}${articleImage}`;
       lines.push(`    <image:image>`);
       lines.push(`      <image:loc>${escapeXml(imgLoc)}</image:loc>`);
       lines.push(`      <image:title>${escapeXml(post.title)}</image:title>`);
