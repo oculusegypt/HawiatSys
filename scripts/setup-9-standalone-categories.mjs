@@ -26,8 +26,8 @@ const STANDALONE_PACKAGES = [
     price_note: "يشمل التطهير وتلميع السيراميك والنوافذ",
     image_url: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&q=80&w=800",
     features: JSON.stringify(["غسيل وتلميع الأرضيات والسيراميك", "تطهير وتعقيم الحمامات والمطابخ", "تنظيف مجارير وإطارات النوافذ الألمنيوم", "إزالة البقع والأتربة والتلميع الكامل"]),
-    contact_phone1: "0555888767",
-    contact_phone2: "0580595555",
+    contact_phone1: "0536312121",
+    contact_phone2: "0536312121",
     order: 1,
     is_active: 1
   },
@@ -43,8 +43,8 @@ const STANDALONE_PACKAGES = [
     price_note: "يشمل شطف الأحواش وجلي الدرج والواجهات",
     image_url: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=800",
     features: JSON.stringify(["تنظيف وشطف أدوار الفيلا والملحقات", "جلي وتلميع درج الرخام والأرضيات", "تنظيف وغسيل الأحواش والأسوار بالضغط", "تطهير وتعقيم كامل للحمامات والمطابخ"]),
-    contact_phone1: "0555888767",
-    contact_phone2: "0580595555",
+    contact_phone1: "0536312121",
+    contact_phone2: "0536312121",
     order: 2,
     is_active: 1
   },
@@ -60,8 +60,8 @@ const STANDALONE_PACKAGES = [
     price_note: "تغطية كاملة مع عمالة فنية متخصصة وشاملة",
     image_url: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&q=80&w=800",
     features: JSON.stringify(["تنظيف عميق للأجنحة الملكية والدهاليز", "تلميع النجف، الثريات، والزجاج المرتفع", "شطف وتطهير المسابح والحدائق والملاحق", "تلميع الرخام الإيطالي والأرضيات الفاخرة"]),
-    contact_phone1: "0555888767",
-    contact_phone2: "0580595555",
+    contact_phone1: "0536312121",
+    contact_phone2: "0536312121",
     order: 3,
     is_active: 1
   },
@@ -77,8 +77,8 @@ const STANDALONE_PACKAGES = [
     price_note: "إزالة أصعب البقع والروائح مع التعطير",
     image_url: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&q=80&w=800",
     features: JSON.stringify(["غسيل بالبخار الحراري 140 درجة", "إزالة بقع القهوة والزيوت والأتربة", "شفط وتجفيف فوري في 30 دقيقة فقط", "تعطير وتطهير ضد الجراثيم والبكتيريا"]),
-    contact_phone1: "0555888767",
-    contact_phone2: "0580595555",
+    contact_phone1: "0536312121",
+    contact_phone2: "0536312121",
     order: 4,
     is_active: 1
   },
@@ -94,8 +94,8 @@ const STANDALONE_PACKAGES = [
     price_note: "إعادة البريق الزجاجي وتسكير الترويبة",
     image_url: "https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?auto=format&fit=crop&q=80&w=800",
     features: JSON.stringify(["جلي الفواصل وإزالة الارتفاعات بالألماس", "تنعيم الرخام بـ 5 درجات إيطالية متدرجة", "تلميع الكريستال الزجاجي الحامي للأرضية", "تعبئة الفواصل بمادة الجولي الإيطالية"]),
-    contact_phone1: "0555888767",
-    contact_phone2: "0580595555",
+    contact_phone1: "0536312121",
+    contact_phone2: "0536312121",
     order: 5,
     is_active: 1
   },
@@ -111,8 +111,8 @@ const STANDALONE_PACKAGES = [
     price_note: "تعقيم صحي معتمد وضمان نقاء المياه",
     image_url: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&q=80&w=800",
     features: JSON.stringify(["شفط المياه السفلية والرمال المترسبة", "جلي وفرك جدران وأرضية الخزان", "تطهير وتعقيم بالكلور البكتيري المعتمد", "سد فواصل الترويبة لمنع التسرّب"]),
-    contact_phone1: "0555888767",
-    contact_phone2: "0580595555",
+    contact_phone1: "0536312121",
+    contact_phone2: "0536312121",
     order: 6,
     is_active: 1
   },
@@ -128,8 +128,8 @@ const STANDALONE_PACKAGES = [
     price_note: "استعادة التبريد القوي وتطهير الفلاتر",
     image_url: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&q=80&w=800",
     features: JSON.stringify(["غسيل بالضغط العالي بكيس حماية شفاف", "تنظيف وتطهير مجاري وأحواض التكثيف", "رش معقم ومزيل العفن والروائح الكريهة", "فحص غاز الفريون وتأكيد التبريد"]),
-    contact_phone1: "0555888767",
-    contact_phone2: "0580595555",
+    contact_phone1: "0536312121",
+    contact_phone2: "0536312121",
     order: 7,
     is_active: 1
   },
@@ -145,8 +145,8 @@ const STANDALONE_PACKAGES = [
     price_note: "ضمان كتابي لمدة 12 شهراً ورش مجاني",
     image_url: "https://images.unsplash.com/photo-1615873968403-89e068629265?auto=format&fit=crop&q=80&w=800",
     features: JSON.stringify(["إبادة الصراصير والنمل بجل ألماني آمن", "رش مبيدات بق الفراش بدون مغادرة المنزل", "مكافحة النمل الأبيض وقوارض المستودعات", "ضمان رسمي سنة مع رش إعادة مجاني"]),
-    contact_phone1: "0555888767",
-    contact_phone2: "0580595555",
+    contact_phone1: "0536312121",
+    contact_phone2: "0536312121",
     order: 8,
     is_active: 1
   },
@@ -162,8 +162,8 @@ const STANDALONE_PACKAGES = [
     price_note: "إزالة بقايا الإسمنت والدهان والتلميع الشامل",
     image_url: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&q=80&w=800",
     features: JSON.stringify(["إزالة بقايا الإسمنت والدهانات عن السيراميك", "تنظيف وغسيل مجارير وإطارات الألومنيوم", "جلي وتلميع أرضيات العقار الجديد بالكامل", "تسليم العقار ناصع النظافة وجاهزاً للسكن"]),
-    contact_phone1: "0555888767",
-    contact_phone2: "0580595555",
+    contact_phone1: "0536312121",
+    contact_phone2: "0536312121",
     order: 9,
     is_active: 1
   }

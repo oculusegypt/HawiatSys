@@ -5,7 +5,7 @@ const dbPath = path.resolve('data/sabaik.db');
 const db = new Database(dbPath);
 
 const siteName = "مؤسسة تقي جروب";
-const phone = "0555888767";
+const phone = "0536312121";
 
 // Generate rich, premium, comprehensive Arabic SEO content for each page topic
 const pageContentGenerators = {

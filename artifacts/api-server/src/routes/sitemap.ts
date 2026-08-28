@@ -321,7 +321,7 @@ async function buildXml(baseUrl: string): Promise<{ xml: string; totalUrls: numb
     lines.push(`    <changefreq>monthly</changefreq>`);
     lines.push(`    <priority>0.75</priority>`);
     lines.push(`    <xhtml:link rel="alternate" hreflang="ar" href="${escapeXml(url)}"/>`);
-    const articleImage = post.coverImage || post.ogImage || "/images/seo/cleanflow-blog.jpg";
+    const articleImage = post.coverImage || post.ogImage || "/images/seo/taqi-blog.jpg";
     if (articleImage) {
       const imgLoc = articleImage.startsWith("http") ? articleImage : `${baseUrl}${articleImage}`;
       lines.push(`    <image:image>`);

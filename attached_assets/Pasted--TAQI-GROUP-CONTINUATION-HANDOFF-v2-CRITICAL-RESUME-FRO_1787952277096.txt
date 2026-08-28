@@ -1,0 +1,1310 @@
+# TAQI GROUP — CONTINUATION HANDOFF v2
+
+## CRITICAL: RESUME FROM LAST AGENT STATE — DO NOT RESTART
+
+أنت تستلم الآن مشروع **taqigroup.com** من Agent سابق توقف بسبب quota.
+
+هذا هو **Checkpoint الأحدث** ويجب اعتماده بدل أي handoff أقدم.
+
+الهدف:
+
+> أكمل التنفيذ من الحالة الحالية بالضبط، أصلح أي شيء ناقص أو خاطئ، ثم نفّذ Build + Prerender + SEO Gate + Runtime/HTML validation + Hostinger/PHP validation، وأغلق المهمة بالأدلة الفعلية.
+
+---
+
+# 1. ممنوع إعادة البداية
+
+لا تبدأ:
+
+* Audit جديد.
+* SEO Audit كامل.
+* Architecture Audit.
+* قراءة المشروع بالكامل.
+* إعادة قراءة التقارير القديمة.
+* إعادة تنفيذ الإصلاحات السابقة.
+* إنشاء خطة جديدة.
+* Reset.
+* Revert شامل.
+* حذف تعديلات Agent السابق.
+
+المشروع في منتصف التنفيذ.
+
+ابدأ فقط بـ:
+
+```bash
+git status
+git diff --stat
+git diff
+```
+
+ثم تعامل مع **الحالة الحالية**.
+
+---
+
+# 2. الحالة السابقة التي لا يجب إعادتها
+
+تم بالفعل فحص مجموعة كبيرة من الملفات والتقارير الخاصة بـSEO، منها:
+
+* تقرير الـ14 مشكلة.
+* SEO system.
+* prerender.
+* Hostinger build.
+* App.tsx.
+* PublicRoutes.tsx.
+* prerender.mjs.
+* build-hostinger.mjs.
+* seo-quality-gate.mjs.
+* generate-sitemap.mjs.
+* siteUrl.ts.
+* SiteSettingsContext.tsx.
+* useDocumentSEO.ts.
+* Home.tsx.
+* ServiceDetail.tsx.
+* BlogPost.tsx.
+* NeighborhoodPage.tsx.
+* AboutPage.tsx.
+* ContactPage.tsx.
+* AreasIndexPage.tsx.
+* SEO media.
+* database/contact sources.
+* legacy branding.
+* Git diff.
+
+تم كذلك تنفيذ إصلاحات سابقة في منظومة SEO وproduction.
+
+**لا تعيد هذه القراءة إلا عند الحاجة للتحقق من تعديل محدد.**
+
+---
+
+# 3. الحالة التي وصل إليها Agent السابق في الجولة الأخيرة
+
+بعد handoff السابق، قام Agent بتنفيذ/فحص التالي:
+
+### Browser / Preview
+
+تم أخذ screenshot من:
+
+```text
+appPreview
+```
+
+على:
+
+```text
+/
+```
+
+بـviewport:
+
+```text
+1440x1000
+```
+
+وكان الهدف مقارنة ما يظهر بعد تشغيل JavaScript مع الـHTML.
+
+---
+
+# 4. Build PHP تم تشغيله
+
+Agent السابق شغّل:
+
+```text
+build_php
+```
+
+ثم قام باستخراج archive للتحقق من الناتج.
+
+لكن:
+
+**لا تعتبر هذا Build نهائيًا ناجحًا.**
+
+لأن Agent توقف قبل إكمال سلسلة validation الأخيرة.
+
+يجب إعادة التحقق من الـoutput الحالي، وليس افتراض نجاحه.
+
+---
+
+# 5. اكتشاف Legacy Branding في الصور
+
+أثناء الفحص النهائي ظهر أن بعض صفحات HTML كانت تشير إلى ملفات صور مثل:
+
+```text
+images/seo/cleanflow-*.jpg
+```
+
+المشكلة هنا ليست بالضرورة اسمًا ظاهرًا للمستخدم، لكنها قد تكون:
+
+```text
+public URL / asset filename
+```
+
+وتؤدي إلى تسريب اسم العلامة القديمة.
+
+Agent السابق قرر معالجة ذلك.
+
+---
+
+# 6. التعديل الأخير الذي بدأه Agent السابق
+
+قام بتعديل:
+
+```text
+seoMedia.ts
+AreasIndexPage.tsx
+Home.tsx
+Blog.tsx
+PricingPage.tsx
+PackageDetail.tsx
+PackagesPage.tsx
+prerender.mjs
+generate-sitemap.mjs
+api-index.php
+prepare-seo-drafts.mjs
+```
+
+والهدف كان تغيير مراجع:
+
+```text
+cleanflow-*.jpg
+```
+
+إلى:
+
+```text
+taqi-*.jpg
+```
+
+**لكن هذه العملية لم تُغلق بعد.**
+
+Agent توقف بسبب quota بعد هذه التعديلات.
+
+---
+
+# 7. أهم تحذير: لا تفترض أن إعادة التسمية تمت فعليًا
+
+تعديل references في source لا يعني أن الملفات نفسها تم تغيير اسمها.
+
+يجب الآن التحقق من:
+
+```text
+source references
++
+actual image files
++
+build output
++
+prerender HTML
++
+Hostinger archive
+```
+
+مثال:
+
+إذا أصبح source:
+
+```text
+taqi-home.jpg
+```
+
+لكن الملف الفعلي لا يزال:
+
+```text
+cleanflow-home.jpg
+```
+
+فهذا regression.
+
+وبالعكس:
+
+إذا تم rename للملفات دون تحديث كل references، فهذا أيضًا regression.
+
+---
+
+# 8. يجب تنفيذ rename بشكل كامل وآمن
+
+تحقق أولًا من قائمة الملفات الحالية:
+
+```text
+images/seo/
+```
+
+ثم inventory للـlegacy image names.
+
+لا تحذف الصور.
+
+المطلوب:
+
+```text
+old asset
+→ new asset
++
+all references updated
++
+build output updated
+```
+
+لا تترك:
+
+```text
+broken image
+404 asset
+old reference
+```
+
+---
+
+# 9. لا تنظف كل كلمة cleanflow بشكل أعمى
+
+Agent السابق وجد أن `cleanflow` ما زال موجودًا في أماكن مثل:
+
+* CSS comments.
+* localStorage keys.
+* service worker comments.
+* internal names.
+
+وذكر أن build archive قد يحتوي مئات occurrences.
+
+**هذا لا يعني أن كل occurrence يجب تغييره.**
+
+صنف النتائج:
+
+### Production-visible / public
+
+مثل:
+
+* HTML.
+* public asset URL.
+* image filename.
+* title.
+* description.
+* JSON-LD.
+* visible content.
+* public API response.
+
+هذه يجب تنظيفها إذا كانت legacy.
+
+### Internal / historical
+
+مثل:
+
+* comments.
+* migration history.
+* internal storage keys التي لا تدخل في public SEO.
+* historical docs.
+
+لا تغيرها لمجرد أن `rg` وجد كلمة.
+
+---
+
+# 10. أهم معيار للـLegacy Branding
+
+المعيار هو:
+
+> هل يمكن أن يظهر الاسم القديم للمستخدم أو crawler في production؟
+
+وليس:
+
+> هل توجد الكلمة في repository بأي مكان؟
+
+لذلك لا تعمل global replace لـ:
+
+```text
+cleanflow
+sabaik
+سبائك
+الماسة
+```
+
+بدون تصنيف.
+
+---
+
+# 11. Workflow failures
+
+أثناء المعاينة ظهرت محاولة فاشلة لتشغيل:
+
+```text
+web
+API
+```
+
+بسبب:
+
+```text
+EADDRINUSE
+```
+
+Agent قام بالتحقيق ووجد أن processes قديمة كانت ما زالت ممسكة بالمنافذ.
+
+ثم قام بـ:
+
+```text
+fuser
+```
+
+وحرر المنافذ.
+
+بعد ذلك أعاد تشغيل:
+
+```text
+artifacts/api-server: API Server
+artifacts/sabaik-almasa: web
+```
+
+وأصبحت الخدمتان تعملان.
+
+**هذه المشكلة اعتُبرت process/port issue وليست code failure.**
+
+لكن يجب في النهاية التأكد أن:
+
+* API يعمل.
+* web يعمل.
+* لا توجد process duplicates.
+* لا توجد EADDRINUSE.
+* preview يستجيب.
+* build artifacts صحيحة.
+
+---
+
+# 12. لا تخلط اسم artifact القديم مع production branding
+
+ظهر في workflow:
+
+```text
+artifacts/sabaik-almasa
+```
+
+هذا اسم artifact/workflow.
+
+لا تعتبره تلقائيًا production branding.
+
+المعيار هو:
+
+```text
+taqigroup.com
+```
+
+وما يظهر في production output.
+
+---
+
+# 13. SEO descriptions — الحالة ما زالت تحتاج إثباتًا
+
+تم في الجولة السابقة العمل على:
+
+```text
+seoText.ts
+useDocumentSEO.ts
+prerender.mjs
+```
+
+والهدف:
+
+* Homepage description حوالي 120–160 character.
+* أوصاف مختلفة حسب الصفحة.
+* عدم keyword stuffing.
+* عدم الحشو.
+* مصدر توليد مركزي.
+* تطابق prerender/runtime/schema حيث applicable.
+
+لكن:
+
+**لم يتم بعد إثبات النتيجة النهائية من الـproduction build.**
+
+لا تقل PASS قبل فحص HTML الفعلي.
+
+---
+
+# 14. Entity Graph — لا تعيد بناءه
+
+الهدف السابق ما زال:
+
+```text
+Organization
+   ↓
+LocalBusiness
+   ↓
+WebSite
+   ↓
+WebPage
+   ↓
+Service
+   ↓
+ContactPoint
+   ↓
+AreaServed
+```
+
+يجب أن تكون IDs:
+
+* ثابتة.
+* منطقية.
+* غير متكررة لكيانات مختلفة.
+* غير وهمية.
+
+ولا تنشئ Entity Graph architecture جديدة.
+
+فقط أصلح الموجود إذا كان غير متسق.
+
+---
+
+# 15. Phone numbers — لا تثق بالافتراضات السابقة
+
+الأرقام التي ظهرت في التحقيق:
+
+```text
+0557870222
+0580595555
+0555888767
+0536312121
+```
+
+Agent السابق بدأ يستبدل بعض الأرقام على أساس أنها legacy.
+
+**لا تعتبر كل هذه الاستبدالات صحيحة تلقائيًا.**
+
+يجب تصنيف كل occurrence.
+
+مثال:
+
+```text
+source
+seed
+database
+JSON-LD
+generated HTML
+PHP
+historical
+```
+
+القاعدة:
+
+### verified current number
+
+يبقى.
+
+### proven legacy/placeholder
+
+يزال.
+
+### unknown
+
+لا يتم تغييره بالتخمين.
+
+---
+
+# 16. SQLite — ما زالت نقطة تحتاج إغلاقًا
+
+Agent السابق اكتشف SQLite integrity issue في index.
+
+كما وجد بيانات قديمة مرتبطة ببعض أرقام الهاتف.
+
+لكنه لم يصل إلى إغلاق نهائي موثّق.
+
+لذلك يجب الآن:
+
+1. تحديد DB التي يستخدمها build فعليًا.
+2. فحص integrity.
+3. معرفة هل corruption في index فقط.
+4. التأكد من عدم فقد rows.
+5. التأكد من أن build يستخدم DB الصحيحة.
+6. التأكد من أن archive النهائي يحمل DB الصحيحة.
+
+لا تعمل:
+
+```text
+DROP TABLE
+```
+
+أو:
+
+```text
+recreate database
+```
+
+بشكل عشوائي.
+
+ولا تحذف بيانات business لمجرد أنها تبدو قديمة.
+
+---
+
+# 17. قاعدة مهمة في database repair
+
+إذا كان:
+
+```text
+data = valid
+index = corrupt
+```
+
+فالإصلاح يجب أن يكون:
+
+```text
+index repair
+```
+
+وليس:
+
+```text
+data replacement
+```
+
+والنجاح يجب إثباته بـ:
+
+```text
+SQLite integrity check
++
+expected tables
++
+expected row counts
++
+application query
+```
+
+---
+
+# 18. Rendering 1238%
+
+ما زالت هذه نقطة أساسية.
+
+لا تعتمد على screenshot وحده.
+
+يجب مقارنة:
+
+## Raw source/prerender HTML
+
+مع:
+
+## DOM بعد JavaScript
+
+خصوصًا:
+
+```text
+title
+description
+canonical
+H1
+main content
+services
+areas
+FAQ
+company information
+internal links
+JSON-LD
+```
+
+إذا كان المحتوى موجودًا في raw HTML:
+
+```text
+PASS
+```
+
+حتى لو كانت أداة خارجية تقيس فرقًا كبيرًا بعد hydration.
+
+إذا لم يكن موجودًا:
+
+```text
+FAIL
+```
+
+ويجب إصلاح prerender.
+
+---
+
+# 19. Browser screenshot ليس دليل SEO كامل
+
+الـscreenshot يثبت:
+
+* الصفحة تظهر.
+* visual rendering.
+
+لكنه لا يثبت:
+
+* raw HTML SEO content.
+* canonical.
+* schema.
+* prerender correctness.
+* source HTML parity.
+
+لذلك لا تستخدم screenshot كبديل للـHTML inspection.
+
+---
+
+# 20. FAQ / GEO
+
+تحقق مرة أخرى من أن FAQ:
+
+* موجود في raw HTML.
+* visible.
+* ليس مجرد client-side link.
+* schema يطابق المحتوى إذا كان schema موجودًا.
+
+لا تضف FAQ حشوًا.
+
+---
+
+# 21. Image rename validation
+
+بعد تعديل `seoMedia.ts` وملفات الصفحات، نفّذ inventory كامل للمراجع ذات الصلة.
+
+يجب أن تكون النتيجة:
+
+```text
+public HTML references:
+taqi-*
+```
+
+وليس:
+
+```text
+cleanflow-*
+```
+
+لكن لا يجب أن يكون هناك:
+
+```text
+taqi-reference → missing file
+```
+
+---
+
+# 22. مهم: generate-sitemap.mjs
+
+Agent السابق عدّل:
+
+```text
+generate-sitemap.mjs
+```
+
+بسبب image/legacy work.
+
+لا تفترض أن هذا التعديل ضروري أو صحيح.
+
+افحص diff فقط.
+
+تأكد أن تعديل sitemap لم يغيّر:
+
+* URL generation.
+* canonical URLs.
+* number of URLs.
+* valid routes.
+
+لا تستخدم sitemap script لتنظيف branding بطريقة تكسر URL discovery.
+
+---
+
+# 23. مهم: api-index.php
+
+تم تعديل:
+
+```text
+api-index.php
+```
+
+في الجولة الأخيرة.
+
+يجب فحص diff بدقة.
+
+خصوصًا:
+
+* هل التعديل متعلق فعلًا بـlegacy asset path؟
+* هل كسر PHP syntax؟
+* هل غيّر API behavior؟
+* هل غيّر response format؟
+* هل production API ما زال يعمل؟
+
+بعد ذلك نفّذ PHP syntax check إن كان متاحًا.
+
+---
+
+# 24. prepare-seo-drafts.mjs
+
+تم تعديل:
+
+```text
+prepare-seo-drafts.mjs
+```
+
+يجب التأكد أن هذا script:
+
+* لا يغير production DB بشكل جانبي.
+* لا يعيد إدخال legacy branding.
+* لا يولد أرقامًا قديمة.
+* لا يستخدم image paths القديمة.
+
+لا توسع المهمة إلى SEO content generation جديدة.
+
+---
+
+# 25. الملفات التي يجب التركيز عليها الآن فقط
+
+ابدأ بالـdiff ثم targeted inspection لهذه الملفات:
+
+```text
+seoMedia.ts
+AreasIndexPage.tsx
+Home.tsx
+Blog.tsx
+PricingPage.tsx
+PackageDetail.tsx
+PackagesPage.tsx
+prerender.mjs
+generate-sitemap.mjs
+api-index.php
+prepare-seo-drafts.mjs
+```
+
+وبحسب الـdiff الحالي:
+
+```text
+seoText.ts
+useDocumentSEO.ts
+ServiceDetail.tsx
+FloatingContactButtons.tsx
+AboutPage.tsx
+ContactPage.tsx
+NeighborhoodPage.tsx
+seed-homepage-content.ts
+seed-container-system.ts
+aiSeo.ts
+```
+
+لا تقرأها كلها من البداية إذا لم يحتج diff لذلك.
+
+---
+
+# 26. أول Validation بعد استلام المهمة
+
+نفذ بالترتيب:
+
+```text
+git status
+git diff --stat
+git diff
+```
+
+ثم:
+
+```text
+TypeScript / syntax validation
+```
+
+ثم تحقق من references:
+
+```text
+cleanflow-*.jpg
+cleanflow
+sabaik
+سبائك
+الماسة
+```
+
+لكن صنف النتائج ولا تعمل global delete.
+
+---
+
+# 27. ثم تحقق من assets
+
+تأكد من:
+
+```text
+source filename
+=
+actual filename
+=
+generated filename
+=
+HTML reference
+```
+
+ولا يكفي أن source صحيح.
+
+---
+
+# 28. ثم Build
+
+نفّذ build الحقيقي.
+
+إذا فشل:
+
+> أصلح السبب الحقيقي.
+
+لا تعدّل tests أو quality gate لتجاوز failure.
+
+---
+
+# 29. ثم Prerender
+
+شغّل prerender.
+
+سجل العدد الفعلي:
+
+```text
+prerender pages = X
+```
+
+لا تستخدم رقمًا تاريخيًا مثل 201 بدون التحقق.
+
+---
+
+# 30. ثم Sitemap
+
+شغّل sitemap generation.
+
+سجل:
+
+```text
+sitemap URLs = Y
+```
+
+ثم تحقق من:
+
+* no malformed URL.
+* no duplicate URL.
+* no legacy URL.
+* canonical/domain صحيح.
+
+---
+
+# 31. ثم SEO Quality Gate
+
+شغّل:
+
+```text
+seo-quality-gate
+```
+
+إذا فشل:
+
+> أصلح المشكلة.
+
+لا تغير gate rules لمجرد الحصول على PASS.
+
+---
+
+# 32. ثم Raw HTML inspection
+
+افحص production/prerender output فعليًا.
+
+على الأقل:
+
+```text
+/
+service
+service detail
+areas
+neighborhood
+blog
+blog post
+about
+contact
+```
+
+لكل واحدة:
+
+```text
+title
+description
+canonical
+H1
+main content
+internal links
+FAQ
+JSON-LD
+```
+
+---
+
+# 33. ثم Runtime DOM
+
+إذا كانت Playwright/browser environment متاحة:
+
+قارن:
+
+```text
+raw HTML
+vs
+DOM after JS
+```
+
+لا تعتمد على screenshot فقط.
+
+---
+
+# 34. ثم API
+
+تأكد أن API الذي أعيد تشغيله:
+
+```text
+responds
+```
+
+ولا يوجد:
+
+```text
+EADDRINUSE
+500
+syntax error
+database locked
+database malformed
+```
+
+---
+
+# 35. ثم Hostinger package
+
+هذه نقطة مهمة جدًا.
+
+المطلوب النهائي ليس:
+
+```text
+frontend build only
+```
+
+بل package الخاص بـproduction.
+
+تحقق من:
+
+```text
+PHP
+SQLite
+HTML
+assets
+sitemap
+robots
+API
+```
+
+واعمل scan على الـarchive نفسه.
+
+---
+
+# 36. Legacy scan النهائي يجب أن يكون على الـOUTPUT
+
+هذه نقطة مهمة جدًا.
+
+لا يكفي:
+
+```text
+rg cleanflow src/
+```
+
+يجب أيضًا:
+
+```text
+final production archive
+```
+
+وتحديد هل أي occurrence منه public أم internal.
+
+نريد:
+
+```text
+public legacy branding = 0
+```
+
+أما comments/internal/historical occurrences فلا تعتبر failure تلقائيًا.
+
+---
+
+# 37. Phone scan النهائي أيضًا على الـOUTPUT
+
+افحص الـfinal production artifacts عن:
+
+```text
+0557870222
+0580595555
+0555888767
+```
+
+لكن لا تعتبر وجود أي رقم في repository failure قبل تصنيفه.
+
+المعيار النهائي:
+
+```text
+public production output
++
+database actually used by production
+```
+
+---
+
+# 38. لا تنسَ التعديلات الأقدم
+
+آخر Agent كان يعمل على image rename، لكن هناك تعديلات أقدم ما زالت جزءًا من المهمة:
+
+```text
+seoText.ts
+useDocumentSEO.ts
+ServiceDetail.tsx
+FloatingContactButtons.tsx
+prerender.mjs
+```
+
+لذلك لا تجعل image rename يطغى على SEO description/entity/rendering validation.
+
+يجب إغلاق كل المسارات.
+
+---
+
+# 39. ترتيب الأولويات
+
+إذا كان الوقت أو quota محدودًا، الأولوية:
+
+## P0
+
+```text
+compile/runtime errors
+broken assets
+broken production build
+broken API
+SQLite corruption affecting production
+```
+
+## P1
+
+```text
+raw HTML SEO content
+meta description
+canonical
+schema/entity graph
+legacy public branding
+wrong phone in production
+```
+
+## P2
+
+```text
+internal comments
+historical filenames
+non-public legacy strings
+```
+
+لا تستهلك quota على P2 قبل إغلاق P0/P1.
+
+---
+
+# 40. لا تعمل cleanup واسع الآن
+
+إذا وجدت 350 occurrences لـ`cleanflow` داخل archive:
+
+لا تبدأ بتنظيف الـ350 occurrence.
+
+اعرف أولًا:
+
+```text
+how many are public?
+how many are comments?
+how many are internal?
+how many are actual asset paths?
+```
+
+ثم أصلح public contamination فقط.
+
+---
+
+# 41. لا تغير business content بلا ضرورة
+
+المهمة ليست إعادة كتابة الموقع.
+
+لا:
+
+* تضف أسعارًا.
+* تضف خدمات غير موجودة.
+* تضف مناطق وهمية.
+* تضف FAQ مصطنعة.
+* تضف بيانات company غير موثقة.
+
+SEO يجب أن يعكس المنتج الحقيقي.
+
+---
+
+# 42. معيار النجاح النهائي
+
+لا تقل:
+
+```text
+SEO fixed
+```
+
+إلا بعد:
+
+```text
+Source
+PASS
+
+TypeScript
+PASS
+
+Build
+PASS
+
+Prerender
+PASS
+
+Sitemap
+PASS
+
+SEO Gate
+PASS
+
+Raw HTML SEO
+PASS
+
+Runtime DOM
+PASS
+
+Schema
+PASS
+
+Assets
+PASS
+
+Legacy public branding
+PASS
+
+Contacts
+PASS
+
+SQLite
+PASS
+
+API
+PASS
+
+Hostinger package
+PASS
+```
+
+---
+
+# 43. التقرير النهائي
+
+عند الانتهاء لا ترسل شرحًا طويلًا عن كل خطوة داخل reasoning.
+
+أرسل فقط:
+
+## IMPLEMENTED
+
+التعديلات الفعلية.
+
+## VERIFIED
+
+التحققات التي تمت.
+
+## PRODUCTION
+
+```text
+Build = PASS
+Prerender = PASS
+Pages = X
+Sitemap = Y
+```
+
+## SEO
+
+```text
+Homepage description = X chars
+Raw HTML = PASS
+Runtime DOM = PASS
+Schema = PASS
+FAQ = PASS
+Canonical = PASS
+```
+
+## DATA
+
+```text
+SQLite = PASS
+old phone numbers = CLEAN / FOUND
+legacy public branding = CLEAN / FOUND
+```
+
+## ASSETS
+
+```text
+cleanflow public references = 0
+broken taqi assets = 0
+```
+
+## SERVICES
+
+```text
+Web = PASS
+API = PASS
+```
+
+## HOSTINGER
+
+```text
+Final package = PASS
+```
+
+وأي نقطة لم تستطع إثباتها يجب أن تقول:
+
+```text
+NOT VERIFIED
+```
+
+وليس PASS.
+
+---
+
+# 44. أهم تعليمات الاستلام
+
+**أنت الآن تكمل من آخر Agent، وليس من الصفر.**
+
+آخر نقطة توقف كانت:
+
+```text
+Browser screenshot
+→ build_php
+→ archive extraction
+→ legacy image investigation
+→ service restart
+→ cleanflow → taqi image-reference patches
+→ quota stop
+```
+
+لذلك البداية الصحيحة الآن:
+
+```text
+git status
+git diff
+↓
+verify last image patches
+↓
+fix broken references/files
+↓
+verify earlier SEO patches
+↓
+typecheck
+↓
+build
+↓
+prerender
+↓
+sitemap
+↓
+SEO gate
+↓
+raw HTML
+↓
+runtime DOM
+↓
+API
+↓
+SQLite
+↓
+final Hostinger archive
+↓
+final production scan
+```
+
+**لا تعيد Audit. لا تعيد الخطة. لا تعمل reset. لا تمسح تعديلات Agent السابق. لا تفترض أن أي claim سابق هو PASS بدون دليل.**
+
+وأهم قاعدة:
+
+> **أي شيء لم يتم إثباته من الـfinal output يظل NOT VERIFIED.**
+
+ابدأ الآن من `git status` و`git diff` فقط، ثم أكمل التنفيذ.

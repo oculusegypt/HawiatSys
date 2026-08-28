@@ -156,27 +156,27 @@ const parseImages = (raw) => {
 const articleImage = (post) => {
   const text = `${post.slug || ""} ${post.title || ""}`.toLowerCase();
   const keywordMedia = [
-    [["سعر", "أسعار", "تكلفة", "pricing"], "/images/seo/cleanflow-pricing.jpg"],
-    [["مناطق", "أحياء", "تغطية", "areas"], "/images/seo/cleanflow-areas.jpg"],
-    [["مطاعم", "مصانع", "مستودعات", "منشآت"], "/images/seo/cleanflow-services.jpg"],
-    [["حاويات", "أنقاض", "مخلفات", "هدم", "بناء", "ترميم", "رفع", "نقل"], "/images/seo/cleanflow-containers.jpg"],
+    [["سعر", "أسعار", "تكلفة", "pricing"], "/images/seo/taqi-pricing.jpg"],
+    [["مناطق", "أحياء", "تغطية", "areas"], "/images/seo/taqi-areas.jpg"],
+    [["مطاعم", "مصانع", "مستودعات", "منشآت"], "/images/seo/taqi-services.jpg"],
+    [["حاويات", "أنقاض", "مخلفات", "هدم", "بناء", "ترميم", "رفع", "نقل"], "/images/seo/taqi-containers.jpg"],
   ];
   return keywordMedia.find(([keywords]) => keywords.some(keyword => text.includes(keyword)))?.[1]
-    || "/images/seo/cleanflow-blog.jpg";
+    || "/images/seo/taqi-blog.jpg";
 };
 
 const seoPageImage = (page) => {
   if (page.ogImage || page.coverImage) return page.ogImage || page.coverImage;
   const text = `${page.slug || ""} ${page.title || ""} ${page.targetKeyword || ""}`.toLowerCase();
   const keywordMedia = [
-    [["سعر", "أسعار", "تكلفة", "pricing"], "/images/seo/cleanflow-pricing.jpg"],
-    [["حي", "أحياء", "مناطق", "تغطية", "ضواحي", "areas"], "/images/seo/cleanflow-areas.jpg"],
-    [["سؤال", "أسئلة", "faq"], "/images/seo/cleanflow-faq.jpg"],
-    [["مطاعم", "مصانع", "مستودعات", "منشآت"], "/images/seo/cleanflow-services.jpg"],
-    [["حاويات", "أنقاض", "مخلفات", "هدم", "بناء", "ترميم", "رفع", "نقل"], "/images/seo/cleanflow-containers.jpg"],
+    [["سعر", "أسعار", "تكلفة", "pricing"], "/images/seo/taqi-pricing.jpg"],
+    [["حي", "أحياء", "مناطق", "تغطية", "ضواحي", "areas"], "/images/seo/taqi-areas.jpg"],
+    [["سؤال", "أسئلة", "faq"], "/images/seo/taqi-faq.jpg"],
+    [["مطاعم", "مصانع", "مستودعات", "منشآت"], "/images/seo/taqi-services.jpg"],
+    [["حاويات", "أنقاض", "مخلفات", "هدم", "بناء", "ترميم", "رفع", "نقل"], "/images/seo/taqi-containers.jpg"],
   ];
   return keywordMedia.find(([keywords]) => keywords.some(keyword => text.includes(keyword)))?.[1]
-    || "/images/seo/cleanflow-blog.jpg";
+    || "/images/seo/taqi-blog.jpg";
 };
 
 for (const service of services) {

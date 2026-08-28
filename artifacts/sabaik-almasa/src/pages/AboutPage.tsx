@@ -21,7 +21,9 @@ export default function AboutPage() {
     canonical: siteUrl("/about"),
   })
 
-  const waHref = `https://wa.me/966${(phoneWhatsapp || "0580595555").replace(/^0/, "")}?text=${encodeURIComponent("مرحباً، أود الاستفسار عن تأجير الحاويات والتعاقد")}`
+  const waHref = phoneWhatsapp
+    ? `https://wa.me/966${phoneWhatsapp.replace(/^0/, "")}?text=${encodeURIComponent("مرحباً، أود الاستفسار عن تأجير الحاويات والتعاقد")}`
+    : ""
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-sans" dir="rtl">
@@ -105,20 +107,21 @@ export default function AboutPage() {
               تواصل مع فريق {resolvedCompany} لتحديد المقاس الأنسب والتوصيل الفوري لموقعك.
             </p>
             <div className="flex gap-4 justify-center flex-wrap">
-              <a
-                href={`tel:${phoneCall || "0555888767"}`}
+              {phoneCall && <a
+                href={`tel:${phoneCall}`}
                 className="inline-flex items-center gap-2 bg-white text-slate-950 px-8 py-3.5 rounded-xl font-bold hover:bg-secondary hover:text-white transition shadow-lg"
               >
-                <Phone size={18} /> {phoneCall || "0555888767"}
+                <Phone size={18} /> {phoneCall}
               </a>
-              <a
+              }
+              {waHref && <a
                 href={waHref}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-3.5 rounded-xl font-bold transition shadow-lg"
               >
                 <MessageCircle size={18} /> واتساب مباشر
-              </a>
+              </a>}
             </div>
           </div>
         </section>

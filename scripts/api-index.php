@@ -763,7 +763,7 @@ try {
             $addImageTags(
                 $imageCandidates(
                     $post['cover_image'] ?? '',
-                    $post['og_image'] ?? '/images/seo/cleanflow-blog.jpg'
+                     $post['og_image'] ?? '/images/seo/taqi-blog.jpg'
                 ),
                 (string)$post['title']
             );
@@ -2283,7 +2283,7 @@ try {
             // 11. Confirm Order
             if ($step === 'confirm_order' || $step === 'confirm' || $msg === 'confirm' || $msg === 'تأكيد' || $msg === 'تأكيد الطلب' || $msg === 'نعم' || $msg === 'موافق') {
                 $clientName = !empty($data['name']) ? $data['name'] : 'عميل الموقع';
-                $phone = !empty($data['phone']) ? $data['phone'] : '0555888767';
+                $phone = !empty($data['phone']) ? $data['phone'] : '0536312121';
                 $serviceType = !empty($data['serviceType']) ? $data['serviceType'] : 'تأجير حاويات مخلفات';
                 $containerSize = !empty($data['containerSize']) ? $data['containerSize'] : 'حاوية أنقاض';
                 $location = !empty($data['location']) ? $data['location'] : 'الرياض';

@@ -29,7 +29,7 @@ export default function Blog() {
     description: "اقرأ أحدث المقالات والأدلة الفنية حول مقاسات تأجير حاويات الأنقاض والنفايات وعقود النظافة الإلكترونية ورخص بلدي بالرياض.",
     keywords: "مدونة تأجير الحاويات بالرياض, حاويات أنقاض الرياض, عقد نظافة بلدي, نقل مخلفات البناء بالرياض",
     canonical: siteUrl("/blog"),
-    ogImage: "/images/seo/cleanflow-blog.jpg",
+    ogImage: "/images/seo/taqi-blog.jpg",
     ogImageAlt: "مدونة تأجير الحاويات وإدارة مخلفات البناء بالرياض",
   })
 

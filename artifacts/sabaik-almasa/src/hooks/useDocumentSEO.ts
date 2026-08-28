@@ -2,6 +2,7 @@ import { useEffect } from "react"
 import { replaceLegacyCompanyName, useSiteSettings } from "@/context/SiteSettingsContext"
 import { sitePath, siteUrl } from "@/lib/siteUrl"
 import { seoImageAlt, seoImageForPath } from "@/lib/seoMedia"
+import { normalizeSeoDescription } from "@/lib/seoText"
 
 interface SEOOptions {
   title: string
@@ -49,7 +50,10 @@ export function useDocumentSEO({
     const replaceCompanyName = (value?: string) =>
       value ? replaceLegacyCompanyName(value, companyName) : value
     const resolvedTitle = replaceCompanyName(title) || title
-    const resolvedDescription = replaceCompanyName(description)
+    const resolvedDescription = normalizeSeoDescription(
+      replaceCompanyName(description),
+      resolvedTitle.replace(/\s*\|.*$/, "").trim(),
+    )
     const resolvedKeywords = replaceCompanyName(keywords)
     const resolvedOgImageAlt = replaceCompanyName(ogImageAlt)
     const resolvedOgImage = ogImage || seoImageForPath(canonical || window.location.pathname)

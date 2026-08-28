@@ -100,9 +100,9 @@ const extendedDemo = [
   const organizationSettings = {
     company_name: "مؤسسة تقي جروب",
     company_name_en: "Taqi Group Establishment",
-    company_phone_call: "0555888767",
-    company_phone_whatsapp: "0580595555",
-    company_phones: JSON.stringify(["0555888767", "0580595555"]),
+    company_phone_call: "0536312121",
+    company_phone_whatsapp: "0536312121",
+    company_phones: JSON.stringify(["0536312121"]),
     company_email: "",
     company_address: "6793 حمزة بن عبدالمطلب",
     company_city: "الرياض",
@@ -119,7 +119,7 @@ const extendedDemo = [
     company_footer_description: "مؤسسة تقي جروب، خيارك الأمثل في عالم تأجير الحاويات ونقل الأنقاض. نقدم خدماتنا بجودة عالية وأسعار تنافسية لنكون شركاء نجاحك في مشاريعك الإنشائية.",
     site_desc: "مؤسسة تقي جروب لخدمات تأجير الحاويات ونقل الأنقاض ومخلفات البناء في الرياض.",
     site_public_url: "",
-    seo_meta_description: "مؤسسة تقي جروب — تأجير الحاويات ونقل الأنقاض في الرياض. اتصل الآن: 0555888767",
+    seo_meta_description: "مؤسسة تقي جروب — تأجير الحاويات ونقل الأنقاض في الرياض. اتصل الآن: 0536312121",
     vapid_subject: "",
   };
   for (const [key, value] of Object.entries(organizationSettings)) {

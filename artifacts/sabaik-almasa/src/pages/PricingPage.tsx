@@ -62,7 +62,7 @@ export default function PricingPage() {
     description,
     keywords: "أسعار الحاويات بالرياض, مقاسات حاويات الأنقاض, تأجير حاويات النفايات",
     canonical: siteUrl("/pricing"),
-    ogImage: "/images/seo/cleanflow-pricing.jpg",
+    ogImage: "/images/seo/taqi-pricing.jpg",
     ogImageAlt: "أسعار ومقاسات حاويات الأنقاض والنفايات بالرياض",
   })
 

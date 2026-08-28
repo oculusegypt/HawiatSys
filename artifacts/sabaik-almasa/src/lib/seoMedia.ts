@@ -1,16 +1,16 @@
 const SEO_MEDIA = {
-  home: "/images/seo/cleanflow-home.jpg",
-  services: "/images/seo/cleanflow-services.jpg",
-  containers: "/images/seo/cleanflow-containers.jpg",
-  pricing: "/images/seo/cleanflow-pricing.jpg",
-  areas: "/images/seo/cleanflow-areas.jpg",
-  blog: "/images/seo/cleanflow-blog.jpg",
-  about: "/images/seo/cleanflow-about.jpg",
-  contact: "/images/seo/cleanflow-contact.jpg",
-  faq: "/images/seo/cleanflow-faq.jpg",
-  partners: "/images/seo/cleanflow-partners.jpg",
-  whyUs: "/images/seo/cleanflow-why-us.jpg",
-  legal: "/images/seo/cleanflow-legal.jpg",
+  home: "/images/seo/taqi-home.jpg",
+  services: "/images/seo/taqi-services.jpg",
+  containers: "/images/seo/taqi-containers.jpg",
+  pricing: "/images/seo/taqi-pricing.jpg",
+  areas: "/images/seo/taqi-areas.jpg",
+  blog: "/images/seo/taqi-blog.jpg",
+  about: "/images/seo/taqi-about.jpg",
+  contact: "/images/seo/taqi-contact.jpg",
+  faq: "/images/seo/taqi-faq.jpg",
+  partners: "/images/seo/taqi-partners.jpg",
+  whyUs: "/images/seo/taqi-why-us.jpg",
+  legal: "/images/seo/taqi-legal.jpg",
 } as const
 
 const PATH_MEDIA: Array<[string, string]> = [

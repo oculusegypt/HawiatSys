@@ -29,13 +29,30 @@ const settingRows = db.prepare("SELECT key, value FROM site_settings").all();
 const settingMap = Object.fromEntries(settingRows.map(row => [row.key, row.value]));
 const SEO_DEFAULTS = {
   companyName: "مؤسسة تقي جروب",
-  description: "تأجير حاويات الأنقاض والنفايات والمكابس ونقل مخلفات البناء والهدم وعقود النظافة الإلكترونية بالرياض.",
+  description: "مؤسسة تقي جروب توفر تأجير حاويات الأنقاض والنفايات ونقل مخلفات البناء والهدم وعقود النظافة الإلكترونية للمنشآت داخل الرياض.",
   image: "/images/hero-1.webp",
+  priceRange: "$$",
 };
 // The administrator-configured public URL is the only production origin.
 const SITE_URL = requirePublicOrigin({ settings: settingMap });
 const siteCompanyName = settingMap.company_name?.trim() || SEO_DEFAULTS.companyName;
-const siteDescription = settingMap.site_desc?.trim() || SEO_DEFAULTS.description;
+function normalizeMetaDescription(value, context = "") {
+  let text = String(value || "").replace(/\s+/g, " ").trim() || SEO_DEFAULTS.description;
+  if (text.length < 120) {
+    const addition = context
+      ? ` تعرف على تفاصيل ${context} والمقاسات المناسبة وخيارات التوصيل والسحب.`
+      : " اطلب عرضاً واضحاً حسب المقاس ونوع المخلفات وموقع المشروع وموعد التوصيل داخل الرياض.";
+    text = `${text.replace(/[،.!؟\s]+$/u, "")}،${addition}`;
+  }
+  if (text.length > 160) {
+    text = `${text.slice(0, 159).replace(/\s+\S*$/u, "").trim()}…`;
+  }
+  return text;
+}
+const siteDescription = normalizeMetaDescription(
+  settingMap.site_desc,
+  "تأجير الحاويات ونقل مخلفات البناء في الرياض",
+);
 const siteLogo = settingMap.company_logo?.trim() || "/images/logo.png";
 let sitePhones = [];
 try {
@@ -47,10 +64,18 @@ const sitePhoneCall = settingMap.company_phone_call?.trim() || "";
 const sitePhoneAdditional = sitePhones.find(phone => phone !== sitePhoneWhatsapp && phone !== sitePhoneCall)
   || sitePhones.find(phone => phone !== sitePhoneWhatsapp)
   || "";
-const sitePhoneText = [sitePhoneWhatsapp, sitePhoneCall, sitePhoneAdditional].filter(Boolean).filter((phone, index, list) => list.indexOf(phone) === index).join(" — ");
+const publicPhones = [sitePhoneWhatsapp, sitePhoneCall, ...sitePhones]
+  .map(phone => String(phone || "").trim())
+  .filter(Boolean)
+  .filter((phone, index, list) => list.indexOf(phone) === index);
+const sitePhoneText = publicPhones.join(" — ");
 const toInternational = (phone) => {
   const cleaned = String(phone || "").replace(/[^\d+]/g, "");
-  return cleaned.startsWith("+") ? cleaned : `+966${cleaned.replace(/^0/, "")}`;
+  if (!cleaned) return "";
+  if (cleaned.startsWith("+")) return cleaned;
+  if (cleaned.startsWith("00")) return `+${cleaned.slice(2)}`;
+  if (cleaned.startsWith("966")) return `+${cleaned}`;
+  return `+966${cleaned.replace(/^0/, "")}`;
 };
 const waLink = (phone, text) => phone
   ? `https://wa.me/${toInternational(phone).replace("+", "")}?text=${encodeURIComponent(text)}`
@@ -62,7 +87,7 @@ const socialLinks = [
   settingMap.social_tiktok,
   settingMap.social_snapchat,
   settingMap.social_youtube,
-].map(value => String(value || "").trim()).filter(Boolean);
+].map(value => String(value || "").trim()).filter(value => /^https?:\/\//i.test(value));
 const address = {
   address: settingMap.company_address?.trim() || "",
   city: settingMap.company_city?.trim() || "",
@@ -157,14 +182,14 @@ function seoPageImage(page) {
   if (configured) return absoluteImg(configured);
   const text = `${page.slug || ""} ${page.title || ""} ${page.target_keyword || ""}`.toLowerCase();
   const keywordMedia = [
-    [["سعر", "أسعار", "تكلفة", "pricing"], "/images/seo/cleanflow-pricing.jpg"],
-    [["حي", "أحياء", "مناطق", "تغطية", "ضواحي", "areas"], "/images/seo/cleanflow-areas.jpg"],
-    [["سؤال", "أسئلة", "faq"], "/images/seo/cleanflow-faq.jpg"],
-    [["مطاعم", "مصانع", "مستودعات", "منشآت"], "/images/seo/cleanflow-services.jpg"],
-    [["حاويات", "أنقاض", "مخلفات", "هدم", "بناء", "ترميم", "رفع", "نقل"], "/images/seo/cleanflow-containers.jpg"],
+    [["سعر", "أسعار", "تكلفة", "pricing"], "/images/seo/taqi-pricing.jpg"],
+    [["حي", "أحياء", "مناطق", "تغطية", "ضواحي", "areas"], "/images/seo/taqi-areas.jpg"],
+    [["سؤال", "أسئلة", "faq"], "/images/seo/taqi-faq.jpg"],
+    [["مطاعم", "مصانع", "مستودعات", "منشآت"], "/images/seo/taqi-services.jpg"],
+    [["حاويات", "أنقاض", "مخلفات", "هدم", "بناء", "ترميم", "رفع", "نقل"], "/images/seo/taqi-containers.jpg"],
   ];
   const match = keywordMedia.find(([keywords]) => keywords.some(keyword => text.includes(keyword)));
-  return absoluteImg(match?.[1] || "/images/seo/cleanflow-blog.jpg");
+  return absoluteImg(match?.[1] || "/images/seo/taqi-blog.jpg");
 }
 
 function imageMimeType(url) {
@@ -325,7 +350,7 @@ function publicUrl(path = "/") {
 function dynamicHomeSchema() {
   const addressData = buildAddressSchema();
   const sameAs = [...socialLinks];
-  const phoneValues = sitePhones.map(toInternational).filter(Boolean);
+  const phoneValues = publicPhones.map(toInternational).filter(Boolean);
   const contactPoint = phoneValues.length ? {
     "@type": "ContactPoint",
     telephone: phoneValues.length === 1 ? phoneValues[0] : phoneValues,
@@ -713,10 +738,10 @@ function generateFullHomepageStaticContent() {
 }
 
 function generateHomepageStaticContent() {
-  const phoneCall = sitePhoneCall || SEO_DEFAULTS.phone;
+  const phoneCall = sitePhoneCall;
   const phoneWa = sitePhoneWhatsapp || phoneCall;
-  const phoneHref = `tel:${phoneCall}`;
-  const waHref = waLink(phoneWa, `السلام عليكم، أرغب في طلب خدمة من ${siteCompanyName}`);
+  const phoneHref = phoneCall ? `tel:${phoneCall}` : "";
+  const waHref = phoneWa ? waLink(phoneWa, `السلام عليكم، أرغب في طلب خدمة من ${siteCompanyName}`) : "";
   const logoUrl = absoluteImg(siteLogo);
   const heroUrl = absoluteImg(heroLcpImage);
   const internalLinks = [
@@ -735,7 +760,7 @@ function generateHomepageStaticContent() {
         </a>
         <nav aria-label="الروابط الأساسية" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;font-size:14px">
           ${internalLinks.slice(0, 3).map(([href, label]) => `<a href="${href}" style="color:#406170;text-decoration:none;font-weight:700">${esc(label)}</a>`).join("")}
-          <a href="${esc(phoneHref)}" style="background:#12384b;color:#fff;padding:10px 16px;border-radius:10px;text-decoration:none;font-weight:800">اتصل الآن</a>
+           ${phoneHref ? `<a href="${esc(phoneHref)}" style="background:#12384b;color:#fff;padding:10px 16px;border-radius:10px;text-decoration:none;font-weight:800">اتصل الآن</a>` : ""}
         </nav>
       </div>
     </header>
@@ -746,8 +771,8 @@ function generateHomepageStaticContent() {
           <h1 style="margin:0 0 18px;color:#12384b;font-size:clamp(28px,5vw,48px);line-height:1.25;font-weight:900">${esc(siteCompanyName)} — تأجير حاويات الأنقاض والنفايات بالرياض</h1>
           <p style="margin:0 0 24px;max-width:720px;color:#52707c;font-size:18px">${esc(siteDescription)}</p>
           <div style="display:flex;gap:12px;flex-wrap:wrap">
-            <a href="${esc(waHref)}" style="background:#2b8f8b;color:#fff;padding:13px 22px;border-radius:11px;text-decoration:none;font-weight:800">اطلب عرضًا عبر واتساب</a>
-            <a href="${esc(phoneHref)}" style="border:1px solid #b9ced4;color:#12384b;padding:13px 22px;border-radius:11px;text-decoration:none;font-weight:800">اتصال مباشر ${esc(phoneCall)}</a>
+             ${waHref ? `<a href="${esc(waHref)}" style="background:#2b8f8b;color:#fff;padding:13px 22px;border-radius:11px;text-decoration:none;font-weight:800">اطلب عرضًا عبر واتساب</a>` : ""}
+             ${phoneHref ? `<a href="${esc(phoneHref)}" style="border:1px solid #b9ced4;color:#12384b;padding:13px 22px;border-radius:11px;text-decoration:none;font-weight:800">اتصال مباشر ${esc(phoneCall)}</a>` : ""}
           </div>
         </div>
         <img src="${esc(heroUrl)}" alt="حاويات ونقل مخلفات البناء في الرياض" width="1200" height="675" style="width:100%;height:auto;max-height:340px;object-fit:cover;border-radius:22px;box-shadow:0 18px 40px rgba(18,56,75,.16)" />
@@ -846,7 +871,7 @@ for (const post of posts) {
 
   const canonical   = `${SITE_URL}/blog/${encodeURIComponent(slug)}`;
   const title       = post.seo_title || `${post.title} | ${siteCompanyName}`;
-  const description = post.seo_description || post.excerpt || post.title;
+  const description = normalizeMetaDescription(post.seo_description || post.excerpt || post.title, post.title);
   const ogImage     = post.og_image || post.cover_image || `${SITE_URL}/images/hero-1.webp`;
   const postDate    = post.published_at || post.created_at || new Date().toISOString();
 
@@ -919,7 +944,10 @@ console.log(`   ✅ ${posts.length} مقالة`);
 {
   const blogCanonical  = `${SITE_URL}/blog`;
   const blogTitle      = `مدونة تأجير الحاويات ونقل المخلفات | ${siteCompanyName} بالرياض`;
-  const blogDesc       = siteDescription || "مقالات ونصائح تساعدك على اختيار الخدمات المناسبة والعناية بالمكان.";
+  const blogDesc = normalizeMetaDescription(
+    siteDescription || "مقالات ونصائح تساعدك على اختيار الخدمات المناسبة لتأجير الحاويات ونقل المخلفات.",
+    "مدونة تأجير الحاويات ونقل المخلفات",
+  );
   const blogOgImage    = posts[0]?.cover_image || `${SITE_URL}/images/hero-1.webp`;
 
   const blogSchema = {
@@ -996,7 +1024,7 @@ for (const svc of services) {
   const slug      = svc.seo_slug;
   const canonical = `${SITE_URL}/services/${encodeURIComponent(slug)}`;
   const title     = svc.seo_title || `${svc.title} | ${siteCompanyName}`;
-  const desc      = svc.seo_description || svc.description?.substring(0, 160) || "";
+  const desc      = normalizeMetaDescription(svc.seo_description || svc.description, svc.title);
 
   let ogImage = svc.image_url || "";
   try { const imgs = JSON.parse(svc.images || "[]"); ogImage = imgs[0] || ogImage; } catch {}
@@ -1004,13 +1032,14 @@ for (const svc of services) {
   const serviceSchema = {
     "@context": "https://schema.org",
     "@type": "Service",
+    "@id": `${canonical}#service`,
     "name": svc.title,
     "description": desc,
     "url": canonical,
     "inLanguage": "ar",
     "provider": {
       "@type": "LocalBusiness",
-      "@id": `${publicUrl("/")}#business`,
+      "@id": `${publicUrl("/")}#local-business`,
       "name": siteCompanyName,
       "image": absoluteImg(siteLogo),
       "priceRange": settingMap.company_price_range?.trim() || SEO_DEFAULTS.priceRange,
@@ -1172,7 +1201,7 @@ for (const c of containers) {
   const slug      = c.seo_slug;
   const canonical = `${SITE_URL}/containers/${encodeURIComponent(slug)}`;
   const title     = c.seo_title || `${c.name} بالرياض | ${siteCompanyName}`;
-  const desc      = c.seo_description || c.description?.substring(0, 160) || "";
+  const desc      = normalizeMetaDescription(c.seo_description || c.description, c.name);
   const ogImage   = c.image_url || `${SITE_URL}/images/hero-1.webp`;
 
   let featuresList = [];
@@ -1283,7 +1312,10 @@ for (const page of seoPages) {
   if (!page.slug) continue;
   const canonical = `${SITE_URL}/page/${encodeURIComponent(page.slug)}`;
   const title = page.seo_title || `${page.title} | ${siteCompanyName}`;
-  const description = page.seo_description || page.excerpt || page.title;
+  const description = normalizeMetaDescription(
+    page.seo_description || page.excerpt || page.title,
+    page.title,
+  );
   const ogImage = seoPageImage(page);
 
   const crumbs = [
@@ -1338,8 +1370,11 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
 {
   const canonical = `${SITE_URL}/pricing`;
   const title = `أسعار ومقاسات تأجير الحاويات بالرياض 2026 | ${siteCompanyName}`;
-  const description = `دليل مقاسات وأسعار تأجير حاويات الأنقاض والنفايات والمكابس بالرياض. اطلب عرضاً حسب نوع المخلفات والموقع ومدة التأجير.`;
-  const ogImage = `${SITE_URL}/images/seo/cleanflow-containers.jpg`;
+  const description = normalizeMetaDescription(
+    "دليل مقاسات وأسعار تأجير حاويات الأنقاض والنفايات والمكابس بالرياض. اطلب عرضاً حسب نوع المخلفات والموقع ومدة التأجير.",
+    "أسعار ومقاسات تأجير الحاويات",
+  );
+  const ogImage = `${SITE_URL}/images/seo/taqi-containers.jpg`;
 
   const crumbs = [
     { name: "الرئيسية", url: SITE_URL },
@@ -1355,7 +1390,7 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
     "inLanguage": "ar",
     "provider": {
       "@type": "LocalBusiness",
-      "@id": `${SITE_URL}/#business`,
+      "@id": `${SITE_URL}/#local-business`,
       "name": siteCompanyName,
       "image": absoluteImg(siteLogo),
       "priceRange": settingMap.company_price_range?.trim() || SEO_DEFAULTS.priceRange,
@@ -1468,8 +1503,11 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
 {
   const canonical = `${SITE_URL}/faq`;
   const title = `الأسئلة الشائعة حول تأجير الحاويات بالرياض | ${siteCompanyName}`;
-  const description = `إجابات واضحة حول مقاسات وأسعار تأجير حاويات الأنقاض والنفايات، التوصيل والسحب، ونقل مخلفات البناء داخل الرياض.`;
-  const ogImage = `${SITE_URL}/images/seo/cleanflow-containers.jpg`;
+  const description = normalizeMetaDescription(
+    "إجابات واضحة حول مقاسات وأسعار تأجير حاويات الأنقاض والنفايات، التوصيل والسحب، ونقل مخلفات البناء داخل الرياض.",
+    "الأسئلة الشائعة حول تأجير الحاويات",
+  );
+  const ogImage = `${SITE_URL}/images/seo/taqi-containers.jpg`;
   const crumbs = [
     { name: "الرئيسية", url: SITE_URL },
     { name: "الأسئلة الشائعة", url: canonical }
@@ -1537,7 +1575,10 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
 {
   const canonical = `${SITE_URL}/privacy`;
   const title = `سياسة الخصوصية وحماية البيانات | ${siteCompanyName}`;
-  const description = `سياسة الخصوصية وحماية البيانات الشخصية لعملاء تأجير الحاويات ونقل مخلفات البناء وفق الأنظمة واللوائح المعمول بها في المملكة العربية السعودية.`;
+  const description = normalizeMetaDescription(
+    "سياسة الخصوصية وحماية البيانات الشخصية لعملاء تأجير الحاويات ونقل مخلفات البناء وفق الأنظمة واللوائح المعمول بها في المملكة العربية السعودية.",
+    "سياسة الخصوصية وحماية البيانات",
+  );
   const ogImage = `${SITE_URL}/images/hero-1.webp`;
   const crumbs = [
     { name: "الرئيسية", url: SITE_URL },
@@ -1576,7 +1617,10 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
 {
   const canonical = `${SITE_URL}/terms`;
   const title = `الشروط والأحكام | ${siteCompanyName}`;
-  const description = `الشروط والضوابط المنظمة لتأجير الحاويات وتوصيلها وسحبها ونقل الأنقاض ومخلفات البناء داخل الرياض.`;
+  const description = normalizeMetaDescription(
+    "الشروط والضوابط المنظمة لتأجير الحاويات وتوصيلها وسحبها ونقل الأنقاض ومخلفات البناء داخل الرياض.",
+    "الشروط والأحكام",
+  );
   const ogImage = `${SITE_URL}/images/hero-1.webp`;
   const crumbs = [
     { name: "الرئيسية", url: SITE_URL },
@@ -1613,8 +1657,11 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
 {
   const canonical = `${SITE_URL}/contact`;
   const title = `اتصل بنا | ${siteCompanyName} - تأجير الحاويات بالرياض`;
-  const description = `تواصل مع ${siteCompanyName} لطلب تأجير حاوية أو نقل أنقاض ومخلفات بناء في جميع أحياء الرياض، وتأكيد المقاس والموعد.`;
-  const ogImage = `${SITE_URL}/images/seo/cleanflow-contact.jpg`;
+  const description = normalizeMetaDescription(
+    `تواصل مع ${siteCompanyName} لطلب تأجير حاوية أو نقل أنقاض ومخلفات بناء في جميع أحياء الرياض، وتأكيد المقاس والموعد.`,
+    "التواصل مع فريق تأجير الحاويات",
+  );
+  const ogImage = `${SITE_URL}/images/seo/taqi-contact.jpg`;
   const crumbs = [
     { name: "الرئيسية", url: SITE_URL },
     { name: "اتصل بنا", url: canonical }
@@ -1628,7 +1675,7 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
     "url": canonical,
     "mainEntity": {
       "@type": "LocalBusiness",
-      "@id": `${SITE_URL}/#business`,
+      "@id": `${SITE_URL}/#local-business`,
       "name": siteCompanyName,
       "telephone": sitePhones.map(toInternational),
       "address": buildAddressSchema()
@@ -1669,8 +1716,11 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
 {
   const canonical = `${SITE_URL}/about`;
   const title = `من نحن | ${siteCompanyName} - تأجير الحاويات ونقل المخلفات بالرياض`;
-  const description = `تعرف على ${siteCompanyName} وحلول تأجير حاويات الأنقاض والنفايات والمكابس ونقل مخلفات البناء وعقود النظافة الإلكترونية بالرياض.`;
-  const ogImage = `${SITE_URL}/images/seo/cleanflow-about.jpg`;
+  const description = normalizeMetaDescription(
+    `تعرف على ${siteCompanyName} وحلول تأجير حاويات الأنقاض والنفايات والمكابس ونقل مخلفات البناء وعقود النظافة الإلكترونية بالرياض.`,
+    "خدمات مؤسسة تقي",
+  );
+  const ogImage = `${SITE_URL}/images/seo/taqi-about.jpg`;
   const crumbs = [
     { name: "الرئيسية", url: SITE_URL },
     { name: "من نحن", url: canonical }
@@ -1684,7 +1734,7 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
     "url": canonical,
     "mainEntity": {
       "@type": "LocalBusiness",
-      "@id": `${SITE_URL}/#business`,
+      "@id": `${SITE_URL}/#local-business`,
       "name": siteCompanyName,
       "address": buildAddressSchema()
     }
@@ -1846,19 +1896,23 @@ for (const area of NEIGHBORHOODS) {
   const location   = area.name.includes("الرياض") ? area.name : `${area.name} بالرياض`;
   const h1         = `تأجير حاويات ونقل مخلفات في ${location}`;
   const title      = `تأجير حاويات ونقل مخلفات ${location} | ${siteCompanyName}`;
-  const description = `تأجير حاويات الأنقاض والنفايات ونقل مخلفات البناء في ${location}. اختر المقاس المناسب ونسق التوصيل والسحب مع فريق العمليات.`;
-  const ogImage    = `${SITE_URL}/images/seo/cleanflow-areas.jpg`;
+  const description = normalizeMetaDescription(
+    `تأجير حاويات الأنقاض والنفايات ونقل مخلفات البناء في ${location}. اختر المقاس المناسب ونسق التوصيل والسحب مع فريق العمليات.`,
+    `تأجير الحاويات في ${location}`,
+  );
+  const ogImage    = `${SITE_URL}/images/seo/taqi-areas.jpg`;
 
   const serviceSchema = {
     "@context": "https://schema.org",
-    "@type": "Service",
+      "@type": "Service",
+      "@id": `${canonical}#service`,
     "name": h1,
     "description": description,
     "url": canonical,
     "inLanguage": "ar",
     "provider": {
       "@type": "LocalBusiness",
-      "@id": `${SITE_URL}/#business`,
+      "@id": `${SITE_URL}/#local-business`,
       "name": siteCompanyName,
       "image": absoluteImg(siteLogo),
       "priceRange": settingMap.company_price_range?.trim() || SEO_DEFAULTS.priceRange,
@@ -1987,7 +2041,10 @@ console.log(`   ✅ ${NEIGHBORHOODS.length} صفحة حي (بالعربي وال
 {
   const canonical = `${SITE_URL}/areas`;
   const title = `مناطق تغطية تأجير الحاويات في الرياض | ${siteCompanyName}`;
-  const description = `تعرف على أحياء تغطية ${siteCompanyName} لتأجير حاويات الأنقاض والنفايات ونقل مخلفات البناء في مدينة الرياض.`;
+  const description = normalizeMetaDescription(
+    `تعرف على أحياء تغطية ${siteCompanyName} لتأجير حاويات الأنقاض والنفايات ونقل مخلفات البناء في مدينة الرياض.`,
+    "مناطق تغطية تأجير الحاويات",
+  );
   const groups = [
     { name: "شمال الرياض", slugs: ["north-riyadh", "al-malqa", "al-yasmin", "al-narjis", "al-aarid", "hittin", "al-sahafa", "al-nafal", "al-aqiq", "al-rabi", "al-ghadeer", "al-wadi", "al-nada", "al-falah"] },
     { name: "شرق الرياض", slugs: ["east-riyadh", "al-qadesiya", "al-naseem", "al-rawdah", "al-khaleej", "al-nahdah", "al-manar", "al-yarmouk", "al-munsiyah", "al-hamra", "al-qurtubah", "al-shuhada"] },
@@ -2046,7 +2103,7 @@ console.log(`   ✅ ${NEIGHBORHOODS.length} صفحة حي (بالعربي وال
     title,
     description,
     canonical,
-    ogImage: `${SITE_URL}/images/hero-1.webp`,
+    ogImage: `${SITE_URL}/images/seo/taqi-areas.jpg`,
     keywords: "تأجير حاويات أحياء الرياض, حاويات أنقاض شمال الرياض, نقل مخلفات جنوب الرياض, حاويات نفايات شرق الرياض",
     schemas: [areaListSchema, breadcrumbSchema(crumbs)],
     breadcrumbs: crumbs,

@@ -1,0 +1,288 @@
+النتيجة الحالية جيدة كـ Build/QA Report، لكنها لا تعتبر إغلاقًا نهائيًا لمشاكل SEO الـ14.
+
+أريد منك الآن التعامل مع الموضوع كـ SEO Engineer وليس فقط كـ Build Engineer.
+
+هناك عدة نقاط في تقريرك تحتاج Verification صريح:
+
+### 1. Backlinks
+
+أنت لم تثبت أن مشكلة الـBacklinks أُغلقت.
+
+الـBuild لا يستطيع إنشاء Authority حقيقية للموقع.
+
+أريد منك:
+
+* تحليل الـ31 Backlinks التي ظهرت في التقرير السابق.
+* تحديد الروابط المفيدة، الضعيفة، المشبوهة وغير ذات الصلة.
+* توضيح ما الذي تم فعله فعليًا تجاه المشكلة.
+* وضع خطة Link Acquisition حقيقية للروابط السعودية والمحلية والمرتبطة بمجال النشاط.
+* لا تعتبر المشكلة مغلقة بمجرد وجود Sitemap أو Schema.
+
+إذا لم يمكن إغلاقها برمجيًا، اذكر أنها EXTERNAL SEO TASK وليست CODE FIX.
+
+### 2. Google Business Profile
+
+أنا قلت لك إن لدي حساب Google والموقع مضاف ويعمل.
+
+لذلك لا أريد إعادة إنشاء أي شيء.
+
+أريد منك تحديد سبب ظهور SEOptimer سابقًا:
+
+"No Google Business Profile was identified that links to this website"
+
+وهل المشكلة في:
+
+* الرابط؟
+* Website field؟
+* اسم النشاط؟
+* NAP؟
+* البيانات المنظمة؟
+* أم أن SEOptimer لم يتمكن من اكتشاف الملف؟
+
+لا تقل "تم حلها" بدون إثبات.
+
+### 3. YouTube وLinkedIn
+
+إنشاء Schema أو كود لا ينشئ حساب YouTube أو LinkedIn حقيقي.
+
+إذا لم توجد حسابات رسمية فعلية، لا تعتبر المشكلة مغلقة برمجيًا.
+
+المطلوب:
+
+* إذا كانت الحسابات موجودة: اربطها فعليًا في الموقع وsameAs.
+* إذا لم تكن موجودة: صنفها EXTERNAL TASK ولا تنشئ بيانات وهمية.
+
+### 4. Facebook Pixel
+
+نفس القاعدة.
+
+أنت قلت إن إعداد Facebook Pixel أصبح موجودًا لكنه لا يعمل بدون ID.
+
+هذا صحيح برمجيًا، لكنه لا يعني أن مشكلة Pixel أصبحت "مغلقة".
+
+أريد:
+
+* التحقق هل يوجد Pixel ID حقيقي أم لا.
+* إذا كان موجودًا، تأكد من عدم وجود Duplicate Pixel.
+* إذا لم يكن موجودًا، صنف المهمة EXTERNAL CONFIGURATION.
+
+### 5. Analytics
+
+أريد إثباتًا فعليًا لما تم تركيبه.
+
+تحقق من:
+
+* Google Tag / GA4.
+* عدم وجود Duplicate Tracking.
+* Page View.
+* Events.
+* WhatsApp click.
+* Phone click.
+* Form submission.
+* Conversion events.
+
+إذا لم يوجد Measurement ID فعلي، فلا تعتبر المشكلة مغلقة.
+
+### 6. Rendering 1238%
+
+هذه أهم نقطة تقنية في التقرير السابق.
+
+عبارة:
+
+"الحفاظ على ظهور المحتوى الأساسي لمحركات البحث"
+
+ليست كافية.
+
+أريد اختبارًا قبل/بعد يوضح:
+
+* View Source HTML.
+* DOM بعد JavaScript.
+* أهم النصوص الموجودة في Source.
+* H1/H2.
+* الخدمات.
+* المناطق.
+* FAQ.
+* بيانات الشركة.
+* Internal Links.
+* JSON-LD.
+
+وأريد منك تحديد لماذا كانت النسبة 1238% أصلًا، وما التغيير الذي خفض الاعتماد على Client-side Rendering.
+
+إذا لم تستطع إعادة تشغيل اختبار SEOptimer نفسه، اعمل اختبار HTML/DOM مستقل وقدم النتيجة.
+
+### 7. Identity Schema
+
+أريد JSON-LD النهائي الفعلي، وليس مجرد قائمة بأن 6 Blocks موجودة.
+
+تحقق من:
+
+* Organization @id
+* LocalBusiness @id
+* WebSite @id
+* WebPage @id
+* Service @id
+* ContactPoint
+* AreaServed
+* sameAs
+* العلاقة بين جميع الكيانات.
+
+وأهم شيء:
+لا توجد IDs متعارضة أو كيانات مكررة أو بيانات وهمية.
+
+### 8. LocalBusiness Schema
+
+أريد التأكد من أن LocalBusiness ليس مجرد Schema موجود، بل أن:
+
+* الاسم صحيح.
+* الهاتف صحيح.
+* العنوان صحيح.
+* الموقع صحيح.
+* المنطقة صحيحة.
+* URL صحيح.
+* Organization relation صحيحة.
+
+### 9. NAP
+
+أريد Search داخل المشروع بالكامل عن بيانات:
+
+* اسم الشركة.
+* الهاتف.
+* العنوان.
+
+وتأكد أنه لا توجد بيانات قديمة أو Placeholder أو بيانات افتراضية متضاربة.
+
+خصوصًا أن التقرير السابق كان يعرض رقم:
++1 0557870222
+
+وهذا يحتاج Verification قوي جدًا، وليس مجرد إزالة Placeholder.
+
+### 10. Meta Description
+
+أريد التأكد أن الـ75 character القديمة أصبحت Description محسنة فعلًا في الإنتاج، وليس فقط داخل source/build.
+
+أعطني:
+
+* Homepage Meta Description النهائي.
+* أهم صفحات Services.
+* أهم صفحات Areas.
+* Articles.
+
+وتأكد أن كل صفحة لها Description فريدة وليست Template مكررًا.
+
+### 11. Friendly URLs
+
+لا أريد تغيير URLs لمجرد تحسين التقرير.
+
+أريد قائمة بكل URL تم تغييره إن وجد، ثم:
+
+* Old URL
+* New URL
+* 301
+* Canonical
+* Internal Links
+* Sitemap
+
+وأي URL لم يكن بحاجة لتغيير يجب أن يبقى كما هو.
+
+### 12. FAQ / Q&A
+
+أريد إثبات وجود Q&A فعلي في HTML النهائي.
+
+أعطني عدد الأسئلة والأجوبة، وتأكد أنها:
+
+* مفيدة للمستخدم.
+* مرتبطة فعليًا بخدمات تقي.
+* ليست Keyword Stuffing.
+* قابلة للقراءة من HTML بدون JavaScript.
+
+### 13. Inline Styles
+
+أريد نتيجة قبل/بعد لعدد Inline Styles أو على الأقل تقريرًا يوضح ما تمت إزالته.
+
+لا يكفي القول "تم تحسين HTML".
+
+وفي الوقت نفسه لا تكسر التصميم من أجل الوصول إلى صفر Inline Styles بشكل مصطنع.
+
+### 14. Images / Performance
+
+هذه نقطة مهمة لأن التقرير السابق أظهر:
+
+Images = 2.09 MB من 2.60 MB
+Image compression = 0%
+
+أريد منك التأكد في Production من:
+
+* WebP/AVIF حيث مناسب.
+* أبعاد الصور الصحيحة.
+* srcset.
+* sizes.
+* lazy loading للصور غير الحرجة.
+* عدم تحميل صور غير مستخدمة.
+* عدم وجود الصور القديمة.
+* عدم وجود duplicate images.
+
+ولا يكفي أن تقول إن الصور القديمة لم تعد في ZIP.
+
+---
+
+## نقطة مهمة جدًا
+
+لا أريد منك اعتبار:
+
+"SEO QUALITY GATE: PASS"
+
+دليلًا كافيًا على أن SEOptimer أصبح بلا مشاكل.
+
+أريد الآن إنشاء **Final SEO Closure Matrix** بالشكل التالي:
+
+| #  | المشكلة                 | الحالة            | الإصلاح | دليل التحقق |
+| -- | ----------------------- | ----------------- | ------- | ----------- |
+| 1  | Backlinks               | CLOSED / EXTERNAL | ...     | ...         |
+| 2  | Meta Description        | CLOSED            | ...     | ...         |
+| 3  | Identity Schema         | CLOSED            | ...     | ...         |
+| 4  | Friendly URLs           | CLOSED / N/A      | ...     | ...         |
+| 5  | Google Business Profile | CLOSED / EXTERNAL | ...     | ...         |
+| 6  | Rendering 1238%         | CLOSED            | ...     | ...         |
+| 7  | FAQ/Q&A                 | CLOSED            | ...     | ...         |
+| 8  | YouTube                 | CLOSED / EXTERNAL | ...     | ...         |
+| 9  | LinkedIn                | CLOSED / EXTERNAL | ...     | ...         |
+| 10 | Analytics               | CLOSED / EXTERNAL | ...     | ...         |
+| 11 | Address/NAP             | CLOSED            | ...     | ...         |
+| 12 | LocalBusiness Schema    | CLOSED            | ...     | ...         |
+| 13 | Facebook Pixel          | CLOSED / EXTERNAL | ...     | ...         |
+| 14 | Inline Styles/Images    | CLOSED            | ...     | ...         |
+
+### قواعد الحالة:
+
+CLOSED = تم الإصلاح + تم التحقق.
+
+EXTERNAL = لا يمكن إغلاقها من الكود وحده وتحتاج إجراء خارجي حقيقي.
+
+OPEN = لم تُحل.
+
+PARTIAL = تم جزء منها فقط.
+
+لا تستخدم كلمة CLOSED لأي مشكلة لم يتم إثباتها.
+
+---
+
+وأخيرًا:
+
+قبل أن تقول إن النسخة جاهزة للإنتاج، أريد منك أيضًا التأكد من عدم وجود أي بقايا للمشروع القديم أو بيانات قديمة أو Branding قديم داخل:
+
+* HTML
+* JS
+* JSON-LD
+* Sitemap
+* robots.txt
+* llms.txt
+* Database
+* uploads
+* Meta tags
+* Open Graph
+* Structured Data
+* Internal Links
+
+وأريد التأكد أن كل شيء أصبح خاصًا بـ **taqigroup.com / تقي** ولا توجد أي إشارات غير مقصودة إلى مشروع أو علامة قديمة.
+
+أرسل لي الآن **Final SEO Closure Matrix + الأدلة الفعلية لكل نقطة**، ولا ترسل لي Build Summary مرة أخرى.

@@ -7,7 +7,7 @@ import type { SocialLinks } from "@/context/SiteSettingsContext"
 import { useDocumentSEO } from "@/hooks/useDocumentSEO"
 
 const SEO_DEFAULTS = {
-  image: "/images/seo/cleanflow-home.jpg",
+  image: "/images/seo/taqi-home.jpg",
 } as const
 
 function injectLocalBusinessSchema({
@@ -307,7 +307,7 @@ export default function Home() {
       : "تأجير حاويات الأنقاض والنفايات بالرياض | توصيل وسحب فوري",
     description: description || "تأجير حاويات الأنقاض والنفايات والمكابس ونقل مخلفات البناء والهدم وعقود النظافة الإلكترونية في الرياض.",
     canonical: getSiteUrl() ? `${getSiteUrl()}/` : undefined,
-    ogImage: "/images/seo/cleanflow-home.jpg",
+    ogImage: "/images/seo/taqi-home.jpg",
     ogImageAlt: "تأجير حاويات الأنقاض والنفايات بالرياض مع التوصيل والسحب",
   })
 

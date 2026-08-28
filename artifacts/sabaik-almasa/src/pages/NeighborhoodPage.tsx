@@ -21,6 +21,7 @@ import {
 import { useServiceRequest } from "@/context/ServiceRequestContext"
 import { getSiteUrl } from "@/lib/siteUrl"
 import { normalizeCompanyText, useSiteSettings } from "@/context/SiteSettingsContext"
+import { normalizeSeoDescription } from "@/lib/seoText"
 
 export interface AreaData {
   name: string
@@ -545,7 +546,9 @@ export default function NeighborhoodPage() {
   const currentCompany = companyName || ""
 
   const areaTitle = area ? normalizeCompanyText(area.title) : ""
-  const areaDescription = area ? normalizeCompanyText(area.description) : ""
+  const areaDescription = area
+    ? normalizeSeoDescription(normalizeCompanyText(area.description), area.name)
+    : ""
 
   useEffect(() => {
     if (!area) return
@@ -565,13 +568,13 @@ export default function NeighborhoodPage() {
       {
         "@context": "https://schema.org",
         "@type": "LocalBusiness",
-        "@id": `${SITE_URL}/#business`,
+        "@id": `${SITE_URL}/#local-business`,
         "name": `${currentCompany} — فرع ${area.name}`,
         "description": areaDescription,
         "url": `${SITE_URL}/areas/${encodeURIComponent(activeSlug)}`,
         "image": logoUrl || `${SITE_URL}/images/hero-1.webp`,
         "priceRange": priceRange || "$$",
-        "telephone": `+966${(phoneCall || "0555888767").replace(/^0/, "")}`,
+        ...(phoneCall ? { "telephone": `+966${phoneCall.replace(/^0/, "")}` } : {}),
         "address": {
           "@type": "PostalAddress",
           "streetAddress": address || "طريق الملك فهد",
@@ -620,9 +623,11 @@ export default function NeighborhoodPage() {
     )
   }
 
-  const cleanPhone = (phoneWhatsapp || "0580595555").replace(/[^\d]/g, "")
-  const wa = `https://wa.me/966${cleanPhone.replace(/^0/, "")}?text=${encodeURIComponent(`السلام عليكم، أرغب في طلب تأجير حاوية في ${area.name} بالرياض`)}`
-  const phoneHref = `tel:${phoneCall || "0555888767"}`
+  const cleanPhone = phoneWhatsapp.replace(/[^\d]/g, "")
+  const wa = phoneWhatsapp
+    ? `https://wa.me/966${cleanPhone.replace(/^0/, "")}?text=${encodeURIComponent(`السلام عليكم، أرغب في طلب تأجير حاوية في ${area.name} بالرياض`)}`
+    : ""
+  const phoneHref = phoneCall ? `tel:${phoneCall}` : ""
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col" dir="rtl">
@@ -851,20 +856,20 @@ export default function NeighborhoodPage() {
             </div>
 
             <div className="flex gap-4 justify-center flex-wrap">
-              <a
+              {phoneCall && <a
                 href={phoneHref}
                 className="inline-flex items-center gap-2 bg-white text-slate-950 px-8 py-4 rounded-xl font-black text-lg hover:bg-amber-400 transition shadow-lg"
               >
-                <Phone size={20} /> {phoneCall || "0555888767"}
-              </a>
-              <a
+                <Phone size={20} /> {phoneCall}
+              </a>}
+              {wa && <a
                 href={wa}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-4 rounded-xl font-bold text-lg transition shadow-lg"
               >
                 <MessageCircle size={20} /> واتساب مباشر
-              </a>
+              </a>}
             </div>
           </section>
         </div>

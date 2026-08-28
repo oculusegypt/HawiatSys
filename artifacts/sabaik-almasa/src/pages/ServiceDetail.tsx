@@ -27,9 +27,10 @@ import { Footer } from "@/components/layout/Footer"
 import { ServiceRequestForm } from "@/components/home/ServiceRequestForm"
 import { useDocumentSEO } from "@/hooks/useDocumentSEO"
 import { siteUrl } from "@/lib/siteUrl"
-import { useSiteSettings } from "@/context/SiteSettingsContext"
+import { resolveContactNumbers, useSiteSettings } from "@/context/SiteSettingsContext"
 import { RIYADH_AREA_GROUPS, AREAS, ARABIC_AREA_SLUGS } from "@/pages/NeighborhoodPage"
 import { ServiceReviewsSection } from "@/components/reviews/ServiceReviewsSection"
+import { normalizeSeoDescription } from "@/lib/seoText"
 
 function normalizeSlug(value: string): string {
   return decodeURIComponent(value).trim().toLowerCase()
@@ -78,8 +79,10 @@ function bodyDescription(service: Service): string {
 
 function metaDescription(service: Service): string {
   const seo = service.seoDescription?.trim()
-  if (seo && !isKeywordSpam(seo)) return seo.slice(0, 160)
-  return bodyDescription(service).slice(0, 160)
+  return normalizeSeoDescription(
+    seo && !isKeywordSpam(seo) ? seo : bodyDescription(service),
+    service.title,
+  )
 }
 
 // ── بيانات تفصيلية إضافية وقيمة محلية وفنية لكل خدمة ─────────────────────────
@@ -167,7 +170,8 @@ export default function ServiceDetail() {
   const slug = params?.slug ? decodeURIComponent(params.slug) : ""
   const { data: services, isLoading } = useGetServices()
   const [service, setService] = useState<Service | null>(null)
-  const { phoneCall, phoneWhatsapp, companyName } = useSiteSettings()
+  const { phoneCall, phoneWhatsapp, phones, companyName, address, city, region, country } = useSiteSettings()
+  const { call, whatsapp } = resolveContactNumbers(phoneCall, phoneWhatsapp, phones)
 
   useEffect(() => {
     if (!services) return
@@ -198,25 +202,42 @@ export default function ServiceDetail() {
   // Schema LD+JSON
   useEffect(() => {
     if (!service) return
+    const toInternational = (phone: string) => {
+      const digits = phone.replace(/\D/g, "")
+      if (digits.startsWith("00")) return `+${digits.slice(2)}`
+      if (digits.startsWith("0")) return `+966${digits.slice(1)}`
+      if (digits.startsWith("966")) return `+${digits}`
+      return digits ? `+${digits}` : ""
+    }
+    const schemaPhones = [...new Set([phoneCall, phoneWhatsapp, ...phones]
+      .map((phone) => phone.trim())
+      .filter(Boolean)
+      .map(toInternational)
+      .filter(Boolean))]
+    const addressData = {
+      "@type": "PostalAddress",
+      ...(address ? { streetAddress: address } : {}),
+      ...(city ? { addressLocality: city } : {}),
+      ...(region ? { addressRegion: region } : {}),
+      ...(country ? { addressCountry: country } : {}),
+    }
+    const provider = {
+      "@type": "LocalBusiness",
+      "@id": `${siteUrl("/")}#local-business`,
+      "name": resolvedCompany,
+      ...(schemaPhones.length ? { "telephone": schemaPhones } : {}),
+      ...(Object.keys(addressData).length > 1 ? { "address": addressData } : {}),
+      "url": siteUrl("/"),
+    }
     const schemaObj = {
       "@context": "https://schema.org",
       "@graph": [
         {
           "@type": "Service",
+          "@id": `${canonical}#service`,
           "name": service.title,
           "description": metaText,
-          "provider": {
-            "@type": "LocalBusiness",
-            "name": resolvedCompany,
-            "telephone": "+966555888767",
-            "address": {
-              "@type": "PostalAddress",
-              "streetAddress": "طريق الملك فهد، حي الصحافة",
-              "addressLocality": "الرياض",
-              "addressRegion": "منطقة الرياض",
-              "addressCountry": "SA"
-            }
-          },
+          "provider": provider,
           "areaServed": {
             "@type": "City",
             "name": "الرياض"
@@ -247,7 +268,9 @@ export default function ServiceDetail() {
     }
   }, [service, metaText, resolvedCompany, activeIntel])
 
-  const waHref = `https://wa.me/966${(phoneWhatsapp || "0580595555").replace(/^0/, "")}?text=${encodeURIComponent(`مرحباً، أود الاستفسار عن خدمة ${service?.title || "الحاويات"}`)}`
+  const waHref = whatsapp
+    ? `https://wa.me/966${whatsapp.replace(/^0/, "")}?text=${encodeURIComponent(`مرحباً، أود الاستفسار عن خدمة ${service?.title || "الحاويات"}`)}`
+    : ""
 
   if (isLoading) {
     return (
@@ -302,20 +325,24 @@ export default function ServiceDetail() {
             </p>
 
             <div className="flex flex-wrap gap-4">
-              <a
-                href={`tel:${phoneCall || "0555888767"}`}
-                className="inline-flex items-center gap-2 bg-white text-slate-950 px-6 py-3 rounded-xl font-bold hover:bg-secondary hover:text-white transition shadow-lg text-sm"
-              >
-                <Phone size={16} /> اتصل بالعمليات
-              </a>
-              <a
-                href={waHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-xl font-bold transition shadow-lg text-sm"
-              >
-                <MessageCircle size={16} /> واتساب فوري
-              </a>
+              {call && (
+                <a
+                  href={`tel:${call}`}
+                  className="inline-flex items-center gap-2 bg-white text-slate-950 px-6 py-3 rounded-xl font-bold hover:bg-secondary hover:text-white transition shadow-lg text-sm"
+                >
+                  <Phone size={16} /> اتصل بالعمليات
+                </a>
+              )}
+              {whatsapp && (
+                <a
+                  href={waHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-xl font-bold transition shadow-lg text-sm"
+                >
+                  <MessageCircle size={16} /> واتساب فوري
+                </a>
+              )}
             </div>
           </div>
         </div>
@@ -439,20 +466,24 @@ export default function ServiceDetail() {
                   تواصل معنا هاتفياً أو عبر واتساب لحجز الحاوية أو تحديد موعد المعاينة.
                 </p>
                 <div className="space-y-2 pt-2">
-                  <a
-                href={`tel:${phoneCall || "0555888767"}`}
-                    className="w-full py-3 bg-secondary hover:bg-secondary/90 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition shadow"
-                  >
-                    <Phone size={14} /> اتصل الآن: {phoneCall || "0555888767"}
-                  </a>
-                  <a
-                    href={waHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition shadow"
-                  >
-                    <MessageCircle size={14} /> تواصل عبر واتساب
-                  </a>
+                  {call && (
+                    <a
+                      href={`tel:${call}`}
+                      className="w-full py-3 bg-secondary hover:bg-secondary/90 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition shadow"
+                    >
+                      <Phone size={14} /> اتصل الآن: {call}
+                    </a>
+                  )}
+                  {whatsapp && (
+                    <a
+                      href={waHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition shadow"
+                    >
+                      <MessageCircle size={14} /> تواصل عبر واتساب
+                    </a>
+                  )}
                 </div>
               </div>
 

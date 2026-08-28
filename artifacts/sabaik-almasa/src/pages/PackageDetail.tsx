@@ -66,7 +66,7 @@ export default function PackageDetail() {
       : "تفاصيل الباقة — خدمات التنظيف",
     description: container?.description ?? "تفاصيل وأسعار باقات تنظيف المنازل والفلل بالرياض.",
     canonical: siteUrl(`/containers/${encodeURIComponent(slug)}`),
-    ogImage: container ? getContainerImage(container) : "/images/seo/cleanflow-containers.jpg",
+    ogImage: container ? getContainerImage(container) : "/images/seo/taqi-containers.jpg",
     ogImageAlt: container ? `${container.name} لتأجير الحاويات بالرياض` : "حاويات للإيجار بالرياض",
   })
 

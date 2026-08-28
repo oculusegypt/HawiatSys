@@ -71,12 +71,12 @@ export default function PackagesPage() {
     keywords: currentMeta.keywords,
     canonical: siteUrl(category === "all" ? "/containers" : `/containers/${category}`),
     ogImage: category === "debris"
-      ? "/images/seo/cleanflow-containers.jpg"
+      ? "/images/seo/taqi-containers.jpg"
       : category === "waste"
-        ? "/images/seo/cleanflow-services.jpg"
+        ? "/images/seo/taqi-services.jpg"
         : category === "contract"
-          ? "/images/seo/cleanflow-partners.jpg"
-          : "/images/seo/cleanflow-containers.jpg",
+          ? "/images/seo/taqi-partners.jpg"
+          : "/images/seo/taqi-containers.jpg",
     ogImageAlt: currentMeta.heading,
   })
 
