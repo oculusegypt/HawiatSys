@@ -27,14 +27,14 @@ content_type = "application/octet-stream"
 id = "e7Hwi4c_9VUpSkVoGq2Ul"
 uri = "file://cleanflow-services-hostinger.zip"
 type = "unspecified"
-title = "حزمة Hostinger الكاملة — CleanFlow Services"
-description = "أرشيف الرفع النهائي الجاهز للاستخراج مباشرة داخل public_html، بعد اجتياز فحص sitemap والصور وSQLite وPHP وسلامة ZIP."
+title = "cleanflow-services-hostinger.zip"
+description = "حزمة الإنتاج النهائية لـ Hostinger — 459 ملفًا، دون الصور القديمة أو مجلد صور حسام."
 logical_id = "c612380d-19d8-4641-8c29-e5ac4a484245"
-content_hash = "sha256:3d50ea835b5e2a871e99ae62c1b2fecfb66c0c2c37d10fc7cab8de2d37677250"
-size = 45510836
-mtime_ms = 1787943088870
-storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:677ff48d-70c5-4946-bb2d-9c9eaad7f2b5/c612380d-19d8-4641-8c29-e5ac4a484245/4e3ebc14-d1d5-41d1-bf4b-019eabb3bcd9"
-storage_version_token = "1787943203765972"
+content_hash = "sha256:cebf079812c28a27e0e1c41dfc7634d0d88fbb4fdfdf40cb70a06dedb913f8fb"
+size = 38468053
+mtime_ms = 1787944851851
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:620ad251-4c1b-4537-bf2b-c092b72d087d/c612380d-19d8-4641-8c29-e5ac4a484245/099c3481-2975-42c9-b95e-4031a2bafe75"
+storage_version_token = "1787944927177923"
 content_type = "application/octet-stream"
 
 [[outputs]]
@@ -77,4 +77,32 @@ size = 2787478
 mtime_ms = 1787514085817
 storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:40bddad7-23e3-483a-955a-38e870108617/06ec6db6-d29d-427d-ab79-82b679530ea3/926f9190-c0c1-4a32-b4f8-acf50249f253"
 storage_version_token = "1787514096647731"
+content_type = "application/octet-stream"
+
+[[outputs]]
+id = "A-CSegx-6d_7hZERpAaag"
+uri = "file://cleanflow-legacy-images-archive.zip"
+type = "unspecified"
+title = "cleanflow-legacy-images-archive.zip"
+description = "أرشيف مستقل للصور القديمة ومحتويات مجلد صور حسام، محفوظ خارج حزمة الإنتاج."
+logical_id = "0fb09598-22ad-4ff3-a9da-1db06871bf5d"
+content_hash = "sha256:d708010377ec08823ebab8db2a612e70fccba6c16547c1ee67f53024a4f359b3"
+size = 10255242
+mtime_ms = 1787944834309
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:620ad251-4c1b-4537-bf2b-c092b72d087d/0fb09598-22ad-4ff3-a9da-1db06871bf5d/78afe3df-23e6-4f55-959f-1259b08bff05"
+storage_version_token = "1787944927916835"
+content_type = "application/octet-stream"
+
+[[outputs]]
+id = "IiLsgd3crJe610y6JeWFS"
+uri = "file://legacy-images-archive-manifest.json"
+type = "unspecified"
+title = "legacy-images-archive-manifest.json"
+description = "بيان الأرشيف: المصادر، البصمات SHA-256، الأحجام، ومعلومات الملفات المؤرشفة."
+logical_id = "5a707a0e-6c7f-44d7-a2b2-865adb78e10b"
+content_hash = "sha256:5c8111b1a0c597cd304cc8f8fb0172e5de32feaeb257c570666b46440931e05e"
+size = 48269
+mtime_ms = 1787944834314
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:620ad251-4c1b-4537-bf2b-c092b72d087d/5a707a0e-6c7f-44d7-a2b2-865adb78e10b/f03ad981-d02a-49a8-97cc-e4c2718e1579"
+storage_version_token = "1787944928485268"
 content_type = "application/octet-stream"

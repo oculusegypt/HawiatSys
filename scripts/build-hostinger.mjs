@@ -263,12 +263,16 @@ const LEGACY_PRODUCTION_BASENAMES = new Set([
   "container-debris-medium",
   "container-debris-small",
 ]);
+const LEGACY_PRODUCTION_NUMERIC_PREFIXES = new Set(
+  [...LEGACY_PRODUCTION_BASENAMES].filter((stem) => /^\d+-/.test(stem)),
+);
 const isLegacyProductionAsset = (relativePath) => {
   const segments = relativePath.replaceAll("\\", "/").split("/");
   if (segments.includes("صور حسام")) return true;
   const filename = segments.at(-1) || "";
   const stem = filename.replace(/\.[^.]+$/, "").toLowerCase();
-  return LEGACY_PRODUCTION_BASENAMES.has(stem);
+  return LEGACY_PRODUCTION_BASENAMES.has(stem)
+    || [...LEGACY_PRODUCTION_NUMERIC_PREFIXES].some((prefix) => stem.startsWith(`${prefix}-`));
 };
 const distPublic = join(ROOT, "artifacts/sabaik-almasa/dist/public");
 

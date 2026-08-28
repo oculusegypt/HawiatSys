@@ -21,6 +21,12 @@ Treat SQLite as a deployable snapshot: checkpoint WAL before copying, use DELETE
 
 **How to apply:** Make the patch builder own the checkpoint/portable-copy steps and keep any presence-table cleanup isolated from requests, messages, settings, and other durable records.
 
+Legacy image cleanup must exclude both the named basenames and their timestamp prefixes from every production copy path, including referenced uploads; convert remaining database references to current assets before packaging.
+
+**Why:** A referenced legacy upload can bypass a static-directory exclusion and re-enter the Hostinger archive, while removing it without changing the database leaves broken runtime image URLs.
+
+**How to apply:** Archive source copies first, normalize content/settings references, then filter dist and uploads using the same prefix-aware rule and verify the extracted ZIP contains neither the quarantine folder nor listed legacy files.
+
 Keep `/api/admin/conversations` aliases in the PHP API for list, detail, messages, typing, read, and delete operations while older Hostinger bundles may still call the admin-prefixed paths.
 
 **Why:** Existing deployed JavaScript can outlive the source route convention; a valid conversation can look missing when only the URL prefix differs.
