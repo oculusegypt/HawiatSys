@@ -37,14 +37,6 @@
   </url>
 
   <url>
-    <loc>https://taqigroup.com/packages</loc>
-    <lastmod>2026-08-28</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.95</priority>
-    <xhtml:link rel="alternate" hreflang="ar" href="https://taqigroup.com/packages"/>
-  </url>
-
-  <url>
     <loc>https://taqigroup.com/containers</loc>
     <lastmod>2026-08-28</lastmod>
     <changefreq>weekly</changefreq>
@@ -101,14 +93,6 @@
   </url>
 
   <url>
-    <loc>https://taqigroup.com/chat</loc>
-    <lastmod>2026-08-28</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-    <xhtml:link rel="alternate" hreflang="ar" href="https://taqigroup.com/chat"/>
-  </url>
-
-  <url>
     <loc>https://taqigroup.com/why-us/leadership</loc>
     <lastmod>2026-08-28</lastmod>
     <changefreq>monthly</changefreq>
@@ -117,11 +101,11 @@
   </url>
 
   <url>
-    <loc>https://taqigroup.com/why-us/what-we</loc>
+    <loc>https://taqigroup.com/why-us/what-we-do</loc>
     <lastmod>2026-08-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
-    <xhtml:link rel="alternate" hreflang="ar" href="https://taqigroup.com/why-us/what-we"/>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://taqigroup.com/why-us/what-we-do"/>
   </url>
 
   <url>
@@ -133,11 +117,11 @@
   </url>
 
   <url>
-    <loc>https://taqigroup.com/why-us/accumulated-experience</loc>
+    <loc>https://taqigroup.com/why-us/experience</loc>
     <lastmod>2026-08-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
-    <xhtml:link rel="alternate" hreflang="ar" href="https://taqigroup.com/why-us/accumulated-experience"/>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://taqigroup.com/why-us/experience"/>
   </url>
 
   <url>

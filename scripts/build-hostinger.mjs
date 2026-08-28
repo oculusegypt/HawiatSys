@@ -180,7 +180,7 @@ run(
 run(
   "pnpm --filter @workspace/cleanflow-platform run build",
   "بناء صفحة CleanFlow Platform",
-  { PORT: "19040", BASE_PATH: "/cleanflow-platform/", NODE_ENV: "production" }
+  { PORT: "19040", BASE_PATH: "/taqi-group-platform/", NODE_ENV: "production" }
 );
 
 // ── 1b. Pre-rendering — HTML ثابت لكل مقال وخدمة وحاوية ─────────────────────
@@ -198,7 +198,8 @@ rmSync(join(ROOT, "build_php/assets"), { recursive: true, force: true });
 rmSync(join(ROOT, "build_php/images"), { recursive: true, force: true });
 rmSync(join(ROOT, "build_php/container"), { recursive: true, force: true });
 rmSync(join(ROOT, "build_php/api/uploads"), { recursive: true, force: true });
-rmSync(join(ROOT, "build_php/sabaik-platform"), { recursive: true, force: true });
+rmSync(join(ROOT, "build_php/taqi-group-platform"), { recursive: true, force: true });
+rmSync(join(ROOT, "build_php/cleanflow-platform"), { recursive: true, force: true });
 
 for (const legacyImage of [
   "Banner-Big.webp", "Banner-Small.webp", "No1-Banner.webp", "good.webp",
@@ -371,15 +372,15 @@ console.log("  ✅ تم تجهيز ملف PHP API في build_php/api/index.php �
 
 console.log("  ✅ assets/ + sitemap.xml + الملفات الثابتة + الصفحات المُولَّدة مسبقاً (prerendered) نُسخت");
 
-// ── 2b. نسخ صفحة CleanFlow Platform التسويقية ─────────────────────────────────
-step("نسخ صفحة CleanFlow Platform التسويقية → build_php/cleanflow-platform/");
+// ── 2b. نسخ صفحة المنصة التسويقية ─────────────────────────────────────────────
+step("نسخ صفحة المنصة التسويقية → build_php/taqi-group-platform/");
 const platformDist = join(ROOT, "artifacts/sabaik-platform/dist/public");
 rmSync(join(ROOT, "build_php/hawiat-platform"), { recursive: true, force: true });
-const platformTarget = join(ROOT, "build_php/cleanflow-platform");
+const platformTarget = join(ROOT, "build_php/taqi-group-platform");
 rmSync(platformTarget, { recursive: true, force: true });
 mkdirSync(platformTarget, { recursive: true });
 cpSync(platformDist, platformTarget, { recursive: true });
-console.log("  ✅ صفحة CleanFlow + الشعار + الأصول نُسخت");
+console.log("  ✅ صفحة المنصة + الشعار + الأصول نُسخت");
 
 // ── 3. WAL checkpoint ─────────────────────────────────────────────────────────
 step("WAL checkpoint على قاعدة البيانات الأصلية");
@@ -726,8 +727,8 @@ rmSync(ARCHIVE_SOURCE_DB, { force: true });
 rmSync(`${ARCHIVE_SOURCE_DB}-wal`, { force: true });
 rmSync(`${ARCHIVE_SOURCE_DB}-shm`, { force: true });
 
-step("إنشاء الأرشيف cleanflow-services-hostinger.zip");
-const zipPath = join(ROOT, "cleanflow-services-hostinger.zip");
+step("إنشاء الأرشيف taqi-group-hostinger.zip");
+const zipPath = join(ROOT, "taqi-group-hostinger.zip");
 rmSync(zipPath, { force: true });
 
 if (process.platform === "win32") {
@@ -735,12 +736,12 @@ if (process.platform === "win32") {
 } else {
   // اضغط محتوى build_php لا المجلد نفسه؛ Hostinger يفك الأرشيف مباشرة داخل
   // public_html، ولذلك يجب أن تكون index.html وapi/ وdata/ وuploads/ في الجذر.
-  run("cd build_php && zip -r ../cleanflow-services-hostinger.zip .", "zip");
+  run("cd build_php && zip -r ../taqi-group-hostinger.zip .", "zip");
 }
 
 if (existsSync(zipPath)) {
   const sizeKb = Math.round(statSync(zipPath).size / 1024);
   console.log(`\n${"═".repeat(60)}`);
-  console.log(`✅ الأرشيف جاهز: cleanflow-services-hostinger.zip (${sizeKb} KB)`);
+  console.log(`✅ الأرشيف جاهز: taqi-group-hostinger.zip (${sizeKb} KB)`);
   console.log(`${"═".repeat(60)}\n`);
 }

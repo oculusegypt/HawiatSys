@@ -13,7 +13,7 @@ export default function WhyUsExperience() {
     title: "خبرتنا المتراكمة — مؤسسة تقي جروب",
     description: "خبرة ميدانية في تأجير الحاويات ونقل مخلفات البناء للمنازل والمقاولين والمنشآت في الرياض.",
     keywords: "خبرة تأجير الحاويات, نقل مخلفات البناء بالرياض, مؤسسة تقي جروب",
-    canonical: siteUrl("/why-us/accumulated-experience"),
+    canonical: siteUrl("/why-us/experience"),
   })
 
   return (

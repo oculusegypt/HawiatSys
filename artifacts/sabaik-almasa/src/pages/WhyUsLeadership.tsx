@@ -12,7 +12,7 @@ export default function WhyUsLeadership() {
     title: "قيادتنا — حلول الحاويات ونقل المخلفات",
     description: "تعرف على قيادة مؤسسة تقي جروب ورؤيتها في تقديم حلول موثوقة لتأجير الحاويات ونقل مخلفات البناء في الرياض.",
     keywords: "قيادة مؤسسة تقي جروب, رؤية المؤسسة, تأجير الحاويات بالرياض",
-    canonical: siteUrl("/why-us/leadership/"),
+    canonical: siteUrl("/why-us/leadership"),
   })
 
   return (

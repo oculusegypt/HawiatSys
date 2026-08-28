@@ -57,6 +57,204 @@ function configuredPublicOrigin(PDO $pdo): string {
     return rtrim($scheme . '://' . $host . (isset($parts['port']) ? ':' . (int)$parts['port'] : ''), '/');
 }
 
+function seoMetricStatus(int $matched, int $total): string {
+    if ($total < 1) return 'not_verified';
+    $ratio = $matched / $total;
+    if ($ratio >= 1) return 'pass';
+    if ($ratio >= 0.8) return 'warning';
+    return 'fail';
+}
+
+function seoMetric(string $key, string $label, string $status, string $value, string $detail, string $source, array $entities = []): array {
+    $metric = [
+        'key' => $key,
+        'label' => $label,
+        'status' => $status,
+        'value' => $value,
+        'detail' => $detail,
+        'source' => $source,
+    ];
+    if ($entities) $metric['entities'] = $entities;
+    return $metric;
+}
+
+function seoHtmlAttribute(string $tag, string $name): string {
+    if (preg_match('/\b' . preg_quote($name, '/') . '\s*=\s*["\']([^"\']*)["\']/i', $tag, $match)) {
+        return trim((string)$match[1]);
+    }
+    return '';
+}
+
+function seoMetaValue(string $html, string $name): string {
+    preg_match_all('/<meta\b[^>]*>/i', $html, $matches);
+    foreach ($matches[0] ?? [] as $tag) {
+        if (strcasecmp(seoHtmlAttribute($tag, 'name'), $name) === 0) {
+            return seoHtmlAttribute($tag, 'content');
+        }
+    }
+    return '';
+}
+
+function seoCanonicalValue(string $html): string {
+    preg_match_all('/<link\b[^>]*>/i', $html, $matches);
+    foreach ($matches[0] ?? [] as $tag) {
+        if (strcasecmp(seoHtmlAttribute($tag, 'rel'), 'canonical') === 0) {
+            return seoHtmlAttribute($tag, 'href');
+        }
+    }
+    return '';
+}
+
+function seoOrigin(string $value): string {
+    $parts = parse_url(trim($value));
+    if (!is_array($parts) || empty($parts['scheme']) || empty($parts['host'])) return '';
+    return strtolower((string)$parts['scheme']) . '://' . strtolower((string)$parts['host'])
+        . (!empty($parts['port']) ? ':' . (int)$parts['port'] : '');
+}
+
+function seoProductionFiles(string $root): array {
+    $files = [];
+    if (!is_dir($root)) return $files;
+    try {
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS),
+        );
+        foreach ($iterator as $file) {
+            if (!$file->isFile()) continue;
+            $path = str_replace('\\', '/', $file->getPathname());
+            if (str_contains($path, '/assets/') || str_contains($path, '/api/') || str_contains($path, '/cleanflow-platform/')) continue;
+            $files[] = $path;
+        }
+    } catch (Throwable $e) {
+        return [];
+    }
+    return $files;
+}
+
+function seoMetricsSnapshot(PDO $pdo): array {
+    $workspaceRoot = dirname(__DIR__);
+    $productionRoot = is_dir($workspaceRoot . '/build_php')
+        ? $workspaceRoot . '/build_php'
+        : $workspaceRoot;
+    $source = is_file($productionRoot . '/BUILD_INFO.json') ? 'آخر أرشيف Hostinger مبني' : 'مخرجات الموقع العامة';
+    $files = seoProductionFiles($productionRoot);
+    $htmlFiles = array_values(array_filter($files, fn($file) => str_ends_with(strtolower($file), '.html')));
+    $sitemap = is_file($productionRoot . '/sitemap.xml') ? (string)file_get_contents($productionRoot . '/sitemap.xml') : '';
+    preg_match_all('/<loc>([^<]+)<\/loc>/i', $sitemap, $sitemapMatches);
+    $sitemapUrls = array_values(array_map('trim', $sitemapMatches[1] ?? []));
+    $sitemapUnique = array_values(array_unique($sitemapUrls));
+    $siteUrl = seoOrigin($sitemapUrls[0] ?? '');
+    $pages = [];
+    $canonicalUrls = [];
+    $descriptions = 0;
+    $qualityDescriptions = 0;
+    $withCanonical = 0;
+    $withSchema = 0;
+    $faqPages = 0;
+    $linkedPages = 0;
+    $entityTypes = [];
+    $homepageHtml = '';
+
+    foreach ($htmlFiles as $file) {
+        $html = (string)@file_get_contents($file);
+        if (basename($file) === 'index.html' && dirname($file) === $productionRoot) $homepageHtml = $html;
+        if (preg_match('/<meta\b[^>]*name=["\']robots["\'][^>]*content=["\'][^"\']*noindex/i', $html)) continue;
+        $pages[] = $html;
+        $canonical = seoCanonicalValue($html);
+        if ($canonical !== '') {
+            $withCanonical++;
+            $canonicalUrls[] = $canonical;
+        }
+        $description = seoMetaValue($html, 'description');
+        if ($description !== '') {
+            $descriptions++;
+            $length = function_exists('mb_strlen') ? mb_strlen($description) : strlen($description);
+            if ($length >= 120 && $length <= 160) $qualityDescriptions++;
+        }
+        preg_match_all('/<script\b[^>]*type=["\']application\/ld\+json["\'][^>]*>/i', $html, $schemaMatches);
+        if (!empty($schemaMatches[0])) {
+            $withSchema++;
+            foreach ($schemaMatches[0] as $schemaTag) {
+                $schemaType = seoHtmlAttribute($schemaTag, 'data-type');
+                if ($schemaType !== '') $entityTypes[] = $schemaType;
+            }
+        }
+        if (preg_match('/FAQPage|الأسئلة الشائعة|faqpage/i', $html)) $faqPages++;
+        preg_match_all('/<a\b[^>]*href=["\']([^"\']+)["\']/i', $html, $linkMatches);
+        $internal = array_filter($linkMatches[1] ?? [], fn($href) => str_starts_with($href, '/') && !str_starts_with($href, '/admin') && !str_starts_with($href, '/api'));
+        if (count($internal) > 0) $linkedPages++;
+    }
+    $pagesCount = count($pages);
+    $canonicalUrls = array_values(array_unique(array_filter($canonicalUrls)));
+    $validSitemap = array_values(array_filter($sitemapUrls, function ($url) {
+        $parts = parse_url($url);
+        return is_array($parts) && ($parts['scheme'] ?? '') === 'https' && !preg_match('/\s|[<>]/', $url);
+    }));
+
+    $mediaFiles = array_values(array_filter($files, fn($file) => str_contains(str_replace('\\', '/', $file), '/images/seo/') && preg_match('/\.(png|jpe?g|webp|gif|svg)$/i', $file)));
+    $referencedMedia = 0;
+    foreach ($mediaFiles as $mediaFile) {
+        $mediaPath = '/images/seo/' . basename($mediaFile);
+        foreach ($pages as $html) {
+            if (str_contains($html, $mediaPath)) {
+                $referencedMedia++;
+                break;
+            }
+        }
+    }
+
+    $legacyFiles = [];
+    foreach ($files as $file) {
+        if (!preg_match('/\.(html?|css|js|json|xml|txt|php|webmanifest)$/i', $file)) continue;
+        $text = (string)@file_get_contents($file);
+        if (preg_match('/cleanflow|sabaik|سبائك|الماسة/iu', $text)) $legacyFiles[] = $file;
+    }
+
+    $setting = function (string $key) use ($pdo): string {
+        try {
+            $statement = $pdo->prepare("SELECT value FROM site_settings WHERE key = :key LIMIT 1");
+            $statement->execute([':key' => $key]);
+            return trim((string)($statement->fetchColumn() ?: ''));
+        } catch (Throwable $e) {
+            return '';
+        }
+    };
+    $companyName = $setting('company_name');
+    $companyCity = $setting('company_city');
+    $companyPhone = $setting('company_phone_call') ?: $setting('company_phone_whatsapp');
+    $contactConsistent = $companyName !== '' && $companyCity !== '' && $companyPhone !== ''
+        && str_contains($homepageHtml, $companyCity) && str_contains($homepageHtml, $companyPhone);
+    $origins = array_values(array_unique(array_filter(array_merge(
+        [$siteUrl, seoOrigin(seoMetaValue($homepageHtml, 'site-public-url'))],
+        array_map('seoOrigin', $sitemapUrls),
+        array_map('seoOrigin', $canonicalUrls),
+    ))));
+    $urlConsistent = $siteUrl !== '' && count($origins) === 1 && $origins[0] === $siteUrl;
+    sort($entityTypes);
+    $entityTypes = array_values(array_unique($entityTypes));
+    $mediaValue = count($mediaFiles) > 0 ? $referencedMedia . '/' . count($mediaFiles) : '—';
+
+    return [
+        'generatedAt' => gmdate('c'),
+        'source' => $source,
+        'siteUrl' => $siteUrl,
+        'metrics' => [
+            seoMetric('prerender', 'SEO HTML / Prerender', $pagesCount > 0 ? 'pass' : 'not_verified', $pagesCount > 0 ? count($canonicalUrls) . ' routes' : '—', $pagesCount > 0 ? count($htmlFiles) . ' HTML files موجودة، مع ' . count($canonicalUrls) . ' canonical فريد' : 'لم يُعثر على ناتج HTML قابل للفحص', $source),
+            seoMetric('meta_coverage', 'Meta Description Coverage', seoMetricStatus($descriptions, $pagesCount), $pagesCount ? round(($descriptions / $pagesCount) * 100) . '%' : '—', $descriptions . ' من ' . $pagesCount . ' صفحة قابلة للفهرسة لديها وصف', $source),
+            seoMetric('meta_quality', 'Meta Description Quality', seoMetricStatus($qualityDescriptions, $pagesCount), $pagesCount ? round(($qualityDescriptions / $pagesCount) * 100) . '%' : '—', $qualityDescriptions . ' وصفًا ضمن 120–160 حرفًا', $source),
+            seoMetric('canonical_coverage', 'Canonical Coverage', seoMetricStatus($withCanonical, $pagesCount), $pagesCount ? round(($withCanonical / $pagesCount) * 100) . '%' : '—', $withCanonical . ' من ' . $pagesCount . ' صفحة لديها canonical', $source),
+            seoMetric('sitemap', 'Sitemap Health', $sitemap !== '' && count($sitemapUrls) === count($sitemapUnique) && count($validSitemap) === count($sitemapUrls) ? 'pass' : 'fail', count($sitemapUrls) . ' URLs', $sitemap !== '' ? count($sitemapUnique) . ' رابطًا فريدًا، ' . count($validSitemap) . ' رابط HTTPS صالح' : 'sitemap.xml غير موجود', $source),
+            seoMetric('structured_data', 'Structured Data', seoMetricStatus($withSchema, $pagesCount), $withSchema === $pagesCount ? 'PASS' : $withSchema . '/' . $pagesCount, $entityTypes ? 'تم العثور على JSON-LD في ' . $withSchema . ' صفحة' : 'لم يُعثر على JSON-LD صالح', $source, $entityTypes),
+            seoMetric('faq_geo', 'FAQ / GEO Content', seoMetricStatus($faqPages, $pagesCount), $pagesCount ? $faqPages . '/' . $pagesCount : '—', $faqPages . ' صفحة تحتوي FAQ فعليًا في HTML أو JSON-LD', $source),
+            seoMetric('internal_links', 'Internal Linking', seoMetricStatus($linkedPages, $pagesCount), $pagesCount ? round(($linkedPages / $pagesCount) * 100) . '%' : '—', $linkedPages . ' من ' . $pagesCount . ' صفحة تحتوي روابط داخلية', $source),
+            seoMetric('seo_media', 'SEO Media', count($mediaFiles) > 0 && $referencedMedia === count($mediaFiles) ? 'pass' : (count($mediaFiles) > 0 ? 'warning' : 'not_verified'), $mediaValue, $referencedMedia . ' من ' . count($mediaFiles) . ' ملف SEO مستخدم في الناتج', $source),
+            seoMetric('legacy_branding', 'Legacy Branding', count($legacyFiles) === 0 ? 'pass' : 'fail', count($legacyFiles) === 0 ? 'CLEAN' : count($legacyFiles) . ' files', count($legacyFiles) === 0 ? 'لا توجد إشارات للعلامات القديمة في المخرجات العامة' : 'إشارات موجودة في ' . count($legacyFiles) . ' ملفًا عامًا', $source),
+            seoMetric('contact_consistency', 'Business Contact Consistency', $contactConsistent ? 'pass' : 'warning', $contactConsistent ? 'PASS' : 'NOT VERIFIED', $contactConsistent ? 'بيانات الاتصال متسقة بين الإعدادات وHTML العام' : 'تعذر إثبات اتساق بيانات الاتصال', $source),
+            seoMetric('site_url', 'Site URL', $urlConsistent ? 'pass' : 'warning', $siteUrl ?: 'NOT VERIFIED', $urlConsistent ? 'النطاق متسق بين sitemap وcanonical وHTML' : 'لم يمكن إثبات نطاق إنتاج واحد', $source),
+        ],
+    ];
+}
+
 try {
     // Parse request URI and method
     $rawUri = $_SERVER['REQUEST_URI'] ?? '/';
@@ -1004,6 +1202,7 @@ try {
                 '/admin/whatsapp' => 'whatsapp',
                 '/admin/reviews' => 'reviews',
                 '/admin/sitemap' => 'seo',
+                '/admin/seo' => 'seo',
                 '/admin/ai' => 'seo',
                 '/admin/shorten-url' => 'seo',
                 '/admin/llms-txt' => 'seo',
@@ -1031,6 +1230,11 @@ try {
 
     // Driver completion evidence is protected separately because drivers are
     // intentionally blocked from the broader administrative namespace.
+    if ($path === '/admin/seo/metrics' && $method === 'GET') {
+        echo json_encode(seoMetricsSnapshot($pdo), JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        exit;
+    }
+
     if ($path === '/driver/uploads' && $method === 'POST') {
         $driver = requireAdminAccess($pdo);
         if (($driver['role'] ?? '') !== 'driver') {

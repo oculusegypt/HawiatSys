@@ -12,7 +12,7 @@ export default function PartnersPage() {
     title: "شركاؤنا — مؤسسة تقي جروب للحاويات ونقل المخلفات",
     description: "شركاء النجاح في مؤسسة تقي جروب. نفخر بثقة المقاولين والمنشآت والمجمعات في حلول تأجير الحاويات ونقل المخلفات بالرياض.",
     keywords: "شركاء تأجير الحاويات بالرياض, شركاء نقل مخلفات البناء",
-    canonical: siteUrl("/partners/"),
+    canonical: siteUrl("/partners"),
   })
 
   return (

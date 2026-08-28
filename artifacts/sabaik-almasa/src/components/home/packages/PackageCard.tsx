@@ -32,7 +32,9 @@ function parseImages(raw: unknown): string[] {
 
 export function getContainerImage(container: Container): string {
   const firstSavedImage = parseImages(container.images)[0]
-  if (container.imageUrl && container.imageUrl.trim()) return container.imageUrl
+  if (container.imageUrl && container.imageUrl.trim() && !/^\/images\/packages\/package-\d+\.png$/i.test(container.imageUrl.trim())) {
+    return container.imageUrl
+  }
   if (firstSavedImage) return firstSavedImage
   if (container.category === "waste") return "/images/container-waste-small.webp"
   return "/images/Taqi-hero3.webp"

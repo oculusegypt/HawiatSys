@@ -623,10 +623,11 @@ function NotFound() {
 }
 
 function App() {
+  const platformBase = import.meta.env.BASE_URL.replace(/\/$/, '');
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-          <WouterRouter base="/cleanflow-platform">
+          <WouterRouter base={platformBase}>
           <Switch>
             <Route path="/" component={HomePage} />
             <Route component={NotFound} />

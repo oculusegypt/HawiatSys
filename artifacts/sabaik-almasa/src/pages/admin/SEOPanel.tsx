@@ -47,6 +47,25 @@ interface TechnicalCheck {
   priority: "high" | "medium" | "low"
 }
 
+type SeoMetricStatus = "pass" | "warning" | "fail" | "not_verified"
+
+interface SeoHealthMetric {
+  key: string
+  label: string
+  status: SeoMetricStatus
+  value: string
+  detail: string
+  source: string
+  entities?: string[]
+}
+
+interface SeoHealthSnapshot {
+  generatedAt: string
+  source: string
+  siteUrl: string
+  metrics: SeoHealthMetric[]
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const INTENT_LABELS: Record<string, { label: string; color: string }> = {
@@ -77,6 +96,30 @@ function positionBadge(pos: number | null) {
   if (!pos) return <span className="text-xs text-gray-400">—</span>
   const color = pos <= 3 ? "bg-green-100 text-green-700" : pos <= 10 ? "bg-blue-100 text-blue-700" : pos <= 30 ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-600"
   return <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${color}`}>#{ pos}</span>
+}
+
+function seoMetricStatusLabel(status: SeoMetricStatus): string {
+  return status === "pass" ? "PASS" : status === "warning" ? "WARNING" : status === "fail" ? "FAIL" : "NOT VERIFIED"
+}
+
+function seoMetricStatusClass(status: SeoMetricStatus): string {
+  return status === "pass"
+    ? "bg-green-50 border-green-200 text-green-700"
+    : status === "warning"
+    ? "bg-amber-50 border-amber-200 text-amber-700"
+    : status === "fail"
+    ? "bg-red-50 border-red-200 text-red-700"
+    : "bg-gray-50 border-gray-200 text-gray-600"
+}
+
+function SeoMetricIcon({ status }: { status: SeoMetricStatus }) {
+  return status === "pass"
+    ? <CheckCircle size={17} className="shrink-0" />
+    : status === "warning"
+    ? <AlertTriangle size={17} className="shrink-0" />
+    : status === "fail"
+    ? <XCircle size={17} className="shrink-0" />
+    : <Info size={17} className="shrink-0" />
 }
 
 // ─── SEO Score Gauge ──────────────────────────────────────────────────────────
@@ -284,6 +327,9 @@ export default function SEOPanel() {
   const [blogKeywords, setBlogKeywords] = useState<BlogKeyword[]>([])
   const [loadingBlogKw, setLoadingBlogKw] = useState(false)
   const [blogKwFilter, setBlogKwFilter] = useState("")
+  const [seoHealth, setSeoHealth] = useState<SeoHealthSnapshot | null>(null)
+  const [loadingSeoHealth, setLoadingSeoHealth] = useState(true)
+  const [seoHealthError, setSeoHealthError] = useState("")
 
   async function analyzeSEOWithAI() {
     setAnalyzingAI(true)
@@ -430,6 +476,32 @@ export default function SEOPanel() {
         }
       })
       .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    let active = true
+    setLoadingSeoHealth(true)
+    fetch(`${API_BASE}/api/admin/seo/metrics`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem("admin_token")}` },
+    })
+      .then(async response => {
+        const data = await response.json() as SeoHealthSnapshot & { error?: string }
+        if (!response.ok) throw new Error(data.error || "تعذر تحميل مؤشرات SEO")
+        return data
+      })
+      .then(data => {
+        if (active) {
+          setSeoHealth(data)
+          setSeoHealthError("")
+        }
+      })
+      .catch(error => {
+        if (active) setSeoHealthError(String(error))
+      })
+      .finally(() => {
+        if (active) setLoadingSeoHealth(false)
+      })
+    return () => { active = false }
   }, [])
 
   // Load blog keywords from posts
@@ -714,6 +786,53 @@ export default function SEOPanel() {
                   ))}
                 </div>
               </div>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+              <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
+                <div>
+                  <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                    <Shield size={16} className="text-primary" /> صحة SEO الفعلية
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-1">
+                    مؤشرات محسوبة من مخرجات الإنتاج، وليست أرقامًا ثابتة
+                  </p>
+                </div>
+                <span className="text-[11px] text-gray-400">
+                  {loadingSeoHealth ? "جاري الفحص..." : seoHealth?.source || "المصدر غير متاح"}
+                </span>
+              </div>
+
+              {seoHealthError ? (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
+                  تعذر التحقق من المؤشرات: {seoHealthError}
+                </div>
+              ) : loadingSeoHealth ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                  {Array.from({ length: 6 }).map((_, index) => (
+                    <div key={index} className="h-24 rounded-xl bg-gray-50 animate-pulse" />
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                  {(seoHealth?.metrics ?? []).map(item => (
+                    <div key={item.key} className={`rounded-xl border p-3.5 ${seoMetricStatusClass(item.status)}`}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <SeoMetricIcon status={item.status} />
+                          <p className="font-bold text-sm truncate">{item.label}</p>
+                        </div>
+                        <span className="text-[10px] font-black whitespace-nowrap">{seoMetricStatusLabel(item.status)}</span>
+                      </div>
+                      <p className="text-xl font-black mt-3" dir="ltr">{item.value}</p>
+                      <p className="text-[11px] mt-1 leading-relaxed opacity-80">{item.detail}</p>
+                      {item.key === "structured_data" && item.entities && item.entities.length > 0 && (
+                        <p className="text-[10px] mt-2 leading-relaxed opacity-70">{item.entities.join(" · ")}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Recommendations */}

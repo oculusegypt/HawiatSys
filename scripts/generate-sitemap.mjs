@@ -59,7 +59,6 @@ const staticPages = [
   ["/", "1.0", "daily"],
   ["/about", "0.9", "monthly"],
   ["/pricing", "0.95", "weekly"],
-  ["/packages", "0.95", "weekly"],
   ["/containers", "0.9", "weekly"],
   ["/contact", "0.85", "monthly"],
   ["/partners", "0.75", "monthly"],
@@ -67,11 +66,10 @@ const staticPages = [
   ["/faq", "0.85", "monthly"],
   ["/terms", "0.6", "monthly"],
   ["/privacy", "0.6", "monthly"],
-  ["/chat", "0.7", "monthly"],
   ["/why-us/leadership", "0.8", "monthly"],
-  ["/why-us/what-we", "0.8", "monthly"],
+  ["/why-us/what-we-do", "0.8", "monthly"],
   ["/why-us/commitment", "0.8", "monthly"],
-  ["/why-us/accumulated-experience", "0.8", "monthly"],
+  ["/why-us/experience", "0.8", "monthly"],
   ["/blog", "0.9", "daily"],
 ];
 

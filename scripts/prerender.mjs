@@ -135,7 +135,7 @@ let indexHtml = rawIndexHtml;
 
 // كل هذه المسارات تُولّد من قاعدة البيانات في كل تشغيل. احذف الناتج السابق
 // أولاً حتى لا تبقى صفحات SEO لحاويات/خدمات/مقالات حُذفت أو تعطّلت.
-for (const generatedRoute of ["blog", "services", "container", "containers", "package", "packages", "pricing", "faq", "contact", "about", "areas"]) {
+for (const generatedRoute of ["blog", "services", "container", "containers", "package", "packages", "pricing", "faq", "contact", "about", "areas", "partners", "why-us"]) {
   rmSync(join(distPublic, generatedRoute), { recursive: true, force: true });
 }
 
@@ -175,6 +175,14 @@ function absoluteImg(url) {
   if (!url) return `${SITE_URL}/images/logo.png`;
   if (/^https?:\/\//i.test(url)) return url;
   return `${SITE_URL}${url.startsWith("/") ? "" : "/"}${url}`;
+}
+
+function resolveLocalImage(url, fallback = "/images/hero-1.webp") {
+  const value = String(url || "").trim();
+  if (!value || /^https?:\/\//i.test(value)) return value || fallback;
+  const normalized = value.split(/[?#]/)[0].replace(/^\/api\/uploads\//, "/uploads/");
+  const localPath = join(distPublic, normalized.replace(/^\/+/, ""));
+  return existsSync(localPath) ? value : fallback;
 }
 
 function seoPageImage(page) {
@@ -851,6 +859,33 @@ function savePage(relPath, html) {
   writeFileSync(fullPath, html, "utf8");
 }
 
+function saveSimplePage({ relPath, title, description, canonicalPath, keywords = "", ogImage = "/images/seo/taqi-about.jpg", bodyContent, breadcrumbs = [] }) {
+  const canonical = publicUrl(canonicalPath);
+  savePage(relPath, renderPage({
+    title,
+    description,
+    canonical,
+    ogImage: publicUrl(ogImage),
+    keywords,
+    schemas: [{
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "@id": `${canonical}#webpage`,
+      "url": canonical,
+      "name": title,
+      "description": description,
+      "inLanguage": "ar",
+      "isPartOf": { "@id": `${publicUrl("/")}#website` },
+      "about": { "@id": `${publicUrl("/")}#organization` },
+    }],
+    breadcrumbs: [
+      { name: "الرئيسية", url: publicUrl("/") },
+      ...breadcrumbs.map((breadcrumb) => ({ ...breadcrumb, url: publicUrl(breadcrumb.path) })),
+    ],
+    bodyContent,
+  }));
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
 // 1. مقالات المدونة
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1174,7 +1209,7 @@ console.log(`   ✅ ${services.length} خدمة`);
 // ══════════════════════════════════════════════════════════════════════════════
 let containers = [];
 try {
-  containers = db.prepare(`
+  const packageRows = db.prepare(`
     SELECT id, name, category, size, capacity, description, features,
            suitable_for, price_text, price_per_day, image_url, images,
            seo_slug, seo_title, seo_description, seo_keywords
@@ -1183,6 +1218,19 @@ try {
       AND seo_slug IS NOT NULL AND seo_slug != ''
     ORDER BY "order" ASC
   `).all();
+  if (packageRows.length > 0) {
+    containers = packageRows;
+  } else {
+    containers = db.prepare(`
+      SELECT id, name, category, size, capacity, description, features,
+             suitable_for, price_text, price_per_day, image_url, images,
+             seo_slug, seo_title, seo_description, seo_keywords
+      FROM containers
+      WHERE is_active = 1 AND seo_enabled = 1
+        AND seo_slug IS NOT NULL AND seo_slug != ''
+      ORDER BY "order" ASC
+    `).all();
+  }
 } catch (e) {
   containers = db.prepare(`
     SELECT id, name, category, size, capacity, description, features,
@@ -1202,7 +1250,7 @@ for (const c of containers) {
   const canonical = `${SITE_URL}/containers/${encodeURIComponent(slug)}`;
   const title     = c.seo_title || `${c.name} بالرياض | ${siteCompanyName}`;
   const desc      = normalizeMetaDescription(c.seo_description || c.description, c.name);
-  const ogImage   = c.image_url || `${SITE_URL}/images/hero-1.webp`;
+  const ogImage   = resolveLocalImage(c.image_url, "/images/hero-1.webp");
 
   let featuresList = [];
   try {
@@ -1293,6 +1341,35 @@ for (const c of containers) {
   savePage(`packages/${slug}`, html);
 }
 console.log(`   ✅ ${containers.length} باقة نظافة`);
+
+saveSimplePage({
+  relPath: "containers",
+  title: `مقاسات وأسعار تأجير الحاويات بالرياض | ${siteCompanyName}`,
+  description: normalizeMetaDescription(
+    "استعرض أحجام ومقاسات حاويات الأنقاض والنفايات والمكابس وعقود النظافة المعتمدة بالرياض، ثم اطلب الحل المناسب لموقعك.",
+    "الحاويات والباقات",
+  ),
+  canonicalPath: "/containers",
+  keywords: "تأجير حاويات بالرياض, أسعار الحاويات, حاويات أنقاض, حاويات نفايات, عقود نظافة بلدي",
+  ogImage: "/images/seo/taqi-containers.jpg",
+  breadcrumbs: [{ name: "الحاويات والباقات", path: "/containers" }],
+  bodyContent: `
+    <h1 style="font-size:clamp(24px,4vw,36px);font-weight:900;color:#1e3a5f;margin:0 0 16px">
+      جميع مقاسات وأنواع الحاويات وعقود بلدي
+    </h1>
+    <p style="font-size:17px;color:#4a5568;line-height:1.8;margin:0 0 24px">
+      اختر الحل المناسب لمشروعك أو منشأتك من باقات مؤسسة تقي جروب لتأجير الحاويات ونقل المخلفات في الرياض.
+      يحدد عرض السعر حسب نوع المخلفات وحجم الحاوية وموقع المشروع ومدة التأجير.
+    </p>
+    <ul style="margin:0;padding-right:22px;color:#334155;line-height:2">
+      ${containers.map((container) => `
+        <li><a href="${esc(publicUrl(`/containers/${encodeURIComponent(container.seo_slug)}`))}" style="color:#1d4ed8;font-weight:700">${esc(container.name)}</a>${container.description ? ` — ${esc(container.description)}` : ""}</li>
+      `).join("")}
+    </ul>
+    <p style="margin-top:24px;line-height:1.8">
+      <a href="${esc(publicUrl("/contact"))}" style="color:#1d4ed8;font-weight:800">تواصل معنا لطلب عرض مناسب لموقعك</a>
+    </p>`,
+});
 
 // ══════════════════════════════════════════════════════════════════════════════
 // 4. صفحات SEO المخصصة (seo_pages)
@@ -1768,6 +1845,123 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
   savePage("من-نحن", html);
   console.log(`   ✅ صفحة من نحن /about`);
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 5.6 صفحات المحتوى العامة التي تظهر في sitemap
+// ══════════════════════════════════════════════════════════════════════════════
+const supportingSeoPages = [
+  {
+    relPath: "partners",
+    canonicalPath: "/partners",
+    title: `شركاؤنا | ${siteCompanyName} للحاويات ونقل المخلفات`,
+    description: normalizeMetaDescription(
+      `شركاء النجاح في ${siteCompanyName}. نفخر بثقة المقاولين والمنشآت والمجمعات في حلول تأجير الحاويات ونقل المخلفات بالرياض.`,
+      "شركاء مؤسسة تقي جروب",
+    ),
+    keywords: "شركاء تأجير الحاويات بالرياض, شركاء نقل مخلفات البناء",
+    ogImage: "/images/seo/taqi-partners.jpg",
+    breadcrumbs: [{ name: "شركاؤنا", path: "/partners" }],
+    bodyContent: `
+      <h1 style="font-size:clamp(24px,4vw,36px);font-weight:900;color:#1e3a5f;margin:0 0 16px">شركاؤنا</h1>
+      <p style="font-size:17px;color:#4a5568;line-height:1.8;margin:0 0 20px">
+        نفخر بثقة شركائنا وعملائنا من المقاولين والمنشآت والمجمعات في حلول تأجير الحاويات ونقل المخلفات بالرياض.
+      </p>
+      <p style="font-size:16px;color:#475569;line-height:1.9">
+        نعمل مع شركائنا على تنسيق المقاسات ومواعيد التوصيل والسحب، وتقديم متابعة واضحة تناسب احتياجات المشاريع السكنية والتجارية والإنشائية.
+      </p>
+      <p style="margin-top:24px;line-height:1.8">
+        <a href="${esc(publicUrl("/contact"))}" style="color:#1d4ed8;font-weight:800">تواصل معنا لبدء شراكة أو طلب خدمة</a>
+      </p>`,
+  },
+  {
+    relPath: "why-us/leadership",
+    canonicalPath: "/why-us/leadership",
+    title: "قيادتنا — حلول الحاويات ونقل المخلفات",
+    description: normalizeMetaDescription(
+      "تعرف على قيادة مؤسسة تقي جروب ورؤيتها في تقديم حلول موثوقة لتأجير الحاويات ونقل مخلفات البناء في الرياض.",
+      "قيادة مؤسسة تقي جروب",
+    ),
+    keywords: "قيادة مؤسسة تقي جروب, رؤية المؤسسة, تأجير الحاويات بالرياض",
+    ogImage: "/images/seo/taqi-why-us.jpg",
+    breadcrumbs: [{ name: "لماذا نحن", path: "/#about" }, { name: "القيادة", path: "/why-us/leadership" }],
+    bodyContent: `
+      <h1 style="font-size:clamp(24px,4vw,36px);font-weight:900;color:#1e3a5f;margin:0 0 16px">قيادتنا</h1>
+      <p style="font-size:17px;color:#4a5568;line-height:1.8;margin:0 0 20px">
+        رؤية وقيادة تصنع الفارق في حلول تأجير الحاويات ونقل مخلفات البناء داخل الرياض.
+      </p>
+      <p style="font-size:16px;color:#475569;line-height:1.9">
+        تقود مؤسسة تقي جروب أعمالها بتركيز على وضوح العرض، وتنسيق المواعيد، ومتابعة احتياج كل مشروع من الحاوية حتى السحب أو التبديل.
+      </p>`,
+  },
+  {
+    relPath: "why-us/what-we-do",
+    canonicalPath: "/why-us/what-we-do",
+    title: "خدماتنا — حلول الحاويات ونقل المخلفات | ماذا نقدم",
+    description: normalizeMetaDescription(
+      "اكتشف حلول مؤسسة تقي جروب لتأجير حاويات الأنقاض والنفايات والمكابس ونقل مخلفات البناء وعقود النظافة الإلكترونية بالرياض.",
+      "خدمات مؤسسة تقي جروب",
+    ),
+    keywords: "خدمات تأجير الحاويات, نقل مخلفات البناء بالرياض, مكابس نفايات, عقود النظافة الإلكترونية",
+    ogImage: "/images/seo/taqi-services.jpg",
+    breadcrumbs: [{ name: "لماذا نحن", path: "/#about" }, { name: "ماذا نقدم", path: "/why-us/what-we-do" }],
+    bodyContent: `
+      <h1 style="font-size:clamp(24px,4vw,36px);font-weight:900;color:#1e3a5f;margin:0 0 16px">ماذا نقدم</h1>
+      <p style="font-size:17px;color:#4a5568;line-height:1.8;margin:0 0 20px">
+        خدمات متكاملة لتأجير حاويات الأنقاض والنفايات والمكابس، ونقل مخلفات البناء، وعقود النظافة الإلكترونية في الرياض.
+      </p>
+      <ul style="margin:0;padding-right:22px;color:#334155;line-height:2">
+        <li>حاويات مناسبة للهدم والترميم والإنشاءات.</li>
+        <li>حلول نفايات ومكابس للمنشآت والمطاعم والمجمعات.</li>
+        <li>توصيل وسحب وتبديل وفق موعد المشروع.</li>
+        <li>عقود نظافة إلكترونية موثقة للأنشطة والمنشآت.</li>
+      </ul>`,
+  },
+  {
+    relPath: "why-us/commitment",
+    canonicalPath: "/why-us/commitment",
+    title: "التزامنا — مؤسسة تقي جروب | قيمنا ومبادئنا",
+    description: normalizeMetaDescription(
+      "تعرف على قيم ومبادئ مؤسسة تقي جروب والتزامنا بتقديم حلول منظمة لتأجير الحاويات ونقل المخلفات في الرياض.",
+      "التزام مؤسسة تقي جروب",
+    ),
+    keywords: "التزام مؤسسة تقي جروب, قيم المؤسسة, جودة نقل مخلفات البناء",
+    ogImage: "/images/seo/taqi-contact.jpg",
+    breadcrumbs: [{ name: "لماذا نحن", path: "/#about" }, { name: "التزامنا", path: "/why-us/commitment" }],
+    bodyContent: `
+      <h1 style="font-size:clamp(24px,4vw,36px);font-weight:900;color:#1e3a5f;margin:0 0 16px">التزامنا</h1>
+      <p style="font-size:17px;color:#4a5568;line-height:1.8;margin:0 0 20px">
+        قيمنا ومبادئنا في خدمة عملائنا وتقديم حلول منظمة لتأجير الحاويات ونقل المخلفات داخل الرياض.
+      </p>
+      <ul style="margin:0;padding-right:22px;color:#334155;line-height:2">
+        <li>وضوح العرض قبل اعتماد المقاس والمدة والموقع.</li>
+        <li>تنسيق منظم للتوصيل والسحب والتبديل.</li>
+        <li>متابعة مباشرة لاحتياج المشروع والمنشأة.</li>
+        <li>التزام بجودة الخدمة والتواصل الواضح.</li>
+      </ul>`,
+  },
+  {
+    relPath: "why-us/experience",
+    canonicalPath: "/why-us/experience",
+    title: "خبرتنا المتراكمة — مؤسسة تقي جروب",
+    description: normalizeMetaDescription(
+      "خبرة ميدانية في تأجير الحاويات ونقل مخلفات البناء للمنازل والمقاولين والمنشآت في الرياض.",
+      "خبرة مؤسسة تقي جروب",
+    ),
+    keywords: "خبرة تأجير الحاويات, نقل مخلفات البناء بالرياض, مؤسسة تقي جروب",
+    ogImage: "/images/seo/taqi-why-us.jpg",
+    breadcrumbs: [{ name: "لماذا نحن", path: "/#about" }, { name: "خبرتنا", path: "/why-us/experience" }],
+    bodyContent: `
+      <h1 style="font-size:clamp(24px,4vw,36px);font-weight:900;color:#1e3a5f;margin:0 0 16px">خبرتنا المتراكمة</h1>
+      <p style="font-size:17px;color:#4a5568;line-height:1.8;margin:0 0 20px">
+        سنوات من الخبرة الميدانية في تأجير الحاويات ونقل مخلفات البناء للمنازل والمقاولين والمنشآت في الرياض.
+      </p>
+      <p style="font-size:16px;color:#475569;line-height:1.9">
+        نستخدم هذه الخبرة لتنسيق الحل المناسب لكل موقع، من اختيار الحاوية إلى جدولة التوصيل والسحب، مع متابعة عملية واضحة.
+      </p>`,
+  },
+];
+
+for (const page of supportingSeoPages) saveSimplePage(page);
 
 // ══════════════════════════════════════════════════════════════════════════════
 // 6. صفحات أحياء الرياض (SEO جغرافي محلي فائق الدقة)

@@ -21,7 +21,7 @@ import { resolvePublicOrigin } from "./public-origin.mjs";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(join(root, "lib", "db", "package.json"));
 const Database = require("better-sqlite3");
-const archivePath = join(root, process.env.HOSTINGER_ARCHIVE || "cleanflow-services-hostinger.zip");
+const archivePath = join(root, process.env.HOSTINGER_ARCHIVE || "taqi-group-hostinger.zip");
 const publicSitemap = join(root, "artifacts", "sabaik-almasa", "public", "sitemap.xml");
 const distSitemap = join(root, "artifacts", "sabaik-almasa", "dist", "public", "sitemap.xml");
 const buildSitemap = join(root, "build_php", "sitemap.xml");
@@ -86,7 +86,7 @@ if (archiveDir) {
     "api/index.php",
     "images/logo.png",
     "images/hero-1.webp",
-    "cleanflow-platform/index.html",
+    "taqi-group-platform/index.html",
   ]) requireFile(join(archiveDir, file), `archive ${file}`);
 
   const sitemap = readFileSync(archiveSitemap, "utf8");
