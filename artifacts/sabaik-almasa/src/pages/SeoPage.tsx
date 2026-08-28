@@ -4,6 +4,7 @@ import { Navbar } from "@/components/layout/Navbar"
 import { Footer } from "@/components/layout/Footer"
 import { useServiceRequest } from "@/context/ServiceRequestContext"
 import { normalizeCompanyText, useSiteSettings } from "@/context/SiteSettingsContext"
+import { seoImageAlt, seoImageForPath } from "@/lib/seoMedia"
 import { getSiteUrl, sitePath, siteUrl } from "@/lib/siteUrl"
 import {
   ArrowRight,
@@ -68,7 +69,7 @@ function PublicCta({
   phoneWhatsapp: string
 }) {
   const whatsappHref = phoneWhatsapp
-    ? `https://wa.me/966${phoneWhatsapp.replace(/^0/, "")}?text=${encodeURIComponent("مرحباً، أريد طلب خدمة تنظيف في الرياض")}`
+    ? `https://wa.me/966${phoneWhatsapp.replace(/^0/, "")}?text=${encodeURIComponent("مرحباً، أريد طلب تأجير حاوية أو نقل مخلفات في الرياض")}`
     : ""
   return (
     <section className="relative mt-10 overflow-hidden rounded-3xl bg-primary px-6 py-8 text-white shadow-xl md:px-10 md:py-10" data-testid="section-seo-request-cta">
@@ -81,11 +82,11 @@ function PublicCta({
             خدمة موثوقة في الرياض
           </div>
           <h2 className="text-2xl font-black leading-tight md:text-3xl">هل تبحث عن فريق يبدأ معك اليوم؟</h2>
-          <p className="mt-2 text-sm leading-7 text-white/70">شاركنا تفاصيل المكان، وسنساعدك في اختيار الخدمة المناسبة والحصول على عرض واضح.</p>
+          <p className="mt-2 text-sm leading-7 text-white/70">شاركنا نوع المخلفات وموقع المشروع، وسنساعدك في اختيار الحاوية المناسبة والحصول على عرض واضح.</p>
         </div>
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
           <button onClick={onOpen} className="inline-flex items-center justify-center gap-2 rounded-xl bg-secondary px-5 py-3 font-black text-white transition-transform hover:-translate-y-0.5" data-testid="button-seo-request">
-            اطلب الخدمة
+            اطلب الحاوية
             <ArrowRight size={16} className="rotate-180" />
           </button>
           {whatsappHref && (
@@ -151,7 +152,7 @@ export default function SeoPage() {
         const title = resolvedData.seoTitle || resolvedData.title
         const description = resolvedData.seoDescription || resolvedData.excerpt
         const canonical = siteUrl(sitePath(resolvedData.canonicalUrl || window.location.pathname))
-        const image = toAbsoluteAsset(resolvedData.ogImage || resolvedData.coverImage)
+         const image = toAbsoluteAsset(resolvedData.ogImage || resolvedData.coverImage) || siteUrl(seoImageForPath(window.location.pathname))
         const resolvedTitle = normalizeCompanyText(`${title} | ${companyName || "الشركة"}`)
         document.title = resolvedTitle
         setMeta("description", description)
@@ -163,10 +164,20 @@ export default function SeoPage() {
         setMeta("og:url", canonical, "property")
         setMeta("og:locale", "ar_SA", "property")
         if (image) setMeta("og:image", image, "property")
+         if (image) {
+           setMeta("og:image:secure_url", image, "property")
+           setMeta("og:image:type", "image/jpeg", "property")
+           setMeta("og:image:width", "1200", "property")
+           setMeta("og:image:height", "675", "property")
+           setMeta("og:image:alt", seoImageAlt(title), "property")
+         }
         setMeta("twitter:card", image ? "summary_large_image" : "summary")
         setMeta("twitter:title", title)
         setMeta("twitter:description", description)
-        if (image) setMeta("twitter:image", image)
+         if (image) {
+           setMeta("twitter:image", image)
+           setMeta("twitter:image:alt", seoImageAlt(title))
+         }
 
         document.querySelector("link[rel='canonical']")?.remove()
         const canonicalLink = document.createElement("link")

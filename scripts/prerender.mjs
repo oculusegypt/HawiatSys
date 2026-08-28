@@ -8,7 +8,7 @@
  * هيكل الإخراج:
  *   dist/public/blog/[slug]/index.html
  *   dist/public/services/[seo_slug]/index.html
- *   dist/public/container/[seo_slug]/index.html
+ *   dist/public/containers/[seo_slug]/index.html
  */
 
 import { createRequire } from "node:module";
@@ -30,7 +30,7 @@ const settingMap = Object.fromEntries(settingRows.map(row => [row.key, row.value
 const SEO_DEFAULTS = {
   companyName: "مؤسسة تقي جروب",
   description: "تأجير حاويات الأنقاض والنفايات والمكابس ونقل مخلفات البناء والهدم وعقود النظافة الإلكترونية بالرياض.",
-  phone: "0554498403",
+  phone: "0555888767",
   address: "الرياض",
   city: "الرياض",
   region: "منطقة الرياض",
@@ -48,9 +48,9 @@ try {
   const parsed = JSON.parse(settingMap.company_phones || "[]");
   if (Array.isArray(parsed)) sitePhones = parsed.filter(phone => typeof phone === "string" && phone.trim());
 } catch {}
-if (!sitePhones.length) sitePhones = [SEO_DEFAULTS.phone];
-const sitePhoneWhatsapp = settingMap.company_phone_whatsapp || sitePhones[0] || "";
-const sitePhoneCall = settingMap.company_phone_call || sitePhones[0] || sitePhoneWhatsapp;
+if (!sitePhones.length) sitePhones = ["0555888767", "0580595555"];
+const sitePhoneWhatsapp = settingMap.company_phone_whatsapp || sitePhones[1] || "0580595555";
+const sitePhoneCall = settingMap.company_phone_call || sitePhones[0] || "0555888767";
 const sitePhoneAdditional = sitePhones.find(phone => phone !== sitePhoneWhatsapp && phone !== sitePhoneCall)
   || sitePhones.find(phone => phone !== sitePhoneWhatsapp)
   || "";
@@ -117,7 +117,7 @@ let indexHtml = rawIndexHtml;
 
 // كل هذه المسارات تُولّد من قاعدة البيانات في كل تشغيل. احذف الناتج السابق
 // أولاً حتى لا تبقى صفحات SEO لحاويات/خدمات/مقالات حُذفت أو تعطّلت.
-for (const generatedRoute of ["blog", "services", "container", "pricing", "areas"]) {
+for (const generatedRoute of ["blog", "services", "container", "containers", "package", "packages", "pricing", "faq", "contact", "about", "areas"]) {
   rmSync(join(distPublic, generatedRoute), { recursive: true, force: true });
 }
 
@@ -207,16 +207,16 @@ function homeSeoLinksNoscript() {
   if (!pages.length) return "";
 
   const links = pages.map((page) => {
-    const keyword = page.target_keyword || String(page.seo_keywords || "").split(/[，,]/)[0]?.trim() || "خدمات التنظيف بالرياض";
+    const keyword = page.target_keyword || String(page.seo_keywords || "").split(/[，,]/)[0]?.trim() || "تأجير الحاويات بالرياض";
     const href = `${SITE_URL}/page/${encodeURIComponent(page.slug)}`;
     return `<a href="${esc(href)}" style="display:inline-block;margin:4px 6px;padding:7px 12px;border:1px solid #bee3f8;border-radius:8px;color:#1e3a5f;text-decoration:none;font-size:13px">${esc(page.title)} — ${esc(keyword)}</a>`;
   }).join("");
 
   return `
     <noscript>
-      <section aria-label="صفحات خدمات التنظيف والكلمات الرئيسية" style="font-family:'Cairo',Arial,sans-serif;direction:rtl;max-width:1100px;margin:0 auto;padding:28px 16px;line-height:1.8">
-        <h2 style="font-size:22px;color:#1e3a5f;margin:0 0 8px">صفحات خدمات التنظيف والكلمات الرئيسية</h2>
-        <p style="font-size:15px;color:#4a5568;margin:0 0 14px">أدلة منشورة عن خدمات التنظيف في الرياض والمناطق القريبة.</p>
+      <section aria-label="صفحات تأجير الحاويات والكلمات الرئيسية" style="font-family:'Cairo',Arial,sans-serif;direction:rtl;max-width:1100px;margin:0 auto;padding:28px 16px;line-height:1.8">
+        <h2 style="font-size:22px;color:#1e3a5f;margin:0 0 8px">صفحات تأجير الحاويات والكلمات الرئيسية</h2>
+        <p style="font-size:15px;color:#4a5568;margin:0 0 14px">أدلة منشورة عن تأجير الحاويات ونقل الأنقاض ومخلفات البناء في الرياض والمناطق القريبة.</p>
         <nav aria-label="روابط صفحات SEO">${links}</nav>
       </section>
     </noscript>`;
@@ -333,7 +333,7 @@ function dynamicHomeSchema() {
   if (sitePhoneWhatsapp) sameAs.push(`https://wa.me/${toInternational(sitePhoneWhatsapp).replace("+", "")}`);
   const business = {
     "@context": "https://schema.org",
-    "@type": ["LocalBusiness", "HousekeepingService"],
+    "@type": ["LocalBusiness", "ProfessionalService"],
     "@id": `${publicUrl("/")}#business`,
     "name": siteCompanyName,
     ...(siteDescription ? { description: siteDescription } : {}),
@@ -399,26 +399,26 @@ function dynamicHomeSchema() {
       "mainEntity": [
         {
           "@type": "Question",
-          "name": `ما هي خدمات التنظيف التي تقدمها ${siteCompanyName} بالرياض؟`,
+          "name": `ما هي خدمات الحاويات التي تقدمها ${siteCompanyName} بالرياض؟`,
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "نقدم تنظيف الفلل والقصور والشقق والمنازل، والتنظيف بعد البناء والتشطيب، وغسيل المجالس والكنب بالبخار، وجلي وتلميع الرخام، وغسيل المكيفات بالضغط، وتنظيف وتعقيم الخزانات ومكافحة الحشرات."
+            "text": "نوفر حاويات بمقاسات متعددة للمنازل والمشاريع والمنشآت، مع توصيل الحاوية وسحبها ونقل الأنقاض ومخلفات البناء بطريقة منظمة داخل الرياض."
           }
         },
         {
           "@type": "Question",
-          "name": `كم أسعار خدمات التنظيف في الرياض لدى ${siteCompanyName}؟`,
+          "name": `كيف تُحدد أسعار تأجير الحاويات في الرياض لدى ${siteCompanyName}؟`,
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "تبدأ أسعار تنظيف الشقق من 350 ريال، الفلل من 750 ريال، غسيل المجالس بالبخار من 200 ريال، غسيل المكيفات من 80 ريال، وجلي الرخام من 15 ريال للمتر المربع، مع معاينة مجانية وضمان كامل."
+            "text": "يُحدد السعر حسب حجم الحاوية ونوع المخلفات وموقع المشروع ومدة التأجير، ونقدم عرضاً واضحاً بعد معرفة تفاصيل الموقع والاحتياج."
           }
         },
         {
           "@type": "Question",
-          "name": "هل تقدمون ضماناً رسمياً على خدمات التنظيف؟",
+          "name": "هل توفرون التوصيل والسحب ونقل المخلفات؟",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "نعم، نقدم ضماناً كاملاً على جودة التنفيذ وتسليم الموقع بالملاحظات المطلوبة مع استعداد تام لمعاينة أي تعديلات مجاناً فوراً."
+            "text": "نعم، تشمل الخدمة تنسيق موعد توصيل الحاوية وسحبها أو تبديلها ونقل محتواها وفق نوع المخلفات وتعليمات الموقع."
           }
         },
         {
@@ -444,13 +444,13 @@ function dynamicHomeSchema() {
         {
           "@type": "ListItem",
           "position": 2,
-          "name": "خدمات التنظيف",
+          "name": "تأجير الحاويات ونقل المخلفات",
           "item": publicUrl("/#services")
         },
         {
           "@type": "ListItem",
           "position": 3,
-          "name": "باقات النظافة",
+          "name": "باقات الحاويات",
           "item": publicUrl("/pricing")
         }
       ]
@@ -459,9 +459,13 @@ function dynamicHomeSchema() {
 }
 
 function generateFullHomepageStaticContent() {
-  const phoneCall = sitePhoneCall || "0554498403";
-  const phoneWa = sitePhoneWhatsapp || "0554498403";
-  const waUrl = waLink(phoneWa, "السلام عليكم، أرغب في حجز خدمة تنظيف بالرياض");
+  // Retained only for backwards-compatible imports; the container homepage below
+  // is the single source of truth for static rendering.
+  return generateHomepageStaticContent();
+
+  const phoneCall = sitePhoneCall || "0555888767";
+  const phoneWa = sitePhoneWhatsapp || "0580595555";
+  const waUrl = waLink(phoneWa, "السلام عليكم، أرغب في طلب حاوية ونقل مخلفات بالرياض");
 
   return `
   <header style="background:#1e3a5f;color:#fff;padding:12px 20px;border-bottom:1px solid rgba(255,255,255,0.1)">
@@ -891,8 +895,8 @@ for (const post of posts) {
         ${sanitizeHtml(post.content)}
       </div>
       <div style="margin-top:40px;padding:24px;background:#ebf8ff;border-radius:12px;border-right:4px solid #3182ce">
-        <p style="font-weight:700;color:#2b6cb0;margin:0 0 8px;font-size:18px">هل تحتاج إلى استشارة أو خدمة تنظيف متخصصة بالرياض؟</p>
-        <p style="color:#4a5568;margin:0 0 16px;font-size:15px">تواصل معنا الآن لتحصل على عرض سعر مجاني واستجابة سريعة من فريق عملنا المتخصص.</p>
+        <p style="font-weight:700;color:#2b6cb0;margin:0 0 8px;font-size:18px">هل تحتاج إلى حاوية أو نقل مخلفات في الرياض؟</p>
+        <p style="color:#4a5568;margin:0 0 16px;font-size:15px">أرسل نوع المخلفات والمقاس والموقع لتحصل على عرض واضح واستجابة سريعة من فريق العمليات.</p>
         <div style="display:flex;gap:12px;flex-wrap:wrap">
           <a href="tel:${esc(sitePhoneCall)}" style="background:#2b6cb0;color:white;padding:10px 20px;border-radius:8px;font-weight:700;text-decoration:none">📞 اتصال: ${esc(sitePhoneCall)}</a>
           <a href="${waLink(sitePhoneWhatsapp, `استفسار بخصوص مقال: ${post.title}`)}" style="background:#25d366;color:white;padding:10px 20px;border-radius:8px;font-weight:700;text-decoration:none">واتساب ↗</a>
@@ -916,7 +920,7 @@ console.log(`   ✅ ${posts.length} مقالة`);
 // ── صفحة قائمة المدونة /blog/index.html ──────────────────────────────────────
 {
   const blogCanonical  = `${SITE_URL}/blog`;
-  const blogTitle      = `مدونة النظافة والعناية بالمنزل | ${siteCompanyName} بالرياض`;
+  const blogTitle      = `مدونة تأجير الحاويات ونقل المخلفات | ${siteCompanyName} بالرياض`;
   const blogDesc       = siteDescription || "مقالات ونصائح تساعدك على اختيار الخدمات المناسبة والعناية بالمكان.";
   const blogOgImage    = posts[0]?.cover_image || `${SITE_URL}/images/hero-1.webp`;
 
@@ -966,7 +970,7 @@ console.log(`   ✅ ${posts.length} مقالة`);
   const html = renderPage({
     title: blogTitle, description: blogDesc, canonical: blogCanonical,
     ogImage: blogOgImage, ogType: "website",
-    keywords: "مدونة تنظيف منازل الرياض, نصائح تنظيف الفلل, شركة تنظيف بالرياض, جلي الرخام بالرياض",
+    keywords: "مدونة تأجير حاويات الرياض, نقل مخلفات البناء, حاويات أنقاض, عقود النظافة الإلكترونية",
     schemas: [blogSchema, breadcrumbSchema(crumbs)],
     breadcrumbs: crumbs,
     bodyContent,
@@ -1029,9 +1033,9 @@ for (const svc of services) {
   ];
 
   const serviceFaqs = [
-    { q: `ما هي مدة تنفيذ خدمة ${svc.title} في الرياض؟`, a: `تستغرق الخدمة في المتوسط من ساعتين إلى 6 ساعات حسب مساحة العقار وحجم العمل المطلوب، مع إمكانية توفير فريق عمل مضاعف للإنجاز في نفس اليوم.` },
-    { q: `هل تقدمون ضماناً على خدمة ${svc.title}؟`, a: `نعم، نقدم ضماناً كاملاً على جودة التنفيذ، مع استعداد تام لمعاينة أي ملاحظات وإعادة العمل فوراً وبدون أي تكلفة إضافية.` },
-    { q: `هل توفرون مواد ومعدات ${svc.title} بالكامل؟`, a: `نعم، يحضر فريق العمل مجهزاً بكافة ماكينات التنظيف والمواد والمنظفات المعتمدة والآمنة والمطابقة للمواصفات.` }
+    { q: `متى يمكن توصيل ${svc.title} في الرياض؟`, a: `ينسق فريق العمليات موعد التوصيل حسب العنوان ونوع المخلفات وتوفر المقاس المناسب، مع تأكيد الموعد قبل التنفيذ.` },
+    { q: `هل يمكن سحب أو تبديل ${svc.title} بعد الامتلاء؟`, a: `نعم، يمكن تنسيق السحب أو التبديل عند امتلاء الحاوية أو انتهاء مدة التأجير وفق جدول المشروع.` },
+    { q: `هل توفرون تجهيزات ${svc.title} بالكامل؟`, a: `نعم، ينسق فريق العمليات الحاوية المناسبة ومواعيد التوصيل والسحب وفق نوع المخلفات ومتطلبات الموقع.` }
   ];
 
   const serviceFaqSchema = {
@@ -1052,7 +1056,7 @@ for (const svc of services) {
       <div style="background:#fef3c7;border-right:4px solid #f59e0b;padding:16px 20px;border-radius:12px;margin-bottom:24px">
         <strong style="color:#92400e;display:block;font-size:16px;margin-bottom:4px">⚡ إجابة مباشرة وملخص الخدمة (Quick Facts):</strong>
         <p style="margin:0;color:#78350f;font-size:15px;line-height:1.7">
-          تقدم <strong>${esc(siteCompanyName)}</strong> خدمة <strong>${esc(svc.title)}</strong> في جميع أحياء الرياض بأحدث المعدات وفريق فني متخصص. تشمل الخدمة المعاينة الفورية، التنفيذ الدقيق، التعقيم الشامل، وضمان الجودة المعتمد.
+           تقدم <strong>${esc(siteCompanyName)}</strong> خدمة <strong>${esc(svc.title)}</strong> في جميع أحياء الرياض مع تنسيق المقاس والتوصيل والسحب وفريق عمليات متخصص. يشمل الطلب عرضاً واضحاً ومتابعة للموعد وفق متطلبات الموقع.
         </p>
       </div>
 
@@ -1114,7 +1118,7 @@ for (const svc of services) {
       </div>
 
       <div style="margin-top:24px;padding:22px;background:#0f172a;color:#ffffff;border-radius:16px;text-align:center">
-        <h3 style="color:#fbbf24;margin-top:0;margin-bottom:8px;font-size:20px">احجز خدمة ${esc(svc.title)} الآن في الرياض</h3>
+         <h3 style="color:#fbbf24;margin-top:0;margin-bottom:8px;font-size:20px">اطلب ${esc(svc.title)} الآن في الرياض</h3>
         <p style="margin:0 0 16px;font-size:15px;color:#cbd5e1">
           ${sitePhoneText ? `اتصل بنا مباشرة أو تواصل عبر واتساب على الرقم: <strong style="color:#ffffff">${esc(sitePhoneText)}</strong>` : "تواصل معنا فوراً لتأكيد حجزك."}
         </p>
@@ -1139,7 +1143,7 @@ for (const svc of services) {
 console.log(`   ✅ ${services.length} خدمة`);
 
 // ══════════════════════════════════════════════════════════════════════════════
-// 3. صفحات باقات النظافة (packages)
+// 3. صفحات الحاويات والباقات (containers)
 // ══════════════════════════════════════════════════════════════════════════════
 let containers = [];
 try {
@@ -1164,11 +1168,11 @@ try {
   `).all();
 }
 
-console.log(`\n📦 إنشاء ${containers.length} صفحة باقات نظافة...`);
+console.log(`\n📦 إنشاء ${containers.length} صفحة حاويات...`);
 
 for (const c of containers) {
   const slug      = c.seo_slug;
-  const canonical = `${SITE_URL}/container/${encodeURIComponent(slug)}`;
+  const canonical = `${SITE_URL}/containers/${encodeURIComponent(slug)}`;
   const title     = c.seo_title || `${c.name} بالرياض | ${siteCompanyName}`;
   const desc      = c.seo_description || c.description?.substring(0, 160) || "";
   const ogImage   = c.image_url || `${SITE_URL}/images/hero-1.webp`;
@@ -1180,20 +1184,11 @@ for (const c of containers) {
   } catch {}
 
   const catArabic = {
-    apartments: "تنظيف شقق",
-    villas: "تنظيف فلل",
-    palaces: "تنظيف قصور ومجمعات",
-    move_clean: "تنظيف قبل/بعد النقل",
-    majlis: "غسيل مجالس وبخار",
-    marble: "جلي وتلميع رخام",
-    tanks: "تطهير خزانات مياه",
-    ac: "تنظيف وغسيل مكيفات",
-    pest: "مكافحة وإبادة حشرات",
-    postcon: "تنظيف بعد التشطيب",
-    facades: "واجهات ومكاتب",
-    facilities: "مساجد ومدارس ومنشآت",
-    fire_safety: "سلامة ودفاع مدني"
-  }[c.category] || c.category || "خدمات تنظيف";
+    debris: "حاويات الأنقاض ومخلفات البناء",
+    waste: "حاويات النفايات للمنشآت",
+    contract: "عقود النظافة الإلكترونية",
+    fire_safety: "حلول السلامة للمنشآت",
+  }[c.category] || c.category || "تأجير الحاويات ونقل المخلفات";
 
   const containerSchema = {
     "@context": "https://schema.org",
@@ -1209,7 +1204,7 @@ for (const c of containers) {
       "price": "0",
       "priceCurrency": "SAR",
       "availability": "https://schema.org/InStock",
-      "description": "طلب عرض سعر مجاني وفوري حسب تفاصيل ومساحة العقار"
+      "description": "طلب عرض سعر واضح حسب نوع المخلفات وحجم الحاوية وموقع المشروع ومدة التأجير"
     },
     "brand": {
       "@type": "Brand",
@@ -1219,7 +1214,7 @@ for (const c of containers) {
 
   const crumbs = [
     { name: "الرئيسية", url: SITE_URL },
-    { name: "باقات التنظيف", url: `${SITE_URL}/#cleaning-packages` },
+    { name: "الحاويات والباقات", url: `${SITE_URL}/containers` },
     { name: c.name, url: canonical }
   ];
 
@@ -1245,7 +1240,7 @@ for (const c of containers) {
       ${featuresHtml}
       <div style="margin-top:24px;padding:20px;background:#f0fff4;border-radius:12px;border-right:4px solid #38a169">
         <p style="margin:0;font-size:16px;color:#22543d;font-weight:700">
-          💰 السعر: طلب عرض سعر مجاني وفوري حسب عدد الغرف والمساحة
+          عرض السعر: يحدد حسب نوع المخلفات وحجم الحاوية وموقع المشروع ومدة التأجير
         </p>
       </div>
       <div style="margin-top:24px;padding:20px;background:#fef9e7;border-radius:12px;border-right:4px solid #f6c90e">
@@ -1264,6 +1259,8 @@ for (const c of containers) {
     bodyContent
   });
 
+  savePage(`containers/${slug}`, html);
+  // Keep legacy paths available with the new canonical URL.
   savePage(`container/${slug}`, html);
   savePage(`package/${slug}`, html);
   savePage(`packages/${slug}`, html);
@@ -1285,58 +1282,20 @@ console.log(`\n🔎 إنشاء ${seoPages.length} صفحة SEO...`);
 
 for (const page of seoPages) {
   if (!page.slug) continue;
-  let canonical = `${SITE_URL}/page/${encodeURIComponent(page.slug)}`;
+  const canonical = `${SITE_URL}/page/${encodeURIComponent(page.slug)}`;
   const title = page.seo_title || `${page.title} | ${siteCompanyName}`;
   const description = page.seo_description || page.excerpt || page.title;
-  const ogImage = `${SITE_URL}/images/hero-1.webp`;
-
-  const kw = (page.target_keyword || page.title || "").toLowerCase();
-  let primaryServiceUrl = null;
-  let primaryServiceName = null;
-
-  if (kw.includes("فلل") || kw.includes("فيلا")) {
-    primaryServiceUrl = `${SITE_URL}/services/tanzeef-filal-alryad`;
-    primaryServiceName = "تنظيف الفلل والقصور بالرياض";
-    canonical = primaryServiceUrl;
-  } else if (kw.includes("شقق") || kw.includes("شقة")) {
-    primaryServiceUrl = `${SITE_URL}/services/tanzeef-shaqaq-alryad`;
-    primaryServiceName = "تنظيف الشقق السكنية بالرياض";
-    canonical = primaryServiceUrl;
-  } else if (kw.includes("مكيف") || kw.includes("مكيفات") || kw.includes("سبلت")) {
-    primaryServiceUrl = `${SITE_URL}/services/tanzeef-mokeyafat-alryad`;
-    primaryServiceName = "تنظيف وغسيل المكيفات بالرياض";
-    canonical = primaryServiceUrl;
-  } else if (kw.includes("مجالس") || kw.includes("كنب") || kw.includes("سجاد") || kw.includes("بخار")) {
-    primaryServiceUrl = `${SITE_URL}/services/gaseel-majalis-bukhar-alryad`;
-    primaryServiceName = "غسيل المجالس بالبخار بالرياض";
-    canonical = primaryServiceUrl;
-  } else if (kw.includes("رخام") || kw.includes("جلي")) {
-    primaryServiceUrl = `${SITE_URL}/services/jaly-rakham-alryad`;
-    primaryServiceName = "جلي وتلميع الرخام بالرياض";
-    canonical = primaryServiceUrl;
-  } else if (kw.includes("خزان") || kw.includes("خزانات")) {
-    primaryServiceUrl = `${SITE_URL}/services/tanzeef-khazanat-alryad`;
-    primaryServiceName = "تنظيف وتطهير الخزانات بالرياض";
-    canonical = primaryServiceUrl;
-  } else if (kw.includes("حشرات") || kw.includes("مبيدات")) {
-    primaryServiceUrl = `${SITE_URL}/services/mokafahat-hasharat-alryad`;
-    primaryServiceName = "مكافحة الحشرات ورش المبيدات بالرياض";
-    canonical = primaryServiceUrl;
-  } else if (kw.includes("تشطيب") || kw.includes("بناء")) {
-    primaryServiceUrl = `${SITE_URL}/services/tanzeef-bad-altashteeb-alryad`;
-    primaryServiceName = "تنظيف بعد البناء والتشطيب بالرياض";
-    canonical = primaryServiceUrl;
-  }
+  const ogImage = `${SITE_URL}/images/seo/cleanflow-blog.jpg`;
 
   const crumbs = [
     { name: "الرئيسية", url: SITE_URL },
     { name: page.title, url: canonical }
   ];
 
-  const primaryCallout = primaryServiceUrl ? `
-    <div style="margin-bottom:24px;padding:16px 20px;background:#ebf4ff;border-radius:10px;border-right:4px solid #3182ce;font-size:15px;color:#2b6cb0">
-      📌 هذه الصفحة تتبع قسم <strong><a href="${primaryServiceUrl}" style="color:#2b6cb0;text-decoration:underline">${primaryServiceName}</a></strong>. يمكنك الاطلاع على الأسعار المحدثة وحجز الخدمة المباشرة من الصفحة الرئيسية للخدمة.
-    </div>` : "";
+  const primaryCallout = `
+    <div style="margin-bottom:24px;padding:16px 20px;background:#ebf8f7;border-radius:10px;border-right:4px solid #2b8f8b;font-size:15px;color:#246b70">
+      دليل عملي من ${esc(siteCompanyName)} حول تأجير الحاويات ونقل الأنقاض ومخلفات البناء في الرياض.
+    </div>`;
 
   const bodyContent = `
     <article>
@@ -1348,8 +1307,8 @@ for (const page of seoPages) {
         ${sanitizeHtml(page.content)}
       </div>
       <div style="margin-top:32px;padding:20px;background:#ebf8ff;border-radius:12px;border-right:4px solid #3182ce">
-        <p style="font-size:18px;font-weight:700;color:#2b6cb0;margin:0 0 8px">اطلب الخدمة الآن في الرياض</p>
-        <p style="font-size:15px;color:#4a5568;margin:0 0 16px">اتصل بنا للحصول على معاينة مجانية وعرض سعر فوري ومباشر.</p>
+        <p style="font-size:18px;font-weight:700;color:#246b70;margin:0 0 8px">اطلب عرض تأجير حاوية في الرياض</p>
+        <p style="font-size:15px;color:#4a5568;margin:0 0 16px">أرسل نوع المخلفات والمقاس والموقع لتحصل على عرض واضح من فريق العمليات.</p>
         <div style="display:flex;gap:12px;flex-wrap:wrap">
           <a href="tel:${esc(sitePhoneCall)}" style="background:#2b6cb0;color:white;padding:10px 20px;border-radius:8px;font-weight:700;text-decoration:none">📞 ${esc(sitePhoneCall)}</a>
           <a href="${waLink(sitePhoneWhatsapp, `طلب خدمة بخصوص: ${page.title}`)}" style="background:#25d366;color:white;padding:10px 20px;border-radius:8px;font-weight:700;text-decoration:none">واتساب ↗</a>
@@ -1376,9 +1335,9 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
 // ══════════════════════════════════════════════════════════════════════════════
 {
   const canonical = `${SITE_URL}/pricing`;
-  const title = `أسعار وباقات خدمات التنظيف في الرياض 2026 | ${siteCompanyName}`;
-  const description = `دليل شامل لأسعار وباقات خدمات تنظيف المنازل، الفلل، الشقق، وغسيل المجالس بالبخار وجلي الرخام بالرياض لعام 2026.`;
-  const ogImage = `${SITE_URL}/images/hero-1.webp`;
+  const title = `أسعار ومقاسات تأجير الحاويات بالرياض 2026 | ${siteCompanyName}`;
+  const description = `دليل مقاسات وأسعار تأجير حاويات الأنقاض والنفايات والمكابس بالرياض. اطلب عرضاً حسب نوع المخلفات والموقع ومدة التأجير.`;
+  const ogImage = `${SITE_URL}/images/seo/cleanflow-containers.jpg`;
 
   const crumbs = [
     { name: "الرئيسية", url: SITE_URL },
@@ -1410,18 +1369,18 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
     "mainEntity": [
       {
         "@type": "Question",
-        "name": "كيف يتم حساب تكلفة تنظيف الشقق والفلل بالرياض؟",
+        "name": "كيف يتم حساب تكلفة تأجير الحاوية بالرياض؟",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "يتم تحديد السعر بناءً على مساحة العقار بالمتر المربع، عدد الغرف والحمامات، وحالة العقار (مسكون أو جديد بعد التشطيب)."
+          "text": "يتم تحديد السعر بناءً على نوع المخلفات وحجم الحاوية وموقع المشروع ومدة التأجير، ثم يقدم فريق العمليات عرضاً واضحاً قبل التأكيد."
         }
       },
       {
         "@type": "Question",
-        "name": "هل توفرون معاينة مجانية قبل البدء في التنظيف؟",
+        "name": "هل توفرون توصيلاً وسحباً للحاوية؟",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "نعم، نوفر معاينة فورية ومجانية للفلل والقصور والمشاريع السكنية والتجارية في جميع أحياء الرياض."
+          "text": "نعم، ننسق موعد توصيل الحاوية وسحبها أو تبديلها حسب احتياج الموقع ونوع المخلفات."
         }
       }
     ]
@@ -1430,61 +1389,61 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
   const bodyContent = `
     <div>
       <h1 style="font-size:clamp(24px,4vw,36px);font-weight:800;color:#1a202c;margin:0 0 16px;line-height:1.3">
-        دليل أسعار وباقات خدمات التنظيف بالرياض لعام 2026
+        دليل مقاسات وأسعار تأجير الحاويات بالرياض لعام 2026
       </h1>
       <p style="font-size:17px;color:#4a5568;line-height:1.8;margin-bottom:28px">
-        نقدم في ${esc(siteCompanyName)} نظام تسعير شفاف ومرن يعتمد على قياس المساحة الحقيقية وعدد الغرف المطلوبة بدقة، مع توفير عروض أسعار فورية ومجانية بدون أي رسوم خفية.
+        نقدم في ${esc(siteCompanyName)} عرضاً واضحاً لتأجير الحاويات يعتمد على المقاس ونوع المخلفات وموقع المشروع ومدة التأجير، مع تنسيق التوصيل والسحب قبل التنفيذ.
       </p>
 
-      <h2 style="font-size:20px;font-weight:800;color:#1a202c;margin:24px 0 12px">جدول الباقات ونظام التسعير بالرياض</h2>
+      <h2 style="font-size:20px;font-weight:800;color:#1a202c;margin:24px 0 12px">مقاسات الحاويات وطريقة التسعير</h2>
       <table style="width:100%;border-collapse:collapse;font-size:15px;margin-bottom:28px">
         <thead>
           <tr style="background:#ebf4ff">
-            <th style="text-align:right;padding:12px 16px;border:1px solid #bee3f8;font-weight:800">باقة الخدمة</th>
-            <th style="text-align:right;padding:12px 16px;border:1px solid #bee3f8;font-weight:800">نوع العقار والتغطية</th>
-            <th style="text-align:right;padding:12px 16px;border:1px solid #bee3f8;font-weight:800">نظام التسعير</th>
+            <th style="text-align:right;padding:12px 16px;border:1px solid #bee3f8;font-weight:800">المقاس أو النوع</th>
+            <th style="text-align:right;padding:12px 16px;border:1px solid #bee3f8;font-weight:800">الاستخدام المناسب</th>
+            <th style="text-align:right;padding:12px 16px;border:1px solid #bee3f8;font-weight:800">طريقة احتساب العرض</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td style="padding:12px 16px;border:1px solid #e2e8f0;font-weight:700">تنظيف الشقق السكنية</td>
-            <td style="padding:12px 16px;border:1px solid #e2e8f0">شقة كاملة حتى 200 م² (غرف، صالون، مطبخ، حمامات)</td>
-            <td style="padding:12px 16px;border:1px solid #e2e8f0;font-weight:800;color:#2b6cb0">تبدأ من 350 ر.س (معاينة مجانية)</td>
+            <td style="padding:12px 16px;border:1px solid #e2e8f0;font-weight:700">حاوية مخلفات صغيرة</td>
+            <td style="padding:12px 16px;border:1px solid #e2e8f0">أعمال الترميم المنزلية والتنظيف الإنشائي الخفيف</td>
+            <td style="padding:12px 16px;border:1px solid #e2e8f0;font-weight:800;color:#2b6cb0">حسب المقاس والموقع ومدة التأجير</td>
           </tr>
           <tr style="background:#f7fafc">
-            <td style="padding:12px 16px;border:1px solid #e2e8f0;font-weight:700">تنظيف الفلل والقصور</td>
-            <td style="padding:12px 16px;border:1px solid #e2e8f0">فيلا كاملة تشمل الأدوار والأحواش والدرج والملحقات</td>
-            <td style="padding:12px 16px;border:1px solid #e2e8f0;font-weight:800;color:#2b6cb0">تبدأ من 850 ر.س (حسب المساحة)</td>
+            <td style="padding:12px 16px;border:1px solid #e2e8f0;font-weight:700">حاوية أنقاض متوسطة</td>
+            <td style="padding:12px 16px;border:1px solid #e2e8f0">مخلفات الهدم والبناء والتشطيبات للمشاريع السكنية</td>
+            <td style="padding:12px 16px;border:1px solid #e2e8f0;font-weight:800;color:#2b6cb0">عرض مخصص بعد تحديد العنوان ونوع الحمولة</td>
           </tr>
           <tr>
-            <td style="padding:12px 16px;border:1px solid #e2e8f0;font-weight:700">تنظيف بعد البناء والتشطيب</td>
-            <td style="padding:12px 16px;border:1px solid #e2e8f0">إزالة بقايا الإسمنت والدهانات والترويبة وتلميع كامل</td>
-            <td style="padding:12px 16px;border:1px solid #e2e8f0;font-weight:800;color:#2b6cb0">تبدأ من 1,200 ر.س (تسليم فوري)</td>
+            <td style="padding:12px 16px;border:1px solid #e2e8f0;font-weight:700">حاوية أنقاض كبيرة</td>
+            <td style="padding:12px 16px;border:1px solid #e2e8f0">المشاريع الكبيرة والهدم وكميات المخلفات المرتفعة</td>
+            <td style="padding:12px 16px;border:1px solid #e2e8f0;font-weight:800;color:#2b6cb0">يحدد حسب الكمية والمدة وجدول التبديل</td>
           </tr>
           <tr style="background:#f7fafc">
-            <td style="padding:12px 16px;border:1px solid #e2e8f0;font-weight:700">غسيل المجالس والكنب بالبخار</td>
-            <td style="padding:12px 16px;border:1px solid #e2e8f0">بخار حراري 140° مع التعقيم والتجفيف خلال 45 دقيقة</td>
-            <td style="padding:12px 16px;border:1px solid #e2e8f0;font-weight:800;color:#2b6cb0">تبدأ من 200 ر.س (حسب المقاعد)</td>
+            <td style="padding:12px 16px;border:1px solid #e2e8f0;font-weight:700">مكبس نفايات</td>
+            <td style="padding:12px 16px;border:1px solid #e2e8f0">المنشآت والمجمعات والمواقع ذات الإنتاج المستمر</td>
+            <td style="padding:12px 16px;border:1px solid #e2e8f0;font-weight:800;color:#2b6cb0">حسب سعة المكبس وعدد مرات الرفع</td>
           </tr>
           <tr>
-            <td style="padding:12px 16px;border:1px solid #e2e8f0;font-weight:700">غسيل وصيانة المكيفات السبليت</td>
-            <td style="padding:12px 16px;border:1px solid #e2e8f0">غسيل ضغط عالي بجراب حماية الجدران وفحص الفريون</td>
-            <td style="padding:12px 16px;border:1px solid #e2e8f0;font-weight:800;color:#2b6cb0">تبدأ من 70 ر.س / للمكيف</td>
+            <td style="padding:12px 16px;border:1px solid #e2e8f0;font-weight:700">حاوية نفايات للمجمعات</td>
+            <td style="padding:12px 16px;border:1px solid #e2e8f0">المجمعات والمنشآت والمواقع ذات المخلفات اليومية</td>
+            <td style="padding:12px 16px;border:1px solid #e2e8f0;font-weight:800;color:#2b6cb0">حسب السعة وعدد مرات الرفع</td>
           </tr>
           <tr style="background:#f7fafc">
-            <td style="padding:12px 16px;border:1px solid #e2e8f0;font-weight:700">جلي وتلميع الرخام بالألماس</td>
-            <td style="padding:12px 16px;border:1px solid #e2e8f0">معالجة الفواصل والتلميع بالكريستال الإيطالي للأرضيات</td>
-            <td style="padding:12px 16px;border:1px solid #e2e8f0;font-weight:800;color:#2b6cb0">تبدأ من 15 ر.س / م²</td>
+            <td style="padding:12px 16px;border:1px solid #e2e8f0;font-weight:700">تبديل أو سحب الحاوية</td>
+            <td style="padding:12px 16px;border:1px solid #e2e8f0">تنسيق النقل بعد الامتلاء أو عند انتهاء مدة التأجير</td>
+            <td style="padding:12px 16px;border:1px solid #e2e8f0;font-weight:800;color:#2b6cb0">يحدد حسب الموقع والموعد والمسافة</td>
           </tr>
         </tbody>
       </table>
 
       <div style="margin-top:32px;padding:24px;background:#1e3a5f;color:white;border-radius:12px;text-align:center">
-        <p style="font-size:20px;font-weight:800;margin:0 0 8px">احصل على عرض سعر فوري ومخصص لعقارك</p>
-        <p style="font-size:15px;color:#cbd5e0;margin:0 0 20px">تواصل معنا وسيقوم خبراؤنا بتزويدك بالسعر الدقيق خلال دقائق</p>
+          <p style="font-size:20px;font-weight:800;margin:0 0 8px">احصل على عرض تأجير حاوية مناسب لمشروعك</p>
+          <p style="font-size:15px;color:#cbd5e0;margin:0 0 20px">أرسل المقاس ونوع المخلفات وموقع التوصيل لنحدد العرض والموعد بدقة</p>
         <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
           <a href="tel:${esc(sitePhoneCall)}" style="background:white;color:#1e3a5f;padding:12px 28px;border-radius:8px;font-weight:800;text-decoration:none">📞 اتصال فوري: ${esc(sitePhoneCall)}</a>
-          <a href="${waLink(sitePhoneWhatsapp, 'أريد الحصول على عرض سعر لخدمات التنظيف')}" style="background:#25d366;color:white;padding:12px 28px;border-radius:8px;font-weight:800;text-decoration:none">واتساب سريع ↗</a>
+          <a href="${waLink(sitePhoneWhatsapp, 'أريد الحصول على عرض تأجير حاوية ونقل مخلفات بالرياض')}" style="background:#25d366;color:white;padding:12px 28px;border-radius:8px;font-weight:800;text-decoration:none">واتساب سريع ↗</a>
         </div>
       </div>
     </div>`;
@@ -1492,7 +1451,7 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
   const html = renderPage({
     title, description, canonical, ogImage,
     ogType: "website",
-    keywords: "أسعار تنظيف المنازل بالرياض, تكلفة تنظيف الفلل بالرياض, أسعار جلي الرخام بالرياض, أسعار غسيل المجالس بالبخار",
+    keywords: "أسعار تأجير الحاويات بالرياض, مقاسات حاويات الأنقاض, تكلفة نقل مخلفات البناء, تأجير مكبس نفايات",
     schemas: [pricingSchema, faqSchema, breadcrumbSchema(crumbs)],
     breadcrumbs: crumbs,
     bodyContent
@@ -1506,22 +1465,22 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
 // ══════════════════════════════════════════════════════════════════════════════
 {
   const canonical = `${SITE_URL}/faq`;
-  const title = `الأسئلة الشائعة حول خدمات التنظيف بالرياض | ${siteCompanyName}`;
-  const description = `إجابات شاملة ومفصلة لكافة الأسئلة الشائعة حول أسعار وباقات خدمات تنظيف المنازل، الفلل، غسيل المجالس بالبخار، وجلي الرخام بالرياض.`;
-  const ogImage = `${SITE_URL}/images/hero-1.webp`;
+  const title = `الأسئلة الشائعة حول تأجير الحاويات بالرياض | ${siteCompanyName}`;
+  const description = `إجابات واضحة حول مقاسات وأسعار تأجير حاويات الأنقاض والنفايات، التوصيل والسحب، ونقل مخلفات البناء داخل الرياض.`;
+  const ogImage = `${SITE_URL}/images/seo/cleanflow-containers.jpg`;
   const crumbs = [
     { name: "الرئيسية", url: SITE_URL },
     { name: "الأسئلة الشائعة", url: canonical }
   ];
 
   const faqItems = [
-    { q: "كيف يتم تحديد سعر خدمة التنظيف في الرياض؟", a: "نتبع نظام التسعير العادل والمباشر بناءً على تفاصيل الموقع (المساحة بالمتر المربع، عدد الغرف والحمامات، حالة العقار إذا كان مسكوناً أو بعد التشطيب، والخدمات الإضافية المطلوبة). نقوم بتقديم عرض سعر فوري ومجاني بعد مراجعة بيانات الطلب أو إجراء معاينة ميدانية." },
-    { q: "هل تقدمون معاينة مجانية قبل البدء في العمل؟", a: "نعم، نوفر خدمة المعاينة الميدانية المجانية للفلل والقصور والمشاريع الكبرى والمباني بعد التشطيب لتحديد حجم العمل بدقة وتقديم خطة تشغيلية واضحة وعرض سعر تفصيلي." },
-    { q: "ما هي المناطق والأحياء التي تغطونها في الرياض؟", a: "نغطي كافة أحياء ومناطق الرياض الـ 50 بالكامل، بما يشمل شمال الرياض، شرق الرياض، غرب الرياض، وجنوب الرياض ووسطها." },
-    { q: "ماذا تشمل باقة تنظيف الفلل والشقق السكنية؟", a: "تشمل الباقة تنظيفاً عميقاً وشاملاً للأرضيات والسيراميك والرخام، غسيل وتطهير الحمامات والمطابخ، تنظيف النوافذ وإطارات الألمنيوم ومجاريها، مسح وتلميع الأبواب والجدران، وتطهير وتعطير كامل للمسكن." },
-    { q: "كيف تتم عملية غسيل المجالس والكنب والسجاد؟", a: "نستخدم تقنية الغسيل بالبخار الحراري 140° مع مواد تنظيف مخصصة للأقمشة الحساسة، تعمل على إذابة أصعب البقع والدهون وقتل البكتيريا وحشرات الفراش، مع شفط مائي قوي وتجفيف فائق السرعة دون بهتان الألوان." },
-    { q: "كيف يتم غسيل المكيفات دون تلويث الجدران والأثاث؟", a: "نستخدم جراب حماية مائي شفاف ومغلق يتم تركيبه بإحكام حول المكيف قبل الغسيل، ويتم توجيه مياه الغسيل بضغط 150 بار إلى خرطوم تصريف خارجي مع تنظيف الفلاتر وتسليك مجرى التصريف الداخلي وتعطير الوحدة." },
-    { q: "هل المبيدات المستخدمة في مكافحة الحشرات آمنة وبدون رائحة؟", a: "نعم، نستخدم مبيدات صحية ألمانية وأمريكية معتمدة من هيئة الغذاء والدواء، عديمة الرائحة وآمنة تماماً على الأطفال وكبار السن دون الحاجة لمغادرة المنزل، مع شهادة ضمان معتمدة ومتابعات دورية مجانية." }
+    { q: "كيف يتم تحديد سعر تأجير الحاوية في الرياض؟", a: "يُحدد السعر حسب حجم الحاوية ونوع المخلفات وموقع المشروع ومدة التأجير، ثم يقدم فريق العمليات عرضاً واضحاً قبل تأكيد الطلب." },
+    { q: "ما المقاس المناسب لحاوية مخلفات البناء؟", a: "يعتمد المقاس على كمية المخلفات ومساحة المشروع ونوع العمل، ونساعدك في اختيار الحاوية الصغيرة أو المتوسطة أو الكبيرة المناسبة." },
+    { q: "هل توفرون توصيل الحاوية وسحبها؟", a: "نعم، ننسق موعد توصيل الحاوية وسحبها أو تبديلها حسب احتياج المشروع وتعليمات الموقع." },
+    { q: "ما أنواع المخلفات التي يمكن وضعها في الحاوية؟", a: "نخدم مخلفات البناء والهدم والترميم والأنقاض والنفايات المناسبة للحاويات، ويحدد فريق العمليات أي متطلبات خاصة قبل التنفيذ." },
+    { q: "هل تغطون جميع أحياء الرياض؟", a: "نعم، نغطي شمال وشرق وغرب وجنوب ووسط الرياض، وننسق الوصول حسب العنوان وموعد المشروع." },
+    { q: "هل توفرون مكابس نفايات للمنشآت؟", a: "نعم، تتوفر حلول مكابس النفايات للمنشآت والمجمعات والمواقع ذات الإنتاج المستمر، مع جدول رفع يناسب حجم التشغيل." },
+    { q: "كيف أطلب عرضاً سريعاً؟", a: "أرسل نوع المخلفات والمقاس التقريبي وموقع التوصيل ومدة التأجير عبر الهاتف أو واتساب، وسيتواصل معك فريق العمليات لتأكيد العرض والموعد." }
   ];
 
   const faqPageSchema = {
@@ -1539,7 +1498,7 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
 
   const bodyContent = `
     <article class="prose max-w-none">
-      <h1>الأسئلة الأكثر شيوعاً حول خدمات التنظيف بالرياض</h1>
+      <h1>الأسئلة الأكثر شيوعاً حول تأجير الحاويات بالرياض</h1>
       <p class="lead">${description}</p>
       <div class="faq-list">
         ${faqItems.map((f, i) => `
@@ -1550,8 +1509,8 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
         `).join("")}
       </div>
       <div style="margin-top: 2rem; padding: 1.5rem; border-radius: 12px; background: #0f172a; color: white; text-align: center;">
-        <h3 style="color: #38bdf8; margin-top: 0;">هل لديك سؤال آخر؟</h3>
-        <p>فريق خدمة العملاء متاح على مدار 24 ساعة لتقديم الاستشارات والمعاينات المجانية.</p>
+         <h3 style="color: #38bdf8; margin-top: 0;">هل لديك سؤال آخر؟</h3>
+         <p>فريق العمليات متاح لمساعدتك في اختيار المقاس وتنسيق التوصيل والسحب داخل الرياض.</p>
         <a href="/contact" style="display: inline-block; background: #38bdf8; color: #0f172a; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: bold; text-decoration: none;">تواصل معنا الآن ←</a>
       </div>
     </article>
@@ -1560,7 +1519,7 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
   const html = renderPage({
     title, description, canonical, ogImage,
     ogType: "website",
-    keywords: "الأسئلة الشائعة تنظيف منازل بالرياض, استفسارات تنظيف الفلل, أسعار تنظيف الشقق بالرياض, ضمان تنظيف المجالس",
+    keywords: "الأسئلة الشائعة تأجير حاويات بالرياض, مقاسات حاويات الأنقاض, نقل مخلفات البناء, مكابس نفايات",
     schemas: [faqPageSchema, breadcrumbSchema(crumbs)],
     breadcrumbs: crumbs,
     bodyContent
@@ -1576,7 +1535,7 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
 {
   const canonical = `${SITE_URL}/privacy`;
   const title = `سياسة الخصوصية وحماية البيانات | ${siteCompanyName}`;
-  const description = `سياسة الخصوصية وحماية البيانات الشخصية لعملاء خدمات التنظيف وفق الأنظمة واللوائح المعمول بها في المملكة العربية السعودية.`;
+  const description = `سياسة الخصوصية وحماية البيانات الشخصية لعملاء تأجير الحاويات ونقل مخلفات البناء وفق الأنظمة واللوائح المعمول بها في المملكة العربية السعودية.`;
   const ogImage = `${SITE_URL}/images/hero-1.webp`;
   const crumbs = [
     { name: "الرئيسية", url: SITE_URL },
@@ -1599,7 +1558,7 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
   const html = renderPage({
     title, description, canonical, ogImage,
     ogType: "website",
-    keywords: "سياسة الخصوصية, حماية البيانات, شروط خدمة تنظيف الرياض",
+    keywords: "سياسة الخصوصية, حماية البيانات, تأجير حاويات الرياض",
     schemas: [breadcrumbSchema(crumbs)],
     breadcrumbs: crumbs,
     bodyContent
@@ -1615,7 +1574,7 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
 {
   const canonical = `${SITE_URL}/terms`;
   const title = `الشروط والأحكام | ${siteCompanyName}`;
-  const description = `الشروط والأحكام والضوابط المنظمة لتقديم خدمات تنظيف المنازل، الفلل، غسيل المجالس، وأنظمة السلامة بالرياض.`;
+  const description = `الشروط والضوابط المنظمة لتأجير الحاويات وتوصيلها وسحبها ونقل الأنقاض ومخلفات البناء داخل الرياض.`;
   const ogImage = `${SITE_URL}/images/hero-1.webp`;
   const crumbs = [
     { name: "الرئيسية", url: SITE_URL },
@@ -1627,16 +1586,16 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
       <h1>الشروط والأحكام والضوابط المنظمة</h1>
       <p class="lead">${description}</p>
       <h2>1. نطاق الخدمة والتنفيذ</h2>
-      <p>يتم تنفيذ أعمال التنظيف وفقاً للباقة المحددة في طلب العميل باستخدام أحدث المعدات والمواد المصرحة من الجهات المختصة.</p>
+      <p>يتم تنفيذ توصيل الحاوية وسحبها وفقاً للتفاصيل المحددة في طلب العميل ونوع المخلفات وتعليمات الموقع والأنظمة المعمول بها.</p>
       <h2>2. استلام الأعمال والضمان</h2>
-      <p>يقوم العميل بمعاينة الموقع فور انتهاء الأعمال لضمان مطابقتها للمواصفات المطلوبة، ويتم تقديم الضمان المعتمد على مكافحة الحشرات وخدمات السلامة.</p>
+      <p>يتم تأكيد المقاس والمدة والموقع قبل التنفيذ، ويُنسق فريق العمليات أي تبديل أو تمديد وفق العرض المعتمد.</p>
     </article>
   `;
 
   const html = renderPage({
     title, description, canonical, ogImage,
     ogType: "website",
-    keywords: "الشروط والأحكام, ضوابط خدمات التنظيف, اتفاقية الخدمة",
+    keywords: "الشروط والأحكام, تأجير حاويات بالرياض, نقل الأنقاض, اتفاقية التأجير",
     schemas: [breadcrumbSchema(crumbs)],
     breadcrumbs: crumbs,
     bodyContent
@@ -1651,9 +1610,9 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
 // ══════════════════════════════════════════════════════════════════════════════
 {
   const canonical = `${SITE_URL}/contact`;
-  const title = `اتصل بنا | ${siteCompanyName} - خدمات التنظيف بالرياض`;
-  const description = `تواصل معنا لطلب خدمات تنظيف المنازل والفلل والمجالس بالبخار أو المعاينة الميدانية المجانية في كافة أحياء الرياض.`;
-  const ogImage = `${SITE_URL}/images/hero-1.webp`;
+  const title = `اتصل بنا | ${siteCompanyName} - تأجير الحاويات بالرياض`;
+  const description = `تواصل مع ${siteCompanyName} لطلب تأجير حاوية أو نقل أنقاض ومخلفات بناء في جميع أحياء الرياض، وتأكيد المقاس والموعد.`;
+  const ogImage = `${SITE_URL}/images/seo/cleanflow-contact.jpg`;
   const crumbs = [
     { name: "الرئيسية", url: SITE_URL },
     { name: "اتصل بنا", url: canonical }
@@ -1684,15 +1643,15 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
         <li><strong>المدينة والتغطية:</strong> الرياض، المملكة العربية السعودية (جميع الأحياء)</li>
         <li><strong>ساعات العمل:</strong> 24 ساعة / 7 أيام في الأسبوع</li>
       </ul>
-      <h2>احجز معاينتك المجانية</h2>
-      <p>يمكنك حجز المعاينة الميدانية أو طلب عرض السعر الفوري عبر الهاتف أو الواتساب أو عبر نموذج الحجز في الصفحة الرئيسية.</p>
+      <h2>اطلب عرض تأجير الحاوية</h2>
+      <p>أرسل نوع المخلفات وحجم الحاوية وموقع المشروع ومدة التأجير عبر الهاتف أو الواتساب لتحصل على عرض واضح وتنسيق موعد التوصيل.</p>
     </article>
   `;
 
   const html = renderPage({
     title, description, canonical, ogImage,
     ogType: "website",
-    keywords: "اتصل بشركة تنظيف بالرياض, رقم شركة تنظيف منازل بالرياض, حجز خدمة تنظيف فلل",
+    keywords: "رقم تأجير حاويات بالرياض, نقل أنقاض, حاويات مخلفات البناء, تواصل تقي جروب",
     schemas: [contactSchema, breadcrumbSchema(crumbs)],
     breadcrumbs: crumbs,
     bodyContent
@@ -1707,9 +1666,9 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
 // ══════════════════════════════════════════════════════════════════════════════
 {
   const canonical = `${SITE_URL}/about`;
-  const title = `من نحن | ${siteCompanyName} - رواد خدمات التنظيف بالرياض`;
-  const description = `تعرف على ${siteCompanyName}، المؤسسة الرائدة في خدمات النظافة الشاملة، غسيل المجالس بالبخار، جلي الرخام، وأنظمة السلامة بالرياض.`;
-  const ogImage = `${SITE_URL}/images/hero-1.webp`;
+  const title = `من نحن | ${siteCompanyName} - تأجير الحاويات ونقل المخلفات بالرياض`;
+  const description = `تعرف على ${siteCompanyName} وحلول تأجير حاويات الأنقاض والنفايات والمكابس ونقل مخلفات البناء وعقود النظافة الإلكترونية بالرياض.`;
+  const ogImage = `${SITE_URL}/images/seo/cleanflow-about.jpg`;
   const crumbs = [
     { name: "الرئيسية", url: SITE_URL },
     { name: "من نحن", url: canonical }
@@ -1731,16 +1690,16 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
 
   const bodyContent = `
     <article class="prose max-w-none">
-      <h1>من نحن — رواد خدمات النظافة والتطهير بالرياض</h1>
+      <h1>من نحن — حلول الحاويات ونقل المخلفات بالرياض</h1>
       <p class="lead">${description}</p>
       <h2>رؤيتنا ورسالتنا</h2>
-      <p>نعمل في <strong>${siteCompanyName}</strong> على تقديم أعلى معايير النظافة والتعقيم للمنازل، الفلل، القصور، والمنشآت التجارية والحكومية بمدينة الرياض، معتمدين على أحدث التجهيزات والكوادر الفنية المدربة ومواد التنظيف الآمنة والمصرحة.</p>
+      <p>نعمل في <strong>${siteCompanyName}</strong> على توفير حلول عملية للمنازل والمقاولين والمنشآت: حاويات أنقاض ونفايات بمقاسات مناسبة، توصيل وسحب منظم، نقل مخلفات البناء، ومتابعة عقود النظافة الإلكترونية.</p>
       <h2>لماذا يختارنا العملاء؟</h2>
       <ul>
-        <li>أحدث أجهزة الغسيل بالبخار الحراري 140° وماكينات جلي الرخام بالألماس.</li>
-        <li>كوادر فنية متخصصة ومدربة بأعلى معايير الانضباط والأمانة.</li>
-        <li>تغطية شاملة لجميع أحياء الرياض مع سرعة استجابة ومعاينة مجانية.</li>
-        <li>ضمان معتمد على كافة أعمال مكافحة الحشرات والسلامة.</li>
+        <li>مقاسات متعددة لحاويات الأنقاض والنفايات والمكابس.</li>
+        <li>توصيل وسحب وتبديل وفق احتياج المشروع والموعد المتفق عليه.</li>
+        <li>تغطية أحياء الرياض مع متابعة مباشرة من فريق العمليات.</li>
+        <li>عروض واضحة تعتمد على نوع المخلفات والموقع والمدة.</li>
       </ul>
     </article>
   `;
@@ -1748,7 +1707,7 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
   const html = renderPage({
     title, description, canonical, ogImage,
     ogType: "website",
-    keywords: "من نحن شركة تنظيف بالرياض, أفضل شركة تنظيف منازل, شركة نظافة معتمدة بالرياض",
+    keywords: "من نحن, تأجير حاويات بالرياض, حاويات أنقاض, نقل مخلفات البناء, عقود نظافة إلكترونية",
     schemas: [aboutSchema, breadcrumbSchema(crumbs)],
     breadcrumbs: crumbs,
     bodyContent
@@ -1870,11 +1829,11 @@ const ARABIC_AREA_SLUGS = {
 const AREA_NAMES = Object.fromEntries(NEIGHBORHOODS.map(n => [n.slug, n.name]));
 
 const REGION_PROFILES = {
-  "شمال الرياض": "تتميز مناطق شمال الرياض بالفلل الواسعة والقصور والتوسع العمراني الحديث، ونوفر لها معدات جلي رخام إيطالية وماكينات تنظيف الواجهات ومعدات البخار المتطورة.",
-  "شرق الرياض": "تعتبر أحياء شرق الرياض مركزاً رئيسياً للعائلات والشقق والفلل السكنية، حيث نقدم باقات غسيل المجالس والكنب بالبخار الفوري وتطهير خزانات المياه بضمان صحي.",
-  "وسط الرياض": "يضم وسط الرياض مقرات الشركات والأبراج الإدارية والمباني السكنية، ونوفر له عقود نظافة دورية للمكاتب، تنظيف الواجهات الزجاجية، وتطهير المنشآت.",
-  "غرب الرياض": "تتميز أحياء غرب الرياض بالكثافة السكانية، وتوفر فرقنا باقات شاملة لتنظيف المنازل، وغسيل المكيفات بجراب الحماية، ومكافحة الآفات بضمان سنة.",
-  "جنوب الرياض": "نقدم لأحياء جنوب الرياض خدمات متكاملة تشمل غسيل الخزانات الأرضية والعلوية، جلي وتلميع البلاط، والتعقيم الشامل للمنازل."
+  "شمال الرياض": "نغطي مشاريع الترميم والبناء في شمال الرياض بحاويات أنقاض متعددة المقاسات مع تنسيق التوصيل والسحب في الوقت المناسب.",
+  "شرق الرياض": "نوفر للمنشآت والمطاعم في شرق الرياض حاويات نفايات ومكابس مع جداول تفريغ منتظمة حسب حجم التشغيل.",
+  "وسط الرياض": "نخدم المواقع التجارية والمشاريع داخل وسط الرياض بحلول منظمة لنقل المخلفات وعقود النظافة الإلكترونية للمنشآت.",
+  "غرب الرياض": "تتوفر حاويات الأنقاض والنفايات للمنازل والمقاولين في غرب الرياض مع متابعة مباشرة لموعد التوصيل والسحب.",
+  "جنوب الرياض": "ننسق تأجير الحاويات ونقل مخلفات الهدم والترميم في جنوب الرياض بحسب نوع المخلفات وموقع المشروع."
 };
 
 console.log(`\n🗺️  إنشاء ${NEIGHBORHOODS.length} صفحة أحياء الرياض...`);
@@ -1883,10 +1842,10 @@ for (const area of NEIGHBORHOODS) {
   const arSlug     = ARABIC_AREA_SLUGS[area.slug] || area.slug;
   const canonical  = `${SITE_URL}/areas/${encodeURIComponent(arSlug)}`;
   const location   = area.name.includes("الرياض") ? area.name : `${area.name} بالرياض`;
-  const h1         = `شركة تنظيف منازل وفلل ومكاتب في ${location}`;
-  const title      = `شركة تنظيف منازل وفلل ${location} | ${siteCompanyName} — ${sitePhoneWhatsapp}`;
-  const description = `افضل شركة تنظيف منازل وفلل ومكاتب في ${location}. تنظيف شقق، تنظيف بعد التشطيب والبناء، غسيل مجالس بالبخار وجلي الرخام. اتصل: ${sitePhoneWhatsapp}`;
-  const ogImage    = `${SITE_URL}/images/hero-1.webp`;
+  const h1         = `تأجير حاويات ونقل مخلفات في ${location}`;
+  const title      = `تأجير حاويات ونقل مخلفات ${location} | ${siteCompanyName}`;
+  const description = `تأجير حاويات الأنقاض والنفايات ونقل مخلفات البناء في ${location}. اختر المقاس المناسب ونسق التوصيل والسحب مع فريق العمليات.`;
+  const ogImage    = `${SITE_URL}/images/seo/cleanflow-areas.jpg`;
 
   const serviceSchema = {
     "@context": "https://schema.org",
@@ -1907,8 +1866,8 @@ for (const area of NEIGHBORHOODS) {
     },
     "areaServed": { "@type": "Place", "name": `${location}، المملكة العربية السعودية` },
     "offers": [
-      { "@type": "Offer", "name": "باقة تنظيف الشقق السكنية", "description": "طلب عرض سعر مجاني حسب عدد الغرف والمساحة والخدمات المختارة." },
-      { "@type": "Offer", "name": "باقة تنظيف الفلل السكنية", "description": "طلب عرض سعر مجاني حسب مساحة الفيلا والأدوار والأحواش والملحقات." },
+      { "@type": "Offer", "name": "حاويات الأنقاض", "description": "عرض سعر حسب حجم الحاوية ونوع مخلفات البناء وموقع المشروع." },
+      { "@type": "Offer", "name": "حاويات النفايات والمكابس", "description": "حلول تفريغ دورية للمنشآت والمطاعم والمجمعات حسب حجم التشغيل." },
     ],
   };
 
@@ -1919,7 +1878,7 @@ for (const area of NEIGHBORHOODS) {
   ];
 
   const relatedLinksHtml = area.related.length
-    ? `<div style="margin-top:24px"><p style="font-weight:700;color:#1a202c;margin-bottom:12px">مناطق قريبة نخدمها:</p>
+    ? `<div style="margin-top:24px"><p style="font-weight:700;color:#1a202c;margin-bottom:12px">أحياء قريبة نخدمها:</p>
        <div style="display:flex;flex-wrap:wrap;gap:8px">
          ${area.related.map(r => {
            const relAr = ARABIC_AREA_SLUGS[r] || r;
@@ -1937,61 +1896,61 @@ for (const area of NEIGHBORHOODS) {
         ${esc(description)}
       </p>
 
-      <h2 style="font-size:20px;font-weight:800;color:#1a202c;margin:24px 0 12px">أسعار باقات التنظيف في ${esc(area.name)}</h2>
+      <h2 style="font-size:20px;font-weight:800;color:#1a202c;margin:24px 0 12px">مقاسات وأسعار الحاويات في ${esc(area.name)}</h2>
       <table style="width:100%;border-collapse:collapse;font-size:15px;margin-bottom:20px">
         <thead>
           <tr style="background:#ebf4ff">
-            <th style="text-align:right;padding:12px 16px;border:1px solid #bee3f8;font-weight:800">باقة التنظيف</th>
-            <th style="text-align:right;padding:12px 16px;border:1px solid #bee3f8;font-weight:800">نوع العقار والتغطية</th>
-            <th style="text-align:right;padding:12px 16px;border:1px solid #bee3f8;font-weight:800">السعر التقريبي</th>
+            <th style="text-align:right;padding:12px 16px;border:1px solid #bee3f8;font-weight:800">نوع الحاوية</th>
+            <th style="text-align:right;padding:12px 16px;border:1px solid #bee3f8;font-weight:800">الاستخدام</th>
+            <th style="text-align:right;padding:12px 16px;border:1px solid #bee3f8;font-weight:800">العرض</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td style="padding:12px 16px;border:1px solid #e2e8f0">تنظيف شقق سكنية</td>
-            <td style="padding:12px 16px;border:1px solid #e2e8f0">شقة كاملة حتى 200 م²</td>
-            <td style="padding:12px 16px;border:1px solid #e2e8f0;font-weight:800;color:#2b6cb0">طلب عرض سعر مجاني</td>
+            <td style="padding:12px 16px;border:1px solid #e2e8f0">حاوية أنقاض 12 ياردة</td>
+            <td style="padding:12px 16px;border:1px solid #e2e8f0">ترميم وهدم ومخلفات بناء</td>
+            <td style="padding:12px 16px;border:1px solid #e2e8f0;font-weight:800;color:#2b6cb0">اطلب عرضاً حسب الموقع والمدة</td>
           </tr>
           <tr style="background:#f7fafc">
-            <td style="padding:12px 16px;border:1px solid #e2e8f0">تنظيف فلل بعد التشطيب</td>
-            <td style="padding:12px 16px;border:1px solid #e2e8f0">فيلا كاملة بعد البناء</td>
-            <td style="padding:12px 16px;border:1px solid #e2e8f0;font-weight:800;color:#2b6cb0">طلب عرض سعر مجاني</td>
+            <td style="padding:12px 16px;border:1px solid #e2e8f0">حاوية نفايات أو مكبس</td>
+            <td style="padding:12px 16px;border:1px solid #e2e8f0">مطاعم ومنشآت ومجمعات</td>
+            <td style="padding:12px 16px;border:1px solid #e2e8f0;font-weight:800;color:#2b6cb0">تسعير حسب حجم التشغيل</td>
           </tr>
         </tbody>
       </table>
 
       <div style="margin:20px 0;padding:16px;background:#fef9e7;border-radius:12px;border-right:4px solid #f6c90e">
         <p style="margin:0;font-size:15px;color:#744210">
-           📞 للحصول على حجز فوري في ${esc(area.name)}: <strong>${esc(sitePhoneWhatsapp)} — ${esc(sitePhoneCall)}</strong>
+           📞 لطلب حاوية في ${esc(area.name)}: <strong>${esc(sitePhoneWhatsapp)} — ${esc(sitePhoneCall)}</strong>
         </p>
       </div>
 
-       <h2 style="font-size:18px;font-weight:800;color:#1a202c;margin:24px 0 12px">لماذا ${esc(siteCompanyName)} لخدمات التنظيف في ${esc(area.name)}؟</h2>
+       <h2 style="font-size:18px;font-weight:800;color:#1a202c;margin:24px 0 12px">لماذا ${esc(siteCompanyName)} للحاويات في ${esc(area.name)}؟</h2>
       <ul style="margin:0;padding-right:24px;color:#2d3748">
-        <li style="margin:8px 0">عمالة تنظيف مدربة ومجهزة بأحدث معدات الجلي والتعقيم</li>
-        <li style="margin:8px 0">أسعار تنافسية وشفافة — باقات محددة وبدون تكاليف مخفية</li>
-        <li style="margin:8px 0">استخدام مواد تنظيف ومطهرات أصلية وآمنة على البيئة والأرضيات</li>
-        <li style="margin:8px 0">خبرة 8+ سنوات في تنظيف الفلل والمنازل والشركات بالرياض</li>
-        <li style="margin:8px 0">التزام تام بالمواعيد والسرعة في إنجاز العمل</li>
+        <li style="margin:8px 0">مقاسات مناسبة لمخلفات الهدم والترميم والإنشاءات</li>
+        <li style="margin:8px 0">عرض واضح يراعي نوع المخلفات والموقع والمدة</li>
+        <li style="margin:8px 0">توصيل وسحب وتبديل منسق مع فريق العمليات</li>
+        <li style="margin:8px 0">تغطية جميع أحياء الرياض للمنازل والمقاولين والمنشآت</li>
+        <li style="margin:8px 0">التزام بالمواعيد وسرعة في تأكيد الطلب</li>
       </ul>
 
       ${relatedLinksHtml}
 
       <div style="margin-top:32px;padding:20px;background:#1e3a5f;color:white;border-radius:12px;text-align:center">
-        <p style="font-size:18px;font-weight:800;margin:0 0 8px">احجز خدمة التنظيف الآن في ${esc(area.name)}</p>
+        <p style="font-size:18px;font-weight:800;margin:0 0 8px">اطلب حاويتك الآن في ${esc(area.name)}</p>
         <p style="font-size:14px;color:#cbd5e0;margin:0 0 16px">اتصل بنا أو تواصل عبر واتساب</p>
         <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
            <a href="tel:${esc(sitePhoneCall)}" style="background:white;color:#1e3a5f;padding:10px 24px;border-radius:8px;font-weight:800;text-decoration:none">📞 ${esc(sitePhoneCall)}</a>
-           <a href="${waLink(sitePhoneWhatsapp, `أريد حجز خدمة تنظيف في ${area.name}`)}" style="background:#25d366;color:white;padding:10px 24px;border-radius:8px;font-weight:800;text-decoration:none">واتساب ↗</a>
+           <a href="${waLink(sitePhoneWhatsapp, `أريد طلب حاوية في ${area.name}`)}" style="background:#25d366;color:white;padding:10px 24px;border-radius:8px;font-weight:800;text-decoration:none">واتساب ↗</a>
         </div>
       </div>
     </div>`;
 
-  const areaKeywords = `شركة تنظيف ${location}, تنظيف منازل ${location}, تنظيف فلل ${location}, غسيل مجالس ${location}, جلي رخام ${location}`;
+  const areaKeywords = `تأجير حاويات ${location}, حاويات أنقاض ${location}, نقل مخلفات البناء ${location}, حاويات نفايات ${location}`;
   const neighborhoodFaqs = [
-    { q: `كم يستغرق وصول فريق التنظيف في ${location}؟`, a: `تصل فرقنا الميدانية المجهزة إلى موقعك في ${location} خلال 30 إلى 45 دقيقة من تأكيد الحجز.` },
-    { q: `ما هي أكثر خدمات التنظيف طلباً في ${location}؟`, a: `تنظيف الفلل والشقق بعد التشطيب، غسيل المجالس بالبخار، جلي الرخام بالألماس، وتنظيف الخزانات والمكيفات.` },
-    { q: `هل تقدمون ضماناً على الخدمة في ${location}؟`, a: `نعم، نقدم ضماناً شاملاً 100% على جودة التنفيذ لكافة الأعمال.` }
+    { q: `هل تتوفر حاويات أنقاض في ${location}؟`, a: `نعم، ننسق توصيل حاويات الأنقاض لمشاريع البناء والترميم والهدم في ${location} حسب المقاس المطلوب.` },
+    { q: `كيف يتم تحديد سعر الحاوية في ${location}؟`, a: `يعتمد العرض على حجم الحاوية ونوع المخلفات وموقع التوصيل ومدة التأجير، ويؤكد قبل التنفيذ.` },
+    { q: `هل تشمل الخدمة سحب الحاوية؟`, a: `نعم، يتم تنسيق السحب أو التبديل مع العميل وفق الموعد واحتياج المشروع.` }
   ];
   const faqSchema = {
     "@context": "https://schema.org",
@@ -2025,8 +1984,8 @@ console.log(`   ✅ ${NEIGHBORHOODS.length} صفحة حي (بالعربي وال
 // ── صفحة دليل المناطق /areas/index.html ──────────────────────────────────────
 {
   const canonical = `${SITE_URL}/areas`;
-  const title = `مناطق خدمة تنظيف المنازل والفلل في الرياض | ${siteCompanyName}`;
-  const description = `تعرف على مناطق خدمة ${siteCompanyName} لتنظيف المنازل والفلل والمكاتب وجلي الرخام وغسيل المكيفات بالرياض.`;
+  const title = `مناطق تغطية تأجير الحاويات في الرياض | ${siteCompanyName}`;
+  const description = `تعرف على أحياء تغطية ${siteCompanyName} لتأجير حاويات الأنقاض والنفايات ونقل مخلفات البناء في مدينة الرياض.`;
   const groups = [
     { name: "شمال الرياض", slugs: ["north-riyadh", "al-malqa", "al-yasmin", "al-narjis", "al-aarid", "hittin", "al-sahafa", "al-nafal", "al-aqiq", "al-rabi", "al-ghadeer", "al-wadi", "al-nada", "al-falah"] },
     { name: "شرق الرياض", slugs: ["east-riyadh", "al-qadesiya", "al-naseem", "al-rawdah", "al-khaleej", "al-nahdah", "al-manar", "al-yarmouk", "al-munsiyah", "al-hamra", "al-qurtubah", "al-shuhada"] },
@@ -2049,7 +2008,7 @@ console.log(`   ✅ ${NEIGHBORHOODS.length} صفحة حي (بالعربي وال
     </section>`).join("");
   const bodyContent = `
     <h1 style="font-size:clamp(24px,4vw,36px);font-weight:800;color:#1a202c;margin:0 0 16px;line-height:1.4">
-      خدمات تنظيف المنازل والفلل في جميع أحياء الرياض
+      تأجير الحاويات ونقل المخلفات في جميع أحياء الرياض
     </h1>
     <p style="font-size:17px;color:#4a5568;line-height:1.8;margin-bottom:24px">
       ${esc(description)} اختر منطقتك لمعرفة تفاصيل الخدمة والأسعار وطرق التواصل.
@@ -2086,7 +2045,7 @@ console.log(`   ✅ ${NEIGHBORHOODS.length} صفحة حي (بالعربي وال
     description,
     canonical,
     ogImage: `${SITE_URL}/images/hero-1.webp`,
-    keywords: "شركة تنظيف أحياء الرياض, تنظيف منازل شمال الرياض, تنظيف فلل جنوب الرياض, تنظيف شقق شرق الرياض, تنظيف فلل غرب الرياض",
+    keywords: "تأجير حاويات أحياء الرياض, حاويات أنقاض شمال الرياض, نقل مخلفات جنوب الرياض, حاويات نفايات شرق الرياض",
     schemas: [areaListSchema, breadcrumbSchema(crumbs)],
     breadcrumbs: crumbs,
     bodyContent,

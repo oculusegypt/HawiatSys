@@ -9,9 +9,9 @@ import { ChevronLeft } from "lucide-react"
 
 export default function WhyUsLeadership() {
   useDocumentSEO({
-    title: "قيادتنا — شركة التنظيف",
-    description: "تعرف على قيادة شركة التنظيف ورؤية الشركة في تقديم أفضل خدمات تنظيف وتطهير العقارات في الرياض.",
-    keywords: "قيادة شركة التنظيف, الرئيس التنفيذي, رؤية الشركة",
+    title: "قيادتنا — حلول الحاويات ونقل المخلفات",
+    description: "تعرف على قيادة مؤسسة تقي جروب ورؤيتها في تقديم حلول موثوقة لتأجير الحاويات ونقل مخلفات البناء في الرياض.",
+    keywords: "قيادة مؤسسة تقي جروب, رؤية المؤسسة, تأجير الحاويات بالرياض",
     canonical: siteUrl("/why-us/leadership/"),
   })
 

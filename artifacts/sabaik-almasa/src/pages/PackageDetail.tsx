@@ -62,10 +62,12 @@ export default function PackageDetail() {
 
   useDocumentSEO({
     title: container
-      ? `${container.name}${container.size ? ` ${container.size}` : ""} — الشركة`
+      ? `${container.name}${container.size ? ` ${container.size}` : ""} | تأجير حاويات بالرياض`
       : "تفاصيل الباقة — خدمات التنظيف",
     description: container?.description ?? "تفاصيل وأسعار باقات تنظيف المنازل والفلل بالرياض.",
-      canonical: siteUrl(`/containers/${encodeURIComponent(slug)}`),
+    canonical: siteUrl(`/containers/${encodeURIComponent(slug)}`),
+    ogImage: container ? getContainerImage(container) : "/images/seo/cleanflow-containers.jpg",
+    ogImageAlt: container ? `${container.name} لتأجير الحاويات بالرياض` : "حاويات للإيجار بالرياض",
   })
 
   if (isLoading) {

@@ -70,6 +70,14 @@ export default function PackagesPage() {
     description: currentMeta.desc,
     keywords: currentMeta.keywords,
     canonical: siteUrl(category === "all" ? "/containers" : `/containers/${category}`),
+    ogImage: category === "debris"
+      ? "/images/seo/cleanflow-containers.jpg"
+      : category === "waste"
+        ? "/images/seo/cleanflow-services.jpg"
+        : category === "contract"
+          ? "/images/seo/cleanflow-partners.jpg"
+          : "/images/seo/cleanflow-containers.jpg",
+    ogImageAlt: currentMeta.heading,
   })
 
   return (

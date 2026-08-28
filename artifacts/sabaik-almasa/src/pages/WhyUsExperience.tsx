@@ -10,9 +10,9 @@ import { ChevronLeft } from "lucide-react"
 
 export default function WhyUsExperience() {
   useDocumentSEO({
-    title: "خبرتنا المتراكمة — شركة التنظيف",
-    description: "8 سنوات من الخبرة في تنظيف المنازل والفلل والمكاتب بالرياض. أكثر من 1500 مشروع منجز ورضا عملاء 100%.",
-    keywords: "خبرة شركة التنظيف, سنوات الخبرة, مشاريع تنظيف منازل بالرياض",
+    title: "خبرتنا المتراكمة — مؤسسة تقي جروب",
+    description: "خبرة ميدانية في تأجير الحاويات ونقل مخلفات البناء للمنازل والمقاولين والمنشآت في الرياض.",
+    keywords: "خبرة تأجير الحاويات, نقل مخلفات البناء بالرياض, مؤسسة تقي جروب",
     canonical: siteUrl("/why-us/accumulated-experience"),
   })
 

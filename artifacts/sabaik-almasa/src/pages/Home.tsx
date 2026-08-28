@@ -4,17 +4,18 @@ import { Footer } from "@/components/layout/Footer"
 import { getSiteUrl } from "@/lib/siteUrl"
 import { useSiteSettings } from "@/context/SiteSettingsContext"
 import type { SocialLinks } from "@/context/SiteSettingsContext"
+import { useDocumentSEO } from "@/hooks/useDocumentSEO"
 
 const SEO_DEFAULTS = {
   companyName: "تأجير الحاويات بالرياض",
-  phone: "0554498403",
+  phone: "0555888767",
   address: "طريق الملك فهد، حي الصحافة",
   city: "الرياض",
   region: "منطقة الرياض",
   country: "SA",
   postalCode: "13321",
   priceRange: "$$",
-  image: "/images/hero-1.webp",
+  image: "/images/seo/cleanflow-home.jpg",
 } as const
 
 function injectLocalBusinessSchema({
@@ -350,6 +351,16 @@ export default function Home() {
     hiddenSections,
     isLoaded,
   } = siteSettings
+
+  useDocumentSEO({
+    title: companyName
+      ? `${companyName} | تأجير حاويات الأنقاض والنفايات بالرياض`
+      : "تأجير حاويات الأنقاض والنفايات بالرياض | توصيل وسحب فوري",
+    description: description || "تأجير حاويات الأنقاض والنفايات والمكابس ونقل مخلفات البناء والهدم وعقود النظافة الإلكترونية في الرياض.",
+    canonical: getSiteUrl() ? `${getSiteUrl()}/` : undefined,
+    ogImage: "/images/seo/cleanflow-home.jpg",
+    ogImageAlt: "تأجير حاويات الأنقاض والنفايات بالرياض مع التوصيل والسحب",
+  })
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "instant" })

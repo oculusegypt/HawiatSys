@@ -6,30 +6,29 @@ import { Footer } from "@/components/layout/Footer"
 import { getSiteUrl } from "@/lib/siteUrl"
 import { AREAS, RIYADH_AREA_GROUPS, ARABIC_AREA_SLUGS } from "@/pages/NeighborhoodPage"
 import { useSiteSettings } from "@/context/SiteSettingsContext"
+import { useDocumentSEO } from "@/hooks/useDocumentSEO"
+import { siteUrl } from "@/lib/siteUrl"
 
 export default function AreasIndexPage() {
   const { companyName, phoneCall, phoneWhatsapp, isLoaded } = useSiteSettings()
   const resolvedCompany = companyName || "خدمات تأجير الحاويات"
 
+  const description = companyName
+    ? `تعرف على مناطق وأحياء خدمة ${companyName} لتأجير حاويات الأنقاض والنفايات ونقل المخلفات في شمال وجنوب وشرق وغرب الرياض.`
+    : "تعرف على مناطق وأحياء خدمة تأجير حاويات الأنقاض والنفايات ونقل المخلفات في شمال وجنوب وشرق وغرب الرياض."
+
+  useDocumentSEO({
+    title: companyName ? `مناطق خدمة وتأجير الحاويات في الرياض | ${companyName}` : "مناطق خدمة وتأجير الحاويات في الرياض",
+    description,
+    keywords: "مناطق تأجير الحاويات بالرياض, أحياء الرياض, توصيل حاويات الأنقاض",
+    canonical: siteUrl("/areas"),
+    ogImage: "/images/seo/cleanflow-areas.jpg",
+    ogImageAlt: "مناطق خدمة تأجير الحاويات في جميع أحياء الرياض",
+  })
+
   useEffect(() => {
     if (!isLoaded) return
     const site = getSiteUrl()
-    document.title = companyName ? `مناطق خدمة وتأجير الحاويات في الرياض | ${companyName}` : "مناطق خدمة وتأجير الحاويات في الرياض"
-    const description = companyName ? `تعرف على مناطق وأحياء خدمة ${companyName} لتأجير حاويات الأنقاض والنفايات ونقل المخلفات في شمال وجنوب وشرق وغرب الرياض.` : "تعرف على مناطق وأحياء خدمة تأجير حاويات الأنقاض والنفايات ونقل المخلفات في شمال وجنوب وشرق وغرب الرياض."
-    let meta = document.querySelector("meta[name='description']") as HTMLMetaElement | null
-    if (!meta) {
-      meta = document.createElement("meta")
-      meta.name = "description"
-      document.head.appendChild(meta)
-    }
-    meta.content = description
-    let canonical = document.querySelector("link[rel='canonical']") as HTMLLinkElement | null
-    if (!canonical) {
-      canonical = document.createElement("link")
-      canonical.rel = "canonical"
-      document.head.appendChild(canonical)
-    }
-    canonical.href = `${site}/areas`
 
     const schemaId = "areas-index-schema"
     document.getElementById(schemaId)?.remove()
@@ -121,10 +120,10 @@ export default function AreasIndexPage() {
             <h2 className="text-2xl md:text-3xl font-bold text-primary mb-4">لم تجد حيّك في القائمة؟</h2>
             <p className="text-gray-600 mb-7">تواصل معنا لتأكيد التوصيل السريع إلى موقعك داخل الرياض وتحديد المقاس الأنسب.</p>
             <div className="flex gap-4 justify-center flex-wrap">
-              <a href={`tel:${phoneCall || "0554498403"}`} className="inline-flex items-center gap-2 bg-primary text-white px-7 py-3 rounded-xl font-bold hover:bg-primary/90 transition-colors">
-                <Phone size={18} /> {phoneCall || "0554498403"}
+              <a href={`tel:${phoneCall || "0555888767"}`} className="inline-flex items-center gap-2 bg-primary text-white px-7 py-3 rounded-xl font-bold hover:bg-primary/90 transition-colors">
+                <Phone size={18} /> {phoneCall || "0555888767"}
               </a>
-              <a href={`https://wa.me/966${(phoneWhatsapp || "0554498403").replace(/^0/, "")}?text=${encodeURIComponent("أريد الاستفسار عن تأجير الحاويات بالرياض")}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-green-500 text-white px-7 py-3 rounded-xl font-bold hover:bg-green-600 transition-colors">
+              <a href={`https://wa.me/966${(phoneWhatsapp || "0580595555").replace(/^0/, "")}?text=${encodeURIComponent("أريد الاستفسار عن تأجير الحاويات بالرياض")}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-green-500 text-white px-7 py-3 rounded-xl font-bold hover:bg-green-600 transition-colors">
                 <MessageCircle size={18} /> واتساب فوري
               </a>
             </div>

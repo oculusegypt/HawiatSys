@@ -1,0 +1,137 @@
+Planning Image Generation
+
+I need to focus on implementing image generation through CodeExecution. The user asked for about 10 to 12 images that will be stored in the attached_assets/generated_images folder. I think generating high-resolution images, perhaps at 1200x675, makes sense. The prompts should be in English, with no text, featuring different visual themes related to the Taqi Group, using dark backgrounds that contrast with the existing teal, navy, and gold brand colors. There’s a need for 12 unique images and I’ll ensure to provide prompts and output paths accordingly.
+
+
+Generated campaign artwork for core pages
+
+Generated image
+
+Generated image
+
+Generated image
+
+Generated image
+
+Generated image
+
+Generated image
+
+Generated image
+
+Generated image
+
+Generated image
+
+Generated image
+
+Generated image
+
+Generated image
+Planning image distribution
+
+Planning image distribution
+Planning asset management
+
+I need to continue copying public assets, and I'll use shell commands instead of generators. It’s essential to create a directory and edit some files. One idea is to use apply_patch for this. I’m thinking about creating a helper in src/lib/seoCreative.ts that manages asset mapping and dynamic image selection. I should also consider setting up a reusable SeoPromoBanner for visual overlay on key pages. Overall, integrating these components seems manageable, especially for the Home page.Designing for SEO components
+
+I’m considering how to implement a SeoPromoBanner on static pages. Instead of adding it at the top or bottom, I think it might work better as a hero background image overlay. For different service, package, or blog pages, I could add a CSS background-image. I want to create a component that can go on 12 core pages, adjusting it dynamically with images. Even if some pages already have hero images, I’ll aim for a solution that effectively covers every page with an ad banner component.Planning image distribution
+
+I’m considering injecting components into the admin only for public routes. For dynamic pages, I could derive images based on the path, using either generic or existing images. For instance, the blog path could select a standard blog image for all articles. However, to create variety, I might use a hash of the pathname to pick from a set of 12 images. But since the user wants to avoid repetition and use existing photos, I need to ensure the global component can access the right specific metadata.
+
+Implementing SEO Enhancements
+
+Implementing SEO Enhancements
+Implementing SEO Enhancements
+
+I’m considering using a small band for the user's ad image since they mentioned a professional touch. Maybe it should act as a "social card" component, but it's not ideal to have it visible across all pages. It might be better to set the default OG images in index.html to a home asset, and add ogImage for all pages using useDocumentSEO. This would ensure better SEO for Google. I’ll look into implementing a helper for absolute OG images and do some cleanup as needed.
+
+
+Opened prerender.mjs
+
+Opened prerender.mjs
+
+Opened prerender.mjs
+
+Opened prerender.mjs
+
+Opened Blog.tsx
+
+Opened AreasIndexPage.tsx
+
+Opened BlogPost.tsx
+
+Opened AboutPage.tsx
+
+Opened ContactPage.tsx
+
+Opened FaqPage.tsx
+Moving forward with updates
+
+Moving forward with updates
+Moving forward with updates
+
+I need to take the next steps in my process. We’ve generated some elements, and maybe there’s no need to ask for more input right now. I’m thinking it might be easier to patch the helper and hook together with the global banner. But first, I definitely need to make sure to copy the images. That’s an important part I can’t overlook!
+
+
+Created a directory
+Enhancing dynamic SEO titles
+
+Enhancing dynamic SEO titles
+Considering layout options
+
+I'm thinking about the need for a patch and possibly a memory update later. We've learned about generating static assets and phone compatibility, but there's no lesson that feels durable enough to mention yet. I should create a reusable PagePromoBanner that appears on all non-admin pages, perhaps just after the Router. Although, if it renders above the Router, it could repeat across pages. Placing it inside the layout seems smarter; many pages have a <Navbar/>. I might create a shared MarketingBanner for key pages instead.Updating SEO and titles
+
+I’m planning to add a helper to use useDocumentSEO for static pages with unique assets. I’ll incorporate existing dynamic images and add ogImage to all static useDocumentSEO pages. For the Home page, I might add a visible banner while keeping the existing images untouched, as the user requested. There’s also a need to correct the old "تنظيف" in the NeighborhoodPage title to match the product focus on containers instead. We should ensure area pages reflect the correct semantics instead of the generic cleaning service. Update prompts might be necessary, but handling data manually could be a challenge.Enhancing dynamic SEO titles
+
+I’m thinking about introducing a dynamic SEO title based on the area while keeping the existing cleaning title in the dictionary. It could be something like: title: \تأجير حاويات ${area.name} بالرياض | ...`` while the h1 stays as "cleaning" to align with the main product. However, the current data might be outdated or incorrect, and the user is looking for what’s best for Google. I should explore transforming the NeighborhoodPage component to adjust the title, h1, description, and keywords to enhance accuracy. This might require inspecting the NeighborhoodPage, particularly around lines 570, to make necessary overrides.
+
+
+Searched for "export default function…"
+Exploring banner options
+
+Exploring banner options
+سأثبت الآن طبقة الصور والبيانات الوصفية: صور اجتماعية ثابتة مختلفة، روابط مطلقة للـ Open Graph وTwitter، وصف بديل وأبعاد، ثم أوحّد الافتراضات القديمة للرقم الأساسي داخل الصفحة الرئيسية والـ prerender. بعدها سأعيد البناء وأفحص الناتج الثابت لاكتشاف أي مسارات أو صور مفقودة.
+
+
+
+Show less
+
+Created seoMedia.ts
+
+Edited useDocumentSEO.ts
+
+Edited Home.tsx
+
+Edited Blog.tsx
+
+Edited PackagesPage.tsx
+
+Edited PricingPage.tsx
+
+Edited PackageDetail.tsx
+
+Edited AreasIndexPage.tsx
+
+Edited SeoPage.tsx
+Continuing with technical tasks
+
+Continuing with technical tasks
+Continuing with technical tasks
+
+I need to patch the remaining areas with the service detail fallback phone number, which starts with 055. I should also consider the schema phone number that begins with +966. Using settings might help streamline this. There are some auto-generated helpers related to these. I’ll need to prerender and inspect the top functions as well, making sure to check all hardcoded instances of the 055 occurrences in the prerender.
+
+
+Searched for "0555888767|hero-1\.webp…"
+Addressing SEO and Patch Issues
+
+Addressing SEO and Patch Issues
+Addressing SEO and Patch Issues
+
+I need to tackle the current patch compilation issue. The AreasIndex imports getSiteUrl, which isn’t used beyond schema. The description being declared outside is okay, and the import ordering for useDocumentSEO looks fine. However, I should address the calls to getSiteUrl in Home since it's called twice. When siteUrl is empty, it might default to a fallback image path. I also need to clean up useDocumentSEO to restore all necessary elements, not just desc and canonical.
+
+
+Processed text
+
+Worked for 4 minutes
+You've reached your daily free quota limit. It will reset at 12:00 AM UTC.

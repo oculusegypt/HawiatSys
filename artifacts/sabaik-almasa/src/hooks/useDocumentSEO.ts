@@ -1,5 +1,7 @@
 import { useEffect } from "react"
 import { replaceLegacyCompanyName, useSiteSettings } from "@/context/SiteSettingsContext"
+import { sitePath, siteUrl } from "@/lib/siteUrl"
+import { seoImageAlt, seoImageForPath } from "@/lib/seoMedia"
 
 interface SEOOptions {
   title: string
@@ -50,6 +52,10 @@ export function useDocumentSEO({
     const resolvedDescription = replaceCompanyName(description)
     const resolvedKeywords = replaceCompanyName(keywords)
     const resolvedOgImageAlt = replaceCompanyName(ogImageAlt)
+    const resolvedOgImage = ogImage || seoImageForPath(canonical || window.location.pathname)
+    const absoluteOgImage = /^https?:\/\//i.test(resolvedOgImage)
+      ? resolvedOgImage
+      : siteUrl(sitePath(resolvedOgImage))
     const prevTitle = document.title
     const prevDesc  = document.querySelector('meta[name="description"]')?.getAttribute("content") ?? ""
     const prevCanon = document.querySelector("link[rel='canonical']")?.getAttribute("href") ?? ""
@@ -67,19 +73,20 @@ export function useDocumentSEO({
     setMeta("og:site_name",   companyName ? `${companyName} — تأجير حاويات بالرياض` : "تأجير حاويات بالرياض", "property")
     if (resolvedDescription) setMeta("og:description", resolvedDescription, "property")
     if (canonical)   setMeta("og:url",          canonical,  "property")
-    if (ogImage) {
-      setMeta("og:image",             ogImage,                            "property")
-      setMeta("og:image:secure_url",  ogImage,                            "property")
-      setMeta("og:image:alt",         resolvedOgImageAlt || resolvedTitle, "property")
-    }
+    setMeta("og:image",             absoluteOgImage, "property")
+    setMeta("og:image:secure_url",  absoluteOgImage, "property")
+    setMeta("og:image:type",        "image/jpeg", "property")
+    setMeta("og:image:width",       "1200", "property")
+    setMeta("og:image:height",      "675", "property")
+    setMeta("og:image:alt",         resolvedOgImageAlt || seoImageAlt(resolvedTitle), "property")
 
     // Twitter / X
     setMeta("twitter:card",        "summary_large_image")
     setMeta("twitter:title",       resolvedTitle)
     if (resolvedDescription) setMeta("twitter:description", resolvedDescription)
     if (canonical)   setMeta("twitter:url",         canonical)
-    if (ogImage)     setMeta("twitter:image",       ogImage)
-    if (ogImage)     setMeta("twitter:image:alt",   resolvedOgImageAlt || resolvedTitle)
+    setMeta("twitter:image",       absoluteOgImage)
+    setMeta("twitter:image:alt",   resolvedOgImageAlt || seoImageAlt(resolvedTitle))
 
     // Canonical link
     if (canonical) setCanonical(canonical)

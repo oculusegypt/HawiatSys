@@ -21,7 +21,7 @@ export default function AboutPage() {
     canonical: siteUrl("/about"),
   })
 
-  const waHref = `https://wa.me/966${(phoneWhatsapp || "0554498403").replace(/^0/, "")}?text=${encodeURIComponent("مرحباً، أود الاستفسار عن تأجير الحاويات والتعاقد")}`
+  const waHref = `https://wa.me/966${(phoneWhatsapp || "0580595555").replace(/^0/, "")}?text=${encodeURIComponent("مرحباً، أود الاستفسار عن تأجير الحاويات والتعاقد")}`
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-sans" dir="rtl">
@@ -106,10 +106,10 @@ export default function AboutPage() {
             </p>
             <div className="flex gap-4 justify-center flex-wrap">
               <a
-                href={`tel:${phoneCall || "0554498403"}`}
+                href={`tel:${phoneCall || "0555888767"}`}
                 className="inline-flex items-center gap-2 bg-white text-slate-950 px-8 py-3.5 rounded-xl font-bold hover:bg-secondary hover:text-white transition shadow-lg"
               >
-                <Phone size={18} /> {phoneCall || "0554498403"}
+                <Phone size={18} /> {phoneCall || "0555888767"}
               </a>
               <a
                 href={waHref}

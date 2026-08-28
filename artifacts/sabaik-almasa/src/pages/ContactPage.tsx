@@ -13,8 +13,8 @@ export default function ContactPage() {
   const secondaryWhatsapp = phones.find(phone => phone !== phoneWhatsapp && phone !== phoneCall)
     || phones.find(phone => phone !== phoneWhatsapp)
     || phoneCall
-  const waHref = `https://wa.me/966${(phoneWhatsapp || "0554498403").replace(/^0/, "")}?text=${encodeURIComponent(companyName ? `مرحباً، أرغب في حجز حاوية من ${companyName}` : "مرحباً، أرغب في حجز حاوية")}`
-  const wa2Href = `https://wa.me/966${(secondaryWhatsapp || "0554498403").replace(/^0/, "")}?text=${encodeURIComponent("مرحباً، أود الاستفسار عن خدمات الحاويات")}`
+  const waHref = `https://wa.me/966${(phoneWhatsapp || "0580595555").replace(/^0/, "")}?text=${encodeURIComponent(companyName ? `مرحباً، أرغب في حجز حاوية من ${companyName}` : "مرحباً، أرغب في حجز حاوية")}`
+  const wa2Href = `https://wa.me/966${(secondaryWhatsapp || "0580595555").replace(/^0/, "")}?text=${encodeURIComponent("مرحباً، أود الاستفسار عن خدمات الحاويات")}`
 
   useDocumentSEO({
     title: companyName ? `تواصل معنا — ${companyName} لتأجير الحاويات | الرياض` : "تواصل معنا — تأجير الحاويات بالرياض",
@@ -44,13 +44,13 @@ export default function ContactPage() {
 
         {/* Contact cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          <a href={`tel:${phoneCall || "0554498403"}`}
+          <a href={`tel:${phoneCall || "0555888767"}`}
             className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col items-center text-center gap-3 hover:shadow-md hover:-translate-y-1 transition-all">
             <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
               <Phone size={26} />
             </div>
             <h3 className="font-bold text-lg text-gray-900">اتصال مباشر بالعمليات</h3>
-            <p className="text-primary font-bold text-xl dir-ltr">{phoneCall || "0554498403"}</p>
+            <p className="text-primary font-bold text-xl dir-ltr">{phoneCall || "0555888767"}</p>
             <span className="text-xs text-gray-500">للحجز الفوري والتوصيل خلال ساعتين</span>
           </a>
 
@@ -60,7 +60,7 @@ export default function ContactPage() {
               <MessageCircle size={26} />
             </div>
             <h3 className="font-bold text-lg text-gray-900">واتساب — حجز وتأجير الحاويات</h3>
-            <p className="text-green-600 font-bold text-xl dir-ltr">{phoneWhatsapp || "0554498403"}</p>
+            <p className="text-green-600 font-bold text-xl dir-ltr">{phoneWhatsapp || "0580595555"}</p>
             <span className="text-xs text-gray-500">إرسال الموقع وتحديد المقاس</span>
           </a>
 
@@ -70,7 +70,7 @@ export default function ContactPage() {
               <MessageCircle size={26} />
             </div>
             <h3 className="font-bold text-lg text-gray-900">عقود النظافة ورخص بلدي</h3>
-            <p className="text-blue-600 font-bold text-xl dir-ltr">{secondaryWhatsapp || phoneWhatsapp || "0554498403"}</p>
+            <p className="text-blue-600 font-bold text-xl dir-ltr">{secondaryWhatsapp || phoneWhatsapp || "0580595555"}</p>
             <span className="text-xs text-gray-500">توثيق العقود للمنشآت والمطاعم</span>
           </a>
         </div>

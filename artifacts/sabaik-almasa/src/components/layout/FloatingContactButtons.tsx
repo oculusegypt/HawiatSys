@@ -15,7 +15,7 @@ export function FloatingContactButtons() {
   const { phoneCall, phoneWhatsapp, phones, companyName } = useSiteSettings()
   const { call, whatsapp } = resolveContactNumbers(phoneCall, phoneWhatsapp, phones)
 
-  const waDigits = (whatsapp || "0554498403").replace(/\D/g, "")
+  const waDigits = (whatsapp || "0580595555").replace(/\D/g, "")
   const waIntl = waDigits.startsWith("00")
     ? waDigits.slice(2)
     : waDigits.startsWith("0")
@@ -23,7 +23,7 @@ export function FloatingContactButtons() {
     : waDigits
   const waHref = `https://wa.me/${waIntl}?text=${encodeURIComponent(companyName ? `مرحباً ${companyName}، أود الاستفسار عن تأجير الحاويات والأسعار` : "مرحباً، أود الاستفسار عن تأجير الحاويات والأسعار")}`
 
-  const callDigits = (call || "0554498403").replace(/[^\d+]/g, "")
+  const callDigits = (call || "0555888767").replace(/[^\d+]/g, "")
   const callHref = `tel:${callDigits}`
 
   return (
@@ -39,7 +39,7 @@ export function FloatingContactButtons() {
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
           className="group relative flex items-center justify-center w-13 h-13 sm:w-14 sm:h-14 bg-primary text-white rounded-full shadow-2xl hover:bg-primary/90 transition-all shadow-primary/30"
-          title={`اتصال مباشر: ${call || "0554498403"}`}
+          title={`اتصال مباشر: ${call || "0555888767"}`}
           aria-label="اتصال فوري"
         >
           <Phone className="w-6 h-6 animate-pulse" />
@@ -59,7 +59,7 @@ export function FloatingContactButtons() {
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
           className="group relative flex items-center justify-center w-13 h-13 sm:w-14 sm:h-14 bg-emerald-500 text-white rounded-full shadow-2xl hover:bg-emerald-600 transition-all shadow-emerald-500/30"
-          title={`تواصل عبر واتساب: ${whatsapp || "0554498403"}`}
+          title={`تواصل عبر واتساب: ${whatsapp || "0580595555"}`}
           aria-label="محادثة واتساب"
         >
           <span className="absolute inset-0 rounded-full animate-ping bg-emerald-400 opacity-30" />

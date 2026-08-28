@@ -242,7 +242,7 @@ const buildBlogSeoPrompt = (title: string, excerpt: string, category: string, ta
 `.trim();
 
 const buildPageBasicsPrompt = (keyword: string, siteName: string) => `
-أنت كاتب محتوى محترف متخصص في خدمات التنظيف بالسوق السعودي. أنشئ معلومات أساسية لصفحة هبوط SEO تستهدف الكلمة المفتاحية التالية:
+أنت كاتب محتوى محترف متخصص في تأجير الحاويات ونقل الأنقاض ومخلفات البناء في السوق السعودي. أنشئ معلومات أساسية لصفحة هبوط SEO تستهدف الكلمة المفتاحية التالية:
 
 الكلمة المفتاحية: ${keyword}
 
@@ -250,12 +250,12 @@ const buildPageBasicsPrompt = (keyword: string, siteName: string) => `
 {
   "title": "عنوان عربي واضح يتضمن الكلمة المفتاحية ومدينة الرياض عند الحاجة",
   "excerpt": "ملخص تسويقي من 100 إلى 160 حرفاً",
-  "category": "تصنيف مناسب مثل خدمات التنظيف أو تنظيف المنازل أو تنظيف المكيفات أو مكافحة الحشرات",
+  "category": "تصنيف مناسب مثل تأجير الحاويات أو نقل الأنقاض أو مخلفات البناء أو حلول المنشآت",
   "tags": ["3-5 وسوم مرتبطة"],
   "author": "${siteName}"
 }
 
-اكتب عن خدمة يمكن لشركة تنظيف بالرياض تقديمها بصدق. لا تدّعِ خدمات إصلاح أو نقل أو بيع لا علاقة لها بالتنظيف. اجعل الدعوة النهائية مرتبطة بـ ${siteName}.
+اكتب عن خدمة يمكن لمؤسسة تأجير حاويات ونقل مخلفات بالرياض تقديمها بصدق. لا تدّعِ خدمات تنظيف منازل أو إصلاح أو بيع لا علاقة لها بالنشاط. اجعل الدعوة النهائية مرتبطة بـ ${siteName}.
 `.trim();
 
 const buildPageContentPrompt = (title: string, keyword: string, excerpt: string, siteName: string) => `
@@ -271,7 +271,7 @@ const buildPageContentPrompt = (title: string, keyword: string, excerpt: string,
 `.trim();
 
 const buildPageSeoPrompt = (title: string, keyword: string, excerpt: string) => `
-أنشئ بيانات SEO لصفحة هبوط عربية لشركة تنظيف بالرياض.
+أنشئ بيانات SEO لصفحة هبوط عربية لمؤسسة تأجير حاويات ونقل أنقاض بالرياض.
 - العنوان: ${title}
 - الكلمة المفتاحية: ${keyword}
 - الملخص: ${excerpt}

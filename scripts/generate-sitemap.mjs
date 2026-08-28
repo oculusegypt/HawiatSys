@@ -34,6 +34,10 @@ const absoluteUrl = (value) => {
   return /^https?:\/\//i.test(value) ? value : `${baseUrl}${value.startsWith("/") ? "" : "/"}${value}`;
 };
 
+const tableExists = (tableName) => Boolean(
+  db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?").get(tableName),
+);
+
 const localImageExists = (value) => {
   if (!value || /^https?:\/\//i.test(value)) return true;
   const pathValue = value.split(/[?#]/)[0];
@@ -56,7 +60,7 @@ const staticPages = [
   ["/about", "0.9", "monthly"],
   ["/pricing", "0.95", "weekly"],
   ["/packages", "0.95", "weekly"],
-  ["/container/", "0.9", "weekly"],
+  ["/containers", "0.9", "weekly"],
   ["/contact", "0.85", "monthly"],
   ["/partners", "0.75", "monthly"],
   ["/areas", "0.9", "weekly"],
@@ -78,12 +82,20 @@ const services = db.prepare(`
   ORDER BY "order" ASC
 `).all();
 
-const containers = db.prepare(`
+const packageRows = tableExists("packages") ? db.prepare(`
+  SELECT name AS title, seo_slug AS slug, images, image_url
+  FROM packages
+  WHERE is_active = 1 AND seo_enabled = 1 AND seo_slug IS NOT NULL AND seo_slug != ''
+  ORDER BY "order" ASC
+`).all() : [];
+
+const legacyContainerRows = tableExists("containers") ? db.prepare(`
   SELECT name AS title, seo_slug AS slug, images, image_url
   FROM containers
   WHERE is_active = 1 AND seo_enabled = 1 AND seo_slug IS NOT NULL AND seo_slug != ''
   ORDER BY "order" ASC
-`).all();
+`).all() : [];
+const containers = packageRows.length ? packageRows : legacyContainerRows;
 
 const posts = db.prepare(`
   SELECT title, slug, cover_image AS coverImage, published_at AS publishedAt, updated_at AS updatedAt
@@ -151,7 +163,7 @@ for (const service of services) {
 
 for (const container of containers) {
   addEntry({
-    path: `/container/${encodeURIComponent(container.slug)}`,
+    path: `/containers/${encodeURIComponent(container.slug)}`,
     priority: "0.90",
     changefreq: "weekly",
     title: container.title,
@@ -242,23 +254,14 @@ const ALL_NEIGHBORHOODS = [
 ];
 
 for (const area of ALL_NEIGHBORHOODS) {
-  const title = `شركة تنظيف ${area.name} بالرياض`;
+  const title = `تأجير حاويات ونقل مخلفات في ${area.name}`;
   addEntry({
-    path: `/areas/${area.slug}`,
+    path: `/areas/${encodeURIComponent(area.arabic)}`,
     priority: "0.85",
     changefreq: "weekly",
     title,
     images: ["/images/hero-1.webp"],
   });
-  if (area.arabic) {
-    addEntry({
-      path: `/areas/${encodeURIComponent(area.arabic)}`,
-      priority: "0.85",
-      changefreq: "weekly",
-      title,
-      images: ["/images/hero-1.webp"],
-    });
-  }
 }
 
 const xml = [

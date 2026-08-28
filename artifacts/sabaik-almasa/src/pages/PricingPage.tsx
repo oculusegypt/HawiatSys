@@ -62,7 +62,8 @@ export default function PricingPage() {
     description,
     keywords: "أسعار الحاويات بالرياض, مقاسات حاويات الأنقاض, تأجير حاويات النفايات",
     canonical: siteUrl("/pricing"),
-    ogImage: containers[0] ? getContainerImage(containers[0]) : undefined,
+    ogImage: "/images/seo/cleanflow-pricing.jpg",
+    ogImageAlt: "أسعار ومقاسات حاويات الأنقاض والنفايات بالرياض",
   })
 
   useEffect(() => {
@@ -166,7 +167,7 @@ export default function PricingPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="grid-pricing-containers">
               {containers.map((container) => {
                 const features = parseFeatures(container.features)
-                const href = `/containers/${encodeURIComponent(container.seoSlug || String(container.id))}`
+                const href = `/containers/${encodeURIComponent(container.seoSlug || container.name.trim().replace(/\s+/g, "-"))}`
                 return (
                   <article key={container.id} className="inventory-card rounded-3xl overflow-hidden flex flex-col" data-testid={`card-pricing-container-${container.id}`}>
                     <Link href={href} className="inventory-media block relative bg-slate-100" data-testid={`link-pricing-image-${container.id}`}>

@@ -2230,7 +2230,7 @@ try {
             // 11. Confirm Order
             if ($step === 'confirm_order' || $step === 'confirm' || $msg === 'confirm' || $msg === 'تأكيد' || $msg === 'تأكيد الطلب' || $msg === 'نعم' || $msg === 'موافق') {
                 $clientName = !empty($data['name']) ? $data['name'] : 'عميل الموقع';
-                $phone = !empty($data['phone']) ? $data['phone'] : '0554498403';
+                $phone = !empty($data['phone']) ? $data['phone'] : '0555888767';
                 $serviceType = !empty($data['serviceType']) ? $data['serviceType'] : 'تأجير حاويات مخلفات';
                 $containerSize = !empty($data['containerSize']) ? $data['containerSize'] : 'حاوية أنقاض';
                 $location = !empty($data['location']) ? $data['location'] : 'الرياض';
@@ -5137,13 +5137,16 @@ try {
         exit;
     }
 
-    // ── Blog AI generation: POST /api/admin/ai/generate-blog-* ────────────────
-    // These routes are required by the admin Blog page. Hostinger runs this
-    // PHP router directly, so they must not exist only in the Node API.
+    // ── Blog and SEO page AI generation ───────────────────────────────────────
+    // Hostinger runs this PHP router directly, so these routes must mirror the
+    // Node API instead of existing only in the development server.
     if (in_array($path, [
         '/admin/ai/generate-blog-basics',
         '/admin/ai/generate-blog-content',
         '/admin/ai/generate-blog-seo',
+        '/admin/ai/generate-page-basics',
+        '/admin/ai/generate-page-content',
+        '/admin/ai/generate-page-seo',
     ], true) && $method === 'POST') {
         $authHeader = getAuthHeader();
         if (!$authHeader || !preg_match('/^Bearer\s+(.+)$/i', $authHeader, $matches)) {
@@ -5175,6 +5178,7 @@ try {
         $blogSettings = $settingStmt->fetchAll(PDO::FETCH_KEY_PAIR);
         $siteName = trim((string)($blogSettings['company_name'] ?? '')) ?: 'الشركة';
         $topic = trim((string)($input['topic'] ?? ''));
+        $keyword = trim((string)($input['keyword'] ?? ''));
         $title = trim((string)($input['title'] ?? ''));
         $excerpt = trim((string)($input['excerpt'] ?? ''));
         $category = trim((string)($input['category'] ?? ''));
@@ -5182,18 +5186,41 @@ try {
         if (is_string($tags)) $tags = json_decode($tags, true) ?: [];
         if (!is_array($tags)) $tags = [];
 
+        $isPageRoute = str_starts_with($path, '/admin/ai/generate-page-');
+        $isBasicsRoute = $path === '/admin/ai/generate-blog-basics' || $path === '/admin/ai/generate-page-basics';
+        $isContentRoute = $path === '/admin/ai/generate-blog-content' || $path === '/admin/ai/generate-page-content';
+        $isSeoRoute = $path === '/admin/ai/generate-blog-seo' || $path === '/admin/ai/generate-page-seo';
+
         if ($path === '/admin/ai/generate-blog-basics' && $topic === '') {
             http_response_code(400);
             echo json_encode(['error' => 'يرجى إدخال موضوع المقالة أولاً'], JSON_UNESCAPED_UNICODE);
             exit;
         }
-        if ($path !== '/admin/ai/generate-blog-basics' && $title === '') {
+        if ($path === '/admin/ai/generate-page-basics' && $keyword === '') {
             http_response_code(400);
-            echo json_encode(['error' => $path === '/admin/ai/generate-blog-seo' ? 'العنوان مطلوب لتوليد بيانات SEO' : 'العنوان مطلوب لتوليد المحتوى'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['error' => 'الكلمة المفتاحية مطلوبة'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        if (!$isBasicsRoute && $title === '') {
+            http_response_code(400);
+            echo json_encode(['error' => $isSeoRoute ? 'العنوان مطلوب لتوليد بيانات SEO' : 'العنوان مطلوب لتوليد المحتوى'], JSON_UNESCAPED_UNICODE);
             exit;
         }
 
-        if ($path === '/admin/ai/generate-blog-basics') {
+        if ($path === '/admin/ai/generate-page-basics') {
+            $prompt = "أنت كاتب محتوى محترف متخصص في تأجير الحاويات ونقل الأنقاض ومخلفات البناء في السوق السعودي. أنشئ معلومات أساسية لصفحة هبوط SEO تستهدف الكلمة المفتاحية التالية: {$keyword}\n";
+            $prompt .= "اكتب عن خدمات تقدمها مؤسسة تأجير حاويات ونقل مخلفات في الرياض بصدق، ولا تذكر تنظيف المنازل أو خدمات لا علاقة لها بالنشاط. أجب JSON صالحاً فقط بهذا الشكل:\n";
+            $prompt .= '{"title":"عنوان عربي واضح يتضمن الكلمة المفتاحية والرياض","excerpt":"ملخص تسويقي بين 100 و160 حرفاً","category":"تأجير الحاويات أو نقل الأنقاض أو مخلفات البناء","tags":["وسم 1","وسم 2","وسم 3"],"author":"' . $siteName . '"}';
+            $maxTokens = 700;
+        } elseif ($path === '/admin/ai/generate-page-content') {
+            $prompt = "اكتب محتوى HTML عربياً أصلياً ومحسناً لمحركات البحث عن صفحة خدمة: {$title}\nالكلمة المفتاحية: {$keyword}\nالملخص: {$excerpt}\n";
+            $prompt .= "اكتب 700-1000 كلمة عن تأجير الحاويات أو نقل الأنقاض أو مخلفات البناء في الرياض، مع فوائد الخدمة، ما يتضمنه التنفيذ، أسئلة شائعة، وخاتمة فيها دعوة للتواصل مع {$siteName}. لا تذكر تنظيف المنازل أو سعراً ثابتاً. استخدم فقط h2,h3,p,ul,ol,li,strong,em,br. أجب JSON صالحاً فقط: {\"content\":\"...\"}";
+            $maxTokens = 2800;
+        } elseif ($path === '/admin/ai/generate-page-seo') {
+            $prompt = "أنت خبير SEO في السوق السعودي. أنشئ بيانات SEO لصفحة عربية عن تأجير الحاويات ونقل الأنقاض ومخلفات البناء في الرياض.\nالعنوان: {$title}\nالكلمة المفتاحية: {$keyword}\nالملخص: {$excerpt}\n";
+            $prompt .= 'أجب JSON صالحاً فقط: {"seoTitle":"عنوان 50-60 حرفاً يتضمن الكلمة المفتاحية والرياض","seoDescription":"وصف 120-160 حرفاً مع فائدة ودعوة للتصرف","seoKeywords":"كلمات مفتاحية مفصولة بفاصلة عربية","seoSlug":"رابط عربي بشرطات فقط","canonicalUrl":""}';
+            $maxTokens = 700;
+        } elseif ($path === '/admin/ai/generate-blog-basics') {
             $prompt = "أنت كاتب محتوى محترف متخصص في السوق السعودي. أنشئ معلومات أساسية لمقالة عربية عن الموضوع التالي: {$topic}\n";
             $prompt .= "اجعلها مرتبطة بتأجير حاويات الأنقاض ونقل المخلفات في الرياض والسعودية. أجب JSON صالحاً فقط بهذا الشكل:\n";
             $prompt .= '{"title":"عنوان جذاب بين 50 و70 حرفاً","excerpt":"ملخص تشويقي بين 100 و160 حرفاً","category":"تصنيف مناسب","tags":["وسم 1","وسم 2","وسم 3"],"readTime":5,"author":"' . $siteName . '"}';
@@ -5219,8 +5246,8 @@ try {
         };
         // Hostinger may block outbound HTTPS requests or have no AI key configured.
         // Keep blog creation usable in that environment instead of returning 503.
-        $localBlogFallback = static function (string $route, string $topic, string $title, string $excerpt, string $category, array $tags, string $siteName): array {
-            $sourceTitle = $title !== '' ? $title : ($topic !== '' ? $topic : 'خدمات احترافية في الرياض');
+        $localBlogFallback = static function (string $route, string $topic, string $keyword, string $title, string $excerpt, string $category, array $tags, string $siteName): array {
+            $sourceTitle = $title !== '' ? $title : ($topic !== '' ? $topic : ($keyword !== '' ? $keyword : 'حلول الحاويات والمخلفات في الرياض'));
             $safeTitle = htmlspecialchars($sourceTitle, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
             $safeSite = htmlspecialchars($siteName, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
             $slug = preg_replace('/[\s_]+/u', '-', $sourceTitle) ?? '';
@@ -5228,18 +5255,18 @@ try {
             $slug = trim(preg_replace('/-+/u', '-', $slug) ?? '', '-');
             $fallbackTags = count($tags) > 0 ? array_values(array_map('strval', $tags)) : ['حاويات الأنقاض', 'نقل المخلفات', 'الرياض'];
 
-            if ($route === '/admin/ai/generate-blog-basics') {
+            if ($route === '/admin/ai/generate-blog-basics' || $route === '/admin/ai/generate-page-basics') {
                 return [
-                    'title' => 'دليل شامل حول ' . $sourceTitle . ' في الرياض',
-                    'excerpt' => 'تعرف على أفضل الممارسات والنصائح لاختيار الخدمة المناسبة والتعامل مع المخلفات بسهولة وأمان داخل الرياض.',
-                    'category' => $category !== '' ? $category : 'نصائح',
+                    'title' => $route === '/admin/ai/generate-page-basics' ? $sourceTitle . ' في الرياض' : 'دليل شامل حول ' . $sourceTitle . ' في الرياض',
+                    'excerpt' => 'تعرف على الحل العملي لاختيار الحاوية ونقل الأنقاض ومخلفات البناء بسهولة وأمان، مع تنظيم التنفيذ حسب موقع المشروع واحتياجه في الرياض.',
+                    'category' => $category !== '' ? $category : 'تأجير الحاويات ونقل الأنقاض',
                     'tags' => $fallbackTags,
                     'readTime' => 5,
                     'author' => $siteName,
                     'provider' => 'local',
                 ];
             }
-            if ($route === '/admin/ai/generate-blog-content') {
+            if ($route === '/admin/ai/generate-blog-content' || $route === '/admin/ai/generate-page-content') {
                 $html = '<h2>' . $safeTitle . '</h2>'
                     . '<p>يحتاج اختيار الخدمة المناسبة في الرياض إلى فهم واضح لطبيعة العمل وحجم المخلفات والوقت المطلوب للتنفيذ. يساعد التخطيط المسبق على تقليل التأخير وتنظيم الموقع بطريقة أكثر أماناً ونظافة.</p>'
                     . '<p>سواء كان المشروع منزلياً أو تجارياً أو مرتبطاً بأعمال البناء، فإن التعامل المنظم مع المخلفات يجعل خطوات التنفيذ أسهل ويحافظ على المظهر العام للمكان.</p>'
@@ -5314,7 +5341,7 @@ try {
             }
         }
         // A local result is preferable to a broken admin workflow on shared hosting.
-        echo json_encode($localBlogFallback($path, $topic, $title, $excerpt, $category, $tags, $siteName), JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        echo json_encode($localBlogFallback($path, $topic, $keyword, $title, $excerpt, $category, $tags, $siteName), JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
         exit;
     }
 

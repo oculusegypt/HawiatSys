@@ -83,11 +83,11 @@ function ArticleCTA({ onOpen, phoneCall, phoneWhatsapp, postTitle }: { onOpen: (
             </a>
           )}
           <a
-            href={`tel:${phoneCall || "0554498403"}`}
+            href={`tel:${phoneCall || "0555888767"}`}
             className="inline-flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-6 py-3 rounded-xl font-bold text-sm shadow-sm hover:border-primary hover:text-primary transition-all"
           >
             <Phone size={16} />
-            {phoneCall || "0554498403"}
+            {phoneCall || "0555888767"}
           </a>
         </div>
       </div>

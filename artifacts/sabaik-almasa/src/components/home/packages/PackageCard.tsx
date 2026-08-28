@@ -83,7 +83,7 @@ export function PackageCard({ container: c, onRequest }: PackageCardProps) {
   const whatsappNumber = c.contactPhone1 || defaultWa
 
   const categoryArabic = ARABIC_CATEGORY_NAMES[c.category || ""] || "حاوية متاحة"
-  const detailSlug = c.seoSlug || String(c.id)
+  const detailSlug = c.seoSlug || c.name.trim().replace(/\s+/g, "-")
   const detailHref = `/containers/${encodeURIComponent(detailSlug)}`
 
   return (

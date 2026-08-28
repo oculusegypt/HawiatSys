@@ -208,7 +208,7 @@ export default function ServiceDetail() {
           "provider": {
             "@type": "LocalBusiness",
             "name": resolvedCompany,
-            "telephone": "+966554498403",
+            "telephone": "+966555888767",
             "address": {
               "@type": "PostalAddress",
               "streetAddress": "طريق الملك فهد، حي الصحافة",
@@ -247,7 +247,7 @@ export default function ServiceDetail() {
     }
   }, [service, metaText, resolvedCompany, activeIntel])
 
-  const waHref = `https://wa.me/966${(phoneWhatsapp || "0554498403").replace(/^0/, "")}?text=${encodeURIComponent(`مرحباً، أود الاستفسار عن خدمة ${service?.title || "الحاويات"}`)}`
+  const waHref = `https://wa.me/966${(phoneWhatsapp || "0580595555").replace(/^0/, "")}?text=${encodeURIComponent(`مرحباً، أود الاستفسار عن خدمة ${service?.title || "الحاويات"}`)}`
 
   if (isLoading) {
     return (
@@ -303,7 +303,7 @@ export default function ServiceDetail() {
 
             <div className="flex flex-wrap gap-4">
               <a
-                href={`tel:${phoneCall || "0554498403"}`}
+                href={`tel:${phoneCall || "0555888767"}`}
                 className="inline-flex items-center gap-2 bg-white text-slate-950 px-6 py-3 rounded-xl font-bold hover:bg-secondary hover:text-white transition shadow-lg text-sm"
               >
                 <Phone size={16} /> اتصل بالعمليات
@@ -440,10 +440,10 @@ export default function ServiceDetail() {
                 </p>
                 <div className="space-y-2 pt-2">
                   <a
-                    href={`tel:${phoneCall || "0554498403"}`}
+                href={`tel:${phoneCall || "0555888767"}`}
                     className="w-full py-3 bg-secondary hover:bg-secondary/90 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition shadow"
                   >
-                    <Phone size={14} /> اتصل الآن: {phoneCall || "0554498403"}
+                    <Phone size={14} /> اتصل الآن: {phoneCall || "0555888767"}
                   </a>
                   <a
                     href={waHref}

@@ -12,7 +12,7 @@ export default function TermsPage() {
 
   useDocumentSEO({
     title: `الشروط والأحكام | ${siteSettings.companyName}`,
-    description: "الشروط والأحكام والضوابط المنظمة لتقديم خدمات تنظيف المنازل، الفلل، غسيل المجالس، وأنظمة السلامة بالرياض.",
+    description: "الشروط والأحكام والضوابط المنظمة لتأجير الحاويات وتوصيلها وسحبها ونقل مخلفات البناء وأنظمة السلامة بالرياض.",
     canonical: siteUrl("/terms"),
   })
 

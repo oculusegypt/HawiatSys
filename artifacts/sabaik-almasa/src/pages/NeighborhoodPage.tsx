@@ -422,6 +422,28 @@ for (const item of ALL_NEIGHBORHOOD_KEYS) {
   }
 }
 
+function toContainerArea(area: AreaData): AreaData {
+  const location = area.name.includes("الرياض") ? area.name : `${area.name} بالرياض`
+  return {
+    ...area,
+    title: `تأجير حاويات ونقل مخلفات ${location} | مؤسسة تقي جروب`,
+    description: `نوفر في ${location} تأجير حاويات الأنقاض والنفايات ونقل مخلفات البناء، مع تنسيق التوصيل والسحب والتبديل حسب نوع المخلفات وموقع المشروع.`,
+    h1: `تأجير حاويات ونقل مخلفات في ${location}`,
+    keywords: [`تأجير حاويات ${area.name}`, `حاويات أنقاض ${location}`, `نقل مخلفات البناء ${location}`, `حاويات نفايات ${location}`],
+    propertyProfile: `مشاريع بناء وترميم، منشآت تجارية، مطاعم ومجمعات سكنية تحتاج إلى حاويات ومواعيد رفع منتظمة في ${area.name}.`,
+    primaryServices: [
+      { name: "حاويات الأنقاض ومخلفات البناء", link: "/containers", desc: "حاويات بمقاسات مناسبة للهدم والترميم والإنشاءات مع توصيل وسحب منسق." },
+      { name: "حاويات النفايات والمكابس", link: "/containers", desc: "حلول للمنشآت والمطاعم والمجمعات مع جداول تفريغ وتبديل حسب حجم التشغيل." },
+      { name: "نقل المخلفات وعقود النظافة الإلكترونية", link: "/services", desc: "رفع ونقل منظم للمخلفات ومتابعة رقمية لطلبات وعقود المواقع." },
+    ],
+    faqs: [
+      { q: `هل تتوفر حاويات أنقاض في ${location}؟`, a: `نعم، ننسق توصيل حاويات الأنقاض لمشاريع البناء والترميم والهدم في ${location} حسب المقاس المطلوب.` },
+      { q: `كيف يتم تحديد سعر الحاوية في ${location}؟`, a: "يعتمد العرض على حجم الحاوية ونوع المخلفات وموقع التوصيل ومدة التأجير، ويؤكد قبل التنفيذ." },
+      { q: "هل تشمل الخدمة سحب الحاوية أو تبديلها؟", a: "نعم، يتم تنسيق السحب أو التبديل مع العميل وفق الموعد واحتياج المشروع." },
+    ],
+  }
+}
+
 export const RIYADH_AREA_GROUPS = [
   {
     title: "شمال الرياض",
@@ -502,11 +524,11 @@ export function resolveArea(rawSlug: string) {
   if (!rawSlug) return null
   const decoded = decodeURIComponent(rawSlug).trim()
   if (AREAS[decoded]) {
-    return { key: decoded, area: AREAS[decoded], slug: ARABIC_AREA_SLUGS[decoded] || decoded }
+    return { key: decoded, area: toContainerArea(AREAS[decoded]), slug: ARABIC_AREA_SLUGS[decoded] || decoded }
   }
   for (const [enKey, arSlug] of Object.entries(ARABIC_AREA_SLUGS)) {
     if (arSlug === decoded || arSlug.replace(/^حي-/, "") === decoded.replace(/^حي-/, "")) {
-      return { key: enKey, area: AREAS[enKey], slug: arSlug }
+      return { key: enKey, area: toContainerArea(AREAS[enKey]), slug: arSlug }
     }
   }
   return null
@@ -549,7 +571,7 @@ export default function NeighborhoodPage() {
         "url": `${SITE_URL}/areas/${encodeURIComponent(activeSlug)}`,
         "image": logoUrl || `${SITE_URL}/images/hero-1.webp`,
         "priceRange": priceRange || "$$",
-        "telephone": `+966${(phoneCall || "0554498403").replace(/^0/, "")}`,
+        "telephone": `+966${(phoneCall || "0555888767").replace(/^0/, "")}`,
         "address": {
           "@type": "PostalAddress",
           "streetAddress": address || "طريق الملك فهد",
@@ -598,9 +620,9 @@ export default function NeighborhoodPage() {
     )
   }
 
-  const cleanPhone = (phoneWhatsapp || "0554498403").replace(/[^\d]/g, "")
+  const cleanPhone = (phoneWhatsapp || "0580595555").replace(/[^\d]/g, "")
   const wa = `https://wa.me/966${cleanPhone.replace(/^0/, "")}?text=${encodeURIComponent(`السلام عليكم، أرغب في طلب تأجير حاوية في ${area.name} بالرياض`)}`
-  const phoneHref = `tel:${phoneCall || "0554498403"}`
+  const phoneHref = `tel:${phoneCall || "0555888767"}`
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col" dir="rtl">
@@ -684,10 +706,10 @@ export default function NeighborhoodPage() {
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-2">
               <div className="flex items-center gap-2 text-primary font-bold text-base">
                 <Zap size={20} />
-                زمن الوصول وفريق العمل
+                زمن التوصيل وفريق العمليات
               </div>
               <p className="text-slate-600 text-sm leading-relaxed">
-                فرق عمل متنقلة مجهزة بمكائن الجلي والبخار تصل إلى موقعك في {area.name} خلال <strong>{area.arrivalTime}</strong> مع ضمان كامل على التنفيذ.
+                أسطول نقل وحاويات مجهز يصل إلى موقعك في {area.name} خلال <strong>{area.arrivalTime}</strong> مع تنسيق واضح للتوصيل والسحب.
               </p>
             </div>
           </section>
@@ -699,7 +721,7 @@ export default function NeighborhoodPage() {
                 الخدمات الأكثر طلباً في {area.name}
               </h2>
               <p className="text-slate-600 text-sm md:text-base mt-1">
-                خدمات تنظيف متخصصة تنفذ بأعلى معايير الجودة وبأجهزة متطورة.
+                حلول عملية للحاويات ونقل المخلفات تنفذ بتنسيق واضح ومواعيد مؤكدة.
               </p>
             </div>
 
@@ -724,50 +746,50 @@ export default function NeighborhoodPage() {
           {/* Transparent Local Pricing Section */}
           <section className="bg-white rounded-2xl border border-slate-200/80 p-6 md:p-8 shadow-sm space-y-6">
             <div>
-              <h2 className="text-2xl font-bold text-slate-900">باقات وأسعار التنظيف في {area.name}</h2>
-              <p className="text-slate-600 text-sm mt-1">أسعار تقديرية واضحة وشاملة لكافة المواد والمعدات والعمالة.</p>
+               <h2 className="text-2xl font-bold text-slate-900">خيارات الحاويات وعروض الأسعار في {area.name}</h2>
+               <p className="text-slate-600 text-sm mt-1">عرض واضح يعتمد على المقاس ونوع المخلفات وموقع التوصيل ومدة التأجير.</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-4">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="text-xl font-bold text-slate-900">باقة تنظيف الشقق السكنية</h3>
-                    <p className="text-slate-600 text-sm mt-1">شقق مفروشة، جديدة، أو بعد الترميم في {area.name}</p>
-                  </div>
-                  <span className="bg-primary/10 text-primary px-3 py-1 rounded-lg text-xs font-bold">باقة مميزة</span>
+                     <h3 className="text-xl font-bold text-slate-900">حاوية أنقاض لمشاريع البناء</h3>
+                     <p className="text-slate-600 text-sm mt-1">للهدم والترميم ومخلفات التشطيب في {area.name}</p>
+                   </div>
+                   <span className="bg-primary/10 text-primary px-3 py-1 rounded-lg text-xs font-bold">خيار عملي</span>
                 </div>
                 <ul className="space-y-2 text-sm text-slate-700">
-                  <li className="flex items-center gap-2"><CheckCircle size={16} className="text-emerald-600" /> غسيل وتعقيم الأرضيات والمطابخ</li>
-                  <li className="flex items-center gap-2"><CheckCircle size={16} className="text-emerald-600" /> تنظيف الشبابيك ومجاري الغبار</li>
-                  <li className="flex items-center gap-2"><CheckCircle size={16} className="text-emerald-600" /> تعقيم وتطهير دورات المياه بالكامل</li>
+                   <li className="flex items-center gap-2"><CheckCircle size={16} className="text-emerald-600" /> مقاسات مناسبة لكمية مخلفات المشروع</li>
+                   <li className="flex items-center gap-2"><CheckCircle size={16} className="text-emerald-600" /> توصيل إلى الموقع وسحب بعد الامتلاء</li>
+                   <li className="flex items-center gap-2"><CheckCircle size={16} className="text-emerald-600" /> تنسيق الموعد قبل التنفيذ</li>
                 </ul>
                 <button
-                  onClick={() => openModal({ containerSize: `تنظيف شقق ${area.name}` })}
+                   onClick={() => openModal({ containerSize: `حاوية أنقاض ${area.name}` })}
                   className="w-full bg-primary text-white py-3 rounded-xl font-bold hover:bg-primary/90 transition shadow-sm"
                 >
-                  طلب عرض سعر مجاني
+                   اطلب عرض الحاوية
                 </button>
               </div>
 
               <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-4">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="text-xl font-bold text-slate-900">باقة تنظيف الفلل والقصور</h3>
-                    <p className="text-slate-600 text-sm mt-1">فلل سكنية، ملاحق، وأحواش في {area.name}</p>
+                     <h3 className="text-xl font-bold text-slate-900">حاويات النفايات والمكابس</h3>
+                     <p className="text-slate-600 text-sm mt-1">للمنشآت والمطاعم والمجمعات في {area.name}</p>
                   </div>
                   <span className="bg-amber-400/20 text-amber-800 px-3 py-1 rounded-lg text-xs font-bold">الأكثر طلباً</span>
                 </div>
                 <ul className="space-y-2 text-sm text-slate-700">
-                  <li className="flex items-center gap-2"><CheckCircle size={16} className="text-emerald-600" /> تنظيف كامل للأدوار والدرج والأحواش</li>
-                  <li className="flex items-center gap-2"><CheckCircle size={16} className="text-emerald-600" /> جلي وتلميع رخام المداخل والصالات</li>
-                  <li className="flex items-center gap-2"><CheckCircle size={16} className="text-emerald-600" /> غسيل الواجهات الزجاجية والأسوار</li>
+                   <li className="flex items-center gap-2"><CheckCircle size={16} className="text-emerald-600" /> حاويات ومكابس حسب حجم التشغيل</li>
+                   <li className="flex items-center gap-2"><CheckCircle size={16} className="text-emerald-600" /> جداول تفريغ أو تبديل منتظمة</li>
+                   <li className="flex items-center gap-2"><CheckCircle size={16} className="text-emerald-600" /> متابعة مباشرة من فريق العمليات</li>
                 </ul>
                 <button
-                  onClick={() => openModal({ containerSize: `تنظيف فلل ${area.name}` })}
+                   onClick={() => openModal({ containerSize: `حاوية نفايات أو مكبس ${area.name}` })}
                   className="w-full bg-amber-500 text-slate-950 py-3 rounded-xl font-bold hover:bg-amber-400 transition shadow-sm"
                 >
-                  طلب عرض سعر مجاني
+                   اطلب عرض الحاوية
                 </button>
               </div>
             </div>
@@ -777,7 +799,7 @@ export default function NeighborhoodPage() {
           <section className="bg-white rounded-2xl border border-slate-200/80 p-6 md:p-8 shadow-sm space-y-6">
             <div className="flex items-center gap-2 border-b border-slate-100 pb-4">
               <HelpCircle className="text-primary" size={24} />
-              <h2 className="text-2xl font-bold text-slate-900">الأسئلة الشائعة حول خدمات التنظيف في {area.name}</h2>
+               <h2 className="text-2xl font-bold text-slate-900">الأسئلة الشائعة حول الحاويات ونقل المخلفات في {area.name}</h2>
             </div>
 
             <div className="space-y-4">
@@ -797,7 +819,7 @@ export default function NeighborhoodPage() {
                 <MapPin size={20} className="text-primary" />
                 أحياء ومناطق مجاورة نخدمها في {area.region}
               </h2>
-              <p className="text-slate-600 text-sm">استكشف خدمات التنظيف في الأحياء القريبة من {area.name}:</p>
+               <p className="text-slate-600 text-sm">استكشف خدمات الحاويات ونقل المخلفات في الأحياء القريبة من {area.name}:</p>
               <div className="flex flex-wrap gap-2.5 pt-2">
                 {area.relatedAreas.map((r) => {
                   const rel = AREAS[r]
@@ -821,10 +843,10 @@ export default function NeighborhoodPage() {
           <section className="bg-gradient-to-r from-primary to-slate-900 text-white rounded-3xl p-8 md:p-12 text-center space-y-6 shadow-xl">
             <div className="max-w-2xl mx-auto space-y-3">
               <h2 className="text-3xl md:text-4xl font-black">
-                احجز خدمة تنظيف منزلك أو فيلتك الآن في {area.name}
+                 اطلب حاوية أو نقل مخلفات الآن في {area.name}
               </h2>
               <p className="text-slate-200 text-base md:text-lg">
-                معاينة مجانية • وصول سريع خلال {area.arrivalTime} • ضمان شامل 100%
+                 مقاسات متعددة • توصيل وسحب منسق • تأكيد سريع للموعد
               </p>
             </div>
 
@@ -833,7 +855,7 @@ export default function NeighborhoodPage() {
                 href={phoneHref}
                 className="inline-flex items-center gap-2 bg-white text-slate-950 px-8 py-4 rounded-xl font-black text-lg hover:bg-amber-400 transition shadow-lg"
               >
-                <Phone size={20} /> {phoneCall || "0554498403"}
+                <Phone size={20} /> {phoneCall || "0555888767"}
               </a>
               <a
                 href={wa}

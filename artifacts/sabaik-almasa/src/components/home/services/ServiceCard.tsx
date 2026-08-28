@@ -30,7 +30,7 @@ export function ServiceCard({
   const { openModal } = useServiceRequest()
   const hasImages = images.length > 0
   const [imageFailed, setImageFailed] = useState(false)
-  const targetSlug = seoSlug || String(id)
+  const targetSlug = seoSlug || title.trim().replace(/\s+/g, "-")
   const detailHref = `/services/${encodeURIComponent(targetSlug)}`
 
   return (
