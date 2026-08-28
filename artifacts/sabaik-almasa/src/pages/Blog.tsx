@@ -168,7 +168,7 @@ export default function Blog() {
                           src={post.coverImage.startsWith("http") ? post.coverImage : `${API_BASE}${post.coverImage}`}
                           alt={post.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          onError={(e) => { e.currentTarget.src = "/api/uploads/container-debris-large.webp" }}
+                          onError={(e) => { e.currentTarget.src = "/images/Taqi-hero3.webp" }}
                         />
                       ) : (
                         <div className="absolute inset-0 flex items-center justify-center">

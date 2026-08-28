@@ -139,6 +139,14 @@ function prepareArchiveSourceDatabase() {
   }
 }
 
+// Preserve the requested legacy images separately before the cleanup/build
+// touches generated output. The archive is never copied into production.
+run(
+  "pnpm --filter @workspace/scripts run archive:legacy-images",
+  "إنشاء أرشيف مستقل للصور القديمة ومجلد صور حسام",
+  {},
+);
+
 // Normalize article media and quarantine unused legacy images before taking
 // the archive database snapshot and generating the sitemap.
 run(
@@ -202,18 +210,80 @@ for (const legacyImage of [
   rmSync(join(ROOT, "build_php", legacyImage), { force: true });
 }
 const SKIP_FILES = new Set(["api"]);
+const LEGACY_PRODUCTION_BASENAMES = new Set([
+  "1784880738437-4f946616f9a9",
+  "1784880757820-804463c77f13",
+  "1784882025820-49ef14f7bcd4",
+  "1784882033731-85f21c7eda4f",
+  "1784887232848-88a8998bb09c",
+  "1785255325266-4cc5c495fd6c",
+  "1785255348822-1765d023ab6b",
+  "1785255370019-1e0ecd0713bb",
+  "1785255383693-202a8c3ca609",
+  "1785257611922-fc9bf51eac24",
+  "1785354077655-5e88594b40d9",
+  "1785354097174-a0cca97c9f9e",
+  "1785354132506-ea72050b634a",
+  "1785354146906-ce9aa9e1c391",
+  "1785354183144-d7bf9cbadf55",
+  "1785354189577-a14df34802cf",
+  "1785354200379-71f2dc852bef",
+  "1785354314084-e9d133e457b0",
+  "1785354327071-7df0d634363d",
+  "1785354339551-5be8106e52d7",
+  "1785354343959-b28bddab35d2",
+  "1785354462050-46de33cb28d2",
+  "1785354476427-472433a3487c",
+  "1786046507655-3963740b2785",
+  "1786048541217-6f6bb80fac50",
+  "1786575435928-f3bc01c96a5a",
+  "1786576602625-1e9aa3b17cae",
+  "1786580706278-a17684d9aa89",
+  "1786590530851-baf2cf1d98f4",
+  "1786590827707-becaf3702c0b",
+  "1786590833367-23f06943c4d8",
+  "1786590919358-48b4454a24fl",
+  "1786590941352-fb358374525f",
+  "1786852381998-7b9fc2691361",
+  "1786852410628-3417524d6e46",
+  "1786852441444-7bdcaa7c2133",
+  "1786852469840-8c9465939c93",
+  "1786852497754-e23a365fc223",
+  "1786852526916-f43fb6a35802",
+  "banner-big",
+  "banner-small",
+  "ceo",
+  "container-1",
+  "container-2",
+  "container-3",
+  "container-4",
+  "container-compactor-electric",
+  "container-debris-jumbo",
+  "container-debris-large",
+  "container-debris-medium",
+  "container-debris-small",
+]);
+const isLegacyProductionAsset = (relativePath) => {
+  const segments = relativePath.replaceAll("\\", "/").split("/");
+  if (segments.includes("صور حسام")) return true;
+  const filename = segments.at(-1) || "";
+  const stem = filename.replace(/\.[^.]+$/, "").toLowerCase();
+  return LEGACY_PRODUCTION_BASENAMES.has(stem);
+};
 const distPublic = join(ROOT, "artifacts/sabaik-almasa/dist/public");
 
-function copyDirRecursive(srcDir, dstDir) {
+function copyDirRecursive(srcDir, dstDir, relativeDir = "") {
   mkdirSync(dstDir, { recursive: true });
   for (const item of readdirSync(srcDir)) {
     if (SKIP_FILES.has(item)) continue;
+    const relativePath = relativeDir ? `${relativeDir}/${item}` : item;
+    if (isLegacyProductionAsset(relativePath)) continue;
     const srcPath = join(srcDir, item);
     const dstPath = join(dstDir, item);
     try {
       const stat = statSync(srcPath);
       if (stat.isDirectory()) {
-        copyDirRecursive(srcPath, dstPath);
+        copyDirRecursive(srcPath, dstPath, relativePath);
       } else {
         copyFileSync(srcPath, dstPath);
       }
@@ -485,6 +555,10 @@ try {
   sourceDb.close();
 }
 for (const filename of referencedUploads) {
+  if (isLegacyProductionAsset(filename)) {
+    console.log(`  ⏭  استبعاد الصورة القديمة من uploads/: ${filename}`);
+    continue;
+  }
   const source = join(sourceUploadsDir, filename);
   if (existsSync(source)) {
     copyFileSync(source, join(uploadsDir, filename));

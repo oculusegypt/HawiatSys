@@ -35,7 +35,7 @@ export function getContainerImage(container: Container): string {
   if (container.imageUrl && container.imageUrl.trim()) return container.imageUrl
   if (firstSavedImage) return firstSavedImage
   if (container.category === "waste") return "/images/container-waste-small.webp"
-  return "/images/container-debris-small.webp"
+  return "/images/Taqi-hero3.webp"
 }
 
 function parseFeatures(raw: unknown): string[] {
@@ -99,7 +99,7 @@ export function PackageCard({ container: c, onRequest }: PackageCardProps) {
             height="640"
             loading="lazy"
             onError={(e) => {
-              e.currentTarget.src = "/images/container-debris-small.webp"
+              e.currentTarget.src = "/images/Taqi-hero3.webp"
             }}
           />
         ) : (

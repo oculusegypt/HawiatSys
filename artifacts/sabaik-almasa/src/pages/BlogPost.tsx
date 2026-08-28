@@ -120,10 +120,10 @@ function ArticleContainers({ onOpen }: { onOpen: (size?: string) => void }) {
           <div key={c.size} className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm hover:shadow-md hover:border-primary/20 transition-all group flex flex-col justify-between">
             <div className="h-36 overflow-hidden bg-gray-100">
               <img
-                 src={c.imageUrl || "/images/container-debris-small.webp"}
+                 src={c.imageUrl || "/images/Taqi-hero3.webp"}
                  alt={`${c.name} - ${c.size}`}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                 onError={(e) => { e.currentTarget.src = "/images/container-debris-small.webp" }}
+                  onError={(e) => { e.currentTarget.src = "/images/Taqi-hero3.webp" }}
               />
             </div>
             <div className="p-4 flex-1 flex flex-col justify-between">

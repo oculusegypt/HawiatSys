@@ -1,0 +1,1192 @@
+{
+  "archiveType": "legacy-project-images",
+  "createdAt": "2026-08-28T19:17:54.188Z",
+  "sourceRoot": ".",
+  "listedNames": [
+    "1784880738437-4f946616f9a9.webp",
+    "1784880757820-804463c77f13.webp",
+    "1784882025820-49ef14f7bcd4.jpg",
+    "1784882033731-85f21c7eda4f.jpeg",
+    "1784887232848-88a8998bb09c.webp",
+    "1784887243470-6flac3a6fef6.jpeg",
+    "1785255325266-4cc5c495fd6c.webp",
+    "1785255348822-1765d023ab6b.jpeg",
+    "1785255370019-1e0ecd0713bb.jpg",
+    "1785255383693-202a8c3ca609.webp",
+    "1785257611922-fc9bf51eac24.webp",
+    "1785354077655-5e88594b40d9.png",
+    "1785354097174-a0cca97c9f9e.webp",
+    "1785354132506-ea72050b634a.webp",
+    "1785354146906-ce9aa9e1c391.jpeg",
+    "1785354183144-d7bf9cbadf55.webp",
+    "1785354189577-a14df34802cf.webp",
+    "1785354200379-71f2dc852bef.jpg",
+    "1785354314084-e9d133e457b0.png",
+    "1785354327071-7df0d634363d.jpg",
+    "1785354339551-5be8106e52d7.jpeg",
+    "1785354343959-b28bddab35d2.jpeg",
+    "1785354462050-46de33cb28d2.png",
+    "1785354476427-472433a3487c.webp",
+    "1786046507655-3963740b2785.webp",
+    "1786048541217-6f6bb80fac50.webp",
+    "1786575435928-f3bc01c96a5a.webp",
+    "1786576602625-1e9aa3b17cae.webp",
+    "1786580706278-a17684d9aa89.webp",
+    "1786590530851-baf2cf1d98f4.webp",
+    "1786590827707-becaf3702c0b.webp",
+    "1786590833367-23f06943c4d8.webp",
+    "1786590919358-48b4454a24fl.webp",
+    "1786590941352-fb358374525f.webp",
+    "1786852381998-7b9fc2691361.webp",
+    "1786852410628-3417524d6e46.webp",
+    "1786852441444-7bdcaa7c2133.webp",
+    "1786852469840-8c9465939c93.webp",
+    "1786852497754-e23a365fc223.webp",
+    "1786852526916-f43fb6a35802.webp",
+    "Banner-Big.webp",
+    "Banner-Small.webp",
+    "ceo.webp",
+    "container-1.webp",
+    "container-2.webp",
+    "container-3.webp",
+    "container-4.jpeg",
+    "container-compactor-electric.webp",
+    "container-debris-jumbo.webp",
+    "container-debris-large.webp",
+    "container-debris-medium.webp",
+    "container-debris-small.webp"
+  ],
+  "numericPrefixes": [
+    "1784880738437",
+    "1784880757820",
+    "1784882025820",
+    "1784882033731",
+    "1784887232848",
+    "1784887243470",
+    "1785255325266",
+    "1785255348822",
+    "1785255370019",
+    "1785255383693",
+    "1785257611922",
+    "1785354077655",
+    "1785354097174",
+    "1785354132506",
+    "1785354146906",
+    "1785354183144",
+    "1785354189577",
+    "1785354200379",
+    "1785354314084",
+    "1785354327071",
+    "1785354339551",
+    "1785354343959",
+    "1785354462050",
+    "1785354476427",
+    "1786046507655",
+    "1786048541217",
+    "1786575435928",
+    "1786576602625",
+    "1786580706278",
+    "1786590530851",
+    "1786590827707",
+    "1786590833367",
+    "1786590919358",
+    "1786590941352",
+    "1786852381998",
+    "1786852410628",
+    "1786852441444",
+    "1786852469840",
+    "1786852497754",
+    "1786852526916"
+  ],
+  "scannedImageFileCount": 465,
+  "matchedSourceReferenceCount": 190,
+  "uniqueArchivedFileCount": 87,
+  "totalBytes": 10527243,
+  "productionExclusionBasenames": [
+    "1784880738437-4f145616f9a9.webp",
+    "1784880757820-804463c77f13.webp",
+    "1784882025820-49ef14f7bcd4.jpg",
+    "1784882033731-85f21c7eda4f.jpeg",
+    "1784887232848-88a8998bb09c.webp",
+    "1784887243470-6f1ac3a6fef6.jpeg",
+    "1785255325266-4cc5c495fd6c.webp",
+    "1785255348822-1765d023ab6b.jpeg",
+    "1785255370019-1e0ecd0713bb.jpg",
+    "1785255383693-202a8c3ca609.webp",
+    "1785257611922-fc9bf51eac24.webp",
+    "1785354077655-5e88594b40d9.png",
+    "1785354097174-a0cca97c9f9e.webp",
+    "1785354132506-ea72050b634a.webp",
+    "1785354146906-ce9aa9e1c391.jpeg",
+    "1785354183144-d7bf9cbadf55.webp",
+    "1785354189577-a14df34802cf.webp",
+    "1785354200379-71f2dc852bef.jpg",
+    "1785354314084-e9d133e457b0.png",
+    "1785354327071-7df0d634363d.jpg",
+    "1785354339551-5be8106e52d7.jpeg",
+    "1785354343959-b28bddab35d2.jpeg",
+    "1785354462050-46de33cb28d2.png",
+    "1785354476427-472433a3487c.webp",
+    "1786046507655-3963740b2785.webp",
+    "1786048541217-6f6bb80fac50.webp",
+    "1786575435928-f3bc01c96a5a.webp",
+    "1786576602625-1e9aa3b17cae.webp",
+    "1786580706278-a17684d9aa89.webp",
+    "1786590530851-baf2cf1d98f4.webp",
+    "1786590827707-becaf3702c0b.webp",
+    "1786590833367-23f06943c4d8.webp",
+    "1786590919358-48b4454a24f1.webp",
+    "1786590941352-fb358374525f.webp",
+    "1786852381998-7b9fc2691361.webp",
+    "1786852410628-3417524d6e46.webp",
+    "1786852441444-7bdcaa7c2133.webp",
+    "1786852469840-8c9465939c93.webp",
+    "1786852497754-e23a365fc223.webp",
+    "1786852526916-f43fb6a35802.webp",
+    "banner-big.webp",
+    "banner-small.webp",
+    "ceo.webp",
+    "container-1.webp",
+    "container-2.webp",
+    "container-3.webp",
+    "container-4.jpeg",
+    "container-compactor-electric.webp",
+    "container-debris-jumbo.webp",
+    "container-debris-large.webp",
+    "container-debris-medium.webp",
+    "container-debris-small.webp",
+    "container-waste-medium.webp",
+    "أسعار-تأجير-الحاويات-بالرياض.jpg",
+    "الأسئلة-الشائعة-عن-تأجير-الحاويات.jpg",
+    "تأجير-حاويات-بالرياض.jpg",
+    "تأجير-حاويات-للمنازل-والترميم-بالرياض.jpg",
+    "حاويات-للإيجار-بالرياض.jpg",
+    "حاويات-للمصانع-والمستودعات-بالرياض.jpg",
+    "حاويات-للمقاولين-والمطورين-العقاريين.jpg",
+    "حاويات-مخلفات-البناء-والأنقاض.jpg",
+    "حاويات-نفايات-للمطاعم-والمنشآت-بالرياض.jpg",
+    "حاوية-12-ياردة-بالرياض.jpg",
+    "حاوية-20-ياردة-بالرياض.jpg",
+    "رفع-ونقل-المخلفات-بالرياض.jpg",
+    "شركة-تأجير-حاويات-بالرياض.jpg",
+    "مناطق-تغطية-تأجير-الحاويات-بالرياض-وضواحيها.jpg",
+    "نقل-الأنقاض-ومخلفات-البناء-بالرياض.jpg"
+  ],
+  "productionExclusionNumericPrefixes": [
+    "1784880738437",
+    "1784880757820",
+    "1784882025820",
+    "1784882033731",
+    "1784887232848",
+    "1784887243470",
+    "1785255325266",
+    "1785255348822",
+    "1785255370019",
+    "1785255383693",
+    "1785257611922",
+    "1785354077655",
+    "1785354097174",
+    "1785354132506",
+    "1785354146906",
+    "1785354183144",
+    "1785354189577",
+    "1785354200379",
+    "1785354314084",
+    "1785354327071",
+    "1785354339551",
+    "1785354343959",
+    "1785354462050",
+    "1785354476427",
+    "1786046507655",
+    "1786048541217",
+    "1786575435928",
+    "1786576602625",
+    "1786580706278",
+    "1786590530851",
+    "1786590827707",
+    "1786590833367",
+    "1786590919358",
+    "1786590941352",
+    "1786852381998",
+    "1786852410628",
+    "1786852441444",
+    "1786852469840",
+    "1786852497754",
+    "1786852526916"
+  ],
+  "files": [
+    {
+      "target": "uploads/1784880738437-4f145616f9a9.webp",
+      "sources": [
+        "artifacts/api-server/uploads/1784880738437-4f145616f9a9.webp",
+        "artifacts/sabaik-almasa/public/images/صور حسام/1784880738437-4f145616f9a9.webp",
+        "artifacts/sabaik-almasa/public/uploads/1784880738437-4f145616f9a9.webp",
+        "uploads/1784880738437-4f145616f9a9.webp"
+      ],
+      "basename": "1784880738437-4f145616f9a9.webp",
+      "bytes": 149062,
+      "sha256": "62aed2ce1307014c74c63d4fbb20515bcf592e5292e0e0af0b86aac01bd14ea6",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/1784880757820-804463c77f13.webp",
+      "sources": [
+        "artifacts/api-server/uploads/1784880757820-804463c77f13.webp",
+        "artifacts/sabaik-almasa/public/images/صور حسام/1784880757820-804463c77f13.webp",
+        "artifacts/sabaik-almasa/public/uploads/1784880757820-804463c77f13.webp",
+        "uploads/1784880757820-804463c77f13.webp"
+      ],
+      "basename": "1784880757820-804463c77f13.webp",
+      "bytes": 114602,
+      "sha256": "9ca392c8b88453308c13582d8e3fa00675e26ba419e82d27e0b1ad967e93bdb6",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/1784882025820-49ef14f7bcd4.jpg",
+      "sources": [
+        "artifacts/api-server/uploads/1784882025820-49ef14f7bcd4.jpg",
+        "artifacts/sabaik-almasa/public/images/صور حسام/1784882025820-49ef14f7bcd4.jpg",
+        "artifacts/sabaik-almasa/public/uploads/1784882025820-49ef14f7bcd4.jpg",
+        "uploads/1784882025820-49ef14f7bcd4.jpg"
+      ],
+      "basename": "1784882025820-49ef14f7bcd4.jpg",
+      "bytes": 86337,
+      "sha256": "ac64de745e52c37d924777404a709696a7f8387c94413bca2a22f3a493d5afba",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/1784882033731-85f21c7eda4f.jpeg",
+      "sources": [
+        "artifacts/api-server/uploads/1784882033731-85f21c7eda4f.jpeg"
+      ],
+      "basename": "1784882033731-85f21c7eda4f.jpeg",
+      "bytes": 86733,
+      "sha256": "efd515510a0c4aa20e0c47fe788759821b03b0f3e98740b5da018d3587403616",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/1784887232848-88a8998bb09c.webp",
+      "sources": [
+        "artifacts/api-server/uploads/1784887232848-88a8998bb09c.webp",
+        "artifacts/sabaik-almasa/public/uploads/1784887232848-88a8998bb09c.webp",
+        "uploads/1784887232848-88a8998bb09c.webp"
+      ],
+      "basename": "1784887232848-88a8998bb09c.webp",
+      "bytes": 170264,
+      "sha256": "c24a6623e49b912e54ae2927014a437e47b78091f5fc8197e787a33b8b1aeb13",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/1784887243470-6f1ac3a6fef6.jpeg",
+      "sources": [
+        "artifacts/api-server/uploads/1784887243470-6f1ac3a6fef6.jpeg"
+      ],
+      "basename": "1784887243470-6f1ac3a6fef6.jpeg",
+      "bytes": 86733,
+      "sha256": "efd515510a0c4aa20e0c47fe788759821b03b0f3e98740b5da018d3587403616",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/1785255325266-4cc5c495fd6c.webp",
+      "sources": [
+        "artifacts/api-server/uploads/1785255325266-4cc5c495fd6c.webp",
+        "artifacts/sabaik-almasa/public/images/صور حسام/1785255325266-4cc5c495fd6c.webp",
+        "artifacts/sabaik-almasa/public/uploads/1785255325266-4cc5c495fd6c.webp",
+        "uploads/1785255325266-4cc5c495fd6c.webp"
+      ],
+      "basename": "1785255325266-4cc5c495fd6c.webp",
+      "bytes": 227768,
+      "sha256": "d1c25e90f6f88810ef09f8727ae38e142ac245f408d074a64360ad5fa2d2083a",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/1785255348822-1765d023ab6b.jpeg",
+      "sources": [
+        "artifacts/api-server/uploads/1785255348822-1765d023ab6b.jpeg"
+      ],
+      "basename": "1785255348822-1765d023ab6b.jpeg",
+      "bytes": 86733,
+      "sha256": "efd515510a0c4aa20e0c47fe788759821b03b0f3e98740b5da018d3587403616",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/1785255370019-1e0ecd0713bb.jpg",
+      "sources": [
+        "artifacts/api-server/uploads/1785255370019-1e0ecd0713bb.jpg",
+        "artifacts/sabaik-almasa/public/images/صور حسام/1785255370019-1e0ecd0713bb.jpg",
+        "artifacts/sabaik-almasa/public/uploads/1785255370019-1e0ecd0713bb.jpg",
+        "uploads/1785255370019-1e0ecd0713bb.jpg"
+      ],
+      "basename": "1785255370019-1e0ecd0713bb.jpg",
+      "bytes": 86524,
+      "sha256": "47c6265317fe7aaf90c0989c17c47de26dc06f8eaa956a06165fefaac325c81d",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/1785255383693-202a8c3ca609.webp",
+      "sources": [
+        "artifacts/api-server/uploads/1785255383693-202a8c3ca609.webp",
+        "artifacts/sabaik-almasa/public/images/صور حسام/1785255383693-202a8c3ca609.webp",
+        "artifacts/sabaik-almasa/public/uploads/1785255383693-202a8c3ca609.webp",
+        "uploads/1785255383693-202a8c3ca609.webp"
+      ],
+      "basename": "1785255383693-202a8c3ca609.webp",
+      "bytes": 260182,
+      "sha256": "7170408c8858a76c053893bb5bd519e4d64840c4bc153f7ad64999fe4aa239e9",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/1785257611922-fc9bf51eac24.webp",
+      "sources": [
+        "artifacts/api-server/uploads/1785257611922-fc9bf51eac24.webp",
+        "artifacts/sabaik-almasa/public/images/صور حسام/1785257611922-fc9bf51eac24.webp",
+        "artifacts/sabaik-almasa/public/uploads/1785257611922-fc9bf51eac24.webp",
+        "uploads/1785257611922-fc9bf51eac24.webp"
+      ],
+      "basename": "1785257611922-fc9bf51eac24.webp",
+      "bytes": 228032,
+      "sha256": "11266382939f6b2b5afc5948b443e2f61b7449bca8b94fd3d4c3765cc9dbec50",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/1785354077655-5e88594b40d9.png",
+      "sources": [
+        "artifacts/api-server/uploads/1785354077655-5e88594b40d9.png"
+      ],
+      "basename": "1785354077655-5e88594b40d9.png",
+      "bytes": 85489,
+      "sha256": "2f16b9e68a526a90faf8b6d1d85b23d2ad95194657b0f616fddcbfac5d60359a",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/1785354097174-a0cca97c9f9e.webp",
+      "sources": [
+        "artifacts/api-server/uploads/1785354097174-a0cca97c9f9e.webp",
+        "artifacts/sabaik-almasa/public/images/صور حسام/1785354097174-a0cca97c9f9e.webp",
+        "artifacts/sabaik-almasa/public/uploads/1785354097174-a0cca97c9f9e.webp",
+        "uploads/1785354097174-a0cca97c9f9e.webp"
+      ],
+      "basename": "1785354097174-a0cca97c9f9e.webp",
+      "bytes": 121080,
+      "sha256": "d5e55fd80e5a92b2649bb891906b0dc272b288f38d695da4602833c949c5848b",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/1785354132506-ea72050b634a.webp",
+      "sources": [
+        "artifacts/api-server/uploads/1785354132506-ea72050b634a.webp",
+        "artifacts/sabaik-almasa/public/images/صور حسام/1785354132506-ea72050b634a.webp",
+        "artifacts/sabaik-almasa/public/uploads/1785354132506-ea72050b634a.webp",
+        "uploads/1785354132506-ea72050b634a.webp"
+      ],
+      "basename": "1785354132506-ea72050b634a.webp",
+      "bytes": 149062,
+      "sha256": "62aed2ce1307014c74c63d4fbb20515bcf592e5292e0e0af0b86aac01bd14ea6",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/1785354146906-ce9aa9e1c391.jpeg",
+      "sources": [
+        "artifacts/api-server/uploads/1785354146906-ce9aa9e1c391.jpeg"
+      ],
+      "basename": "1785354146906-ce9aa9e1c391.jpeg",
+      "bytes": 79330,
+      "sha256": "935ade0528655b7b165d28c6243a8cd3d7ca58b79cd2ab4ccf24d1af4429ba8b",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/1785354183144-d7bf9cbadf55.webp",
+      "sources": [
+        "artifacts/api-server/uploads/1785354183144-d7bf9cbadf55.webp",
+        "artifacts/sabaik-almasa/public/images/صور حسام/1785354183144-d7bf9cbadf55.webp",
+        "artifacts/sabaik-almasa/public/uploads/1785354183144-d7bf9cbadf55.webp",
+        "uploads/1785354183144-d7bf9cbadf55.webp"
+      ],
+      "basename": "1785354183144-d7bf9cbadf55.webp",
+      "bytes": 142616,
+      "sha256": "cad40b0d4154a9efec9c68e5a00849da6a552b468c84e172405a807022c165bc",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/1785354189577-a14df34802cf.webp",
+      "sources": [
+        "artifacts/api-server/uploads/1785354189577-a14df34802cf.webp",
+        "artifacts/sabaik-almasa/public/images/صور حسام/1785354189577-a14df34802cf.webp",
+        "artifacts/sabaik-almasa/public/uploads/1785354189577-a14df34802cf.webp",
+        "uploads/1785354189577-a14df34802cf.webp"
+      ],
+      "basename": "1785354189577-a14df34802cf.webp",
+      "bytes": 142616,
+      "sha256": "cad40b0d4154a9efec9c68e5a00849da6a552b468c84e172405a807022c165bc",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/1785354200379-71f2dc852bef.jpg",
+      "sources": [
+        "artifacts/api-server/uploads/1785354200379-71f2dc852bef.jpg",
+        "artifacts/sabaik-almasa/public/images/صور حسام/1785354200379-71f2dc852bef.jpg",
+        "artifacts/sabaik-almasa/public/uploads/1785354200379-71f2dc852bef.jpg",
+        "uploads/1785354200379-71f2dc852bef.jpg"
+      ],
+      "basename": "1785354200379-71f2dc852bef.jpg",
+      "bytes": 86524,
+      "sha256": "47c6265317fe7aaf90c0989c17c47de26dc06f8eaa956a06165fefaac325c81d",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/1785354314084-e9d133e457b0.png",
+      "sources": [
+        "artifacts/api-server/uploads/1785354314084-e9d133e457b0.png"
+      ],
+      "basename": "1785354314084-e9d133e457b0.png",
+      "bytes": 85489,
+      "sha256": "2f16b9e68a526a90faf8b6d1d85b23d2ad95194657b0f616fddcbfac5d60359a",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/1785354327071-7df0d634363d.jpg",
+      "sources": [
+        "artifacts/api-server/uploads/1785354327071-7df0d634363d.jpg",
+        "artifacts/sabaik-almasa/public/images/صور حسام/1785354327071-7df0d634363d.jpg",
+        "artifacts/sabaik-almasa/public/uploads/1785354327071-7df0d634363d.jpg",
+        "uploads/1785354327071-7df0d634363d.jpg"
+      ],
+      "basename": "1785354327071-7df0d634363d.jpg",
+      "bytes": 86524,
+      "sha256": "47c6265317fe7aaf90c0989c17c47de26dc06f8eaa956a06165fefaac325c81d",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/1785354339551-5be8106e52d7.jpeg",
+      "sources": [
+        "artifacts/api-server/uploads/1785354339551-5be8106e52d7.jpeg"
+      ],
+      "basename": "1785354339551-5be8106e52d7.jpeg",
+      "bytes": 21570,
+      "sha256": "13c3cd210235470dff86ecc2a1b5254075794326ac6c8cd99b6526340705dfbb",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/1785354343959-b28bddab35d2.jpeg",
+      "sources": [
+        "artifacts/api-server/uploads/1785354343959-b28bddab35d2.jpeg"
+      ],
+      "basename": "1785354343959-b28bddab35d2.jpeg",
+      "bytes": 21570,
+      "sha256": "13c3cd210235470dff86ecc2a1b5254075794326ac6c8cd99b6526340705dfbb",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/1785354462050-46de33cb28d2.png",
+      "sources": [
+        "artifacts/api-server/uploads/1785354462050-46de33cb28d2.png"
+      ],
+      "basename": "1785354462050-46de33cb28d2.png",
+      "bytes": 85489,
+      "sha256": "2f16b9e68a526a90faf8b6d1d85b23d2ad95194657b0f616fddcbfac5d60359a",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/1785354476427-472433a3487c.webp",
+      "sources": [
+        "artifacts/api-server/uploads/1785354476427-472433a3487c.webp",
+        "artifacts/sabaik-almasa/public/images/صور حسام/1785354476427-472433a3487c.webp",
+        "artifacts/sabaik-almasa/public/uploads/1785354476427-472433a3487c.webp",
+        "uploads/1785354476427-472433a3487c.webp"
+      ],
+      "basename": "1785354476427-472433a3487c.webp",
+      "bytes": 227768,
+      "sha256": "d1c25e90f6f88810ef09f8727ae38e142ac245f408d074a64360ad5fa2d2083a",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/1786046507655-3963740b2785.webp",
+      "sources": [
+        "artifacts/api-server/uploads/1786046507655-3963740b2785.webp",
+        "artifacts/sabaik-almasa/public/uploads/1786046507655-3963740b2785.webp",
+        "uploads/1786046507655-3963740b2785.webp"
+      ],
+      "basename": "1786046507655-3963740b2785.webp",
+      "bytes": 81966,
+      "sha256": "c8352895b56e12d5b28f4905e1906ed87c576d81a57433c9070fe423f9100995",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/1786048541217-6f6bb80fac50.webp",
+      "sources": [
+        "artifacts/api-server/uploads/1786048541217-6f6bb80fac50.webp",
+        "artifacts/sabaik-almasa/public/uploads/1786048541217-6f6bb80fac50.webp",
+        "uploads/1786048541217-6f6bb80fac50.webp"
+      ],
+      "basename": "1786048541217-6f6bb80fac50.webp",
+      "bytes": 81966,
+      "sha256": "c8352895b56e12d5b28f4905e1906ed87c576d81a57433c9070fe423f9100995",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/1786575435928-f3bc01c96a5a.webp",
+      "sources": [
+        "artifacts/api-server/uploads/1786575435928-f3bc01c96a5a.webp",
+        "artifacts/sabaik-almasa/public/uploads/1786575435928-f3bc01c96a5a.webp"
+      ],
+      "basename": "1786575435928-f3bc01c96a5a.webp",
+      "bytes": 173244,
+      "sha256": "4a575396b494e7211515cfa8de096439a043135415b12077877a81979a5902f1",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/1786576602625-1e9aa3b17cae.webp",
+      "sources": [
+        "artifacts/api-server/uploads/1786576602625-1e9aa3b17cae.webp",
+        "artifacts/sabaik-almasa/public/uploads/1786576602625-1e9aa3b17cae.webp"
+      ],
+      "basename": "1786576602625-1e9aa3b17cae.webp",
+      "bytes": 173244,
+      "sha256": "4a575396b494e7211515cfa8de096439a043135415b12077877a81979a5902f1",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/1786580706278-a17684d9aa89.webp",
+      "sources": [
+        "artifacts/api-server/uploads/1786580706278-a17684d9aa89.webp",
+        "artifacts/sabaik-almasa/public/uploads/1786580706278-a17684d9aa89.webp"
+      ],
+      "basename": "1786580706278-a17684d9aa89.webp",
+      "bytes": 173244,
+      "sha256": "4a575396b494e7211515cfa8de096439a043135415b12077877a81979a5902f1",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/1786590530851-baf2cf1d98f4.webp",
+      "sources": [
+        "artifacts/api-server/uploads/1786590530851-baf2cf1d98f4.webp",
+        "artifacts/sabaik-almasa/public/uploads/1786590530851-baf2cf1d98f4.webp"
+      ],
+      "basename": "1786590530851-baf2cf1d98f4.webp",
+      "bytes": 128626,
+      "sha256": "ba3cb948118b8c576f05088c3868115a6584df5ad5c355ea7e5d3a6596104dc5",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/1786590827707-becaf3702c0b.webp",
+      "sources": [
+        "artifacts/api-server/uploads/1786590827707-becaf3702c0b.webp",
+        "artifacts/sabaik-almasa/public/uploads/1786590827707-becaf3702c0b.webp"
+      ],
+      "basename": "1786590827707-becaf3702c0b.webp",
+      "bytes": 128626,
+      "sha256": "ba3cb948118b8c576f05088c3868115a6584df5ad5c355ea7e5d3a6596104dc5",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/1786590833367-23f06943c4d8.webp",
+      "sources": [
+        "artifacts/api-server/uploads/1786590833367-23f06943c4d8.webp",
+        "artifacts/sabaik-almasa/public/uploads/1786590833367-23f06943c4d8.webp"
+      ],
+      "basename": "1786590833367-23f06943c4d8.webp",
+      "bytes": 207356,
+      "sha256": "516b5b7f015d14816ae56c40386ff644c96ff1f9d03e6a470e1a16dc4f257618",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/1786590919358-48b4454a24f1.webp",
+      "sources": [
+        "artifacts/api-server/uploads/1786590919358-48b4454a24f1.webp",
+        "artifacts/sabaik-almasa/public/uploads/1786590919358-48b4454a24f1.webp"
+      ],
+      "basename": "1786590919358-48b4454a24f1.webp",
+      "bytes": 162838,
+      "sha256": "14228869edd12ffa465aab482d3208386ae6c4881ea35df04c182a835ec17de3",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/1786590941352-fb358374525f.webp",
+      "sources": [
+        "artifacts/api-server/uploads/1786590941352-fb358374525f.webp",
+        "artifacts/sabaik-almasa/public/uploads/1786590941352-fb358374525f.webp"
+      ],
+      "basename": "1786590941352-fb358374525f.webp",
+      "bytes": 207356,
+      "sha256": "516b5b7f015d14816ae56c40386ff644c96ff1f9d03e6a470e1a16dc4f257618",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/1786852381998-7b9fc2691361.webp",
+      "sources": [
+        "artifacts/api-server/uploads/1786852381998-7b9fc2691361.webp",
+        "artifacts/sabaik-almasa/public/uploads/1786852381998-7b9fc2691361.webp"
+      ],
+      "basename": "1786852381998-7b9fc2691361.webp",
+      "bytes": 184872,
+      "sha256": "9b412a621d991398619c4d4c6afbb5b3bf92dd5d81b89be5490f9481dc5f7a39",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/1786852410628-3417524d6e46.webp",
+      "sources": [
+        "artifacts/api-server/uploads/1786852410628-3417524d6e46.webp",
+        "artifacts/sabaik-almasa/public/uploads/1786852410628-3417524d6e46.webp"
+      ],
+      "basename": "1786852410628-3417524d6e46.webp",
+      "bytes": 154126,
+      "sha256": "34265ef2f571d17e1ae89398d2d4efc02060388dd04c5c55203206a50f5f8e4f",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/1786852441444-7bdcaa7c2133.webp",
+      "sources": [
+        "artifacts/api-server/uploads/1786852441444-7bdcaa7c2133.webp",
+        "artifacts/sabaik-almasa/public/uploads/1786852441444-7bdcaa7c2133.webp"
+      ],
+      "basename": "1786852441444-7bdcaa7c2133.webp",
+      "bytes": 136610,
+      "sha256": "b6543b4a1e738142e824c32857233a61486136c183b62bf4bf952478d93b47c8",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/1786852469840-8c9465939c93.webp",
+      "sources": [
+        "artifacts/api-server/uploads/1786852469840-8c9465939c93.webp",
+        "artifacts/sabaik-almasa/public/uploads/1786852469840-8c9465939c93.webp"
+      ],
+      "basename": "1786852469840-8c9465939c93.webp",
+      "bytes": 126998,
+      "sha256": "ea116fa952b06fb6714e06bcb84428b8fe9300c258fcafeaa7242e668e108bf9",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/1786852497754-e23a365fc223.webp",
+      "sources": [
+        "artifacts/api-server/uploads/1786852497754-e23a365fc223.webp",
+        "artifacts/sabaik-almasa/public/uploads/1786852497754-e23a365fc223.webp"
+      ],
+      "basename": "1786852497754-e23a365fc223.webp",
+      "bytes": 134572,
+      "sha256": "a9951120b2d2c94d676c5ec14c7e5aa8899796e0853e2740eb4a1fcd2c4fc855",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/1786852526916-f43fb6a35802.webp",
+      "sources": [
+        "artifacts/api-server/uploads/1786852526916-f43fb6a35802.webp",
+        "artifacts/sabaik-almasa/public/uploads/1786852526916-f43fb6a35802.webp"
+      ],
+      "basename": "1786852526916-f43fb6a35802.webp",
+      "bytes": 158622,
+      "sha256": "dfbfb6d13162018dbc4dd1460f283a9cd8de8ecbcb31219979b700411fce1863",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/container-3.webp",
+      "sources": [
+        "artifacts/api-server/uploads/container-3.webp",
+        "artifacts/sabaik-almasa/public/images/صور حسام/container-3.webp",
+        "artifacts/sabaik-almasa/public/uploads/container-3.webp",
+        "uploads/container-3.webp"
+      ],
+      "basename": "container-3.webp",
+      "bytes": 114602,
+      "sha256": "9ca392c8b88453308c13582d8e3fa00675e26ba419e82d27e0b1ad967e93bdb6",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/container-compactor-electric.webp",
+      "sources": [
+        "artifacts/api-server/uploads/container-compactor-electric.webp"
+      ],
+      "basename": "container-compactor-electric.webp",
+      "bytes": 57444,
+      "sha256": "264bbd6bbb23fe7351116572c1f63d634a96d48554656093c39a5c59b301f5f9",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/container-debris-jumbo.webp",
+      "sources": [
+        "artifacts/api-server/uploads/container-debris-jumbo.webp"
+      ],
+      "basename": "container-debris-jumbo.webp",
+      "bytes": 175996,
+      "sha256": "bf64a5dc39332cc716c1da0c79e53cf5f4a6d5cbfbf7017d52598cba716851b6",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/container-debris-large.webp",
+      "sources": [
+        "artifacts/api-server/uploads/container-debris-large.webp",
+        "artifacts/sabaik-almasa/public/images/صور حسام/container-debris-large.webp",
+        "artifacts/sabaik-almasa/public/uploads/container-debris-large.webp",
+        "uploads/container-debris-large.webp"
+      ],
+      "basename": "container-debris-large.webp",
+      "bytes": 142052,
+      "sha256": "108423cdea2f9442cd649512584bc1ef5f1470dfa4370d4ed7eb06039b5d16db",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/container-debris-medium.webp",
+      "sources": [
+        "artifacts/api-server/uploads/container-debris-medium.webp",
+        "artifacts/sabaik-almasa/public/images/صور حسام/container-debris-medium.webp",
+        "artifacts/sabaik-almasa/public/uploads/container-debris-medium.webp",
+        "uploads/container-debris-medium.webp"
+      ],
+      "basename": "container-debris-medium.webp",
+      "bytes": 135298,
+      "sha256": "1086640fa68765a37a72408038e127848bb0a2178fab760b05adbc6cf3ef8626",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/container-debris-small.webp",
+      "sources": [
+        "artifacts/api-server/uploads/container-debris-small.webp"
+      ],
+      "basename": "container-debris-small.webp",
+      "bytes": 92946,
+      "sha256": "f6c3661b68a6f6c44901fb60d337c4d7358ffc53e1615f5cc845beb6dce0305a",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/Banner-Big.webp",
+      "sources": [
+        "artifacts/sabaik-almasa/public/images/Banner-Big.webp"
+      ],
+      "basename": "Banner-Big.webp",
+      "bytes": 143806,
+      "sha256": "d67faae3be7160ffeaaddbe60ff68ac2a34ac3d630fba304e1204e2c99763f55",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/Banner-Small.webp",
+      "sources": [
+        "artifacts/sabaik-almasa/public/images/Banner-Small.webp"
+      ],
+      "basename": "Banner-Small.webp",
+      "bytes": 171606,
+      "sha256": "25d8cec64fd839679eb189c82cbb1ce9aa4afca0959b05c1942c004431f3bf50",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/ceo.webp",
+      "sources": [
+        "artifacts/sabaik-almasa/public/images/ceo.webp"
+      ],
+      "basename": "ceo.webp",
+      "bytes": 126656,
+      "sha256": "4e4892eb1e59089e2896cb5fc884f89d7babe1dfebb2e92f3d8e2956961884af",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/container-debris-small__2.webp",
+      "sources": [
+        "artifacts/sabaik-almasa/public/images/container-debris-small.webp",
+        "artifacts/sabaik-almasa/public/uploads/container-debris-small.webp",
+        "uploads/container-debris-small.webp"
+      ],
+      "basename": "container-debris-small.webp",
+      "bytes": 104020,
+      "sha256": "9474f2bc4ab1ca12511810bbee05cf6f70f4168691ef3b3bf568691799fa7531",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "صور حسام/1784882033731-85f21c7eda4f.jpeg",
+      "sources": [
+        "artifacts/sabaik-almasa/public/images/صور حسام/1784882033731-85f21c7eda4f.jpeg",
+        "artifacts/sabaik-almasa/public/uploads/1784882033731-85f21c7eda4f.jpeg",
+        "uploads/1784882033731-85f21c7eda4f.jpeg"
+      ],
+      "basename": "1784882033731-85f21c7eda4f.jpeg",
+      "bytes": 85181,
+      "sha256": "c8533d2212a08d9b52ad8948b67338aea7e0418708dc7cb6748af30ce41bb2b4",
+      "reason": "folder: صور حسام"
+    },
+    {
+      "target": "صور حسام/1784887232848-88a8998bb09c.webp",
+      "sources": [
+        "artifacts/sabaik-almasa/public/images/صور حسام/1784887232848-88a8998bb09c.webp"
+      ],
+      "basename": "1784887232848-88a8998bb09c.webp",
+      "bytes": 155256,
+      "sha256": "db3c379c9d2d9c85911f72f653987e59f434592509ad5449d80a1d082fb8d32e",
+      "reason": "folder: صور حسام"
+    },
+    {
+      "target": "صور حسام/1784887243470-6f1ac3a6fef6.jpeg",
+      "sources": [
+        "artifacts/sabaik-almasa/public/images/صور حسام/1784887243470-6f1ac3a6fef6.jpeg",
+        "artifacts/sabaik-almasa/public/uploads/1784887243470-6f1ac3a6fef6.jpeg",
+        "uploads/1784887243470-6f1ac3a6fef6.jpeg"
+      ],
+      "basename": "1784887243470-6f1ac3a6fef6.jpeg",
+      "bytes": 85181,
+      "sha256": "c8533d2212a08d9b52ad8948b67338aea7e0418708dc7cb6748af30ce41bb2b4",
+      "reason": "folder: صور حسام"
+    },
+    {
+      "target": "صور حسام/1785255348822-1765d023ab6b.jpeg",
+      "sources": [
+        "artifacts/sabaik-almasa/public/images/صور حسام/1785255348822-1765d023ab6b.jpeg",
+        "artifacts/sabaik-almasa/public/uploads/1785255348822-1765d023ab6b.jpeg",
+        "uploads/1785255348822-1765d023ab6b.jpeg"
+      ],
+      "basename": "1785255348822-1765d023ab6b.jpeg",
+      "bytes": 85181,
+      "sha256": "c8533d2212a08d9b52ad8948b67338aea7e0418708dc7cb6748af30ce41bb2b4",
+      "reason": "folder: صور حسام"
+    },
+    {
+      "target": "صور حسام/1785354077655-5e88594b40d9.png",
+      "sources": [
+        "artifacts/sabaik-almasa/public/images/صور حسام/1785354077655-5e88594b40d9.png",
+        "artifacts/sabaik-almasa/public/uploads/1785354077655-5e88594b40d9.png",
+        "uploads/1785354077655-5e88594b40d9.png"
+      ],
+      "basename": "1785354077655-5e88594b40d9.png",
+      "bytes": 71075,
+      "sha256": "5041a2939f2ec9de612c0bd02978fffc783166e11058d5b7beed6e8d643edc65",
+      "reason": "folder: صور حسام"
+    },
+    {
+      "target": "صور حسام/1785354146906-ce9aa9e1c391.jpeg",
+      "sources": [
+        "artifacts/sabaik-almasa/public/images/صور حسام/1785354146906-ce9aa9e1c391.jpeg",
+        "artifacts/sabaik-almasa/public/uploads/1785354146906-ce9aa9e1c391.jpeg",
+        "uploads/1785354146906-ce9aa9e1c391.jpeg"
+      ],
+      "basename": "1785354146906-ce9aa9e1c391.jpeg",
+      "bytes": 78180,
+      "sha256": "a9a42233236983d9f6734cc4025ce7ce7c9a5529ba2719f4fe95e74e4db6f116",
+      "reason": "folder: صور حسام"
+    },
+    {
+      "target": "صور حسام/1785354314084-e9d133e457b0.png",
+      "sources": [
+        "artifacts/sabaik-almasa/public/images/صور حسام/1785354314084-e9d133e457b0.png",
+        "artifacts/sabaik-almasa/public/uploads/1785354314084-e9d133e457b0.png",
+        "uploads/1785354314084-e9d133e457b0.png"
+      ],
+      "basename": "1785354314084-e9d133e457b0.png",
+      "bytes": 71075,
+      "sha256": "5041a2939f2ec9de612c0bd02978fffc783166e11058d5b7beed6e8d643edc65",
+      "reason": "folder: صور حسام"
+    },
+    {
+      "target": "صور حسام/1785354339551-5be8106e52d7.jpeg",
+      "sources": [
+        "artifacts/sabaik-almasa/public/images/صور حسام/1785354339551-5be8106e52d7.jpeg",
+        "artifacts/sabaik-almasa/public/uploads/1785354339551-5be8106e52d7.jpeg",
+        "uploads/1785354339551-5be8106e52d7.jpeg"
+      ],
+      "basename": "1785354339551-5be8106e52d7.jpeg",
+      "bytes": 18540,
+      "sha256": "3ed606e8c45bede29c7938ebb0f248517126c63ba785ccc54cb50bfbdcc97e48",
+      "reason": "folder: صور حسام"
+    },
+    {
+      "target": "صور حسام/1785354343959-b28bddab35d2.jpeg",
+      "sources": [
+        "artifacts/sabaik-almasa/public/images/صور حسام/1785354343959-b28bddab35d2.jpeg",
+        "artifacts/sabaik-almasa/public/uploads/1785354343959-b28bddab35d2.jpeg",
+        "uploads/1785354343959-b28bddab35d2.jpeg"
+      ],
+      "basename": "1785354343959-b28bddab35d2.jpeg",
+      "bytes": 18540,
+      "sha256": "3ed606e8c45bede29c7938ebb0f248517126c63ba785ccc54cb50bfbdcc97e48",
+      "reason": "folder: صور حسام"
+    },
+    {
+      "target": "صور حسام/1785354462050-46de33cb28d2.png",
+      "sources": [
+        "artifacts/sabaik-almasa/public/images/صور حسام/1785354462050-46de33cb28d2.png",
+        "artifacts/sabaik-almasa/public/uploads/1785354462050-46de33cb28d2.png",
+        "uploads/1785354462050-46de33cb28d2.png"
+      ],
+      "basename": "1785354462050-46de33cb28d2.png",
+      "bytes": 71075,
+      "sha256": "5041a2939f2ec9de612c0bd02978fffc783166e11058d5b7beed6e8d643edc65",
+      "reason": "folder: صور حسام"
+    },
+    {
+      "target": "صور حسام/1786046507655-3963740b2785.webp",
+      "sources": [
+        "artifacts/sabaik-almasa/public/images/صور حسام/1786046507655-3963740b2785.webp"
+      ],
+      "basename": "1786046507655-3963740b2785.webp",
+      "bytes": 70792,
+      "sha256": "55f810dea7586416443f4d99f0ccc2b1271d9c78f3b167f596de8470cc881b6b",
+      "reason": "folder: صور حسام"
+    },
+    {
+      "target": "صور حسام/1786048541217-6f6bb80fac50.webp",
+      "sources": [
+        "artifacts/sabaik-almasa/public/images/صور حسام/1786048541217-6f6bb80fac50.webp"
+      ],
+      "basename": "1786048541217-6f6bb80fac50.webp",
+      "bytes": 70792,
+      "sha256": "55f810dea7586416443f4d99f0ccc2b1271d9c78f3b167f596de8470cc881b6b",
+      "reason": "folder: صور حسام"
+    },
+    {
+      "target": "صور حسام/container-1.webp",
+      "sources": [
+        "artifacts/sabaik-almasa/public/images/صور حسام/container-1.webp"
+      ],
+      "basename": "container-1.webp",
+      "bytes": 230842,
+      "sha256": "3ac886fe14971ecb9e3183cae7c7051a08e418ce395d51e7cd565702702f5f60",
+      "reason": "folder: صور حسام"
+    },
+    {
+      "target": "صور حسام/container-2.webp",
+      "sources": [
+        "artifacts/sabaik-almasa/public/images/صور حسام/container-2.webp",
+        "artifacts/sabaik-almasa/public/uploads/container-2.webp",
+        "uploads/container-2.webp"
+      ],
+      "basename": "container-2.webp",
+      "bytes": 104428,
+      "sha256": "5eda02b8a8408e5f43bff38880923a32ea1503e809822065c14a66d13562b8c2",
+      "reason": "folder: صور حسام"
+    },
+    {
+      "target": "صور حسام/container-4.jpeg",
+      "sources": [
+        "artifacts/sabaik-almasa/public/images/صور حسام/container-4.jpeg",
+        "artifacts/sabaik-almasa/public/uploads/container-4.jpeg",
+        "uploads/container-4.jpeg"
+      ],
+      "basename": "container-4.jpeg",
+      "bytes": 79620,
+      "sha256": "3737eaa6f96343b344c87cb561011603e86a87b6dea4c4dd8d84a7a31ef9a26a",
+      "reason": "folder: صور حسام"
+    },
+    {
+      "target": "صور حسام/container-compactor-electric.webp",
+      "sources": [
+        "artifacts/sabaik-almasa/public/images/صور حسام/container-compactor-electric.webp",
+        "artifacts/sabaik-almasa/public/uploads/container-compactor-electric.webp",
+        "uploads/container-compactor-electric.webp"
+      ],
+      "basename": "container-compactor-electric.webp",
+      "bytes": 61290,
+      "sha256": "17ce9189668509fb4301bf159ef2748369b726c3870f98db07814aa1f215e373",
+      "reason": "folder: صور حسام"
+    },
+    {
+      "target": "صور حسام/container-debris-jumbo.webp",
+      "sources": [
+        "artifacts/sabaik-almasa/public/images/صور حسام/container-debris-jumbo.webp",
+        "artifacts/sabaik-almasa/public/uploads/container-debris-jumbo.webp",
+        "uploads/container-debris-jumbo.webp"
+      ],
+      "basename": "container-debris-jumbo.webp",
+      "bytes": 145180,
+      "sha256": "c5d4190cef32f94adfb7f037cf637d5b4082992b95e8f593dc3bd71d14b4f98c",
+      "reason": "folder: صور حسام"
+    },
+    {
+      "target": "صور حسام/container-waste-medium.webp",
+      "sources": [
+        "artifacts/sabaik-almasa/public/images/صور حسام/container-waste-medium.webp"
+      ],
+      "basename": "container-waste-medium.webp",
+      "bytes": 80970,
+      "sha256": "a03909ea871faca279fa31065f54eb0acee9183cdb03c86e3264b8933418b1ed",
+      "reason": "folder: صور حسام"
+    },
+    {
+      "target": "صور حسام/أسعار-تأجير-الحاويات-بالرياض.jpg",
+      "sources": [
+        "artifacts/sabaik-almasa/public/images/صور حسام/أسعار-تأجير-الحاويات-بالرياض.jpg"
+      ],
+      "basename": "أسعار-تأجير-الحاويات-بالرياض.jpg",
+      "bytes": 122155,
+      "sha256": "c25dfa1b5027aeb84b68f8b968b173a28ead83628e6c386919237bfb48a987bd",
+      "reason": "folder: صور حسام"
+    },
+    {
+      "target": "صور حسام/الأسئلة-الشائعة-عن-تأجير-الحاويات.jpg",
+      "sources": [
+        "artifacts/sabaik-almasa/public/images/صور حسام/الأسئلة-الشائعة-عن-تأجير-الحاويات.jpg"
+      ],
+      "basename": "الأسئلة-الشائعة-عن-تأجير-الحاويات.jpg",
+      "bytes": 114638,
+      "sha256": "f2bbfa9b5058c3a679f11ea7308c4f959d82f8242f6a5a4b93d406f8f883076d",
+      "reason": "folder: صور حسام"
+    },
+    {
+      "target": "صور حسام/تأجير-حاويات-بالرياض.jpg",
+      "sources": [
+        "artifacts/sabaik-almasa/public/images/صور حسام/تأجير-حاويات-بالرياض.jpg"
+      ],
+      "basename": "تأجير-حاويات-بالرياض.jpg",
+      "bytes": 109314,
+      "sha256": "c9e67c2850652781fd330aed0964192932dc129a0a9f7f739b86130b31b5db65",
+      "reason": "folder: صور حسام"
+    },
+    {
+      "target": "صور حسام/تأجير-حاويات-للمنازل-والترميم-بالرياض.jpg",
+      "sources": [
+        "artifacts/sabaik-almasa/public/images/صور حسام/تأجير-حاويات-للمنازل-والترميم-بالرياض.jpg"
+      ],
+      "basename": "تأجير-حاويات-للمنازل-والترميم-بالرياض.jpg",
+      "bytes": 109314,
+      "sha256": "c9e67c2850652781fd330aed0964192932dc129a0a9f7f739b86130b31b5db65",
+      "reason": "folder: صور حسام"
+    },
+    {
+      "target": "صور حسام/حاويات-للإيجار-بالرياض.jpg",
+      "sources": [
+        "artifacts/sabaik-almasa/public/images/صور حسام/حاويات-للإيجار-بالرياض.jpg"
+      ],
+      "basename": "حاويات-للإيجار-بالرياض.jpg",
+      "bytes": 109314,
+      "sha256": "c9e67c2850652781fd330aed0964192932dc129a0a9f7f739b86130b31b5db65",
+      "reason": "folder: صور حسام"
+    },
+    {
+      "target": "صور حسام/حاويات-للمصانع-والمستودعات-بالرياض.jpg",
+      "sources": [
+        "artifacts/sabaik-almasa/public/images/صور حسام/حاويات-للمصانع-والمستودعات-بالرياض.jpg"
+      ],
+      "basename": "حاويات-للمصانع-والمستودعات-بالرياض.jpg",
+      "bytes": 142327,
+      "sha256": "5e7fead6f9dfb2208da8ade903c7c31c4b6362800c26d9d2dfbfc35d5952cb6d",
+      "reason": "folder: صور حسام"
+    },
+    {
+      "target": "صور حسام/حاويات-للمقاولين-والمطورين-العقاريين.jpg",
+      "sources": [
+        "artifacts/sabaik-almasa/public/images/صور حسام/حاويات-للمقاولين-والمطورين-العقاريين.jpg"
+      ],
+      "basename": "حاويات-للمقاولين-والمطورين-العقاريين.jpg",
+      "bytes": 142327,
+      "sha256": "5e7fead6f9dfb2208da8ade903c7c31c4b6362800c26d9d2dfbfc35d5952cb6d",
+      "reason": "folder: صور حسام"
+    },
+    {
+      "target": "صور حسام/حاويات-مخلفات-البناء-والأنقاض.jpg",
+      "sources": [
+        "artifacts/sabaik-almasa/public/images/صور حسام/حاويات-مخلفات-البناء-والأنقاض.jpg"
+      ],
+      "basename": "حاويات-مخلفات-البناء-والأنقاض.jpg",
+      "bytes": 109314,
+      "sha256": "c9e67c2850652781fd330aed0964192932dc129a0a9f7f739b86130b31b5db65",
+      "reason": "folder: صور حسام"
+    },
+    {
+      "target": "صور حسام/حاويات-نفايات-للمطاعم-والمنشآت-بالرياض.jpg",
+      "sources": [
+        "artifacts/sabaik-almasa/public/images/صور حسام/حاويات-نفايات-للمطاعم-والمنشآت-بالرياض.jpg"
+      ],
+      "basename": "حاويات-نفايات-للمطاعم-والمنشآت-بالرياض.jpg",
+      "bytes": 142327,
+      "sha256": "5e7fead6f9dfb2208da8ade903c7c31c4b6362800c26d9d2dfbfc35d5952cb6d",
+      "reason": "folder: صور حسام"
+    },
+    {
+      "target": "صور حسام/حاوية-12-ياردة-بالرياض.jpg",
+      "sources": [
+        "artifacts/sabaik-almasa/public/images/صور حسام/حاوية-12-ياردة-بالرياض.jpg"
+      ],
+      "basename": "حاوية-12-ياردة-بالرياض.jpg",
+      "bytes": 109314,
+      "sha256": "c9e67c2850652781fd330aed0964192932dc129a0a9f7f739b86130b31b5db65",
+      "reason": "folder: صور حسام"
+    },
+    {
+      "target": "صور حسام/حاوية-20-ياردة-بالرياض.jpg",
+      "sources": [
+        "artifacts/sabaik-almasa/public/images/صور حسام/حاوية-20-ياردة-بالرياض.jpg"
+      ],
+      "basename": "حاوية-20-ياردة-بالرياض.jpg",
+      "bytes": 109314,
+      "sha256": "c9e67c2850652781fd330aed0964192932dc129a0a9f7f739b86130b31b5db65",
+      "reason": "folder: صور حسام"
+    },
+    {
+      "target": "صور حسام/رفع-ونقل-المخلفات-بالرياض.jpg",
+      "sources": [
+        "artifacts/sabaik-almasa/public/images/صور حسام/رفع-ونقل-المخلفات-بالرياض.jpg"
+      ],
+      "basename": "رفع-ونقل-المخلفات-بالرياض.jpg",
+      "bytes": 109314,
+      "sha256": "c9e67c2850652781fd330aed0964192932dc129a0a9f7f739b86130b31b5db65",
+      "reason": "folder: صور حسام"
+    },
+    {
+      "target": "صور حسام/شركة-تأجير-حاويات-بالرياض.jpg",
+      "sources": [
+        "artifacts/sabaik-almasa/public/images/صور حسام/شركة-تأجير-حاويات-بالرياض.jpg"
+      ],
+      "basename": "شركة-تأجير-حاويات-بالرياض.jpg",
+      "bytes": 142327,
+      "sha256": "5e7fead6f9dfb2208da8ade903c7c31c4b6362800c26d9d2dfbfc35d5952cb6d",
+      "reason": "folder: صور حسام"
+    },
+    {
+      "target": "صور حسام/مناطق-تغطية-تأجير-الحاويات-بالرياض-وضواحيها.jpg",
+      "sources": [
+        "artifacts/sabaik-almasa/public/images/صور حسام/مناطق-تغطية-تأجير-الحاويات-بالرياض-وضواحيها.jpg"
+      ],
+      "basename": "مناطق-تغطية-تأجير-الحاويات-بالرياض-وضواحيها.jpg",
+      "bytes": 101819,
+      "sha256": "8161f7d5855c938ad963e56ca81ad15fd42880e9d7a7fe73b66ad0dfe98a30cf",
+      "reason": "folder: صور حسام"
+    },
+    {
+      "target": "صور حسام/نقل-الأنقاض-ومخلفات-البناء-بالرياض.jpg",
+      "sources": [
+        "artifacts/sabaik-almasa/public/images/صور حسام/نقل-الأنقاض-ومخلفات-البناء-بالرياض.jpg"
+      ],
+      "basename": "نقل-الأنقاض-ومخلفات-البناء-بالرياض.jpg",
+      "bytes": 109314,
+      "sha256": "c9e67c2850652781fd330aed0964192932dc129a0a9f7f739b86130b31b5db65",
+      "reason": "folder: صور حسام"
+    },
+    {
+      "target": "uploads/Banner-Big__2.webp",
+      "sources": [
+        "artifacts/sabaik-almasa/public/uploads/Banner-Big.webp",
+        "uploads/Banner-Big.webp"
+      ],
+      "basename": "Banner-Big.webp",
+      "bytes": 170264,
+      "sha256": "c24a6623e49b912e54ae2927014a437e47b78091f5fc8197e787a33b8b1aeb13",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/Banner-Small__2.webp",
+      "sources": [
+        "artifacts/sabaik-almasa/public/uploads/Banner-Small.webp",
+        "uploads/Banner-Small.webp"
+      ],
+      "basename": "Banner-Small.webp",
+      "bytes": 188530,
+      "sha256": "b3ab8f9fc3f665de03ff8f5b494330797200e99eb3152f3839597d29c9d65783",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/ceo__2.webp",
+      "sources": [
+        "artifacts/sabaik-almasa/public/uploads/ceo.webp",
+        "uploads/ceo.webp"
+      ],
+      "basename": "ceo.webp",
+      "bytes": 14064,
+      "sha256": "7a9e2e29747b63a5af7115d955f77c619af1db5430f6fa95860e40b288d79064",
+      "reason": "listed legacy image"
+    },
+    {
+      "target": "uploads/container-1.webp",
+      "sources": [
+        "artifacts/sabaik-almasa/public/uploads/container-1.webp",
+        "uploads/container-1.webp"
+      ],
+      "basename": "container-1.webp",
+      "bytes": 191966,
+      "sha256": "2e95f472178eba235746f0c20cca7b9a5aa003a5c3d00eccb87ba8a3e8be91c1",
+      "reason": "listed legacy image"
+    }
+  ]
+}

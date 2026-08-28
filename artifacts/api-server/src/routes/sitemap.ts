@@ -95,11 +95,11 @@ function getStaticPages(base: string, siteName: string) {
       { loc: `${base}/images/logo.png`,    title: `شعار ${siteName}` },
     ]},
     { path: "/about",                          priority: "0.9",  freq: "monthly", images: [
-      { loc: `${base}/images/ceo.webp`, title: `رسالة المدير التنفيذي — ${siteName}` },
+      { loc: `${base}/images/shareek-mawsouq.webp`, title: `رسالة المدير التنفيذي — ${siteName}` },
     ]},
     { path: "/pricing",                        priority: "0.95", freq: "monthly", images: [] },
     { path: "/container/",                     priority: "0.9",  freq: "monthly", images: [
-      { loc: `${base}/images/container-1.webp`, title: "حاويات الأنقاض والنفايات بالرياض" },
+      { loc: `${base}/images/Taqi-hero1.webp`, title: "حاويات الأنقاض والنفايات بالرياض" },
     ]},
     { path: "/contact",                        priority: "0.85", freq: "monthly", images: [] },
     { path: "/partners",                       priority: "0.75", freq: "monthly", images: [] },

@@ -2020,9 +2020,9 @@ try {
                     } catch (\Exception $e2) {}
                 }
                 $fallbackImages = [
-                    'debris' => '/images/container-1.webp',
-                    'waste' => '/images/container-2.webp',
-                    'contract' => '/images/container-1.webp',
+                    'debris' => '/images/Taqi-hero1.webp',
+                    'waste' => '/images/Taqi-hero2.webp',
+                    'contract' => '/images/Taqi-hero1.webp',
                 ];
                 return array_map(function($c) use ($categoryMeta, $fallbackImages) {
                     $cat = $c['category'] ?? 'debris';
@@ -2035,7 +2035,7 @@ try {
                     }
                     $img = !empty($c['image_url']) && !str_contains($c['image_url'], 'package-0') && !str_contains($c['image_url'], 'cleaning')
                         ? $c['image_url']
-                        : ($fallbackImages[$cat] ?? '/images/container-1.webp');
+                        : ($fallbackImages[$cat] ?? '/images/Taqi-hero1.webp');
 
                     return [
                         'id' => 'container_' . $c['id'],
@@ -2069,7 +2069,7 @@ try {
                         'category' => 'all',
                         'title' => 'جميع مقاسات وأنواع الحاويات',
                         'description' => 'استعرض كافة حاويات الأنقاض والنفايات والمكابس المتاحة',
-                        'image' => '/images/container-1.webp',
+                        'image' => '/images/Taqi-hero1.webp',
                         'emoji' => '📦'
                     ]
                 ];
@@ -2084,7 +2084,7 @@ try {
                         'category' => $cat,
                         'title' => $meta['title'],
                         'description' => $meta['description'],
-                        'image' => $first ? $first['image'] : '/images/container-1.webp',
+                        'image' => $first ? $first['image'] : '/images/Taqi-hero1.webp',
                         'emoji' => $meta['emoji']
                     ];
                 }

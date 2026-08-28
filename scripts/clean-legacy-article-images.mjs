@@ -34,9 +34,50 @@ const HERO_IMAGES = [
   "/images/Taqi-hero5.webp",
 ];
 
+const LEGACY_IMAGE_REPLACEMENTS = new Map([
+  ["/images/Banner-Big.webp", "/images/Taqi-hero2.webp"],
+  ["/images/Banner-Small.webp", "/images/Taqi-hero3.webp"],
+  ["/images/ceo.webp", "/images/shareek-mawsouq.webp"],
+  ["/images/container-1.webp", "/images/Taqi-hero1.webp"],
+  ["/images/container-2.webp", "/images/Taqi-hero2.webp"],
+  ["/images/container-3.webp", "/images/Taqi-hero3.webp"],
+  ["/images/container-4.jpeg", "/images/Taqi-hero4.webp"],
+  ["/images/container-compactor-electric.webp", "/images/Taqi-hero2.webp"],
+  ["/images/container-debris-jumbo.webp", "/images/Taqi-hero1.webp"],
+  ["/images/container-debris-large.webp", "/images/Taqi-hero2.webp"],
+  ["/images/container-debris-medium.webp", "/images/Taqi-hero3.webp"],
+  ["/images/container-debris-small.webp", "/images/Taqi-hero3.webp"],
+]);
+const LEGACY_UPLOAD_PREFIXES = [
+  "1784880738437", "1784880757820", "1784882025820", "1784882033731",
+  "1784887232848", "1785255325266", "1785255348822", "1785255370019",
+  "1785255383693", "1785257611922", "1785354077655", "1785354097174",
+  "1785354132506", "1785354146906", "1785354183144", "1785354189577",
+  "1785354200379", "1785354314084", "1785354327071", "1785354339551",
+  "1785354343959", "1785354462050", "1785354476427", "1786046507655",
+  "1786048541217", "1786575435928", "1786576606278", "1786580706278",
+  "1786590530851", "1786590827707", "1786590833367", "1786590919358",
+  "1786590941352", "1786852381998", "1786852410628", "1786852441444",
+  "1786852469840", "1786852497754", "1786852526916",
+];
+const legacyUploadPattern = new RegExp(
+  String.raw`/(?:api/)?uploads/(?:${LEGACY_UPLOAD_PREFIXES.join("|")})-[^/"'\\\s?#]+`,
+  "gi",
+);
+
+function replaceLegacyImagePaths(value) {
+  let result = String(value || "");
+  for (const [legacy, current] of LEGACY_IMAGE_REPLACEMENTS) {
+    result = result.replaceAll(legacy, current);
+  }
+  result = result.replace(legacyUploadPattern, "/images/Taqi-hero4.webp");
+  return result;
+}
+
 const isLegacyArticleImage = (value) => {
   const image = String(value || "").trim();
   return (
+    replaceLegacyImagePaths(image) !== image ||
     /^\/images\/(?:container-[1-4]\.(?:webp|jpe?g)|hero-[1-4]\.webp)$/i.test(image) ||
     /^\/api\/uploads\/178\d+-[^/]+$/i.test(image)
   );
@@ -75,16 +116,46 @@ function updateHomepageMedia(db) {
     .get();
   if (!row || typeof row.value !== "string") return 0;
 
-  const value = row.value
-    .replaceAll("/images/container-1.webp", "/images/Taqi-hero1.webp")
-    .replaceAll("/images/container-2.webp", "/images/Taqi-hero2.webp")
-    .replaceAll("/images/container-3.webp", "/images/Taqi-hero3.webp")
-    .replaceAll("/images/container-4.jpeg", "/images/Taqi-hero4.webp");
+  const value = replaceLegacyImagePaths(row.value);
   if (value === row.value) return 0;
 
   db.prepare("UPDATE site_settings SET value = ?, updated_at = ? WHERE id = ?")
     .run(value, new Date().toISOString(), row.id);
   return 1;
+}
+
+function updateLegacyReferences(db) {
+  let updated = 0;
+  const candidateTables = [
+    "site_settings",
+    "posts",
+    "seo_pages",
+    "services",
+    "packages",
+    "containers",
+    "hero_slides",
+    "testimonials",
+    "partners",
+  ];
+  for (const tableName of candidateTables) {
+    if (!db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?").get(tableName)) continue;
+    const table = tableName.replaceAll('"', '""');
+    const columns = db.prepare(`PRAGMA table_info("${table}")`).all()
+      .filter((column) => String(column.type || "").toUpperCase().includes("TEXT"));
+    for (const column of columns) {
+      const name = String(column.name).replaceAll('"', '""');
+      const values = db.prepare(`SELECT DISTINCT "${name}" AS value FROM "${table}" NOT INDEXED WHERE "${name}" IS NOT NULL`).all();
+      for (const row of values) {
+        if (typeof row.value !== "string") continue;
+        const nextValue = replaceLegacyImagePaths(row.value);
+        if (nextValue === row.value) continue;
+        db.prepare(`UPDATE "${table}" SET "${name}" = ? WHERE "${name}" = ?`)
+          .run(nextValue, row.value);
+        updated += 1;
+      }
+    }
+  }
+  return updated;
 }
 
 function moveUnusedImages(db) {
@@ -234,8 +305,10 @@ try {
     homepageSettings: updateHomepageMedia(db),
   }));
   const { articleRows, homepageSettings } = update();
+  const legacyReferences = updateLegacyReferences(db);
   const movedFiles = moveUnusedImages(db);
   console.log(`تم تحديث ${articleRows} سجل مقال و${homepageSettings} إعداد واجهة إلى صور الهيرو الحالية.`);
+  console.log(`تم تحديث ${legacyReferences} قيمة تحتوي على مراجع صور قديمة.`);
   console.log(`تم نقل ${movedFiles} صورة غير مستخدمة إلى images/صور حسام.`);
 } finally {
   db.close();
