@@ -12,7 +12,7 @@ const dbPath = path.join(dataDir, "sabaik.db");
 const db = new Database(dbPath);
 db.pragma("foreign_keys = OFF");
 
-console.log("=== Starting Sabaik Content Import ===");
+console.log("=== Starting CleanFlow Content Import ===");
 
 // 1. Import Settings
 try {

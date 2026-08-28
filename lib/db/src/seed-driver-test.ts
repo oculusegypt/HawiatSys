@@ -10,8 +10,8 @@ const driverName = "سائق الاختبار — محمد العتيبي";
 const driverPhone = "0551234567";
 const vehiclePlate = "ر س ن 2026";
 
-function legacyHash(value: string) {
-  return crypto.createHash("sha256").update(value + "sabaik_salt").digest("hex");
+function hashPassword(value: string) {
+  return crypto.createHash("sha256").update(value + "cleanflow-password-salt").digest("hex");
 }
 
 const existingAdmin = db.select().from(adminsTable)
@@ -29,7 +29,7 @@ if (existingAdmin) {
 } else {
   const created = db.insert(adminsTable).values({
     username,
-    passwordHash: legacyHash(password),
+    passwordHash: hashPassword(password),
     name: driverName,
     email: "driver.test@example.com",
     role: "driver",

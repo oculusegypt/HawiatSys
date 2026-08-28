@@ -14,8 +14,15 @@ if (!TOKEN_SECRET) {
 const TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
 
 // ── Password helpers ──────────────────────────────────────────────────────────
+const PASSWORD_SALT = "cleanflow-password-salt";
+const LEGACY_PASSWORD_SALT = String.fromCharCode(115, 97, 98, 97, 105, 107, 95, 115, 97, 108, 116);
+
 export function hashPassword(password: string): string {
-  return crypto.createHash("sha256").update(password + String.fromCharCode(115, 97, 98, 97, 105, 107, 95, 115, 97, 108, 116)).digest("hex");
+  return crypto.createHash("sha256").update(password + PASSWORD_SALT).digest("hex");
+}
+
+function hashLegacyPassword(password: string): string {
+  return crypto.createHash("sha256").update(password + LEGACY_PASSWORD_SALT).digest("hex");
 }
 
 export async function hashPasswordBcrypt(password: string): Promise<string> {
@@ -26,7 +33,9 @@ async function verifyPassword(password: string, stored: string): Promise<boolean
   if (stored.startsWith("$2")) return bcrypt.compare(password, stored);
   const expected = Buffer.from(hashPassword(password), "hex");
   const actual = Buffer.from(stored, "hex");
-  return actual.length === expected.length && crypto.timingSafeEqual(expected, actual);
+  if (actual.length === expected.length && crypto.timingSafeEqual(expected, actual)) return true;
+  const legacy = Buffer.from(hashLegacyPassword(password), "hex");
+  return actual.length === legacy.length && crypto.timingSafeEqual(legacy, actual);
 }
 
 // ── Token helpers (HMAC-signed) ───────────────────────────────────────────────

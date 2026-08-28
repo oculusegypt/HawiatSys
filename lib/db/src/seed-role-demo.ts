@@ -8,7 +8,7 @@ import { db } from "./index.js";
 import { adminsTable, type AdminRole } from "./schema/admins.js";
 
 const password = "Demo@2026!";
-const hash = (value: string) => crypto.createHash("sha256").update(value + "sabaik_salt").digest("hex");
+const hash = (value: string) => crypto.createHash("sha256").update(value + "cleanflow-password-salt").digest("hex");
 const accounts: { username: string; name: string; email: string; role: AdminRole }[] = [
   { username: "demo.manager", name: "مدير التجربة", email: "manager.demo@example.com", role: "manager" },
   { username: "demo.support", name: "موظف خدمة العملاء", email: "support.demo@example.com", role: "customer_service" },

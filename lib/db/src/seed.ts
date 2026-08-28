@@ -18,9 +18,10 @@ import { conversationsTable, messagesTable } from "./schema/conversations.js";
 import * as crypto from "crypto";
 
 const SITE_NAME = process.env.SITE_NAME?.trim() || "الشركة";
+const PASSWORD_SALT = "cleanflow-password-salt";
 
 function hashPassword(password: string): string {
-  return crypto.createHash("sha256").update(password + "sabaik_salt").digest("hex");
+  return crypto.createHash("sha256").update(password + PASSWORD_SALT).digest("hex");
 }
 
 function seedAll() {
@@ -40,7 +41,7 @@ function seedAll() {
   // --- Admin User ---
   db.insert(adminsTable).values({
     username: "admin",
-    passwordHash: hashPassword("sabaik2024"),
+    passwordHash: hashPassword("taqi2024"),
     name: "مدير النظام",
   }).run();
 

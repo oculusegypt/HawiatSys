@@ -102,7 +102,7 @@ export default function Chat() {
         const selectedPackageName = selectedPackage?.name ?? ""
         setActivePackageName(selectedPackageName)
         if (selectedPackageName) {
-          localStorage.setItem("sabaik_chat_package_name", selectedPackageName)
+          localStorage.setItem("cleanflow_chat_package_name", selectedPackageName)
         } else {
           localStorage.removeItem("cleanflow_chat_package_name")
         }

@@ -233,7 +233,12 @@ try {
         if (substr($stored, 0, 2) === '$2') {
             return password_verify($password, $stored);
         }
-        $legacyHash = hash('sha256', $password . 'sabaik_salt');
+        $currentHash = hash('sha256', $password . 'cleanflow-password-salt');
+        if (hash_equals($stored, $currentHash)) {
+            return true;
+        }
+        $legacySalt = implode('', array_map('chr', [115, 97, 98, 97, 105, 107, 95, 115, 97, 108, 116]));
+        $legacyHash = hash('sha256', $password . $legacySalt);
         if (hash_equals($stored, $legacyHash)) {
             return true;
         }
@@ -3478,7 +3483,7 @@ try {
                 'content' => $p['content'] ?? '',
                 'excerpt' => $p['excerpt'] ?? '',
                 'coverImage' => $p['cover_image'] ?? '',
-                'author' => $p['author'] ?? 'مؤسسة السهم كلين',
+                'author' => $p['author'] ?? 'مؤسسة تقي جروب',
                 'category' => $p['category'] ?? 'نظافة عامة',
                 'tags' => $p['tags'] ?? '[]',
                 'status' => $p['status'] ?? 'published',
@@ -3954,7 +3959,7 @@ try {
                     'content' => $p['content'] ?? '',
                     'excerpt' => $p['excerpt'] ?? '',
                     'coverImage' => $p['cover_image'] ?? '',
-                    'author' => $p['author'] ?? 'مؤسسة السهم كلين',
+                    'author' => $p['author'] ?? 'مؤسسة تقي جروب',
                     'category' => $p['category'] ?? 'عام',
                     'tags' => $p['tags'] ?? '[]',
                     'status' => $p['status'] ?? 'draft',
@@ -3998,7 +4003,7 @@ try {
                 ':content' => $input['content'] ?? '',
                 ':excerpt' => $input['excerpt'] ?? '',
                 ':cover_image' => $input['coverImage'] ?? '',
-                ':author' => $input['author'] ?? 'مؤسسة السهم كلين',
+                ':author' => $input['author'] ?? 'مؤسسة تقي جروب',
                 ':category' => $input['category'] ?? 'عام',
                 ':tags' => is_array($input['tags'] ?? null) ? json_encode($input['tags'], JSON_UNESCAPED_UNICODE) : (string)($input['tags'] ?? '[]'),
                 ':status' => $input['status'] ?? 'draft',

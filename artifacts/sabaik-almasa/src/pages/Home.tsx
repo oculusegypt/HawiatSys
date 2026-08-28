@@ -348,6 +348,7 @@ export default function Home() {
     publicUrl,
     sectionsOrder,
     hiddenSections,
+    isLoaded,
   } = siteSettings
 
   useEffect(() => {

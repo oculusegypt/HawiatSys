@@ -237,8 +237,8 @@ const cleaningArticles = [
 </ul>`
   },
   {
-    slug: "moqarnat-sharikat-tanzeef-alryad-clean-life-al-ealamia-sabaik",
-    seo_slug: "moqarnat-sharikat-tanzeef-alryad-clean-life-al-ealamia-sabaik",
+    slug: "moqarnat-sharikat-tanzeef-alryad-clean-life-al-ealamia-taqi-group",
+    seo_slug: "moqarnat-sharikat-tanzeef-alryad-clean-life-al-ealamia-taqi-group",
     title: "مقارنة أفضل شركات تنظيف المنازل بالرياض 2026 — الباقات والضمان والجودة",
     seo_title: "مقارنة أفضل شركات تنظيف بالرياض | دليل شامل للباقات والمعايير",
     seo_description: "مقارنة شاملة بين كبرى شركات تنظيف المنازل بالرياض من حيث معايير الخدمة والتسعير والضمان وجودة العمالة المجهزة.",

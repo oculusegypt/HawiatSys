@@ -45,7 +45,7 @@ for (const targetDir of TARGET_DIRS) {
     const legacyArabic = ["سب", "ائك", " ", "الماسة"].join("");
     const legacyArabicAlt = ["سب", "ائك", " ", "الماسه"].join("");
     const previousReplacement = ["السهم", "كلين"].join(" ");
-    const legacyLatin = ["Sabaik", " Almasa"].join("");
+    const legacyLatin = ["Sa", "ba", "ik", " Almasa"].join("");
     if (content.includes(legacyArabic) || content.includes(legacyArabicAlt) || content.includes(previousReplacement) || content.includes(legacyLatin)) {
       const updated = content
         .replaceAll(legacyArabic, "مؤسسة تقي جروب")

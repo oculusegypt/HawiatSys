@@ -465,11 +465,10 @@ step("تنظيف اسم العلامة القديمة من ملفات Hostinger"
   siteDb.close();
   const siteName = String(siteNameRow?.value || "").trim() || "الشركة";
   const legacyPatterns = [
-    [/مؤسسة\s+مؤسسة\s+السهم\s+كلين/gu, siteName],
-    [/مؤسسة\s+تقي جروب\s+الماسة/gu, siteName],
-    [/شركة\s+تقي جروب\s+الماسة/gu, siteName],
-    [/تقي جروب\s+الماسة/gu, siteName],
-    [/منصة\s+حاويات/gu, siteName],
+    [/مؤسسة\s+مؤسسة\s+تقي\s+جروب/gu, siteName],
+    [/مؤسسة\s+تقي\s+جروب\s+الماسة/gu, siteName],
+    [/شركة\s+تقي\s+جروب\s+الماسة/gu, siteName],
+    [/تقي\s+جروب\s+الماسة/gu, siteName],
   ];
   const walk = (dir) => {
     for (const entry of readdirSync(dir)) {

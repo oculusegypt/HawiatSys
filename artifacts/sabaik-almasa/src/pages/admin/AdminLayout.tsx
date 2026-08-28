@@ -462,6 +462,7 @@ export default function AdminLayout({
   useEffect(() => {
     const token = localStorage.getItem("admin_token");
     if (!token) {
+      setAuthLoading(false);
       setLocation("/admin/login");
       return;
     }
@@ -475,6 +476,7 @@ export default function AdminLayout({
           localStorage.removeItem("admin_role");
           localStorage.removeItem("admin_id");
           localStorage.removeItem("admin_name");
+          setAuthLoading(false);
           setLocation("/admin/login");
           return null;
         }
@@ -506,6 +508,7 @@ export default function AdminLayout({
         localStorage.removeItem("admin_role");
         localStorage.removeItem("admin_id");
         localStorage.removeItem("admin_name");
+        setAuthLoading(false);
         setLocation("/admin/login");
       });
   }, [setLocation]);

@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from "react"
 import { applyThemePreset } from "@/lib/themePresets"
-import { setSitePublicUrl } from "@/lib/siteUrl"
 
 export function getSafeMapEmbedUrl(
   raw: string,
@@ -202,12 +201,18 @@ const DEFAULTS: SiteSettings = {
   hiddenSections: [],
   isLoaded: false,
   isError: false,
+  reload: () => {},
 }
 
 const SiteSettingsContext = createContext<SiteSettings>(DEFAULTS)
 
 export function normalizeCompanyText(value: string): string {
   return value
+}
+
+export function replaceLegacyCompanyName(value: string | undefined, companyName: string): string | undefined {
+  if (!value) return value
+  return normalizeCompanyText(value).replace(/\{\{company_name\}\}/g, companyName)
 }
 
 function parseHomepageContent(raw: unknown): HomepageContent {
@@ -268,15 +273,15 @@ function parseHeroPosition(raw: unknown, fallback: string): string {
   return /^(top|center|bottom)-(left|center|right)$/.test(value) ? value : fallback
 }
 
-async function fetchSettings(): Promise<SiteSettings> {
+type FetchedSiteSettings = Omit<SiteSettings, "reload">
+
+async function fetchSettings(): Promise<FetchedSiteSettings> {
   const response = await fetch(`${API_BASE}/api/settings?ts=${Date.now()}`, { cache: "no-store" })
   if (!response.ok) throw new Error(`Settings request failed with ${response.status}`)
   const data = await response.json()
   if (!data || typeof data !== "object" || Array.isArray(data)) {
     throw new Error("Settings response was invalid")
   }
-  setSitePublicUrl(typeof data.site_public_url === "string" ? data.site_public_url : "")
-
   let phones: string[] = []
   try {
     const p = JSON.parse(data.company_phones || "[]")
@@ -350,7 +355,7 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
     const sequence = ++requestSequence.current
     fetchSettings()
       .then(next => {
-        if (sequence === requestSequence.current) setSettings(next)
+        if (sequence === requestSequence.current) setSettings({ ...next, reload })
       })
       .catch(() => {
         if (sequence === requestSequence.current) {
