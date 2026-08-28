@@ -305,6 +305,12 @@ export default function SeoPage() {
               </div>
               <h1 className="max-w-4xl text-3xl font-black leading-[1.35] tracking-tight text-gray-900 md:text-5xl" data-testid="heading-seo-page">{page.title}</h1>
               {page.excerpt && <p className="mt-5 max-w-3xl text-base leading-8 text-gray-500 md:text-lg" data-testid="text-seo-page-excerpt">{page.excerpt}</p>}
+               {(page.targetKeyword || page.seoKeywords) && (
+                 <div className="mt-5 rounded-2xl border border-secondary/20 bg-secondary/5 px-4 py-3" data-testid="seo-page-keywords">
+                   <div className="text-xs font-black text-secondary">الكلمات الرئيسية</div>
+                   <div className="mt-1 text-sm leading-7 text-gray-700">{page.seoKeywords || page.targetKeyword}</div>
+                 </div>
+               )}
             </header>
             <div className="seo-page-content px-6 py-8 md:px-12 md:py-11 prose prose-lg max-w-none prose-headings:font-black prose-headings:text-gray-900 prose-p:leading-8 prose-p:text-gray-700 prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-strong:text-gray-900 prose-li:text-gray-700 prose-blockquote:rounded-xl prose-blockquote:border-secondary prose-blockquote:bg-secondary/5" dir="rtl" data-testid="content-seo-page" dangerouslySetInnerHTML={{ __html: page.content || "<p>لا يوجد محتوى لهذه الصفحة بعد.</p>" }} />
           </article>

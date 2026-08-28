@@ -1,0 +1,241 @@
+Task
+
+Inspect the current project and report: (1) all upload callers and the title/context values they can send, (2) the PHP upload implementation in scripts/api-index.php including helper functions and route behavior, (3) where service SEO keywords are rendered, and (4) the DB seed conventions for reviews. Cite exact file paths and line ranges. Do not modify files.
+Show more
+
+Show less
+1 failed
+Inspecting and locating files
+
+Inspecting and locating files
+Inspecting and locating files
+
+I need to inspect and locate the files. It's important to ensure that I’m thorough in checking where these are stored and possibly look into their organization. I want to make sure everything is where it’s supposed to be and nothing is misplaced. I’ll take some time to search thoroughly and see what I can find, focusing on clarity and efficiency in the process. Let's get started!
+
+
+Ran pwd
+
+Searched for "upload|seo|keyword|revi…"
+
+Found files
+
+Searched for "(?:fetch|axios|XMLHttpR…"
+
+Counted lines
+
+Searched for "service.*keyword|keywor…"
+
+Searched for "insert into.*review|rev…"
+
+Searched for "fetch([^n]*(?:upload|up…"
+
+Opened api-index.php
+
+Opened api-index.php
+
+Opened api-index.php
+
+Opened api-index.php
+
+Searched for "api/(?:admin/)?(?:slide…"
+
+Searched for "fetch([^n]*(?:/api/uplo…"
+
+Searched for "INSERT INTO reviews|CRE…"
+
+Opened SeoPage.tsx
+
+Reading Services.tsx
+
+Searched for "artifacts/sabaik-almasa…"
+
+Searched for "seoKeywords|keywords"
+
+Opened setup-service-reviews.mjs
+
+Opened reviews.ts
+
+Opened uploads.ts
+Questioning upload parameters
+
+Questioning upload parameters
+Questioning upload parameters
+
+I need to analyze the possible parameters for upload callers, specifically looking at what title or context values they can send. I wonder if "caller" refers to the upload API in the uploaded assets. Currently, the source callers only send the file without any title or context. I should check for any related title or context values within FormData across the platform. This feels like a crucial detail to ensure everything works smoothly!
+
+
+Searched for "(?:append|set)(['"](?:t…"
+
+Opened ServiceDetail.tsx
+
+Opened ServicesPage.tsx
+
+Opened SeoPagesLinksSection.tsx
+
+Opened Services.tsx
+Exploring DB seed conventions
+
+Exploring DB seed conventions
+Exploring DB seed conventions
+
+I’m thinking that "DB seed conventions for reviews" may relate to the seed script data I need to manage. It seems I’ll need to focus on the first 130 lines, which likely contain essential information for my scripts. I’ll want to make sure I set this up correctly to ensure that everything functions as intended. Alright, it’s time to delve into those beginning lines to clarify what I need!
+
+
+Opened setup-service-reviews.mjs
+
+Opened ServiceDetail.tsx
+
+Opened useDocumentSEO.ts
+
+Opened api-index.php
+
+Opened api-index.php
+Working
+Result
+(1) Upload callers (all multipart payloads append only file; no caller appends/sends title or context, so supported title/context values are none):
+
+Public chat attachment: artifacts/sabaik-almasa/src/pages/Chat.tsx:113-127 -> POST /api/uploads; afterward message has fixed content أرسل صورة, senderType client (:122-126).
+Live support chat: artifacts/sabaik-almasa/src/components/chat/LiveSupportChat.tsx:397-410 -> POST /api/uploads; message JSON likewise fixed content: "أرسل صورة", senderType: "client" (:406-410).
+Admin blog cover: artifacts/sabaik-almasa/src/pages/admin/Blog.tsx:222-238 -> POST /api/admin/uploads; only file is appended (:228-233).
+Admin work-order/driver proof: artifacts/sabaik-almasa/src/pages/admin/WorkOrders.tsx:448-464 -> POST /api/driver/uploads; only file (:454-462).
+Admin slides: artifacts/sabaik-almasa/src/pages/admin/Slides.tsx:63-76 -> POST /api/admin/slides/upload; only file (:67-72).
+Admin logo/site settings: artifacts/sabaik-almasa/src/pages/admin/SiteSettings.tsx:307-320 -> POST /api/admin/uploads; only file (:310-316).
+Admin service images: artifacts/sabaik-almasa/src/pages/admin/Services.tsx:133-152 -> POST /api/admin/uploads; only file (:143-149).
+Admin package images: artifacts/sabaik-almasa/src/pages/admin/Packages.tsx:161-176 -> POST /api/admin/uploads; only file (:167-173).
+Admin ad image: artifacts/sabaik-almasa/src/pages/admin/Ads.tsx:87-106 -> POST /api/admin/uploads; only file (:97-103). There are no FormData.append("title"...), append("context"...), or equivalent upload fields in the current callers. Button title attributes in the chat UIs are UI tooltips, not uploaded values (Chat.tsx:334-336; LiveSupportChat.tsx:544-546).
+(2) PHP upload implementation: scripts/api-index.php.
+
+Request normalization strips /build_php/ and /api/ prefixes at :60-74; static GET /api/uploads/{filename}//uploads/{filename} is handled at :76-119, basename-strips the filename, searches several deployment paths (:79-95), maps image/PDF MIME types and emits one-year cache headers (:96-113), otherwise 404 JSON (:114-118).
+Relevant helper compressUploadedImage is at :404-425: requires GD WebP functions (:405), reads only files <=8 MiB (:406-408), decodes image, scales max dimension to 2400 (:410-414), creates alpha-preserving canvas (:415-420), writes WebP quality 86 and verifies nonempty output (:421-425).
+Dedicated driver POST route is :1032-1064: authenticates via requireAdminAccess and explicitly requires role driver (:1034-1039), requires genuine $_FILES['file'] upload (:1041-1044), writes to __DIR__.'/../uploads' (:1046-1050), compresses, and returns {url, filename, contentType:image/webp, size} (:1051-1057); compression failure returns 422 (:1058-1063).
+General POST upload route covers /admin/uploads, /admin/slides/upload, and public /uploads at :1066-1097. It requires $_FILES['file'] (:1068-1071), creates the same uploads directory (:1074-1077), generates timestamp/random .webp name (:1079-1081), validates is_uploaded_file and compresses (:1083), returns {url, filename, contentType:image/webp, size} (:1084-1089), and returns 500 JSON on failure (:1091-1096). It does not read or persist title/context fields. (The surrounding admin authorization gate is earlier in the script; route-specific upload code itself does not call admin auth for /admin/uploads//admin/slides/upload, unlike the driver route.)
+(3) Service SEO keyword rendering:
+
+PHP API exposes DB seo_keywords as seoKeywords in service-list responses: scripts/api-index.php:2832-2855, single-service response: :2988-3021 (specifically :3015-3018). It accepts/updates the field in create/update routes at :2859-2887 and :2909-2932.
+The service detail page passes stored keywords to the SEO hook, with fallback keywords when absent: artifacts/sabaik-almasa/src/pages/ServiceDetail.tsx:187-196 (keyword expression at :192).
+Actual HTML <meta name="keywords"> rendering occurs in artifacts/sabaik-almasa/src/hooks/useDocumentSEO.ts:16-25 (meta creation/update) and :49-67 (company-name normalization and setMeta("keywords", resolvedKeywords), specifically :53-54, :65-67).
+Service index page has its own static keyword set (artifacts/sabaik-almasa/src/pages/ServicesPage.tsx:42-51, keywords at :48), distinct from per-service SEO keywords.
+(4) DB seed conventions for reviews:
+
+Schema convention: lib/db/src/schema/reviews.ts:5-15 defines auto-increment id, required serviceId/customerName/rating/comment, city default الرياض, rating default 5, status default pending, ISO created timestamp, nullable approved timestamp; insert schema omits generated id/timestamps (:17-18).
+Seed data is grouped by numeric service ID in scripts/setup-service-reviews.mjs:9-129; comments identify services 1-10 and 11-15 (:10, :20, :31, :41, :51, :60, :69, :78, :88, :97, :108). Each record convention is {name, city, rating, comment, date} with Arabic Riyadh-area cities, ratings 4/5, and ISO UTC dates (examples :12-17, :22-28).
+For each configured DB path (:4-7), the script creates the table with FK to services, city default, rating CHECK 1-5, and status default approved (:131-147); deletes all existing reviews before reseeding (:149-150).
+Seed INSERT explicitly writes service_id, customer_name, customer_city, rating, comment, status, created_at, approved_at; every seed row is approved and uses the same source date for both created_at and approved_at (:152-161). Total is logged and DB closed (:165-166).
+Runtime public submissions differ: PHP validates name/comment/rating and defaults city to الرياض (scripts/api-index.php:2696-2708), inserts status pending with created timestamp and no approved timestamp (:2710-2719); public reads expose approved rows only (:2655-2692).
+Inspecting setup-service-reviews
+
+Inspecting setup-service-reviews
+Inspecting setup-service-reviews
+
+I need to proceed with checking the setup to see if the file setup-service-reviews.mjs exists. It's possible that I won’t need the entire text from the subagent, but I want to make sure I have the right information to continue. I'll take a closer look at the configurations and see what I can find. It's all about making sure everything is properly set up!
+
+
+Opened setup-service-reviews.mjs
+
+Opened Services.tsx
+
+Opened Packages.tsx
+
+Opened SiteSettings.tsx
+
+Opened Ads.tsx
+
+Opened SeoPage.tsx
+
+Opened ServiceDetail.tsx
+
+Opened build-hostinger.mjs
+
+Found files
+
+Searched for "seoKeywords|targetKeywo…"
+Planning image edits
+
+Planning image edits
+Planning image edits
+
+I need to make some edits related to the architecture. The images in the database are currently stored under /images/Taqi-hero*. I think I need to generate title-based copies and place them in public/images/content. Since the site build likely deals with public assets, I’ll need to copy those uploads. I could script an update for the source database using ARCHIVE_SOURCE_DB, so I should determine the database path by running a find data command.
+
+
+Listed files
+Planning image migration
+
+Planning image migration
+Planning image migration
+
+I need to keep going with creating this image migration script, considering whether to update the current database directly. Since the user requested execution, I’ll have to follow through. I should focus on the current IDs, specifically 34 and 35, while noting that the seed shows 2. For the ArticleContainers, it should reflect 2 actual items instead of 3. I’ll look into the /api/containers route to see if it returns the correct package rows.
+
+
+Opened containers.ts
+
+Opened PackagesSection.tsx
+
+Opened PackageCard.tsx
+
+Processed text
+
+Searched for "function (slug|sanitize…"
+Setting up image storage
+
+Setting up image storage
+Considering slugification with Arabic
+
+I’m thinking about the backend slugify process when using Arabic transliteration. The user mentioned something about making URLs stable with Unicode. It’s interesting—existing URLs are Latin-based, so I might use a title-based slug like "مطابق لعنوان." I'll check if slugifyUploadContext will preserve both Unicode Arabic and ASCII. Also, I need to ensure that any filename collisions are handled, perhaps by adding a suffix like “-2.” I'll need to address file deletion and regex adjustments for Unicode too.Planning content migration for images
+
+I'm thinking about how to manage the migration for existing content images. I could create a script, scripts/migrate-content-image-names.mjs, using better-sqlite3 and fs to handle URL resolutions properly. It makes sense to use slugify for Arabic titles, but I need to ensure uniqueness for titles that are the same. To avoid collisions, maybe I should adopt a naming convention like post-${id}-${slug}. Also, organizing them into folders by type could help; for example, use paths like /images/content/articles/${slug}.webp. I’ll need to build a script that manages copying public assets effectively.Setting up image storage
+
+I’m considering placing images under artifacts/sabaik-almasa/public/images/content/... and running a migration to copy the source files there. This would also involve updating the database accordingly. It seems like a good plan since the runtime uses the uploads directory in the API, so storing in the public images folder should work fine. I just need to ensure everything aligns seamlessly for easy access and management. It’s all about keeping things organized!
+
+
+Searched for "heroSlidesTable"
+Updating fetch headers
+
+Updating fetch headers
+Updating fetch headers
+
+I want to update the admin fetch headers and consider using API_BASE, which seems functional. For Dynamic ArticleContainers, it looks like implementing useGetContainers would be simpler. I'll need to import the Container type and utilize useGetContainers. I might also need a helper for getting images, which could be related to the package card's getContainerImage, and I have to think about URL resolution—current images are at /api/uploads/, which is probably okay.
+
+Considering API Display Options
+
+Considering API Display Options
+Considering API Display Options
+
+I need to make sure I’m displaying the active content properly. If there are no articles, maybe I should show a message instead of leaving it empty. For the best display, I can use suitableFor or description for clarity, and for pricing, I'll check priceText or pricePerDay. I should also inspect the generated types from the API client to ensure I have all the necessary fields. Let's keep things straightforward and user-friendly!
+
+
+Searched for "export type Container|i…"
+
+Opened api.schemas.ts
+Managing filenames and images
+
+Managing filenames and images
+Applying patches for scripts
+
+I need to apply some patches using a script that migrates data, which will mutate the source database and public assets. I’m thinking of using better-sqlite3 and including paths for public and uploads while ensuring to trim whitespace for all posts, pages, and hero images.
+
+I want to use a function that slugifies titles, preserving Arabic, Latin, and numbers, while removing punctuation and collapsing hyphens. I'll make sure to handle potential filename collisions gracefully. It looks like I’ll also need to ensure the target extension is .webp and consider image conversions as necessary.Managing filenames and images
+
+I’m noticing that the source filename is the same for all, but the post titles differ, so I’ll use slugs. If there’s a duplicate title in the table, I’ll adjust the target path with the ID instead.
+
+Next, I need to update certain queries for cover images and other fields, ensuring we don’t alter embedded content. The user may want image links for articles and pages, but I think it’s best to keep the current HTML image source intact.
+
+After applying the patch, I’ll need to execute the new script and incorporate the reviews script. I might also use INSERT SELECT for existence checks. It looks like applying the necessary files and modifications is my next step.
+
+سأحوّل الطلب إلى تغييرات قابلة للصيانة بدل تعديل يدوي مؤقت: سكربت ترحيل يحافظ على كل المحتوى ويعيد تسمية ملفات صور المقالات/صفحات SEO/الشرائح، وبيانات تقييمات قابلة لإعادة التشغيل دون حذف أي تقييمات يضيفها العملاء، ثم أربط الرفع الجديد بعنوان السجل أو المكان.
+
+
+
+Show less
+
+Created seed-current-service-reviews.mjs
+
+Created migrate-content-image-names.mjs
+
+Edited reviews.ts
+
+Edited BlogPost.tsx
+
+Edited SeoPage.tsx
+
+Worked for 4 minutes
+You've reached your daily free quota limit. It will reset at 12:00 AM UTC.

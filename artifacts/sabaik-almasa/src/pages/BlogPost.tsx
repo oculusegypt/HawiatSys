@@ -11,6 +11,8 @@ import { useToast } from "@/hooks/use-toast"
 import { useServiceRequest } from "@/context/ServiceRequestContext"
 import { getSiteUrl, sitePath, siteUrl } from "@/lib/siteUrl"
 import { normalizeCompanyText, useSiteSettings } from "@/context/SiteSettingsContext"
+import { useGetContainers } from "@workspace/api-client-react"
+import type { Container } from "@workspace/api-client-react"
 
 const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
 interface Post {
@@ -97,11 +99,10 @@ function ArticleCTA({ onOpen, phoneCall, phoneWhatsapp, postTitle }: { onOpen: (
 
 // ─── Container Packages CTA at article end ────────────────────────────────────────────
 function ArticleContainers({ onOpen }: { onOpen: (size?: string) => void }) {
-  const containers = [
-    { name: "حاوية أنقاض صغيرة", size: "12 ياردة", price: "400 ر.س", img: "/api/uploads/container-debris-small.webp", best: "للترميمات والتعديلات" },
-    { name: "حاوية أنقاض كبيرة", size: "20 ياردة", price: "500 ر.س", img: "/api/uploads/container-debris-large.webp", best: "لبناء وهدم الفلل والعمائر" },
-    { name: "حاوية أنقاض جامبو", size: "30 ياردة", price: "700 ر.س", img: "/api/uploads/container-debris-jumbo.webp", best: "للمشاريع الكبرى والهدم الشامل" },
-  ]
+  const { data: apiContainers = [], isLoading, isError } = useGetContainers()
+  const containers = apiContainers
+    .filter(container => container.isActive)
+    .sort((a, b) => a.order - b.order)
 
   return (
     <div className="px-6 md:px-10 pb-8">
@@ -109,28 +110,34 @@ function ArticleContainers({ onOpen }: { onOpen: (size?: string) => void }) {
         <Package size={18} className="text-primary" />
         مقاسات وأسعار الحاويات المتاحة في الرياض
       </h3>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {containers.map(c => (
+       {isLoading && <p className="text-sm text-gray-500">جارٍ تحميل الحاويات المتاحة...</p>}
+       {isError && <p className="text-sm text-red-600">تعذر تحميل الحاويات المتاحة حالياً.</p>}
+       {!isLoading && !isError && containers.length === 0 && (
+         <p className="text-sm text-gray-500">لا توجد حاويات منشورة حالياً.</p>
+       )}
+       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+         {containers.map((c: Container) => (
           <div key={c.size} className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm hover:shadow-md hover:border-primary/20 transition-all group flex flex-col justify-between">
             <div className="h-36 overflow-hidden bg-gray-100">
               <img
-                src={c.img}
-                alt={c.name}
+                 src={c.imageUrl || "/images/container-debris-small.webp"}
+                 alt={`${c.name} - ${c.size}`}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                onError={(e) => { e.currentTarget.src = "/api/uploads/container-debris-small.webp" }}
+                 onError={(e) => { e.currentTarget.src = "/images/container-debris-small.webp" }}
               />
             </div>
             <div className="p-4 flex-1 flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="font-black text-gray-900 text-sm">{c.name}</span>
+                   <span className="font-black text-gray-900 text-sm">{c.name}</span>
                   <span className="text-xs bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full">{c.size}</span>
                 </div>
-                <p className="text-xs text-gray-500 mb-3">{c.best}</p>
+                 <p className="text-xs text-gray-500 mb-3">{c.suitableFor || c.description || c.capacity}</p>
               </div>
               <div className="flex items-center justify-between pt-2 border-t border-gray-50">
-                <span className="text-secondary font-black text-sm">{c.price}</span>
+                 <span className="text-secondary font-black text-sm">{c.priceText || (c.pricePerDay ? `${c.pricePerDay} ر.س` : "اطلب السعر")}</span>
                 <button
+                   onClick={() => onOpen(`${c.name}${c.size ? ` - ${c.size}` : ""}`)}
                   className="text-xs bg-primary text-white px-3 py-1.5 rounded-lg font-bold hover:bg-primary/90 transition-colors"
                 >
                   اطلب الآن

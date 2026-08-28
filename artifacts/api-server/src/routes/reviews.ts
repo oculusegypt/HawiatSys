@@ -115,17 +115,17 @@ router.patch("/admin/reviews/:id", requireAdmin, requireSectionPermission("revie
 
   const updateData: Partial<typeof reviewsTable.$inferInsert> = {};
 
-  if (status) {
+  if (status && ["pending", "approved", "rejected"].includes(status)) {
     updateData.status = status;
     if (status === "approved") {
       updateData.approvedAt = new Date().toISOString();
     }
   }
 
-  if (customerName) updateData.customerName = customerName.trim();
-  if (customerCity) updateData.customerCity = customerCity.trim();
-  if (rating) updateData.rating = Number(rating);
-  if (comment) updateData.comment = comment.trim();
+  if (customerName !== undefined && typeof customerName === "string" && customerName.trim()) updateData.customerName = customerName.trim();
+  if (customerCity !== undefined && typeof customerCity === "string") updateData.customerCity = customerCity.trim() || "الرياض";
+  if (rating !== undefined && Number.isInteger(Number(rating)) && Number(rating) >= 1 && Number(rating) <= 5) updateData.rating = Number(rating);
+  if (comment !== undefined && typeof comment === "string" && comment.trim()) updateData.comment = comment.trim();
 
   const [updated] = await db
     .update(reviewsTable)
