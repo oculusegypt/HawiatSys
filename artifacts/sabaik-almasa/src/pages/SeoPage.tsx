@@ -152,7 +152,7 @@ export default function SeoPage() {
         const title = resolvedData.seoTitle || resolvedData.title
         const description = resolvedData.seoDescription || resolvedData.excerpt
         const canonical = siteUrl(sitePath(resolvedData.canonicalUrl || window.location.pathname))
-         const image = toAbsoluteAsset(resolvedData.ogImage || resolvedData.coverImage) || siteUrl(seoImageForPath(window.location.pathname))
+        const image = toAbsoluteAsset(resolvedData.ogImage || resolvedData.coverImage) || siteUrl(seoImageForPath(`/page/${resolvedData.slug}`))
         const resolvedTitle = normalizeCompanyText(`${title} | ${companyName || "الشركة"}`)
         document.title = resolvedTitle
         setMeta("description", description)
@@ -164,17 +164,17 @@ export default function SeoPage() {
         setMeta("og:url", canonical, "property")
         setMeta("og:locale", "ar_SA", "property")
         if (image) setMeta("og:image", image, "property")
-         if (image) {
+        if (image) {
            setMeta("og:image:secure_url", image, "property")
            setMeta("og:image:type", "image/jpeg", "property")
            setMeta("og:image:width", "1200", "property")
            setMeta("og:image:height", "675", "property")
-           setMeta("og:image:alt", seoImageAlt(title), "property")
-         }
+          setMeta("og:image:alt", seoImageAlt(title), "property")
+        }
         setMeta("twitter:card", image ? "summary_large_image" : "summary")
         setMeta("twitter:title", title)
         setMeta("twitter:description", description)
-         if (image) {
+        if (image) {
            setMeta("twitter:image", image)
            setMeta("twitter:image:alt", seoImageAlt(title))
          }
@@ -269,7 +269,7 @@ export default function SeoPage() {
     )
   }
 
-  const image = toAbsoluteAsset(page.coverImage)
+  const image = toAbsoluteAsset(page.ogImage || page.coverImage) || siteUrl(seoImageForPath(`/page/${page.slug}`))
   return (
     <div className="flex min-h-[100dvh] flex-col bg-[#f2f8f8]" dir="rtl">
       <Navbar />
@@ -286,7 +286,7 @@ export default function SeoPage() {
 
         {image && (
           <div className="h-48 w-full overflow-hidden bg-primary/10 md:h-72">
-            <img src={image} alt={page.title} className="h-full w-full object-cover" data-testid="img-seo-page-cover" />
+            <img src={image} alt={seoImageAlt(page.title)} className="h-full w-full object-cover" width="1200" height="675" data-testid="img-seo-page-cover" />
           </div>
         )}
 

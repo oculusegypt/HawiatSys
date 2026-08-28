@@ -105,7 +105,8 @@ const posts = db.prepare(`
 `).all();
 
 const seoPages = db.prepare(`
-  SELECT title, slug, cover_image AS coverImage, og_image AS ogImage,
+  SELECT title, slug, target_keyword AS targetKeyword,
+         cover_image AS coverImage, og_image AS ogImage,
          published_at AS publishedAt, updated_at AS updatedAt
   FROM seo_pages
   WHERE status = 'published' AND is_active = 1 AND slug IS NOT NULL AND slug != ''
@@ -151,6 +152,20 @@ const parseImages = (raw) => {
   }
 };
 
+const seoPageImage = (page) => {
+  if (page.ogImage || page.coverImage) return page.ogImage || page.coverImage;
+  const text = `${page.slug || ""} ${page.title || ""} ${page.targetKeyword || ""}`.toLowerCase();
+  const keywordMedia = [
+    [["سعر", "أسعار", "تكلفة", "pricing"], "/images/seo/cleanflow-pricing.jpg"],
+    [["حي", "أحياء", "مناطق", "تغطية", "ضواحي", "areas"], "/images/seo/cleanflow-areas.jpg"],
+    [["سؤال", "أسئلة", "faq"], "/images/seo/cleanflow-faq.jpg"],
+    [["مطاعم", "مصانع", "مستودعات", "منشآت"], "/images/seo/cleanflow-services.jpg"],
+    [["حاويات", "أنقاض", "مخلفات", "هدم", "بناء", "ترميم", "رفع", "نقل"], "/images/seo/cleanflow-containers.jpg"],
+  ];
+  return keywordMedia.find(([keywords]) => keywords.some(keyword => text.includes(keyword)))?.[1]
+    || "/images/seo/cleanflow-blog.jpg";
+};
+
 for (const service of services) {
   addEntry({
     path: `/services/${encodeURIComponent(service.slug)}`,
@@ -189,7 +204,7 @@ for (const page of seoPages) {
     changefreq: "weekly",
     title: page.title,
     lastmod: page.updatedAt || page.publishedAt || today,
-    images: normalizeImages([page.ogImage, page.coverImage].filter(Boolean)),
+    images: normalizeImages([page.ogImage, page.coverImage, seoPageImage(page)].filter(Boolean)),
   });
 }
 

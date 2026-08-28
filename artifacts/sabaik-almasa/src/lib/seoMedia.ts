@@ -41,6 +41,22 @@ function hashPath(path: string): number {
 /** Pick a stable campaign image for a route when the record has no cover image. */
 export function seoImageForPath(path: string): string {
   const normalized = path.split("?")[0].replace(/\/+$/, "") || "/"
+  const decoded = (() => {
+    try {
+      return decodeURIComponent(normalized).toLowerCase()
+    } catch {
+      return normalized.toLowerCase()
+    }
+  })()
+  const keywordMedia: Array<[string[], string]> = [
+    [["سعر", "أسعار", "تكلفة", "pricing"], SEO_MEDIA.pricing],
+    [["حي", "أحياء", "مناطق", "تغطية", "ضواحي", "areas"], SEO_MEDIA.areas],
+    [["سؤال", "أسئلة", "faq"], SEO_MEDIA.faq],
+    [["مطاعم", "مصانع", "مستودعات", "منشآت"], SEO_MEDIA.services],
+    [["حاويات", "أنقاض", "مخلفات", "هدم", "بناء", "ترميم", "رفع", "نقل"], SEO_MEDIA.containers],
+  ]
+  const keywordMatch = keywordMedia.find(([keywords]) => keywords.some(keyword => decoded.includes(keyword)))
+  if (keywordMatch) return keywordMatch[1]
   const direct = PATH_MEDIA.find(([prefix]) => normalized === prefix || normalized.startsWith(`${prefix}/`))
   if (direct) return direct[1]
   const fallbacks = Object.values(SEO_MEDIA)

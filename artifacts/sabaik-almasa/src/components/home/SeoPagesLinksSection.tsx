@@ -14,6 +14,11 @@ interface PublicSeoPage {
   isActive: boolean
 }
 
+function primaryKeyword(page: PublicSeoPage): string {
+  const value = page.targetKeyword || page.seoKeywords || ""
+  return value.split(/[،,]/)[0]?.trim() || "تأجير الحاويات بالرياض"
+}
+
 export function SeoPagesLinksSection() {
   const [pages, setPages] = useState<PublicSeoPage[]>([])
   const [activeTab, setActiveTab] = useState<string>("all")
@@ -108,12 +113,17 @@ export function SeoPagesLinksSection() {
               href={`/صفحة/${encodeURIComponent(page.slug)}`}
               className="group flex items-center justify-between rounded-2xl border border-slate-200/80 bg-white p-4 text-slate-800 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-slate-50 hover:shadow-md"
             >
-              <div className="flex items-center gap-3">
+              <div className="min-w-0 flex items-center gap-3">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-white">
                   <Box size={16} />
                 </span>
-                <span className="text-sm font-bold leading-snug group-hover:text-primary transition-colors">
-                  {page.title}
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-bold leading-snug transition-colors group-hover:text-primary">
+                    {page.title}
+                  </span>
+                  <span className="mt-1 block truncate text-[11px] font-medium text-slate-500" title={primaryKeyword(page)}>
+                    {primaryKeyword(page)}
+                  </span>
                 </span>
               </div>
               <ArrowLeft size={16} className="shrink-0 text-slate-400 transition-transform group-hover:-translate-x-1 group-hover:text-primary" />

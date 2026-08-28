@@ -155,6 +155,21 @@ function absoluteImg(url) {
   return `${SITE_URL}${url.startsWith("/") ? "" : "/"}${url}`;
 }
 
+function seoPageImage(page) {
+  const configured = page.og_image || page.cover_image;
+  if (configured) return absoluteImg(configured);
+  const text = `${page.slug || ""} ${page.title || ""} ${page.target_keyword || ""}`.toLowerCase();
+  const keywordMedia = [
+    [["سعر", "أسعار", "تكلفة", "pricing"], "/images/seo/cleanflow-pricing.jpg"],
+    [["حي", "أحياء", "مناطق", "تغطية", "ضواحي", "areas"], "/images/seo/cleanflow-areas.jpg"],
+    [["سؤال", "أسئلة", "faq"], "/images/seo/cleanflow-faq.jpg"],
+    [["مطاعم", "مصانع", "مستودعات", "منشآت"], "/images/seo/cleanflow-services.jpg"],
+    [["حاويات", "أنقاض", "مخلفات", "هدم", "بناء", "ترميم", "رفع", "نقل"], "/images/seo/cleanflow-containers.jpg"],
+  ];
+  const match = keywordMedia.find(([keywords]) => keywords.some(keyword => text.includes(keyword)));
+  return absoluteImg(match?.[1] || "/images/seo/cleanflow-blog.jpg");
+}
+
 function imageMimeType(url) {
   const pathname = String(url || "").split(/[?#]/)[0].toLowerCase();
   if (pathname.endsWith(".webp")) return "image/webp";
@@ -1272,7 +1287,8 @@ console.log(`   ✅ ${containers.length} باقة نظافة`);
 // ══════════════════════════════════════════════════════════════════════════════
 const seoPages = db.prepare(`
   SELECT id, slug, title, target_keyword, content, excerpt,
-         seo_title, seo_description, seo_keywords, status, published_at, updated_at
+         cover_image, og_image, seo_title, seo_description, seo_keywords,
+         status, published_at, updated_at
   FROM seo_pages
   WHERE status = 'published' AND is_active = 1
   ORDER BY id ASC
@@ -1285,7 +1301,7 @@ for (const page of seoPages) {
   const canonical = `${SITE_URL}/page/${encodeURIComponent(page.slug)}`;
   const title = page.seo_title || `${page.title} | ${siteCompanyName}`;
   const description = page.seo_description || page.excerpt || page.title;
-  const ogImage = `${SITE_URL}/images/seo/cleanflow-blog.jpg`;
+  const ogImage = seoPageImage(page);
 
   const crumbs = [
     { name: "الرئيسية", url: SITE_URL },
@@ -1299,6 +1315,9 @@ for (const page of seoPages) {
 
   const bodyContent = `
     <article>
+      <figure style="margin:0 0 24px;overflow:hidden;border-radius:18px;background:#edf6f6">
+        <img src="${esc(ogImage)}" alt="${esc(page.title)}" width="1200" height="675" style="display:block;width:100%;height:auto;max-height:380px;object-fit:cover" />
+      </figure>
       ${primaryCallout}
       <h1 style="font-size:clamp(24px,4vw,36px);font-weight:800;color:#1a202c;margin:0 0 16px;line-height:1.3">
         ${esc(page.title)}
