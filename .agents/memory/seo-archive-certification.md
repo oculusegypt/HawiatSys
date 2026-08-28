@@ -8,3 +8,9 @@ The release is not SEO-certified until the final archive has been extracted and 
 **Why:** Static output can diverge from the archive during copy, compatibility-image creation, PHP packaging, or sitemap ordering, so a clean Vite build alone can miss the production failure.
 
 **How to apply:** Generate the sitemap before the frontend build, prerender before packaging, compare sitemap content across public/dist/build/archive, and run metadata plus local-image checks against the extracted archive.
+
+The prerender step must also replace the root HTML public-origin placeholder; otherwise the runtime resolver starts with an empty origin even when canonical and OG tags are correct.
+
+**Why:** Vite copies the source placeholder into the first response, while React settings load asynchronously after the page has already begun rendering.
+
+**How to apply:** Assert that the extracted archive homepage contains the configured origin in `site-public-url`, canonical, OG URL, JSON-LD, sitemap, and robots.

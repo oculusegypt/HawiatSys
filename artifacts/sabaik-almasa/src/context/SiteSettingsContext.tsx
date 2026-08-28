@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react"
 import { applyThemePreset } from "@/lib/themePresets"
+import { setSitePublicUrl } from "@/lib/siteUrl"
 
 export function getSafeMapEmbedUrl(
   raw: string,
@@ -262,6 +263,7 @@ function parseHeroPosition(raw: unknown, fallback: string): string {
 
 async function fetchSettings(): Promise<SiteSettings> {
   const data = await fetch(`${API_BASE}/api/settings?ts=${Date.now()}`, { cache: "no-store" }).then(r => r.json())
+  setSitePublicUrl(typeof data.site_public_url === "string" ? data.site_public_url : "")
 
   let phones: string[] = []
   try {

@@ -15,6 +15,7 @@ import { createRequire } from "node:module";
 import { mkdirSync, readFileSync, writeFileSync, existsSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { requirePublicOrigin } from "./public-origin.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
@@ -37,9 +38,8 @@ const SEO_DEFAULTS = {
   priceRange: "$$",
   image: "/images/hero-1.webp",
 };
-// Prefer the administrator-configured public URL. If it is empty, all
-// generated URLs stay relative and are resolved by the browser to its
-const SITE_URL = (process.env.SITE_URL || settingMap.site_public_url || "https://sabaik-almasa.com").trim().replace(/\/+$/, "");
+// The administrator-configured public URL is the only production origin.
+const SITE_URL = requirePublicOrigin({ settings: settingMap });
 const siteCompanyName = settingMap.company_name?.trim() || SEO_DEFAULTS.companyName;
 const siteDescription = settingMap.site_desc?.trim() || SEO_DEFAULTS.description;
 const siteLogo = settingMap.company_logo?.trim() || "/images/logo.png";
@@ -196,7 +196,7 @@ function jsonLd(obj) {
 }
 
 function breadcrumbSchema(items) {
-  const base = SITE_URL || "https://alsahmm.com";
+  const base = SITE_URL;
   return {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -259,8 +259,7 @@ function renderPage({ title, description, keywords = "", canonical, ogImage, ogT
   const imgUrl = ogImage || `${SITE_URL}/images/logo.png`;
   const imgAlt   = title.replace(/\|.*/,"").trim();
 
-  // Replace SITE_URL in JSON-LD with a dynamic script so any domain works
-  const schemasJson = schemas.map(s => JSON.stringify(s)).join(",\n  ");
+  const schemaTags = schemas.map((schema) => jsonLd(schema)).join("\n  ");
 
   return `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -272,7 +271,7 @@ function renderPage({ title, description, keywords = "", canonical, ogImage, ogT
   ${keywords ? `<meta name="keywords" content="${esc(keywords)}" />` : ""}
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
   <meta name="language" content="Arabic" />
-  <!-- Relative canonical — resolves correctly on any domain -->
+  <meta name="site-public-url" content="${esc(SITE_URL)}" />
   <link rel="canonical" href="${esc(canonicalUrl)}" />
 
   <!-- Open Graph — root-relative image works on any domain -->
@@ -296,39 +295,13 @@ function renderPage({ title, description, keywords = "", canonical, ogImage, ogT
   <!-- Favicon -->
   <link rel="icon" type="image/png" sizes="192x192" href="/favicon.png" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
   <link rel="icon" type="image/x-icon" sizes="16x16 24x24 32x32 48x48 64x64 96x96 128x128 256x256" href="/favicon.ico" />
-  <link rel="shortcut icon" href="/favicon.ico" />
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
   <link rel="manifest" href="/manifest.json" />
 
-  <!-- Schema.org JSON-LD — injected dynamically to replace hardcoded domain -->
-  <script id="__ld_json_raw" type="application/json">[${schemasJson}]</script>
-  <script>
-    (function(){
-      var o = window.location.origin;
-      var raw = document.getElementById('__ld_json_raw');
-      if(!raw) return;
-      var schemas = JSON.parse(raw.textContent);
-      function absolutize(value) {
-        if (Array.isArray(value)) return value.map(absolutize);
-        if (value && typeof value === 'object') {
-          var out = {};
-          Object.keys(value).forEach(function(key){ out[key] = absolutize(value[key]); });
-          return out;
-        }
-        return typeof value === 'string' && value.charAt(0) === '/' && value.charAt(1) !== '/'
-          ? o + value
-          : value;
-      }
-      var repl = absolutize(schemas);
-      repl.forEach(function(s){
-        var el = document.createElement('script');
-        el.type = 'application/ld+json';
-        el.textContent = JSON.stringify(s);
-        document.head.appendChild(el);
-      });
-    })();
-  </script>
+  <!-- Schema.org JSON-LD — emitted with the configured public origin -->
+  ${schemaTags}
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -821,6 +794,7 @@ function updateIndexSeo(html) {
   next = replace(next, /<title>[\s\S]*?<\/title>/i, `<title>${esc(title)}</title>`);
   next = replace(next, /(<meta\s+name="description"\s+content=")[^"]*(")/i, `$1${esc(description)}$2`);
   next = replace(next, /(<meta\s+name="author"\s+content=")[^"]*(")/i, `$1${esc(siteCompanyName)}$2`);
+  next = upsert(next, /<meta\s+name=["']site-public-url["'][^>]*>/i, `<meta name="site-public-url" content="${esc(SITE_URL)}" />`);
   next = upsert(next, /<link\s+rel=["']canonical["'][^>]*>/i, `<link rel="canonical" href="${esc(publicUrl("/"))}" />`);
   next = upsert(next, /<link[^>]+data-lcp-hero=["']true["'][^>]*>/i, heroPreload);
   next = replace(next, /(<meta\s+property="og:site_name"\s+content=")[^"]*(")/i, `$1${esc(siteCompanyName)}$2`);

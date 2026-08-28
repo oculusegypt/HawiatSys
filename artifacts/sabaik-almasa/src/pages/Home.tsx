@@ -347,7 +347,27 @@ const DEFAULT_SECTIONS_ORDER = [
 
 export default function Home() {
   const siteSettings = useSiteSettings()
-  const { companyName, description, logoUrl, phones, phoneCall, phoneWhatsapp, homepageContent, isLoaded } = siteSettings
+  const {
+    companyName,
+    description,
+    logoUrl,
+    phones,
+    phoneCall,
+    phoneWhatsapp,
+    homepageContent,
+    address,
+    city,
+    region,
+    country,
+    postalCode,
+    latitude,
+    longitude,
+    priceRange,
+    paymentMethods,
+    socialLinks,
+    publicUrl,
+    isLoaded,
+  } = siteSettings
   const [sectionsOrder, setSectionsOrder] = useState<string[]>(DEFAULT_SECTIONS_ORDER)
   const [hiddenSections, setHiddenSections] = useState<string[]>([])
 
@@ -365,19 +385,36 @@ export default function Home() {
       description,
       logoUrl,
       phones,
-      address: siteSettings.address,
-      city: siteSettings.city,
-      region: siteSettings.region,
-      country: siteSettings.country,
-      postalCode: siteSettings.postalCode,
-      latitude: siteSettings.latitude,
-      longitude: siteSettings.longitude,
-      priceRange: siteSettings.priceRange,
-      paymentMethods: siteSettings.paymentMethods,
-      socialLinks: siteSettings.socialLinks,
+      address,
+      city,
+      region,
+      country,
+      postalCode,
+      latitude,
+      longitude,
+      priceRange,
+      paymentMethods,
+      socialLinks,
     })
     return () => { document.getElementById("local-business-schema")?.remove() }
-  }, [companyName, logoUrl, phoneWhatsapp, isLoaded])
+  }, [
+    companyName,
+    description,
+    logoUrl,
+    phones,
+    address,
+    city,
+    region,
+    country,
+    postalCode,
+    latitude,
+    longitude,
+    priceRange,
+    paymentMethods,
+    socialLinks,
+    publicUrl,
+    isLoaded,
+  ])
 
   useEffect(() => {
     fetch(`${API_BASE}/api/settings`)

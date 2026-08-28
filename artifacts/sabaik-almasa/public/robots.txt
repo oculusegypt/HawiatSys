@@ -30,4 +30,3 @@ Allow: /
 
 User-agent: Bytespider
 Disallow: /
-

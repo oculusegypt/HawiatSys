@@ -25,6 +25,28 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') {
     exit;
 }
 
+/**
+ * The database setting is the production source of truth for canonical URLs.
+ * Request Host is intentionally not used: preview/staging hosts must never
+ * leak into sitemap or SEO output.
+ */
+function configuredPublicOrigin(PDO $pdo): string {
+    $value = '';
+    try {
+        $row = $pdo->query("SELECT value FROM site_settings WHERE key = 'site_public_url' LIMIT 1")->fetch(PDO::FETCH_ASSOC);
+        $value = trim((string)($row['value'] ?? ''));
+    } catch (Throwable $e) {
+        return '';
+    }
+    if ($value === '') return '';
+    $parts = parse_url($value);
+    $scheme = strtolower((string)($parts['scheme'] ?? ''));
+    $host = strtolower((string)($parts['host'] ?? ''));
+    if (!in_array($scheme, ['http', 'https'], true) || $host === '') return '';
+    if (preg_match('/localhost|127\.0\.0\.1|0\.0\.0\.0|replit\.(dev|app)$/i', $host)) return '';
+    return rtrim($scheme . '://' . $host . (isset($parts['port']) ? ':' . (int)$parts['port'] : ''), '/');
+}
+
 try {
     // Parse request URI and method
     $rawUri = $_SERVER['REQUEST_URI'] ?? '/';
@@ -544,7 +566,9 @@ try {
     function generateSitemapXml(PDO $pdo, string $baseUrl): array {
         $today = date('Y-m-d');
         $baseUrl = rtrim($baseUrl, '/');
-        if (empty($baseUrl)) $baseUrl = 'https://alsahmm.com';
+        if (empty($baseUrl)) {
+            throw new RuntimeException('site_public_url is not configured with a valid public origin');
+        }
 
         $neighborhoods = [
             'north-riyadh', 'al-malqa', 'al-yasmin', 'al-narjis', 'al-aarid', 'hittin', 'al-sahafa', 'al-nafal', 'al-aqiq', 'al-rabi', 'al-ghadeer', 'al-wadi', 'al-nada', 'al-falah',
@@ -2364,9 +2388,12 @@ try {
 
     // 12. Sitemap Save: POST /api/admin/sitemap/save
     if ($path === '/admin/sitemap/save' && $method === 'POST') {
-        $proto = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-        $host = $_SERVER['HTTP_HOST'] ?? 'alsahmm.com';
-        $baseUrl = "{$proto}://{$host}";
+        $baseUrl = configuredPublicOrigin($pdo);
+        if ($baseUrl === '') {
+            http_response_code(500);
+            echo json_encode(['error' => 'site_public_url is not configured'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
 
         $sitemapData = generateSitemapXml($pdo, $baseUrl);
         $xml = $sitemapData['xml'];
@@ -2402,9 +2429,12 @@ try {
 
     // Sitemap Preview: GET /api/sitemap/generate or /api/admin/sitemap/generate
     if (($path === '/sitemap/generate' || $path === '/admin/sitemap/generate') && $method === 'GET') {
-        $proto = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-        $host = $_SERVER['HTTP_HOST'] ?? 'alsahmm.com';
-        $baseUrl = "{$proto}://{$host}";
+        $baseUrl = configuredPublicOrigin($pdo);
+        if ($baseUrl === '') {
+            http_response_code(500);
+            echo json_encode(['error' => 'site_public_url is not configured'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
         $sitemapData = generateSitemapXml($pdo, $baseUrl);
         echo json_encode(array_merge($sitemapData, ['generatedAt' => date('Y-m-d')]), JSON_UNESCAPED_UNICODE);
         exit;
@@ -3792,7 +3822,31 @@ try {
         exit;
     }
 
-    // ── 29. ADMIN ADS: /api/admin/ads ──
+    // ── 29. ADMIN ANALYTICS: CLEAR /api/admin/analytics/clear ──
+    // Keep this destructive action aligned with the Node API. The routing guard
+    // above requires a valid admin token, the analytics permission, and an
+    // admin role for every non-GET analytics request.
+    if (
+        (($path === '/admin/analytics/clear' && $method === 'POST') ||
+         ($path === '/admin/analytics' && $method === 'DELETE'))
+    ) {
+        try {
+            $pdo->beginTransaction();
+            $pdo->exec('DELETE FROM page_views');
+            $pdo->exec('DELETE FROM active_visitors');
+            $pdo->commit();
+            header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+            header('Pragma: no-cache');
+            echo json_encode(['success' => true], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            http_response_code(500);
+            echo json_encode(['error' => 'تعذر حذف تحليلات الموقع'], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        }
+        exit;
+    }
+
+    // ── 30. ADMIN ADS: /api/admin/ads ──
     if ($path === '/admin/ads' && $method === 'GET') {
         try {
             $stmt = $pdo->query("SELECT * FROM ads ORDER BY ad_order ASC, id ASC");

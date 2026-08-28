@@ -7,6 +7,7 @@ import { createRequire } from "node:module";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { requirePublicOrigin } from "./public-origin.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(join(root, "lib", "db", "package.json"));
@@ -19,7 +20,7 @@ const db = new Database(dbPath, { readonly: true });
 const settingRows = db.prepare("SELECT key, value FROM site_settings").all();
 const settingMap = Object.fromEntries(settingRows.map(row => [row.key, row.value]));
 const siteName = String(settingMap.company_name || "").trim() || "مؤسسة السهم كلين";
-const baseUrl = (process.env.SITE_URL || settingMap.site_public_url || "https://alsahmm.com").trim().replace(/\/+$/, "");
+const baseUrl = requirePublicOrigin({ settings: settingMap });
 
 const xmlEscape = (value) => String(value)
   .replace(/&/g, "&amp;")
