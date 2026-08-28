@@ -128,12 +128,10 @@ router.post("/track", async (req, res) => {
       gclid: typeof body.gclid === "string" ? body.gclid.slice(0, 200) : "",
     });
 
-    const existing = await db.select().from(activeVisitorsTable).where(eq(activeVisitorsTable.sessionId, sessionId));
-    if (existing.length > 0) {
-      await db.update(activeVisitorsTable).set({ page, lastSeen: now, deviceType }).where(eq(activeVisitorsTable.sessionId, sessionId));
-    } else {
-      await db.insert(activeVisitorsTable).values({ sessionId, page, deviceType, lastSeen: now });
-    }
+    await db.insert(activeVisitorsTable).values({ sessionId, page, deviceType, lastSeen: now }).onConflictDoUpdate({
+      target: activeVisitorsTable.sessionId,
+      set: { page, lastSeen: now, deviceType },
+    });
     return res.json({ ok: true });
   } catch (e) {
     return res.status(500).json({ error: String(e) });

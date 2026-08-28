@@ -16,7 +16,7 @@ export function HeroSlider() {
     heroCtaPosition,
   } = useSiteSettings()
 
-  const resolvedCompany = companyName || "خدمات تأجير الحاويات"
+  const resolvedCompany = companyName || ""
   const displaySlides = slides ?? []
 
   const positionClasses = (position: string) => {
@@ -45,35 +45,20 @@ export function HeroSlider() {
     return () => clearInterval(interval)
   }, [displaySlides.length])
 
-  if (isLoading || displaySlides.length === 0) {
+  if (isLoading) {
     return (
-      <section className="relative h-[85vh] md:h-[100dvh] w-full overflow-hidden bg-primary flex items-center justify-center">
-        <div className="container mx-auto px-4 text-center">
-          {heroCompanyVisible && (
-            <div className="inline-block mb-4 px-4 py-1 border border-secondary/50 rounded-full bg-black/20 backdrop-blur-sm">
-              <span className="text-secondary font-medium tracking-wider text-sm md:text-base">{resolvedCompany}</span>
-            </div>
-          )}
-          <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight drop-shadow-lg">
-            خدمة تأجير حاويات مخلفات النفايات والأنقاض بالرياض
-          </h1>
-          <p className="text-lg md:text-xl text-gray-200 mb-8 max-w-2xl mx-auto">
-            حاويات متينة بمقاسات 6 إلى 30 ياردة للمشاريع السكنية والتجارية مع سرعة في التوصيل والسحب 24/7
-          </p>
-          {heroCtaVisible && (
-            <div className="flex justify-center gap-4">
-              <button
-                onClick={() => openModal()}
-                className="inline-flex items-center justify-center h-14 px-8 rounded-md bg-secondary text-white font-bold text-lg shadow-xl hover:bg-white hover:text-primary transition-colors"
-              >
-                اطلب حاويتك الآن
-              </button>
-            </div>
-          )}
+      <section className="relative h-[85vh] md:h-[100dvh] w-full overflow-hidden bg-primary flex items-center justify-center" aria-busy="true" aria-label="جار تحميل الواجهة الرئيسية">
+        <div className="container mx-auto px-4">
+          <div className="mx-auto h-3 w-28 animate-pulse rounded-full bg-white/20" />
+          <div className="mx-auto mt-6 h-12 max-w-3xl animate-pulse rounded-2xl bg-white/10" />
+          <div className="mx-auto mt-4 h-12 max-w-2xl animate-pulse rounded-2xl bg-white/10" />
+          <div className="mx-auto mt-8 h-14 w-44 animate-pulse rounded-md bg-white/10" />
         </div>
       </section>
     )
   }
+
+  if (displaySlides.length === 0) return null
 
   return (
     <section className="relative h-[100dvh] w-full overflow-hidden bg-primary">

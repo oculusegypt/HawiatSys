@@ -137,6 +137,26 @@ try {
         $pdo = new PDO('sqlite:' . $dbFile);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+        // Shared hosting does not run Drizzle migrations. Keep analytics
+        // columns additive so an older SQLite database can accept new
+        // page-view and presence writes without a destructive migration.
+        foreach ([
+            'country' => "TEXT NOT NULL DEFAULT ''",
+            'city' => "TEXT NOT NULL DEFAULT ''",
+            'utm_source' => "TEXT NOT NULL DEFAULT ''",
+            'utm_medium' => "TEXT NOT NULL DEFAULT ''",
+            'utm_campaign' => "TEXT NOT NULL DEFAULT ''",
+            'gclid' => "TEXT NOT NULL DEFAULT ''",
+        ] as $column => $definition) {
+            try { $pdo->exec("ALTER TABLE page_views ADD COLUMN {$column} {$definition}"); } catch (\Throwable $ignored) {}
+        }
+        foreach ([
+            'conversation_id' => "INTEGER",
+            'client_name' => "TEXT",
+            'phone' => "TEXT",
+        ] as $column => $definition) {
+            try { $pdo->exec("ALTER TABLE active_visitors ADD COLUMN {$column} {$definition}"); } catch (\Throwable $ignored) {}
+        }
         // Presence invitations are additive so older Hostinger databases can
         // receive this patch without a destructive migration.
         foreach ([
@@ -3529,7 +3549,76 @@ try {
 
     // 27. Visitor Tracker: POST /api/track
     if ($path === '/track' && $method === 'POST') {
-        echo json_encode(['ok' => true]);
+        $sessionId = substr(trim((string)($input['sessionId'] ?? '')), 0, 160);
+        if ($sessionId === '') {
+            http_response_code(400);
+            echo json_encode(['error' => 'sessionId required'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        $page = substr((string)($input['page'] ?? '/'), 0, 500) ?: '/';
+        $referrer = substr((string)($input['referrer'] ?? ''), 0, 1000);
+        $utmSource = substr((string)($input['utmSource'] ?? ''), 0, 160);
+        $utmMedium = substr((string)($input['utmMedium'] ?? ''), 0, 160);
+        $utmCampaign = substr((string)($input['utmCampaign'] ?? ''), 0, 160);
+        $gclid = substr((string)($input['gclid'] ?? ''), 0, 200);
+        $userAgent = (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
+        $deviceType = preg_match('/ipad|tablet|playbook|silk|(android(?!.*mobi))/i', $userAgent)
+            ? 'tablet'
+            : (preg_match('/mobile|android|iphone|ipod|blackberry|opera mini|iemobile/i', $userAgent)
+                ? 'mobile'
+                : 'desktop');
+        $ip = trim(explode(',', (string)($_SERVER['HTTP_X_FORWARDED_FOR'] ?? ''))[0] ?: (string)($_SERVER['REMOTE_ADDR'] ?? ''));
+        $ipHash = substr(hash('sha256', $ip . 'cleanflow-anonymous-salt'), 0, 16);
+        $country = '';
+        foreach (['HTTP_CF_IPCOUNTRY', 'HTTP_X_COUNTRY_CODE', 'HTTP_X_GEO_COUNTRY', 'HTTP_X_COUNTRY', 'HTTP_CLOUDFRONT_VIEWER_COUNTRY', 'HTTP_X_APPENGINE_COUNTRY'] as $header) {
+            $value = trim((string)($_SERVER[$header] ?? ''));
+            if ($value !== '') { $country = substr($value, 0, 120); break; }
+        }
+        $city = '';
+        foreach (['HTTP_CF_IPCITY', 'HTTP_X_CITY', 'HTTP_X_GEO_CITY', 'HTTP_X_CLIENT_CITY'] as $header) {
+            $value = trim((string)($_SERVER[$header] ?? ''));
+            if ($value !== '') { $city = substr($value, 0, 120); break; }
+        }
+        $now = date('Y-m-d\TH:i:s.v\Z');
+
+        $stmt = $pdo->prepare(
+            "INSERT INTO page_views (session_id, page, referrer, ip_hash, device_type, country, city, utm_source, utm_medium, utm_campaign, gclid, created_at)
+             VALUES (:sid, :page, :referrer, :ip_hash, :device, :country, :city, :utm_source, :utm_medium, :utm_campaign, :gclid, :created_at)"
+        );
+        $stmt->execute([
+            ':sid' => $sessionId,
+            ':page' => $page,
+            ':referrer' => $referrer,
+            ':ip_hash' => $ipHash,
+            ':device' => $deviceType,
+            ':country' => $country,
+            ':city' => $city,
+            ':utm_source' => $utmSource,
+            ':utm_medium' => $utmMedium,
+            ':utm_campaign' => $utmCampaign,
+            ':gclid' => $gclid,
+            ':created_at' => $now,
+        ]);
+
+        $active = $pdo->prepare(
+            "INSERT INTO active_visitors (session_id, page, device_type, last_seen)
+             VALUES (:sid, :page, :device, :seen)
+             ON CONFLICT(session_id) DO UPDATE SET
+               page = excluded.page,
+               device_type = excluded.device_type,
+               last_seen = excluded.last_seen"
+        );
+        $active->execute([
+            ':sid' => $sessionId,
+            ':page' => $page,
+            ':device' => $deviceType,
+            ':seen' => $now,
+        ]);
+
+        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+        header('Pragma: no-cache');
+        echo json_encode(['ok' => true, 'lastSeen' => $now], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
         exit;
     }
 

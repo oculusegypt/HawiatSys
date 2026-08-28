@@ -233,10 +233,14 @@ function renderPage({ title, description, keywords = "", canonical, ogImage, ogT
   const schemaTags = schemas.map((schema) => jsonLd(schema)).join("\n  ");
 
   return `<!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" class="no-js">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script>
+    document.documentElement.classList.remove("no-js");
+    document.documentElement.classList.add("js");
+  </script>
   <title>${esc(title)}</title>
   <meta name="description" content="${esc(description)}" />
   ${keywords ? `<meta name="keywords" content="${esc(keywords)}" />` : ""}
@@ -280,9 +284,12 @@ function renderPage({ title, description, keywords = "", canonical, ogImage, ogT
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
   <style>
-    /* Server-rendered content styling for instant crawl and non-JS clients */
-    #seo-static-page-content { display: block; }
-    body.hydrated #seo-static-page-content { display: none !important; }
+    /*
+      Keep SEO content available when JavaScript is disabled, but do not let
+      it flash in a normal browser while the live React/API page boots.
+    */
+    #seo-static-page-content { display: none; }
+    html.no-js #seo-static-page-content { display: block; }
   </style>
 
   <!-- App assets -->
@@ -309,18 +316,6 @@ function renderPage({ title, description, keywords = "", canonical, ogImage, ogT
     </div>
     <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
   </div>
-
-  <script>
-    document.addEventListener("DOMContentLoaded", function() {
-      // Mark as hydrated when React starts or DOM loads
-      setTimeout(function() {
-        var root = document.getElementById("root");
-        if (root && root.children.length > 0 && !root.querySelector(".spin")) {
-          document.body.classList.add("hydrated");
-        }
-      }, 500);
-    });
-  </script>
 
   <script type="module" crossorigin src="${esc(jsHref)}"></script>
 </body>
@@ -762,6 +757,21 @@ function updateIndexSeo(html) {
     ? source.replace(pattern, tag)
     : source.replace(/<\/head>/i, `${tag}\n</head>`);
   let next = html;
+  next = next.replace(/<html\b([^>]*)>/i, (_, attrs) => `<html${attrs} class="no-js">`);
+  next = next.replace(
+    /<head>/i,
+    `<head>
+  <script>
+    document.documentElement.classList.remove("no-js");
+    document.documentElement.classList.add("js");
+  </script>
+  <style>
+    /* Keep the SEO snapshot for crawlers/no-JS clients, never as stale first paint for live users. */
+    #seo-static-page-content { display: none; }
+    html.no-js #seo-static-page-content { display: block; }
+    html.no-js #app-loading-shell { display: none; }
+  </style>`,
+  );
   next = replace(next, /<title>[\s\S]*?<\/title>/i, `<title>${esc(title)}</title>`);
   next = replace(next, /(<meta\s+name="description"\s+content=")[^"]*(")/i, `$1${esc(description)}$2`);
   next = replace(next, /(<meta\s+name="author"\s+content=")[^"]*(")/i, `$1${esc(siteCompanyName)}$2`);
@@ -785,12 +795,21 @@ function updateIndexSeo(html) {
   ).join("\n");
   const withSchemas = next.replace(/<\/head>/i, `${schemas}\n</head>`);
   
-  // The client clears this mount point before React renders. Keeping a
-  // data-backed shell here makes the first HTML response useful to crawlers
-  // and to users while JavaScript is loading, without duplicating the app UI.
+  // The client clears this mount point before React renders. Keep the
+  // data-backed snapshot for crawlers/no-JS clients, but hide it immediately
+  // for live users so stale content cannot flash before the API response.
   return withSchemas.replace(
     /<div id="root">\s*<\/div>/i,
-    `<div id="root">${generateHomepageStaticContent()}</div>`,
+    `<div id="root">
+      <div id="seo-static-page-content" class="seo-crawler-content">${generateHomepageStaticContent()}</div>
+      <div id="app-loading-shell" style="min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:'Tajawal',Arial,sans-serif;background:#f7fafc">
+        <div style="text-align:center;color:#718096">
+          <div style="width:40px;height:40px;border:4px solid #e2e8f0;border-top-color:#1e3a5f;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px"></div>
+          <p style="font-size:14px;margin:0">جاري تجهيز البيانات الحقيقية...</p>
+        </div>
+      </div>
+      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+    </div>`,
   );
 }
 
