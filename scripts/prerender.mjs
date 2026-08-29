@@ -300,12 +300,13 @@ function renderPage({
     window.dataLayer = window.dataLayer || [];
     window.gtag = window.gtag || function(){ window.dataLayer.push(arguments); };
     window.gtag('js', new Date());
-    window.gtag('config', '${esc(siteAnalyticsId)}', { anonymize_ip: true });
+    window.gtag('config', '${esc(siteAnalyticsId)}');
   </script>` : "";
 
   return `<!DOCTYPE html>
 <html lang="ar" dir="rtl" class="no-js">
 <head>
+  ${analyticsTag}
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script>
@@ -353,8 +354,6 @@ function renderPage({
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  ${analyticsTag}
-
   <!-- App assets -->
   ${leafletCss}
   ${preloads.join("\n  ")}
@@ -836,13 +835,23 @@ function updateIndexSeo(html) {
   next = next.replace(/<html\b([^>]*)>/i, (_, attrs) => `<html${attrs} class="no-js">`);
   next = next.replace(
     /<head>/i,
-    `<head>
+    `<head>`,
+  );
+  // Keep the Google tag as the first element after <head>. The no-JS/JS
+  // handoff script and crawler stylesheet must not precede it.
+  const googleInitMatch = next.match(/gtag\(\s*['"]config['"][\s\S]*?<\/script>/i);
+  const handoffMarkup = `
   <script>
     document.documentElement.classList.remove("no-js");
     document.documentElement.classList.add("js");
   </script>
-  <link rel="stylesheet" href="/seo-static.css" />`,
-  );
+  <link rel="stylesheet" href="/seo-static.css" />`;
+  if (googleInitMatch?.index !== undefined) {
+    const insertAt = googleInitMatch.index + googleInitMatch[0].length;
+    next = `${next.slice(0, insertAt)}${handoffMarkup}${next.slice(insertAt)}`;
+  } else {
+    next = next.replace(/<head>/i, `<head>${handoffMarkup}`);
+  }
   next = replace(next, /<title>[\s\S]*?<\/title>/i, `<title>${esc(title)}</title>`);
   next = replace(next, /(<meta\s+name="description"\s+content=")[^"]*(")/i, `$1${esc(description)}$2`);
   next = replace(next, /(<meta\s+name="author"\s+content=")[^"]*(")/i, `$1${esc(siteCompanyName)}$2`);

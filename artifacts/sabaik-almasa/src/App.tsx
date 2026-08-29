@@ -149,15 +149,19 @@ function MarketingMeasurementScripts() {
       gtag?: (...args: unknown[]) => void;
     };
 
-    document.getElementById(googleScriptId)?.remove();
     document.getElementById(facebookScriptId)?.remove();
 
     if (googleId) {
-      const script = document.createElement("script");
-      script.id = googleScriptId;
-      script.async = true;
-      script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(googleId)}`;
-      document.head.appendChild(script);
+      const googleScriptSrc = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(googleId)}`;
+      const existingGoogleScript = document.getElementById(googleScriptId) as HTMLScriptElement | null;
+      if (!existingGoogleScript || existingGoogleScript.src !== googleScriptSrc) {
+        existingGoogleScript?.remove();
+        const script = document.createElement("script");
+        script.id = googleScriptId;
+        script.async = true;
+        script.src = googleScriptSrc;
+        document.head.appendChild(script);
+      }
       analyticsWindow.dataLayer = analyticsWindow.dataLayer || [];
       analyticsWindow.gtag = (...args: unknown[]) => {
         analyticsWindow.dataLayer?.push(args);
