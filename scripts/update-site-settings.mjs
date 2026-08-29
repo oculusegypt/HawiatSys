@@ -14,7 +14,7 @@ const dbs = [
 
 const updates = [
   { key: "company_name", value: "مؤسسة تقي جروب" },
-  { key: "site_public_url", value: "https://alsahmm.com" },
+  { key: "site_public_url", value: "https://taqigroup.com" },
   { key: "seo_meta_title", value: "شركة تنظيف بالرياض | مؤسسة تقي جروب" },
   { key: "seo_meta_description", value: "مؤسسة تقي جروب لخدمات التنظيف بالرياض: تنظيف المنازل والفلل والشقق والمكاتب، والتنظيف بعد البناء، وغسيل المجالس والسجاد بالبخار، وجلي الرخام، وتنظيف الخزانات والمكيفات بأعلى معايير الجودة." },
   { key: "seo_meta_keywords", value: "شركة تنظيف بالرياض, شركة تنظيف منازل بالرياض, شركة تنظيف فلل بالرياض, تنظيف شقق بالرياض, تنظيف بعد البناء بالرياض, غسيل مجالس بالبخار بالرياض, جلي رخام بالرياض, تنظيف خزانات بالرياض, تنظيف مكيفات بالرياض, مؤسسة تقي جروب" },
@@ -25,7 +25,7 @@ const updates = [
   { key: "company_postal_code", value: "13321" },
   { key: "company_latitude", value: "24.7937" },
   { key: "company_longitude", value: "46.6371" },
-  { key: "company_email", value: "info@alsahmm.com" },
+  { key: "company_email", value: "info@taqigroup.com" },
   { key: "company_price_range", value: "$$" },
   { key: "company_payment_methods", value: "نقدي، مدى، فيزا، ماستركارد، تحويل بنكي" },
   { key: "company_google_business_profile", value: "https://maps.google.com/maps?ll=24.54038,46.650611&z=16&t=m&hl=ar&gl=EG&mapclient=embed&cid=16777605780937543839" },
@@ -37,7 +37,7 @@ const updates = [
   { key: "social_youtube", value: "https://www.youtube.com/@Aiservx" },
   { key: "social_linkedin", value: "https://www.linkedin.com/company/aiservx" },
   { key: "analytics_google_tag_id", value: "G-B6TYSZHY0T" },
-  { key: "vapid_subject", value: "mailto:info@alsahmm.com" }
+  { key: "vapid_subject", value: "mailto:info@taqigroup.com" }
 ];
 
 for (const dbPath of dbs) {
@@ -54,6 +54,8 @@ for (const dbPath of dbs) {
       }
     });
     tx(updates);
+    db.pragma("journal_mode = DELETE");
+    db.exec("VACUUM");
     db.close();
     console.log(`Updated settings successfully in ${dbPath}`);
   } catch (err) {

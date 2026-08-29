@@ -9,7 +9,7 @@
 - **عدد عناصر الأرشيف:** `836` عنصرًا
 - **أرشيف الصور المنفصل:** `cleanflow-legacy-images-archive.zip`
 - **أرشيف الصور:** `87` ملفًا فريدًا، منها `33` ملفًا من مجلد `صور حسام`، مع `190` مرجع مصدر، والحجم غير المضغوط `10,527,243` بايت.
-- **الموقع المعتمد للفحص:** `https://alsahmm.com`
+- **الموقع المعتمد للفحص:** `https://taqigroup.com`
 - **طريقة التشغيل:** PHP 8.x + PDO SQLite فقط؛ لا يعتمد الإنتاج على Node.js أو Replit.
 
 ## التعديلات الأخيرة
@@ -88,16 +88,16 @@ public_html/taqi-group-platform/
 خذ نسخة احتياطية من `data/` و`uploads/` قبل استبدال نسخة موقع يعمل حاليًا. بعد الرفع افتح:
 
 ```text
-https://alsahmm.com/
-https://alsahmm.com/sitemap.xml
-https://alsahmm.com/taqi-group-platform/
+https://taqigroup.com/
+https://taqigroup.com/sitemap.xml
+https://taqigroup.com/taqi-group-platform/
 ```
 
 ## إعادة البناء وإعادة الشهادة
 
 ```bash
-SITE_URL=https://alsahmm.com node scripts/build-hostinger.mjs
-SITE_URL=https://alsahmm.com pnpm --filter @workspace/scripts run seo-quality-gate
+SITE_URL=https://taqigroup.com node scripts/build-hostinger.mjs
+SITE_URL=https://taqigroup.com pnpm --filter @workspace/scripts run seo-quality-gate
 pnpm --filter @workspace/scripts run typecheck
 unzip -t cleanflow-services-hostinger.zip
 unzip -t cleanflow-legacy-images-archive.zip

@@ -1,6 +1,6 @@
 import https from "node:https";
 
-const BASE = "https://alsahmm.com";
+const BASE = "https://taqigroup.com";
 
 const URLS = [
   "/",

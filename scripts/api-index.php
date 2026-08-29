@@ -864,7 +864,7 @@ try {
 
             $vapidPub = $settings['vapid_public_key'] ?? 'BOyIDMpcJcUHn3UIVrWDqnSrLQYvZlKHu-PSLGwiWKZbIRxTAvrDEjV8OBJeH2UGPiq2SyDkn_ZBUUsu2wyKvW0';
             $vapidPriv = $settings['vapid_private_key'] ?? 'K_Vh6d_wV5pxl4XQQ9wC9PhFj9MnIeU0993KS3YKaNQ';
-            $vapidSub = $settings['vapid_subject'] ?? 'mailto:info@alsahmm.com';
+            $vapidSub = $settings['vapid_subject'] ?? 'mailto:info@taqigroup.com';
 
             $subsStmt = $pdo->query("SELECT id, endpoint, p256dh, auth FROM push_subscriptions");
             $subs = $subsStmt->fetchAll();

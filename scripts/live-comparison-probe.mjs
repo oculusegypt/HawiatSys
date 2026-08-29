@@ -41,8 +41,8 @@ function jaccardSimilarity(setA, setB) {
 }
 
 async function runLiveComparison() {
-  console.log("Fetching live homepage from https://alsahmm.com/ ...");
-  const liveHome = await fetchText("https://alsahmm.com/");
+  console.log("Fetching live homepage from https://taqigroup.com/ ...");
+  const liveHome = await fetchText("https://taqigroup.com/");
   const buildHome = fs.readFileSync("build_php/index.html", "utf8");
 
   // A. Compare Build vs Live Raw Homepage
@@ -77,7 +77,7 @@ async function runLiveComparison() {
       if (e.isDirectory()) {
         files = files.concat(getHtmlFiles(full, rel));
       } else if (e.name === "index.html") {
-        files.push(base ? `https://alsahmm.com/${base}` : "https://alsahmm.com");
+        files.push(base ? `https://taqigroup.com/${base}` : "https://taqigroup.com");
       }
     }
     return files;
@@ -98,7 +98,7 @@ async function runLiveComparison() {
         const bodyText = content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
         areaPages.push({
           slug: af.name,
-          url: `https://alsahmm.com/areas/${af.name}`,
+          url: `https://taqigroup.com/areas/${af.name}`,
           wordCount: bodyText.split(/\s+/).filter(Boolean).length,
           shingles: getShingles(bodyText),
           text: bodyText

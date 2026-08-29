@@ -65,7 +65,7 @@ function archivePublicOrigin() {
 }
 
 function rewritePlatformOrigin(directory, publicOrigin) {
-  const legacyOrigins = /https:\/\/(?:taqigroup\.com|alsahmm\.com)/g;
+  const legacyOrigins = /https:\/\/taqigroup\.com/g;
   const walk = (dir) => {
     for (const entry of readdirSync(dir)) {
       const file = join(dir, entry);

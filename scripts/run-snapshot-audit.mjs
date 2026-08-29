@@ -2,7 +2,7 @@ import https from "node:https";
 import fs from "node:fs";
 import { join } from "node:path";
 
-const BASE = "https://alsahmm.com";
+const BASE = "https://taqigroup.com";
 
 function fetchText(url) {
   return new Promise((resolve) => {
@@ -65,8 +65,8 @@ async function runSnapshotAudit() {
     const imgsWithAlt = imgs.filter(m => /alt=["'][^"']+["']/i.test(m[1])).length;
 
     // Links
-    const internalLinks = [...res.body.matchAll(/href=["'](https?:\/\/alsahmm\.com[^"']*|\/[^"']*)["']/gi)].length;
-    const externalLinks = [...res.body.matchAll(/href=["']https?:\/\/(?!alsahmm\.com)[^"']+["']/gi)].length;
+    const internalLinks = [...res.body.matchAll(/href=["'](https?:\/\/taqigroup\.com[^"']*|\/[^"']*)["']/gi)].length;
+    const externalLinks = [...res.body.matchAll(/href=["']https?:\/\/(?!taqigroup\.com)[^"']+["']/gi)].length;
 
     crawlResults.push({
       index: i + 1,

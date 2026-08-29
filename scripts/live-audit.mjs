@@ -1,6 +1,6 @@
 import https from "node:https";
 
-const TARGET_URL = "https://alsahmm.com";
+const TARGET_URL = "https://taqigroup.com";
 
 const ENDPOINTS_TO_TEST = [
   "/",

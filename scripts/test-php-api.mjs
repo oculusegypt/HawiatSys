@@ -4,7 +4,7 @@ import fs from "node:fs";
 const phpScript = `<?php
 $_SERVER['REQUEST_METHOD'] = 'POST';
 $_SERVER['REQUEST_URI'] = '/api/admin/sitemap/save';
-$_SERVER['HTTP_HOST'] = 'alsahmm.com';
+$_SERVER['HTTP_HOST'] = 'taqigroup.com';
 
 ob_start();
 require 'build_php/api/index.php';
