@@ -1,0 +1,72 @@
+النتائج
+نتيجة أداء taqigroup.com
+0-4950-8990-100
+71
+Largest Contentful Paint
+5.5 s
+Speed Index
+7.2 s
+First Contentful Paint
+2.0 s
+Total Blocking Time
+30 ms
+Cumulative Layout Shift
+0.006
+التشخيص
+يظهر التشخيصات رؤى حول موقعك الإلكتروني. سيعرض ما تم إنجازه وما يمكن تحسينه لجعل موقعك الإلكتروني أسرع. سيتم تعيين درجة لكل التفاصيل بناءً على مدى جودة تحسينها. تأكد من اطّلاعك على المقالات بشأن تحسين سرعة موقعك الإلكتروني!
+
+فيما يلي بعض الروابط المفيدة لمساعدتك في تحسين موقعك الإلكتروني:
+تسريع ووردبريس في 9 خطوات سهلة
+كيف أحسن موقعي لجعل التحميل أسرع؟
+كيفية تحسين الصور لموقعك على ووردبريس
+تعرّف على كيفية تسريع موقعك على ووردبريس مثل المحترفين (فيديو)
+معلومات
+النتيجة
+Network dependency tree
+0
+Avoid chaining critical requests by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.
+
+Avoid multiple page redirects
+0
+Redirects introduce additional delays before the page can be loaded. 
+Learn how to avoid page redirects .
+
+Render-blocking requests
+0
+Requests are blocking the page's initial render, which may delay LCP. 
+Deferring or inlining can move these network requests out of the critical path.
+
+Reduce unused JavaScript
+0
+Reduce unused JavaScript and defer loading scripts until they are required to decrease bytes consumed by network activity. 
+Learn how to reduce unused JavaScript .
+
+Document request latency
+0
+Your first network request is the most important. 
+Reduce its latency by avoiding redirects, ensuring a fast server response, and enabling text compression.
+
+Avoid enormous network payloads
+50
+Large network payloads cost users real money and are highly correlated with long load times. 
+Learn how to reduce payload sizes .
+
+Improve image delivery
+50
+Reducing the download time of images can improve the perceived load time of the page and LCP. 
+Learn more about optimizing image size
+
+Use efficient cache lifetimes
+50
+A long cache lifetime can speed up repeat visits to your page. 
+Learn more about caching .
+
+حان الوقت للتفاعل
+65
+Time to Interactive is the amount of time it takes for the page to become fully interactive. 
+Learn more about the Time to Interactive metric .
+
+Max Potential First Input Delay
+98
+The maximum potential First Input Delay that your users could experience is the duration of the longest task. 
+Learn more about the Maximum Potential First Input Delay metric .
