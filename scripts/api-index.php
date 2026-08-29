@@ -910,8 +910,8 @@ try {
 
     /**
      * Keep Hostinger's runtime sitemap URLs identical to the Node prerender.
-     * Editorial Arabic slugs remain in SQLite, while public entity URLs use
-     * deterministic ASCII slugs with the record id as a collision guard.
+     * Arabic is the editorial language of this site, so public canonical URLs
+     * preserve Arabic characters and only normalize separators.
      */
     function publicFriendlySlug(string $value, string $fallback = 'page'): string {
         $source = trim($value);
@@ -920,26 +920,16 @@ try {
             $source = \Normalizer::normalize($source, \Normalizer::FORM_KC) ?: $source;
         }
         $source = preg_replace('/[\x{064B}-\x{065F}\x{0670}\x{0640}]/u', '', $source) ?? $source;
-        $pairs = [
-            'لا' => 'la', 'لأ' => 'la', 'لإ' => 'la', 'لآ' => 'la',
-            'ث' => 'th', 'ذ' => 'dh', 'ش' => 'sh', 'خ' => 'kh', 'غ' => 'gh',
-            'ض' => 'd', 'ظ' => 'z', 'ع' => 'a', 'ء' => 'a', 'أ' => 'a',
-            'إ' => 'i', 'آ' => 'a', 'ؤ' => 'w', 'ئ' => 'y',
-            'ا' => 'a', 'ب' => 'b', 'ت' => 't', 'ج' => 'j', 'ح' => 'h',
-            'د' => 'd', 'ر' => 'r', 'ز' => 'z', 'س' => 's', 'ص' => 's',
-            'ط' => 't', 'ف' => 'f', 'ق' => 'q', 'ك' => 'k', 'ل' => 'l',
-            'م' => 'm', 'ن' => 'n', 'ه' => 'h', 'و' => 'w', 'ى' => 'a',
-            'ي' => 'y', 'ة' => 'h',
-        ];
-        $source = strtolower(str_replace(array_keys($pairs), array_values($pairs), $source));
-        $source = str_replace('&', ' and ', $source);
+        $source = str_replace('&', ' و ', $source);
         $source = preg_replace('/[\'’`"]/', '', $source) ?? $source;
-        $source = preg_replace('/[^a-z0-9]+/i', '-', $source) ?? '';
+        $source = preg_replace('/[^\x{0600}-\x{06FF}\x{0750}-\x{077F}0-9a-zA-Z-]+/u', '-', $source) ?? '';
         $source = trim(preg_replace('/-+/', '-', $source) ?? '', '-');
         if ($source === '') return $fallback;
-        if (strlen($source) > 64) {
-            $source = rtrim(substr($source, 0, 64), '-');
-            $source = preg_replace('/-[^-]*$/', '', $source) ?: $source;
+        $characters = preg_split('//u', $source, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        if (count($characters) > 100) {
+            $prefix = implode('', array_slice($characters, 0, 100));
+            $source = preg_replace('/-[^-]*$/u', '', $prefix) ?: $prefix;
+            $source = rtrim(preg_replace('/-+/', '-', $source) ?? $source, '-');
         }
         return $source ?: $fallback;
     }
@@ -947,9 +937,13 @@ try {
     function publicEntitySlug(?string $slug, ?string $title, $id, string $fallback): string {
         $rawSlug = trim((string)($slug ?? ''));
         $rawTitle = trim((string)($title ?? ''));
-        $value = preg_match('/^(?:مقالة|post)[-_]?\d+$/iu', $rawSlug) && $rawTitle !== ''
+        $isGeneratedNumericSlug = preg_match('/^(?:مقالة|post)[-_]?\d+$/iu', $rawSlug);
+        $hasArabic = static fn (string $value): bool => preg_match('/[\x{0600}-\x{06FF}]/u', $value) === 1;
+        $value = $isGeneratedNumericSlug && $rawTitle !== ''
             ? $rawTitle
-            : ($rawSlug !== '' ? $rawSlug : $rawTitle);
+            : ($hasArabic($rawSlug)
+                ? $rawSlug
+                : ($hasArabic($rawTitle) ? $rawTitle : ($rawSlug !== '' ? $rawSlug : $rawTitle)));
         $suffix = $id === null || $id === '' ? '' : '-' . preg_replace('/[^0-9]/', '', (string)$id);
         $base = publicFriendlySlug($value, $fallback . $suffix);
         return $base . ($suffix !== '' && !str_ends_with($base, $suffix) ? $suffix : '');
