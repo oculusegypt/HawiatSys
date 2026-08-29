@@ -80,6 +80,7 @@ interface SiteSettings {
   social_snapchat: string
   social_youtube: string
   social_linkedin: string
+  company_google_business_profile: string
   analytics_google_tag_id: string
   facebook_pixel_id: string
   stats_items: string
@@ -125,6 +126,7 @@ const DEFAULTS: SiteSettings = {
   social_snapchat: "",
   social_youtube: "",
   social_linkedin: "",
+  company_google_business_profile: "",
   analytics_google_tag_id: "",
   facebook_pixel_id: "",
   stats_items: JSON.stringify(DEFAULT_STATS),
@@ -772,6 +774,17 @@ function GeneralTab() {
                   />
                 </div>
               </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-600">Google Business Profile</label>
+                <Input
+                  value={settings.company_google_business_profile}
+                  onChange={e => setSettings(s => ({ ...s, company_google_business_profile: e.target.value }))}
+                  placeholder="https://maps.google.com/..."
+                  className="bg-white font-mono text-xs"
+                  dir="ltr"
+                />
+                <p className="text-xs text-gray-400">رابط الملف العام من Google Maps، ويُعرض كرابط خارجي مستقل عن خريطة التضمين.</p>
+              </div>
             </div>
 
           {/* Google Maps embed */}
@@ -830,6 +843,7 @@ function GeneralTab() {
              social_snapchat: settings.social_snapchat,
              social_youtube: settings.social_youtube,
               social_linkedin: settings.social_linkedin,
+              company_google_business_profile: settings.company_google_business_profile,
               analytics_google_tag_id: settings.analytics_google_tag_id,
               facebook_pixel_id: settings.facebook_pixel_id,
              support_hours: settings.support_hours,

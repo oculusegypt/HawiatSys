@@ -54,6 +54,10 @@ const siteDescription = normalizeMetaDescription(
   "تأجير الحاويات ونقل مخلفات البناء في الرياض",
 );
 const siteLogo = settingMap.company_logo?.trim() || "/images/logo.png";
+const DEFAULT_ANALYTICS_ID = "G-B6TYSZHY0T";
+const siteAnalyticsId = /^G-[A-Z0-9]+$/i.test(settingMap.analytics_google_tag_id?.trim() || "")
+  ? settingMap.analytics_google_tag_id.trim()
+  : DEFAULT_ANALYTICS_ID;
 let sitePhones = [];
 try {
   const parsed = JSON.parse(settingMap.company_phones || "[]");
@@ -87,6 +91,8 @@ const socialLinks = [
   settingMap.social_tiktok,
   settingMap.social_snapchat,
   settingMap.social_youtube,
+  settingMap.social_linkedin,
+  settingMap.company_google_business_profile,
 ].map(value => String(value || "").trim()).filter(value => /^https?:\/\//i.test(value));
 const address = {
   address: settingMap.company_address?.trim() || "",
@@ -287,6 +293,15 @@ function renderPage({
   const imgAlt   = title.replace(/\|.*/,"").trim();
 
   const schemaTags = schemas.map((schema) => jsonLd(schema)).join("\n  ");
+  const analyticsTag = siteAnalyticsId ? `
+  <!-- Google Analytics 4 -->
+  <script async id="google-tag-script" src="https://www.googletagmanager.com/gtag/js?id=${esc(siteAnalyticsId)}"></script>
+  <script id="google-tag-init">
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = window.gtag || function(){ window.dataLayer.push(arguments); };
+    window.gtag('js', new Date());
+    window.gtag('config', '${esc(siteAnalyticsId)}', { anonymize_ip: true });
+  </script>` : "";
 
   return `<!DOCTYPE html>
 <html lang="ar" dir="rtl" class="no-js">
@@ -338,6 +353,7 @@ function renderPage({
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  ${analyticsTag}
 
   <!-- App assets -->
   ${leafletCss}

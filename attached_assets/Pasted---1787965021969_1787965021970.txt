@@ -1,0 +1,148 @@
+سأحوّل التقرير إلى خطة تنفيذ قابلة للقياس، مع فصل ما يمكن إصلاحه داخل الموقع عن الأمور الخارجية التي لا يمكن ضمانها بالكود وحده مثل الروابط الخلفية وGoogle Business Profile. سأفحص التقرير المرفق ومصادر العناوين والتحليلات والسرعة والروابط الاجتماعية قبل تحديد خطوات التنفيذ.
+
+
+
+Show less
+
+Opened Pasted-Friendly-Links-Some-of-your-link-URLs-do-not-appear-fri_1787963856051.txt
+Loaded skill seo-auditor
+
+Searched for "<h1|h1|Google Analytics…"
+
+Found files
+Deciding on migration options
+
+Deciding on migration options
+Planning a deliverable
+
+The user asked for a plan, and it seems they want a robust one without actual changes. I should outline each issue, noting that some external factors are unfixable. Their goal is realistic, so I can't guarantee backlinks or address quirks without real profiles or data. I want to clarify that the screenshot only shows issues with keyword symbols and length. We need to consider whether to preserve current Arabic URLs since some flagged issues may not be real problems.Deciding on migration options
+
+I’m considering whether to migrate to short English/Latin hyphen slugs for canonical URLs, like /services/debris-container-rental-riyadh or /containers/small. The old Arabic URLs might need to 301 redirect and be set to noindex. Since external crawlers see percent encoding, using Latin slugs would address the symbol and length issues. I should focus on the public 166 routes, perhaps using stable Latin transliteration for SEO-friendly, readable keywords. Maybe the user wants a solution free from errors related to symbols and length.
+
+Investigating H1 tags
+
+Investigating H1 tags
+Investigating H1 tags
+
+I’m curious about the report saying there’s more than one H1 tag when it seems like the root might only have one. It could be that there's something happening with the SPA fallback after the JavaScript renders the page, or maybe it’s a mobile issue. I need to dig deeper into this! Also, the static archive might have hidden H1 counts because of aria attributes. Let’s check the count in build_php/index.html using grep.
+
+
+Counted lines
+Evaluating tracking setup
+
+Evaluating tracking setup
+Evaluating tracking setup
+
+I’m noticing that the production report isn't detecting something because the setting is blank or the script runs after JavaScript. It seems like the external detector might rely on the initial HTML without JavaScript. I should consider using a static gtag script in prerender if the measurement ID is configured, but the user hasn’t given a GA ID yet. I need to ask them for their GA4 Measurement ID or integration. They also want social accounts, so I can generate links for platforms like Facebook, but I need to check if those handles actually exist.
+
+
+Downloaded a file
+Considering response options
+
+Considering response options
+Considering response options
+
+I need to decide how to respond to the user's request. It seems like they want a plan, so I'll avoid any code changes. They attached a screenshot and added friendly links. I can highlight live evidence from the homepage, mentioning the H1 and JSON-LD details. I might note that there could be issues with the analyzer’s rendered DOM. Also, the Local Business Schema might not be correctly identified due to JSON-LD parsing challenges. I'll inspect specific lines to clarify this.
+
+
+Opened index.html
+Evaluating task updates
+
+Evaluating task updates
+Evaluating task updates
+
+I need to continue the answer. Maybe it's time to update the plan with real evidence. Should I propose follow-up tasks? The current task plan might need adjustments, and the user might want fixes. There's a specific request for a comprehensive plan, which indicates follow-on work is necessary. Even if I provide the plan, I don't have to mark the task complete right away. I should probably check the follow-up skill instructions.
+
+Loaded skill follow-up-tasks
+Defining project phases
+
+Defining project phases
+Defining project phases
+
+I'm considering breaking the full plan into phases and setting clear acceptance criteria. It seems I might not need to modify the code since the user explicitly mentioned no issues across seven categories. I need to clarify what "done" means for each category. For instance, I need to ensure there's one H1 on the homepage and all public routes, adding an automated gate to handle hidden errors properly. The <h1> fallback condition might require attention too.
+
+
+Read build_php/index.html
+Reviewing Local Business Schema
+
+Reviewing Local Business Schema
+Planning SEO Adjustments
+
+I think I need to provide an answer for the user’s plan. It’s important to include that we shouldn't use external backlinks, and we need the GA4 ID for analytics while noting the FB pixel is optional. I have to be cautious with the H1 count and ensure the static JSON-LD LocalBusiness schema is present. Oh, if the external tool is limited, it might miss some content due to how it processes the schema. I’ll need to look into the CSS for potential hiding of important information.Reviewing Local Business Schema
+
+I've noticed that the home-local-business-schema uses @type:"Organization" even though the ID suggests it's a local business, which feels off. I could revise it to make the primary schema @type:"LocalBusiness" with additionalType:"ProfessionalService". There’s an issue with the homepage not displaying an address, so I should add a visible contact block to the homepage content and ensure it’s included in the runtime footer. I must use the exact address from the DB for accuracy. I'll check the AboutSection for the correct details.
+
+
+Searched for "address|companyAddress|…"
+Planning form structure
+
+Planning form structure
+Evaluating follow-up tasks
+
+I need to think about the current request and whether it’s an assigned task or a standalone reminder. Perhaps I should propose follow-up tasks based on the plan, since the user seems to want actionable steps for implementation. I can use the proposeFollowUpTasks callback to suggest a few potential tasks. This could include fixing the page structure and data, shortening links, and improving mobile speed. By breaking it down this way, it can be clearer for the user.Planning implementation steps
+
+It seems that I need to create a plan without proposing tasks that depend on unknown values like social account URLs and GA IDs. I can outline an implementation task for site code changes and suggest a live deployment and verification step. But since the user explicitly asked for a plan, I should focus on that and ask for the necessary GA ID and social URLs afterward. Using a question tool would work well to gather the details I need before implementation. A quick form could help clarify what’s required!Planning form structure
+
+I could create a form for the user to fill out, but it seems I need to ensure the current conversation provides them with a plan first. The user likely expects a clear outline before I ask for additional IDs. It's probably best to share the plan and then use the AskQuestion tool afterward. The form should be straightforward; I can include fields for the GA4 ID and social URLs. I want to check if those are required to avoid making assumptions about what the user has.
+
+Evaluating the analytics implementation
+
+Evaluating the analytics implementation
+Evaluating the analytics implementation
+
+I want to ensure the plan involves adding an automated check after both the JS render and static HTML. I should avoid unnecessary changes while guaranteeing external verification with a single H1 and no fallback. For analytics, I'll include the GA4 script in the initial static HTML, making sure it has an ID, and include dataLayer if needed. Additionally, Facebook Pixel could be considered optional, and I might explore Plausible as an alternative. I need to check the rendering strategy to minimize duplication and optimize hydration.
+
+
+Opened main.tsx
+Investigating static content
+
+Investigating static content
+Investigating static content
+
+I'm considering how static content behaves during browser hydration. It often stays visible while the app loads and might get removed later by JavaScript. I suspect that in App.tsx, there's a line like document.getElementById('seo-static-page-content')?.remove() inside useEffect. I should probably search for that exact usage to confirm and gain a clearer understanding of how it all works. Let’s check that out!
+
+
+Searched for "seo-static-page-content…"
+Considering rendering strategies
+
+Considering rendering strategies
+Exploring homepage improvements
+
+The static homepage currently has an FAQ in JSON-LD, but it lacks visible Q&A in HTML. I'm considering adding about three unique, visible Q&As to improve user experience.
+
+I noticed that the LLM rendering is at 1400% due to the static SEO page along with separate React hydration. I want to ensure that we avoid duplicate content while keeping prerendered content intact for SEO. A possible solution could be to keep the initial static content while allowing React to take over without duplication. I need to devise a careful plan that considers these factors.Considering rendering strategies
+
+I'm weighing options for using SSR and hydration to ensure that the prerender generates an exact React tree, which seems tricky. Alternatively, I could consider removing static content before calling createRoot using a non-React static root. This setup allows users with JS disabled to see the static content, while JS clients would see the React view.
+
+In main.tsx, I can't remove static content, but maybe I can adjust its visibility. It sounds complicated! I'm thinking about creating a controlled handoff where the initial static snapshot is replaced before React mounts, ensuring I don’t mutate React-managed nodes. So much to juggle!
+
+Addressing Backlinks and Citations
+
+Addressing Backlinks and Citations
+Planning URL Strategy
+
+I’m looking at how to handle the rendered DOM measurements after deployment. I don’t need any external tools, just an analyzer post-launch.
+
+The "Friendly Links" report shows Arabic percent-encoded URLs, so I need a plan for short Latin slugs and 301 redirects. If the user wants all issues addressed without symbols or length constraints, we can’t simply change the canonical without redirects. I’ll need to create stable slugs for existing data, including for services and blog articles, and we should also avoid any Arabic in URLs.Addressing Backlinks and Citations
+
+I need to limit my URLs to a maximum of 60 characters. Regarding backlinks, the report shows that some domains are likely low-quality auto-generated link farms, which could be harmful. I can’t fix this by code, and buying or submitting spam links isn't advisable. Google suggests disavowing links only if there's a manual action. I also want to focus on acquiring legitimate citations from Google Business Profile, local directories, and other official sources while ensuring consistent NAP.
+
+Planning website deployment
+
+Planning website deployment
+Reviewing website optimization
+
+I’m looking at some optimization ideas for the website. For starters, I might need to reduce unused JavaScript by implementing manual chunks and lazy loading for sections that load below the fold. For fonts, there’s a Google Tajawal CSS that seems to be blocking renders; I could consider self-hosting a subset or preloading it. I also want to set cache headers and apply Brotli/gzip compression for assets. Finally, after deployment, I’ll measure Lighthouse scores to ensure we meet performance targets.Planning website deployment
+
+I need to consider integrating an ID for automated gates. I’ll extend the seo-quality-gate.mjs to check for exactly one H1 tag, visible addresses, the LocalBusiness string, visible FAQ Q&A, and various other criteria like an analytics marker, social links, and slug regex. Oh, and I have to ensure there are no legacy issues or redirects.
+
+For the deployment process, I'll cleanly replace the public_html while preserving the .well-known directory. After redeploying, I’ll need to use curl to check the live site since I’ve had issues before with stale reports from mixed deployments.
+
+Preparing user plan
+
+Preparing user plan
+Preparing user plan
+
+I should consider that the user might want an actual plan without edits, so I'll keep it straightforward. I'll write a concise preamble followed by an AskQuestion section. It's also important to make sure everything is in Arabic to maintain consistency. Using clear headings will help to organize the information well. I want to make sure the user finds the plan easy to navigate and understand!
+
+النتيجة الحالية لا تشير إلى مشكلة واحدة، بل إلى ثلاثة مصادر مختلفة مختلطة في التقرير: كود الموقع، طريقة قراءة أداة التدقيق، وحالة النشر/الحسابات الخارجية. الخطة التالية ستعالج القابل للإصلاح داخل الموقع، وتحوّل الباقي إلى متطلبات خارجية قابلة للتحقق بدل إضافة بيانات وهمية أو تعديل المؤشرات.

@@ -1,6 +1,6 @@
 import * as React from "react"
 import { Link } from "wouter"
-import { Phone, Mail, MapPin, Map, Facebook, Instagram, Youtube, Twitter, Music2, Ghost, Linkedin } from "lucide-react"
+import { Phone, Mail, MapPin, Map, Facebook, Instagram, Youtube, Twitter, Music2, Ghost, Linkedin, ExternalLink } from "lucide-react"
 import { getSafeMapEmbedUrl, useSiteSettings } from "@/context/SiteSettingsContext"
 
 export function Footer() {
@@ -41,7 +41,7 @@ export function Footer() {
             )}
              {description && <p className="text-gray-300 text-sm leading-relaxed">{description}</p>}
             <div className="pt-2" aria-label="حسابات التواصل الاجتماعي">
-               {socialItems.length > 0 && <p className="mb-2 text-xs font-bold text-gray-400">حساباتنا الموثقة على وسائل التواصل</p>}
+                {socialItems.length > 0 && <p className="mb-2 text-xs font-bold text-gray-400">حساباتنا على وسائل التواصل</p>}
                <div className="flex flex-wrap gap-2">
                 {socialItems.map(({ key, label, href, Icon }) => (
                   <a
@@ -115,7 +115,20 @@ export function Footer() {
                   </div>
                 </li>
               )}
-               {siteSettings.email && <li className="flex items-center gap-3">
+                {siteSettings.googleBusinessProfile && (
+                  <li className="flex items-start gap-3">
+                    <Map className="text-secondary shrink-0 mt-1" size={20} />
+                    <a
+                      href={siteSettings.googleBusinessProfile}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-gray-300 hover:text-white transition-colors inline-flex items-center gap-1"
+                    >
+                      ملفنا على Google Business Profile <ExternalLink size={13} aria-hidden="true" />
+                    </a>
+                  </li>
+                )}
+                {siteSettings.email && <li className="flex items-center gap-3">
                 <Mail className="text-secondary shrink-0" size={20} />
                  <a href={`mailto:${siteSettings.email}`} className="text-gray-300 hover:text-white transition-colors">{siteSettings.email}</a>
                </li>}

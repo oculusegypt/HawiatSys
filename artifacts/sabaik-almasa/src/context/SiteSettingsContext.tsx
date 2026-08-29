@@ -136,6 +136,7 @@ interface SiteSettings {
   paymentMethods: string
   publicUrl: string
   socialLinks: SocialLinks
+  googleBusinessProfile: string
   analyticsGoogleTagId: string
   facebookPixelId: string
   supportStatus: string
@@ -187,6 +188,7 @@ const DEFAULTS: SiteSettings = {
   paymentMethods: "",
   publicUrl: "",
   socialLinks: { facebook: "", x: "", instagram: "", tiktok: "", snapchat: "", youtube: "", linkedin: "" },
+  googleBusinessProfile: "",
   analyticsGoogleTagId: "",
   facebookPixelId: "",
   supportStatus: "",
@@ -325,6 +327,9 @@ async function fetchSettings(): Promise<FetchedSiteSettings> {
       youtube: typeof data.social_youtube === "string" ? data.social_youtube.trim() : "",
       linkedin: typeof data.social_linkedin === "string" ? data.social_linkedin.trim() : "",
     },
+    googleBusinessProfile: typeof data.company_google_business_profile === "string"
+      ? data.company_google_business_profile.trim()
+      : "",
     analyticsGoogleTagId: typeof data.analytics_google_tag_id === "string" ? data.analytics_google_tag_id.trim() : "",
     facebookPixelId: typeof data.facebook_pixel_id === "string" ? data.facebook_pixel_id.trim() : "",
     supportStatus: typeof data.support_status === "string" ? data.support_status.trim() : "",

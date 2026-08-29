@@ -28,6 +28,15 @@ const updates = [
   { key: "company_email", value: "info@alsahmm.com" },
   { key: "company_price_range", value: "$$" },
   { key: "company_payment_methods", value: "نقدي، مدى، فيزا، ماستركارد، تحويل بنكي" },
+  { key: "company_google_business_profile", value: "https://maps.google.com/maps?ll=24.54038,46.650611&z=16&t=m&hl=ar&gl=EG&mapclient=embed&cid=16777605780937543839" },
+  { key: "social_facebook", value: "https://www.facebook.com/Aiservx" },
+  { key: "social_x", value: "https://x.com/Aiservx" },
+  { key: "social_instagram", value: "https://www.instagram.com/Aiservx/" },
+  { key: "social_tiktok", value: "https://www.tiktok.com/@Aiservx" },
+  { key: "social_snapchat", value: "https://www.snapchat.com/add/Aiservx" },
+  { key: "social_youtube", value: "https://www.youtube.com/@Aiservx" },
+  { key: "social_linkedin", value: "https://www.linkedin.com/company/aiservx" },
+  { key: "analytics_google_tag_id", value: "G-B6TYSZHY0T" },
   { key: "vapid_subject", value: "mailto:info@alsahmm.com" }
 ];
 

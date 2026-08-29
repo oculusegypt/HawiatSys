@@ -42,6 +42,7 @@ const DEFAULTS: Record<string, string> = {
   social_snapchat: "",
   social_youtube: "",
   social_linkedin: "",
+  company_google_business_profile: "",
   analytics_google_tag_id: "",
   facebook_pixel_id: "",
   homepage_content: "{}",
