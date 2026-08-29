@@ -1,15 +1,15 @@
-# توثيق حزمة Hostinger — 28 أغسطس 2026
+# توثيق حزمة Hostinger — 29 أغسطس 2026
 
 ## حالة الإصدار
 
 - **الحالة:** جاهز للرفع، واجتاز بوابة الجودة النهائية.
 - **الملف:** `cleanflow-services-hostinger.zip`
-- **آخر بناء:** `2026-08-28 20:39 UTC`
-- **الحجم:** `38,154,559` بايت تقريبًا (`37,260 KB`)
-- **عدد عناصر الأرشيف:** `686` عنصرًا (`459` ملفًا فعليًا)
+- **آخر بناء:** `2026-08-29 01:34 UTC`
+- **الحجم:** `38,405,055` بايت تقريبًا (`37,505 KB`)
+- **عدد عناصر الأرشيف:** `836` عنصرًا
 - **أرشيف الصور المنفصل:** `cleanflow-legacy-images-archive.zip`
 - **أرشيف الصور:** `87` ملفًا فريدًا، منها `33` ملفًا من مجلد `صور حسام`، مع `190` مرجع مصدر، والحجم غير المضغوط `10,527,243` بايت.
-- **الموقع المعتمد للفحص:** `https://taqigroup.com`
+- **الموقع المعتمد للفحص:** `https://alsahmm.com`
 - **طريقة التشغيل:** PHP 8.x + PDO SQLite فقط؛ لا يعتمد الإنتاج على Node.js أو Replit.
 
 ## التعديلات الأخيرة
@@ -30,6 +30,9 @@
 11. ضبط النص البديل لصور صفحات SEO والخدمات على عنوان المحتوى مباشرة بدل إضافة كلمات مكررة.
 12. تصفية صور sitemap وHTML التي لا توجد فعليًا داخل الحزمة، مع دعم أسماء الملفات العربية عند الفحص.
 13. تضمين `BUILD_INFO.json` و`UPLOAD_INSTRUCTIONS.txt` داخل الجذر النهائي للأرشيف.
+14. إصلاح canonical وOG وJSON-LD ورابط العودة في صفحة CleanFlow Platform لتستخدم النطاق المعتمد.
+15. جعل بوابة SEO تفحص كل HTML قابل للفهرسة داخل الأرشيف، بما في ذلك التطبيقات التسويقية المنسوخة إلى الجذر.
+16. توحيد اسم الأرشيف الرسمي إلى `cleanflow-services-hostinger.zip` مع نسخة توافقية مطابقة باسم `taqi-group-hostinger.zip`.
 
 ## محتوى النسخة المضمنة
 
@@ -37,7 +40,7 @@
 - `api/index.php` و`api/container-system.php` وملفات `.htaccess`.
 - `data/sabaik.db` بنسخة SQLite مهيأة للاستخدام على Hostinger.
 - `uploads/` وجميع أصول الموقع.
-- `cleanflow-platform/` لمنصة التشغيل.
+- `taqi-group-platform/` لمنصة التشغيل.
 - `sitemap.xml` و`robots.txt` و`llms.txt` وبيانات favicon/manifest.
 - `images/content/` للمحتوى المنشور فقط؛ الصور القديمة ومجلد `صور حسام` موجودان في الأرشيف المنفصل ولا يُرفعان إلى الإنتاج.
 
@@ -45,13 +48,15 @@
 
 تم استخراج الأرشيف مؤقتًا وتشغيل الفحوصات التالية بنجاح:
 
-- **167** رابطًا فريدًا في sitemap.
-- **209** وسم صورة في sitemap، وكلها تشير إلى ملفات موجودة داخل الأرشيف.
+- **166** رابطًا فريدًا في sitemap.
+- **210** وسم صورة في sitemap، وكلها تشير إلى ملفات موجودة داخل الأرشيف.
 - **65** رابط مقال منشور، ولكل مقال صورة في sitemap.
 - **50** رابط منطقة عربية.
-- **158** مرجع صورة داخل HTML، وكلها موجودة داخل الأرشيف.
+- **166** مرجع صورة داخل HTML، وكلها موجودة داخل الأرشيف.
 - تطابق كامل لـ sitemap بين `public` و`dist` و`build_php` ونسخة ZIP، بالهاش:
-  `951fb21cd07bff42df31ebee8b19c4159aa5c585b5c4afb4cdd000d915a6e9ac`.
+  `01d712e54a591fe1aba8e1d16676142335fb9b3bc51404bf9c2b34e33654b1ae`.
+- **166** صفحة HTML قابلة للفهرسة، و**166** canonical فريد، و**166** رابط Sitemap متطابق.
+- جميع الأوصاف ضمن 120–160 حرفًا، وجميع الصفحات القابلة للفهرسة لديها canonical وJSON-LD وروابط داخلية.
 - لا توجد روابط preview أو صفحات `noindex` داخل sitemap.
 - لا توجد صور sitemap أو HTML مفقودة.
 - لا يوجد مجلد `صور حسام` ولا أي ملف من قائمة الصور القديمة داخل حزمة الإنتاج.
@@ -77,22 +82,22 @@ public_html/api/index.php
 public_html/data/sabaik.db
 public_html/uploads/
 public_html/sitemap.xml
-public_html/cleanflow-platform/
+public_html/taqi-group-platform/
 ```
 
 خذ نسخة احتياطية من `data/` و`uploads/` قبل استبدال نسخة موقع يعمل حاليًا. بعد الرفع افتح:
 
 ```text
-https://taqigroup.com/
-https://taqigroup.com/sitemap.xml
-https://taqigroup.com/cleanflow-platform/
+https://alsahmm.com/
+https://alsahmm.com/sitemap.xml
+https://alsahmm.com/taqi-group-platform/
 ```
 
 ## إعادة البناء وإعادة الشهادة
 
 ```bash
-SITE_URL=https://taqigroup.com node scripts/build-hostinger.mjs
-SITE_URL=https://taqigroup.com pnpm --filter @workspace/scripts run seo-quality-gate
+SITE_URL=https://alsahmm.com node scripts/build-hostinger.mjs
+SITE_URL=https://alsahmm.com pnpm --filter @workspace/scripts run seo-quality-gate
 pnpm --filter @workspace/scripts run typecheck
 unzip -t cleanflow-services-hostinger.zip
 unzip -t cleanflow-legacy-images-archive.zip

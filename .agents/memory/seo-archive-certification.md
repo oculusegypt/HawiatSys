@@ -32,3 +32,9 @@ Compatibility aliases may remain physically present in the archive, but they mus
 **Why:** Removing old routes breaks inbound links, while leaving duplicate aliases indexable inflates route counts and creates duplicate-content signals.
 
 **How to apply:** Apply the rule in the prerender writer for every legacy prefix and translated alias, then verify the extracted archive has no `noindex` URL in Sitemap and that indexable HTML equals the canonical URL set.
+
+Every indexable HTML application copied into the archive root must be included in the archive SEO gate, including sibling marketing apps, not only the primary site's prerendered pages.
+
+**Why:** A sibling app can add an indexable HTML file with a different canonical origin or no internal link, making the production dashboard disagree with a primary-site-only release check.
+
+**How to apply:** Scan the extracted archive after all copies and rewrites, exclude only intentional non-indexable aliases, and compare every remaining canonical URL to the final Sitemap.

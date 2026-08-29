@@ -21,7 +21,7 @@ import { resolvePublicOrigin } from "./public-origin.mjs";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(join(root, "lib", "db", "package.json"));
 const Database = require("better-sqlite3");
-const archivePath = join(root, process.env.HOSTINGER_ARCHIVE || "taqi-group-hostinger.zip");
+const archivePath = join(root, process.env.HOSTINGER_ARCHIVE || "cleanflow-services-hostinger.zip");
 const publicSitemap = join(root, "artifacts", "sabaik-almasa", "public", "sitemap.xml");
 const distSitemap = join(root, "artifacts", "sabaik-almasa", "dist", "public", "sitemap.xml");
 const buildSitemap = join(root, "build_php", "sitemap.xml");
@@ -52,6 +52,31 @@ const decodePath = (value) => {
 };
 const sha256 = (file) => createHash("sha256").update(readFileSync(file)).digest("hex");
 const count = (source, pattern) => (source.match(pattern) || []).length;
+const getAttribute = (tag, name) => tag.match(
+  new RegExp(`\\b${name}\\s*=\\s*["']([^"']*)["']`, "i"),
+)?.[1]?.trim() ?? "";
+const getMeta = (html, name) => (html.match(/<meta\b[^>]*>/gi) ?? [])
+  .find((tag) => getAttribute(tag, "name").toLowerCase() === name.toLowerCase())
+  ? getAttribute(
+    (html.match(/<meta\b[^>]*>/gi) ?? [])
+      .find((tag) => getAttribute(tag, "name").toLowerCase() === name.toLowerCase()),
+    "content",
+  )
+  : "";
+const getCanonicalTags = (html) => (html.match(/<link\b[^>]*>/gi) ?? [])
+  .filter((tag) => getAttribute(tag, "rel").toLowerCase() === "canonical");
+const getJsonLdBlocks = (html) => [...html.matchAll(
+  /<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi,
+)].map((match) => match[1]);
+const isInternalHtmlLink = (href) => {
+  if (!href || href.startsWith("#") || href.startsWith("javascript:")) return false;
+  if (href.startsWith("/")) return !href.startsWith("/admin") && !href.startsWith("/api");
+  try {
+    return new URL(href).origin === siteUrl;
+  } catch {
+    return false;
+  }
+};
 
 if (!siteUrl || !/^https:\/\//i.test(siteUrl)) fail("a valid public HTTPS origin must be configured or passed as SITE_URL");
 if (siteUrl && /localhost|replit\.dev|replit\.app/i.test(siteUrl)) fail("site_public_url points to a non-production origin");
@@ -144,6 +169,73 @@ if (archiveDir) {
     }
   };
   walk(archiveDir);
+  const archivePages = htmlFiles
+    .map((file) => {
+      const source = readFileSync(file, "utf8");
+      const canonicalTags = getCanonicalTags(source);
+      const canonical = canonicalTags.length === 1 ? getAttribute(canonicalTags[0], "href") : "";
+      const description = getMeta(source, "description");
+      const jsonLdBlocks = getJsonLdBlocks(source);
+      const internalLinks = [...source.matchAll(/<a\b[^>]*href=["']([^"']+)["']/gi)]
+        .map((match) => match[1])
+        .filter(isInternalHtmlLink);
+      return {
+        file,
+        relative: file.replace(`${archiveDir}/`, ""),
+        source,
+        canonical,
+        description,
+        jsonLdBlocks,
+        internalLinks,
+        indexable: !/noindex/i.test(getMeta(source, "robots")),
+      };
+    })
+    .filter((page) => page.indexable);
+  const archiveCanonicalSet = new Set(archivePages.map((page) => page.canonical).filter(Boolean));
+  const archiveSitemapSet = new Set(urls);
+  const missingDescriptions = archivePages.filter((page) => !page.description);
+  const lowQualityDescriptions = archivePages.filter(
+    (page) => page.description.length < 120 || page.description.length > 160,
+  );
+  const missingCanonicals = archivePages.filter((page) => !page.canonical);
+  const wrongOriginCanonicals = archivePages.filter(
+    (page) => page.canonical && !page.canonical.startsWith(`${siteUrl}/`) && page.canonical !== siteUrl,
+  );
+  const missingSchemas = archivePages.filter((page) => page.jsonLdBlocks.length === 0);
+  const missingInternalLinks = archivePages.filter((page) => page.internalLinks.length === 0);
+  const canonicalOnly = [...archiveCanonicalSet].filter((url) => !archiveSitemapSet.has(url));
+  const sitemapOnly = [...archiveSitemapSet].filter((url) => !archiveCanonicalSet.has(url));
+
+  if (
+    archivePages.length === urls.length &&
+    archiveCanonicalSet.size === urls.length &&
+    canonicalOnly.length === 0 &&
+    sitemapOnly.length === 0
+  ) {
+    pass(`all indexable HTML routes match sitemap (${archivePages.length})`);
+  } else {
+    fail(
+      `indexable HTML/Sitemap mismatch: ${archivePages.length} pages, ${urls.length} sitemap URLs, ` +
+      `${archiveCanonicalSet.size} canonical URLs, ${canonicalOnly.length} canonical-only, ${sitemapOnly.length} sitemap-only`,
+    );
+  }
+  if (missingDescriptions.length === 0) pass(`all indexable pages have meta descriptions (${archivePages.length})`);
+  else fail(`missing meta descriptions: ${missingDescriptions.map((page) => page.relative).join(", ")}`);
+  if (lowQualityDescriptions.length === 0) pass(`all meta descriptions are 120–160 characters (${archivePages.length})`);
+  else fail(`meta descriptions outside 120–160 characters: ${lowQualityDescriptions.map((page) => `${page.relative} (${page.description.length})`).join(", ")}`);
+  if (missingCanonicals.length === 0 && wrongOriginCanonicals.length === 0) {
+    pass(`all indexable pages have canonical URLs on ${siteUrl}`);
+  } else {
+    fail(
+      `invalid canonical coverage: missing=${missingCanonicals.map((page) => page.relative).join(", ") || "0"}, ` +
+      `wrong-origin=${wrongOriginCanonicals.map((page) => `${page.relative} (${page.canonical})`).join(", ") || "0"}`,
+    );
+  }
+  if (missingSchemas.length === 0) pass(`all indexable pages have valid JSON-LD blocks (${archivePages.length})`);
+  else fail(`missing JSON-LD blocks: ${missingSchemas.map((page) => page.relative).join(", ")}`);
+  if (missingInternalLinks.length === 0) pass(`all indexable pages have internal links (${archivePages.length})`);
+  else fail(`pages without internal links: ${missingInternalLinks.map((page) => page.relative).join(", ")}`);
+
   const candidates = {
     service: htmlFiles.find((file) => /\/services\/[^/]+\/index\.html$/.test(file)),
     area: htmlFiles.find((file) => /\/areas\/[^/]+\/index\.html$/.test(file)),

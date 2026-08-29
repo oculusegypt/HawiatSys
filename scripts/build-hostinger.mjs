@@ -40,6 +40,46 @@ function quoteIdentifier(value) {
   return `"${String(value).replaceAll('"', '""')}"`;
 }
 
+function normalizePublicOrigin(value) {
+  try {
+    const parsed = new URL(String(value || "").trim());
+    const host = parsed.hostname.toLowerCase();
+    if (!["http:", "https:"].includes(parsed.protocol) || !host) return "";
+    if (/localhost|127\.0\.0\.1|0\.0\.0\.0|replit\.(dev|app)$/i.test(host)) return "";
+    return `${parsed.protocol}//${host}${parsed.port ? `:${parsed.port}` : ""}`;
+  } catch {
+    return "";
+  }
+}
+
+function archivePublicOrigin() {
+  const requested = normalizePublicOrigin(process.env.SITE_URL);
+  if (requested) return requested;
+  const db = new Database(SOURCE_DB, { readonly: true });
+  try {
+    const value = db.prepare("SELECT value FROM site_settings WHERE key = 'site_public_url'").get()?.value;
+    return normalizePublicOrigin(value);
+  } finally {
+    db.close();
+  }
+}
+
+function rewritePlatformOrigin(directory, publicOrigin) {
+  const legacyOrigins = /https:\/\/(?:taqigroup\.com|alsahmm\.com)/g;
+  const walk = (dir) => {
+    for (const entry of readdirSync(dir)) {
+      const file = join(dir, entry);
+      if (statSync(file).isDirectory()) walk(file);
+      else if (/\.(html?|js|css|json|xml|txt|webmanifest)$/i.test(entry)) {
+        const original = readFileSync(file, "utf8");
+        const rewritten = original.replace(legacyOrigins, publicOrigin);
+        if (rewritten !== original) writeFileSync(file, rewritten, "utf8");
+      }
+    }
+  };
+  walk(directory);
+}
+
 function inspectDatabase(dbPath) {
   const db = new Database(dbPath, { readonly: true });
   try {
@@ -395,6 +435,11 @@ const platformTarget = join(ROOT, "build_php/taqi-group-platform");
 rmSync(platformTarget, { recursive: true, force: true });
 mkdirSync(platformTarget, { recursive: true });
 cpSync(platformDist, platformTarget, { recursive: true });
+const publicOriginForPlatform = archivePublicOrigin();
+if (!publicOriginForPlatform) {
+  throw new Error("لم يمكن تحديد نطاق HTTPS عام لإعادة ضبط SEO الخاصة بمنصة CleanFlow");
+}
+rewritePlatformOrigin(platformTarget, publicOriginForPlatform);
 console.log("  ✅ صفحة المنصة + الشعار + الأصول نُسخت");
 
 // ── 3. WAL checkpoint ─────────────────────────────────────────────────────────
@@ -744,21 +789,27 @@ rmSync(ARCHIVE_SOURCE_DB, { force: true });
 rmSync(`${ARCHIVE_SOURCE_DB}-wal`, { force: true });
 rmSync(`${ARCHIVE_SOURCE_DB}-shm`, { force: true });
 
-step("إنشاء الأرشيف taqi-group-hostinger.zip");
-const zipPath = join(ROOT, "taqi-group-hostinger.zip");
+step("إنشاء الأرشيف cleanflow-services-hostinger.zip");
+const zipPath = join(ROOT, "cleanflow-services-hostinger.zip");
+const compatibilityZipPath = join(ROOT, "taqi-group-hostinger.zip");
 rmSync(zipPath, { force: true });
+rmSync(compatibilityZipPath, { force: true });
 
 if (process.platform === "win32") {
   execSync(`powershell -Command "Compress-Archive -Path '${join(ROOT, "build_php")}' -DestinationPath '${zipPath}' -Force"`, { cwd: ROOT, stdio: "inherit" });
 } else {
   // اضغط محتوى build_php لا المجلد نفسه؛ Hostinger يفك الأرشيف مباشرة داخل
   // public_html، ولذلك يجب أن تكون index.html وapi/ وdata/ وuploads/ في الجذر.
-  run("cd build_php && zip -r ../taqi-group-hostinger.zip .", "zip");
+  run("cd build_php && zip -r ../cleanflow-services-hostinger.zip .", "zip");
 }
 
 if (existsSync(zipPath)) {
+  // Keep the former filename as an exact compatibility copy so an existing
+  // upload workflow cannot accidentally select an older archive.
+  copyFileSync(zipPath, compatibilityZipPath);
   const sizeKb = Math.round(statSync(zipPath).size / 1024);
   console.log(`\n${"═".repeat(60)}`);
-  console.log(`✅ الأرشيف جاهز: taqi-group-hostinger.zip (${sizeKb} KB)`);
+  console.log(`✅ الأرشيف الرسمي جاهز: cleanflow-services-hostinger.zip (${sizeKb} KB)`);
+  console.log("✅ نسخة توافقية مطابقة: taqi-group-hostinger.zip");
   console.log(`${"═".repeat(60)}\n`);
 }
