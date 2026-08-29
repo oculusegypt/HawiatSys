@@ -1,0 +1,358 @@
+
+نعم، المهمة قابلة للتنفيذ. سأتعامل مع الملف المضغوط كمرجع إنتاجي أحدث، أستخرج محتواه في مساحة مؤقتة، ثم أقارن فقط ملفات السيو وتوابعها مع المصدر الحالي قبل نقل الفروق المؤكدة دون استبدال أجزاء التشغيل أو البيانات بلا داعٍ. سأحافظ على نسخة احتياطية وأتحقق من البناء النهائي بعد الدمج.
+
+
+
+Show less
+Loaded skill reading-uploaded-files
+Loaded skill react-vite
+
+Opened seo-archive-certification.md
+
+Opened seo-dashboard-node-php-parity.md
+
+Opened prerender-seo-parity.md
+Proceeding with project tasks
+
+Proceeding with project tasks
+Proceeding with project tasks
+
+I need to get started by listing the zip files and checking the status or files. I'll also inspect the current project SEO files using a command. It seems like I'll be using shell commands in a read-only manner to ensure I don't accidentally change anything. I want to be careful with this process, so I’ll focus on gathering the right information first. This feels like a solid approach!
+
+سأبدأ الآن بفهرسة الأرشيف دون فكّه فوق المشروع، ثم أحدد بصمة ملفات السيو الحالية ومقابلها داخل النسخة الإنتاجية. بعد ذلك سأطبق الدمج على الملفات المشتركة فقط، مع إبقاء ملفات قاعدة البيانات والرفع والإعدادات التشغيلية خارج نطاق الاستبدال إلا إذا أثبتت المقارنة أنها جزء مباشر من إصلاح السيو.
+
+
+
+Show less
+
+Ran stat
+
+Found files
+
+Found files
+Evaluating archive files
+
+Evaluating archive files
+Evaluating archive files
+
+I need to inspect the archive files more systematically. It seems I should extract the temp folder to see if the user wants the full content. I’ll compare the archive files to the current ones, likely checking if the current build of PHP is older. The archive might contain the latest build, so I’ll identify its contents and look for any changes related to SEO that the user wants to pull into the current project. Let’s get started on the extraction!
+
+
+Deleted files
+
+Extracted an archive
+
+Read build_php/BUILD_INFO.json
+Comparing archive and build
+
+Comparing archive and build
+Comparing builds and archives
+
+It seems the user likely expects me to continue without a direct question. I need to inspect the exact archive and see how it differs from the current build. I'll use commands like git status and sha256sum for checksums. I suspect the archive might be newer or different based on size discrepancies. Additionally, I should compare file names and timestamps to determine any drift in the generated bundle. I need to ensure I get the BUILD_INFO and file list counts from the archive too.Comparing archive and build
+
+I need to compare the entire directory tree of the archive against the current build_php using hashes. This way, I can identify which files are the same, different, or only found in one of the locations. Once I get those results, I can focus on the specific files that have differences. Alright, let’s get started on this to ensure everything is aligned!
+
+
+Read files
+
+Found files
+
+Found files
+Listing and comparing assets
+
+Listing and comparing assets
+Evaluating archive vs. current build
+
+I need to parse through the archives. There are many differences likely due to build_php being newer. It looks like I should compare the latest archive with the current source build output. The public SEO files mostly match, but the seo-static.css hash differs, probably due to the distribution. I need to check if the current source has the latest changes because the archive might include an older build. Perhaps the user's snapshot reflects modifications not in the current project? I want to use the archive as the source of truth while comparing them.Listing and comparing assets
+
+I want to list the current distribution root assets and then compare them. This step will help me figure out if there are any discrepancies or changes that need attention. I'll focus on identifying any differences that may need to be aligned or updated. By doing this, I ensure I'm on track and have all the necessary information to inform future decisions. It’s all about making sure everything matches up correctly!
+
+Investigating HTML differences
+
+Investigating HTML differences
+Investigating HTML differences
+
+I shouldn't over-assume the situation. It sounds like there are 227 HTML files, and I need to use a normalized diff to check the output, since the current build and the shared diff are significant due to the number of HTML files. I should compare the index HTML files using diff -u to see if they're the same and check public source versus dist index. I want to inspect the HTML metadata metrics to understand why they're different; perhaps new timestamps play a role. I'll compare the first 80 lines for clarity.
+
+
+Ran diff
+
+Found files
+
+Ran diff
+
+Ran stat
+Investigating Git status
+
+Investigating Git status
+Investigating Git status
+
+I’m considering running git status to see only the attachments and check what’s tracked in the current source. But wait, maybe the archive isn't actually in Git at all. I should inspect this further to confirm whether the archive is missing or something else is going on with it. Let's dive into that and see what details I can uncover!
+
+المقارنة الأولية كشفت فرقًا مهمًا: الأرشيف الأحدث يحتوي على تحسينات SEO حقيقية وليست مجرد اختلاف وقت البناء، أهمها canonical وog:url في الصفحة الأولى، إخفاء محتوى الـ prerender للمتصفح مع إبقائه للزواحف، وتعديلات نصية في llms.txt. في المقابل، لا يوجد ما يبرر استبدال قاعدة البيانات أو ملفات العمليات. سأحوّل هذه الفروق الآن إلى تعديلات مصدرية قابلة لإعادة البناء، بدل نسخ ملفات الإنتاج المجمّعة فقط.
+
+
+
+Show less
+
+Opened useDocumentSEO.ts
+
+Opened seoText.ts
+
+Reading prerender.mjs
+
+Opened build-hostinger.mjs
+
+Opened index.html
+
+Opened llms.txt
+Inspecting source and archive
+
+Inspecting source and archive
+Inspecting source and archive
+
+I need to check the archive root index against the current source. The archived output shows the expected SEO, but I suspect there are changes in the source. The build_php was generated later and might not include the archive's SEO because the current prerender.mjs script likely reflects the latest changes. Oh, and I noticed the public seo-static.css is missing html.js, while the archive contains it. I should also investigate if the current scripts/prerender is injecting an HTML class.
+
+
+Searched for "seo-static-page-content…"
+
+Viewed commit history
+
+Processed text
+
+Read files
+Exploring static SEO and commits
+
+Exploring static SEO and commits
+Inspecting git commits
+
+I need to continue looking into the commits. Maybe I should inspect the git diff to confirm if commit c07 corresponds to the archive. I plan to use git show for checking the commits. The user mentioned the archive is the latest, so it might come from an uncommitted state or commit that’s not the current one. Also, the git log shows a weird duplicate branch. I can compare archives and commits to see if they match or differ.Exploring static SEO and commits
+
+I need to check the source in src/main.tsx for static SEO, likely focusing on the no-js logic in a class. I think using rg all could help me search through the code effectively. Also, I should look at the difference between commits 92b7692 and 6ea2ef2, as there might be newer changes. Let’s inspect the latest commit details along with the artifact files to get a clearer picture of what has been modified.
+
+
+Viewed a commit
+
+Searched for "seo-static-page-content…"
+
+Searched for "^function |^const (rend…"
+
+Searched for ".{0,80}(seo-static-page…"
+
+Opened prerender.mjs
+Applying changes to source
+
+Applying changes to source
+Applying changes to source
+
+I need to apply the necessary changes and figure out what modifications are missing in the current source. It looks like the current prerender already includes the HTML JS class, static content removal, and possibly captures the latest commits. However, the public CSS is missing the HTML.js file. I should check the archive root index for the different title, description, and the canonical tag, which might have been inserted due to a build script. I'll search through the build script after the build for those SEO root replacements.
+
+
+Searched for "index\.html|replaceSeo|…"
+
+Searched for "تأجير حاويات الرياض \||…"
+
+Viewed a commit
+
+Ran a Node.js script
+Investigating regex issues
+
+Investigating regex issues
+Investigating regex issues
+
+I need to address a regex issue related to parsing descriptions due to newline characters. My next step is determining the differences between the archive and current versions. I could use git diff since the archive was probably created from an earlier commit, likely around 05:32. It looks like the latest commit made changes to scripts/prerender, including a substantial 49-line addition for the homepage's static content. However, the current build seems to have a simplified title. I'm curious why the SEO title was removed in the latest commit, so it's time to check git show HEAD^:scripts/prerender against HEAD.
+
+
+Viewed a commit
+Inspecting homepage rendering
+
+Inspecting homepage rendering
+Evaluating task progress
+
+I need to process my current task because the last tool output was truncated. It seems the current source may not include the latest changes from HEAD. The archive was built at 05:32, while HEAD was updated at 06:46, which complicates things. The archive has full homepage metadata, possibly missing in the current build. I'll check the git commit times, especially commit c07, and consider merging specific changes from the archive to improve SEO.Inspecting homepage rendering
+
+I’m looking into prerender.mjs, which rewrites all generated pages using the database. However, it seems the homepage root index isn't entirely rewritten. It looks like prerender.mjs, specifically generateHomepageStaticContent, is responsible for replacing the index.html metadata later in the process. I need to examine the end result around the homepage to see what changes are being implemented and ensure everything aligns correctly.
+
+
+Opened prerender.mjs
+
+Opened Pasted--canonical-sitemap--1787989507773_1787989508093.txt
+
+Opened Pasted--canonical-sitemap--1787985614724_1787985614725.txt
+
+Opened Pasted--canonical-sitemap--1787985012119_1787985012804.txt
+
+Opened Pasted-Addressing-User-Concerns-I-need-to-respond-calmly-to-an_1787989646134.txt
+
+Opened Pasted-Free-3-minutes-ago--1787986488736_1787986488737.txt
+Inspecting archive assets
+
+Inspecting archive assets
+Inspecting archive assets
+
+I think the archive assets are probably from the c6fc build. I need to check the git show command for the relevant scripts, specifically 92b7692^:scripts/prerender.mjs with a focus on updateIndexSeo. Also, I should look at git show 92b7692^:artifacts/sabaik-almasa/index.html to see if it contains the archive title. There’s some digging to do here, but it seems important for uncovering the details.
+
+
+Viewed a commit
+
+Viewed a commit
+
+Searched files
+
+Ran a Node.js script
+Locating database source
+
+Locating database source
+Locating database source
+
+I need to keep going with this task. It seems I might require the database path to find the files. I should probably check system settings or documentation to locate where that path is stored. Maybe I’ll look into previous tasks to see if there are any relevant notes about accessing those files. Let’s make sure to find the right information quickly so I can proceed smoothly!
+
+سأثبت الآن الفروق من المصدر نفسه: أقارن إعدادات SEO المخزنة، وقالب التوليد، وملفات SEO الثابتة، ثم أطبّق فقط الفروق المؤكدة من الأرشيف وأعيد بناء النسخة النهائية. لن ألمس قاعدة البيانات أو قيم الأسرار.
+
+
+
+Show less
+
+Found files
+
+Ran diff
+
+Ran a Node.js script
+Considering source differences
+
+Considering source differences
+Considering source differences
+
+I need to figure out how to act based on the differences in sources. The diff index is truncated, so I'll need to save and read something exact. I think I can use Node.js to produce key metadata from archives and parse it. Maybe I could query the database with the package path using pnpm and something like better-sqlite. I might also need to locate the sqlite3 binary to use it.
+
+
+Found files
+
+Ran a Node.js script
+
+Found files
+
+Processed text
+
+Processed text
+
+Viewed code changes
+Evaluating file edits
+
+Evaluating file edits
+Evaluating file edits
+
+I need to edit three files, but the user specifically requested both the source and the build. I want to make sure I understand the archive's title and description in the database before proceeding. Since the better-sqlite requires it through the lib/db package, I'll run with createRequire to get that wrapped up correctly. It’s essential to clarify these details before moving forward to ensure everything is on point!
+
+
+Ran a Node.js script
+
+Ran a Node.js script
+
+Viewed a commit
+
+Ran a Node.js script
+Understanding patch application
+
+Understanding patch application
+Understanding patch application
+
+I need to apply a patch but first, I want to understand the specifics. I'm noticing that the archive's body doesn't include a removal script, just the renderPage script before the module. It checks and removes static elements but lacks an end script. Our archive's bodyEnd is set to false for exact JS handoff, probably due to the script being earlier in the sequence. So, I need to inspect the tail of the archive to clarify things.
+
+
+Read files
+
+Ran a Node.js script
+
+Searched for "const title =|siteDescr…"
+Investigating title settings
+
+Investigating title settings
+Investigating title settings
+
+I need to apply a patch and I’m pondering the source title logic that uses settingMap.seo_meta_title. But I notice that the archived long title doesn’t match the current settings. Could the archived HTML have static content generated from the page entry title? Maybe the “title” comes from the homepage content settings key? I think I should inspect the archive source to see if other values exist in the settings. Let’s search through all settings.
+
+
+Ran a Node.js script
+Investigating archive title sources
+
+Investigating archive title sources
+Investigating archive title sources
+
+I'm looking into the archive's "Fallback structured data" comment and the canonical location. It seems that the current source is generating the same tags. I need to determine the origin of the archive title, which might be a script from an older prerender setup. It looks like const title = settingMap.seo_meta_title..., but the archive title isn’t matching the DB's seo_meta_title. I’ll check if it’s coming from homepage_content and search for the exact title in the current data values across all tables.
+
+
+Ran a Node.js script
+Analyzing SEO settings
+
+Analyzing SEO settings
+Analyzing SEO settings
+
+I’m looking at the current source index and noticing it has a different hardcoded fallback. It seems I can adjust updateIndexSeo to incorporate homepage meta fields, but seo_meta_title may not match the archive exactly. It’s possible the archive is pulling from a dirty database. I need to investigate whether the title field is being set correctly and ensure any special constants I add for the source are safe and effective. I'll check the index-GBX...js in the archive for clarity.
+
+
+Searched for "تأجير حاويات الرياض | ت…"
+Applying SEO updates
+
+Applying SEO updates
+Applying SEO updates
+
+I need to add constants for HOME_SEO_TITLE and HOME_SEO_DESCRIPTION, which will be used in the updateIndexSeo function. I'm also considering that the dynamicHomeSchema for WebSite/WebPage names could benefit from using a constant as well. For the archive schemas, the names "تأجير حاويات الرياض" and the current build names "مؤسسة" might need attention with homepageSeoBrand set to "تأجير حاويات الرياض." I should inspect the dynamicHomeSchema lines to confirm this.
+
+
+Opened prerender.mjs
+
+Opened index.html
+
+Edited prerender.mjs
+
+Edited index.html
+
+Edited llms.txt
+Investigating CSS failure
+
+Investigating CSS failure
+Investigating CSS failure
+
+I've encountered an issue where the CSS seems to have failed, possibly due to blank first lines. I need to inspect the git diff to analyze any changes that could be causing the problem. Alright, let’s take a closer look and identify where things went wrong. This could help pinpoint the exact issue and get everything back to normal. Let's dive into the code and get to the bottom of this!
+
+
+Opened seo-static.css
+
+Viewed code changes
+
+Checked git status
+Retrieving CSS information
+
+Retrieving CSS information
+Retrieving CSS information
+
+I need to apply a CSS patch and then test it out. But I'm reconsidering—did we hardcode the metadata too much? Maybe the user was looking for safety, which could be fine. I should ensure the CSS matches the exact current specifications. Overall, it seems like a straightforward task, but I just want to double-check that everything aligns with what is needed for the user's requirements!
+
+
+Edited seo-static.css
+Verifying build details
+
+Verifying build details
+Verifying build details
+
+I need to verify the build and consider adding a canonical tag to the source. We implemented an Open Graph URL, but it seems like we missed including the canonical source. I'll add something like <link rel=canonical href="/" /> after the site URL and then rebuild. The summary also mentions needing to address other elements related to prerendering and CSS adjustments. I'll carefully ensure everything is in place, especially for the index.html canonical tag.
+
+
+Edited index.html
+Verifying build process
+
+Verifying build process
+Verifying build process
+
+I need to verify the build process, so I might run pnpm --filter @workspace/cleanflow-services run build to package everything. I should inspect the package scripts for the known command node scripts/build-hostinger.mjs. But before I start the build, I wonder if the working API and database are locked? I suspect that build-hostinger will build from the current setup. I’ll also consider running a type check with pnpm --filter @workspace/cleanflow-services run check to inspect the package.
+
+
+Read files
+
+Ran scripts/prerender.mjs
+
+Viewed code changes
+
+Worked for 3 minutes
+You've reached your daily free quota limit. It will reset at 12:00 AM UTC.

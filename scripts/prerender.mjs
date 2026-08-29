@@ -34,6 +34,11 @@ const SEO_DEFAULTS = {
   image: "/images/hero-1.webp",
   priceRange: "$$",
 };
+// Keep the homepage's search-facing identity aligned with the latest
+// production archive while leaving the operational company name unchanged.
+const HOMEPAGE_SEO_TITLE = "تأجير حاويات الرياض | تأجير حاويات وتأجير الحاويات بالرياض | مؤسسة تقي جروب في الرياض | نقل الأنقاض والمخلفات والحاوية";
+const HOMEPAGE_SEO_DESCRIPTION = "تأجير حاويات — تأجير حاويات وتأجير الحاويات بالرياض من مؤسسة تقي جروب في الرياض لنقل الأنقاض والمخلفات واختيار الحاوية المناسبة.";
+const HOMEPAGE_SCHEMA_NAME = "تأجير حاويات الرياض";
 // The administrator-configured public URL is the only production origin.
 const SITE_URL = requirePublicOrigin({ settings: settingMap });
 const siteCompanyName = settingMap.company_name?.trim() || SEO_DEFAULTS.companyName;
@@ -451,7 +456,7 @@ function dynamicHomeSchema() {
       "@type": "WebSite",
       "@id": `${publicUrl("/")}#website`,
       "url": publicUrl("/"),
-      "name": siteCompanyName,
+      "name": HOMEPAGE_SCHEMA_NAME,
       "inLanguage": "ar",
       "publisher": { "@id": `${publicUrl("/")}#organization` },
       "potentialAction": {
@@ -465,7 +470,7 @@ function dynamicHomeSchema() {
       "@type": "WebPage",
       "@id": `${publicUrl("/")}#webpage`,
       "url": publicUrl("/"),
-      "name": siteCompanyName,
+      "name": HOMEPAGE_SCHEMA_NAME,
       ...(siteDescription ? { description: siteDescription } : {}),
       "isPartOf": { "@id": `${publicUrl("/")}#website` },
       "about": { "@id": `${publicUrl("/")}#local-business` },
@@ -863,8 +868,8 @@ function generateHomepageStaticContent() {
 }
 
 function updateIndexSeo(html) {
-  const title = siteCompanyName;
-  const description = siteDescription;
+  const title = HOMEPAGE_SEO_TITLE;
+  const description = HOMEPAGE_SEO_DESCRIPTION;
   const logo = siteLogo ? absoluteImg(siteLogo) : publicUrl("/images/logo.png");
   const heroPreload = `<link rel="preload" as="image" href="${esc(absoluteImg(heroLcpImage))}" fetchpriority="high" imagesizes="100vw" data-lcp-hero="true" />`;
   const replace = (source, pattern, value) => source.replace(pattern, value);

@@ -2,6 +2,12 @@
   display: none;
 }
 
+/* Keep the prerendered copy for crawlers and no-JS visitors, but prevent it
+   from duplicating the live React page once JavaScript is enabled. */
+html.js #seo-static-page-content {
+  display: none;
+}
+
 html.no-js #seo-static-page-content {
   display: block;
 }

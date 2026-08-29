@@ -1,0 +1,395 @@
+
+سأعالجها من المصدر لا من نتيجة التقرير فقط: سأوحّد قائمة الروابط بين canonical وsitemap وقت التوليد، وأراجع سبب ملفات SEO غير المستخدمة، ثم أصلح قسم الكلمات بحيث لا يعرض إلا بيانات ترتيب موثقة فعليًا. بعد ذلك سأراجع سبب درجة 80 وأتحقق من إعدادات الشعار في HTML وبيانات structured data، مع توضيح ما يعتمد على إعادة الزحف من Google وما قد يكون عائقًا تقنيًا.
+
+
+
+Show less
+Loaded skill react-vite
+Reading SEO memory
+
+Reading SEO memory
+Reading SEO memory
+
+I need to move forward. It’s essential to look at my memory regarding relevant SEO strategies. I might explore topics like parity and how it relates to media or rankings. This could help clarify how these concepts interact and affect SEO outcomes. It's fascinating to think about how different elements contribute to the effectiveness of SEO strategies! Let’s see how I can make the most of this information to support what I'm working on.
+
+
+Opened seo-archive-certification.md
+
+Opened seo-dashboard-node-php-parity.md
+
+Opened seo-ranking-data-boundary.md
+
+Opened prerender-seo-parity.md
+
+Opened blog-image-compatibility.md
+
+Searched for "canonical|sitemap|SEO M…"
+Exploring shell issues
+
+Exploring shell issues
+Exploring shell issues
+
+I'm facing a major shell output issue since the command matched an SVG file. I need to adjust my target to resolve this. I’m considering using rg --glob to specifically exclude public favicon files. It seems like a good approach to narrow down my search and be more precise. Let's see if this works better for filtering the output!
+
+
+Searched for "canonical|sitemap|seo m…"
+
+Found files
+
+Found files
+Inspecting relevant files
+
+Inspecting relevant files
+Inspecting relevant files
+
+I need to look closely at the specific files. It seems that I should read through relevant scripts related to SEOPanel and also check the seoKeywords/media. Additionally, I should investigate the API seo route and see if the generate-sitemap or possibly any build scripts are involved. By doing this, I'll have a better understanding of how everything connects. This should help me in moving forward with the task!
+
+
+Opened generate-sitemap.mjs
+
+Opened seo-quality-gate.mjs
+
+Opened build-hostinger.mjs
+
+Reading SEOPanel.tsx
+
+Opened seoKeywords.ts
+
+Opened seoMedia.ts
+
+Opened seoMetrics.ts
+
+Opened sitemap.ts
+Inspecting SEO metrics
+
+Inspecting SEO metrics
+Inspecting SEO metrics
+
+I need to keep going with my task. I'll focus on examining the seoMetrics library and check out the relevant panel chunks along with their indexing. It’s essential to ensure everything's working as it should, so I’ll dig into those details to see what adjustments might be necessary. Let’s see what I can find!
+
+
+Opened settings.ts
+
+Opened seoPages.ts
+
+Opened seoMetrics.ts
+
+Opened SEOPanel.tsx
+
+Opened SEOPanel.tsx
+
+Opened useDocumentSEO.ts
+
+Opened App.tsx
+
+Opened package.json
+
+Processed text
+
+Searched for "ALL_NEIGHBORHOODS|saveS…"
+
+Searched for "path=|/why-us|/services…"
+
+Searched for "SEO_MEDIA|images/seo|ta…"
+
+Processed text
+
+Searched for "sitemap|Sitemap|seo_key…"
+
+Opened api-index.php
+Considering sitemap generation issues
+
+Considering sitemap generation issues
+Considering sitemap generation issues
+
+I need to take action on generating a sitemap before building the project. There's a key issue with the API generator duplicating efforts. I could refactor the API route to run a canonical sitemap script, but it raises questions about using a dynamic endpoint with baseUrl. Maybe using child_process is a safer bet? However, I noticed that Hostinger's runtime admin saves the sitemap via a PHP route, but it seems there's no PHP endpoint to handle that. Time to dig deeper!
+
+
+Searched for "admin/sitemap|sitemap/s…"
+
+Opened api-index.php
+Clarifying SEO Score Metrics
+
+Clarifying SEO Score Metrics
+Assessing SEO Scores
+
+I need to continue reading the PHP code and possibly make some edits. First, I have to fully understand the SEO score. Right now, it’s 80, but I’m seeing it’s skewed because the ranking data isn’t verified. The user wants a realistic score of 100, but I can't honestly provide that without verified ranking. Maybe I can differentiate between a "technical SEO score" and an "overall SEO score" to clear up confusion about what’s being assessed.Clarifying SEO Score Metrics
+
+I’m considering that an SEO score of 100 should occur if all audit metrics are successfully passed, but keyword stats are currently unavailable. When the user mentions "100 حقيقي," they might mean all 15 technical checks need to be satisfied. I want to rely on actual SEO health metrics instead of hardcoded checks. The current 80 score seems inflated due to the absence of keyword data and an unverified ranking. I need to address any mismatches in media assets to ensure they all reference properly.
+
+
+Found files
+Fixing PHP package routing
+
+Fixing PHP package routing
+Fixing PHP package routing
+
+I'm looking at the current PHP setup. I see that packages are used when they exist and routed through /package, which needs fixing.
+
+I must ensure the package SEO filter seo_enabled is active since the script relies on it. Dynamic service sorting seems irrelevant, but the URLs are the same.
+
+The dynamic blog script includes an updated_at fallback, so the route can be adjusted. The SEO pages script uses entitySlug, but if the PHP rows have the same slug, I wonder if using seo_slug as a fallback would work well.
+
+
+Opened prerender.mjs
+اتضح السبب الجذري: هناك مولّدان مختلفان للخريطة (مولّد البناء، ومولّد لوحة الإدارة، ونسخة PHP على Hostinger)، وكل نسخة تستخدم مسارات مختلفة مثل /package مقابل /containers وwhat-we مقابل what-we-do. لذلك تظهر الخريطة “صحيحة” منفردة لكنها لا تطابق canonical الناتج. سأوحّد هذه المصادر، وأزيل البيانات الثابتة من لوحة السيو، وأجعل الدرجة مبنية على فحوص الإنتاج الفعلية فقط.
+
+
+
+Show less
+
+Ran a Node.js script
+
+Processed text
+
+Processed text
+Considering API routes and keywords
+
+Considering API routes and keywords
+Considering API routes and keywords
+
+I need to note that the user has inserted something, but I'll continue. I could use a generated static sitemap as a source for an API route, making sure the PHP route aligns too. Maybe it’s better to create a route manifest used by both scripts and PHP, since PHP can’t import JS. Generating a static manifest JSON from the sitemap might help, but the admin runtime PHP has limitations. We might want to show editorial golden keywords separately in "blog keywords," currently pulling only from posts. I'll search for keyword configurations in settings.
+
+
+Searched for "تأجير حاويات|نقل مخلفات…"
+
+Opened public-origin.mjs
+Exploring SEO Metrics
+
+Exploring SEO Metrics
+Exploring SEO Metrics
+
+I’m considering using seoHealth metrics for this project. I think we could create an editorial keyword list based on popular keywords that aren't currently ranking. To do this, I’d use the GOLDEN_KEYWORDS static array and display these in a separate "target keywords" section from verified. The user mentions no results should include keywords, so maybe if there's no verified data, I can show those golden keywords with "غير موثق" statuses. That feels honest and useful!
+
+Addressing media manifest and sitemap
+
+Addressing media manifest and sitemap
+Evaluating project keywords
+
+I see that project keywords aren't ranking well. I should consider adding a static "gold list" to the seoKeywords.ts file, which the UI can import from. It’s essential to export PROJECT_KEYWORDS for usage in the panel. I want to create a config for actual site keywords like تأجير حاويات بالرياض and others. These are key targets but not ranking. The SEO_AUDIT_KEYWORDS might need an update too. Also, there's an issue with media paths in references; some media might not be used.Addressing media manifest and sitemap
+
+I need to add a manifest reference in public/seo-media-manifest.json that counts all 12 images. However, the user asked about 10 of those files being used in the output. Just having a manifest doesn't guarantee that every image shows up in the HTML output. I should modify scripts/generate-sitemap to include all media. It's important that the sitemap references all 12 images properly, even if some are currently just associated with the homepage. It seems like static routes are missing images, and I need to figure out which media is unreferenced by checking the metrics.
+
+
+Ran a Node.js script
+Fixing sitemap path
+
+Fixing sitemap path
+Evaluating media metrics
+
+I'm looking into an interesting situation with the media used in build_php. The user pointed out that they perhaps have API metrics showing 10/12 due to the dist not being prerendered. It seems like all media might be loaded because old files are still present. I need to check the generated sitemap to ensure it includes all media. Adding an explicit image map could help confirm that all items show up. However, the canonical issue in build_php after passing 151 might complicate things. The root cause isn't completely clear yet.Editing PHP API generation
+
+I need to edit the PHP to improve the API. I'm considering patching the API handler to use a shared generator while leaving the old buildXml function for now. Long-term, it might be better to remove the old function entirely. I could update the buildXml function with the same logic as the new one. The script generated still relies on the database, so I need to be cautious about avoiding console logs on the server. I’ll import execFileSync properly and ensure it doesn’t log unexpected outputs.Fixing sitemap path
+
+I need to ensure that getSitemapPath uses the correct public path. I already have getProjectRoot for that. For saving, the script will need to write the path accordingly. If the API's current working directory is correct, then getSitemapPath should return the public path. I'll use the destination from getSitemapPath since the script's root output tends to align with candidate 1's typical path. It’s also important to ensure that I properly encode the areas as needed.
+
+Structuring Sitemap integration
+
+Structuring Sitemap integration
+Evaluating seoHealth adjustments
+
+I'm considering that seoHealth might issue warnings for media until they're fixed, which is a bit concerning if there's no production archive. The score is low without it. I should add an explanation for the score under the gauge.
+
+The techOk checks are still hard-coded, but it seems okay since the score isn't using them. The current dashboard inaccurately shows 15 pass statuses.
+
+I should explore using verifiedKeywords.length for keyword counts and make edits around line 960 for the gold keywords section in the empty state. The SITEMAP_URLS are still hard-coded, and they should be dynamic instead.Structuring Sitemap integration
+
+I'm focusing on defining the interface SitemapRow and initializing it with useState<SitemapRow[]>([]). I need to use useEffect to fetch from ${API_BASE}/sitemap.xml, but it seems like API_BASE is likely just an empty string, so I’ll directly use /sitemap.xml.
+
+Next, I plan to parse the response using the DOMParser. I’ll get the XML text and create a document. I could extract details like loc, priority, changefreq, lastmod, and the image count. It’s essential to derive the category from this data too!
+
+Figuring out UI requirements
+
+Figuring out UI requirements
+Figuring out UI requirements
+
+I need to implement sitemapRows in the UI. I'm thinking about the technical checks; do all the emojis in SCHEMAS and recommendations violate design skills? It seems like they really haven't been addressed yet, but I don’t think they shouldn't be a problem. I noticed that panel data from the sitemap might involve an API endpoint at /sitemap.xml, which is a static public file in development. I’ll need to apply some patches here.
+
+سأبدأ الآن بثلاثة إصلاحات مترابطة: جعل زر التوليد يستدعي نفس مولّد البناء، تحديث نسخة PHP بنفس المسارات النهائية، ثم ربط لوحة الإدارة بملف sitemap الفعلي بدل القائمة الثابتة. وسأفصل “الكلمات المستهدفة” عن “الترتيب الموثق” حتى تظهر كلمات المشروع المهمة دون اختلاق أرقام Google.
+
+
+
+Show less
+
+Edited sitemap.ts
+
+Edited sitemap.ts
+
+Edited generate-sitemap.mjs
+
+Edited api-index.php
+Checking package fix options
+
+Checking package fix options
+Checking package fix options
+
+I need to address whether I should fix the package if the seo_enabled column might not exist. It's essential for me to check the schema to see if that column is part of the database. If it’s not required, I should handle that situation gracefully to avoid errors. It's all about making sure I can navigate this smoothly while minimizing any potential issues! Let's find a solution!
+
+
+Searched for "CREATE TABLE.*packages|…"
+
+Processed text
+
+Processed text
+Applying panel patches
+
+Applying panel patches
+Applying panel patches
+
+I need to proceed with applying the panel patches. First, I'll inspect the relevant sections: specifically sections 200-330, 450-490, 700-780, and 860-1020, along with 1235-1320. It's essential to get this right, as these sections are crucial. I should ensure that I'm thorough in my inspection before moving on to actually applying the patches. Let's see how it goes!
+
+
+Opened SEOPanel.tsx
+
+Opened SEOPanel.tsx
+
+Opened SEOPanel.tsx
+
+Opened SEOPanel.tsx
+
+Opened SEOPanel.tsx
+
+Opened SEOPanel.tsx
+Patching the sitemap functionality
+
+Patching the sitemap functionality
+Patching code carefully
+
+I'm thinking about how to apply this patch panel carefully. Maybe I can use Python, but I'm restricted to using apply_patch only. I'm considering adding an import for PROJECT_GOLDEN_KEYWORDS while removing a large SITEMAP block. I need to replace the const SITEMAP_URLS = [ line, which could be cumbersome, with a new structure that prevents stale data. I should define an interface SitemapRow and use a state map to keep everything organized.Patching the sitemap functionality
+
+I'll need to delete the existing old block precisely through line 291 and use the context from const SITEMAP_URLS to patch everything up to ], which is about 18 lines. I'll apply this change and also create a helper category outside with an interface for SitemapRow and a function for sitemapCategory(url).
+
+Following that, I plan to implement the sitemap parser function within useEffect, placed right after removeLegacy.... I need to introduce the sitemapRows state on line 346, alongside a health effect for fetching /sitemap.xml using DOMParser. I think using API_BASE as /sabaik... might work, and then I can replace the score. Time to patch up!
+
+
+Edited seoKeywords.ts
+
+Edited SEOPanel.tsx
+Checking React import issues
+
+Checking React import issues
+Checking React import issues
+
+I need to continue working on this patch and calculate the state. One thing I want to check is if TypeScript is using React.ElementType without having the React import in place. That could be an issue. It seems like the existing setup might not have it, so I'll have to apply the patch accordingly. I’ll ensure everything is functioning correctly as I go along!
+
+
+Edited SEOPanel.tsx
+Patching UI references
+
+Patching UI references
+Patching UI references
+
+I need to keep going and patch the UI references for keywords to make sure they're verified and displayed in the target list. It feels a bit odd that there are also techWarnings and errors defined earlier. They might be using existing constants mentioned at the top, so I should really search through that section. It's important to clarify these references to ensure everything functions smoothly moving forward!
+
+
+Searched for "techWarnings|techErrors…"
+Resolving tech errors
+
+Resolving tech errors
+Resolving tech errors
+
+I need to sort out the duplicate tech error declarations. The latter lines should be removed—specifically line 726. It seems like I need a patch for this issue, and I'm thinking about the UI as well. Maybe I can save the refresh and use the current static row for that! It feels like I have to get these fixes sorted to move forward, but I'm working on it!
+
+
+Edited SEOPanel.tsx
+Correcting patch issues
+
+Correcting patch issues
+Correcting patch issues
+
+It seems the patch I applied didn't make any changes, so I need to work on that. I also have a system reminder indicating that I should only follow up on things once I've completed concrete tasks, so I’ll hold off until I finish. Right now, my focus is on sorting the issues with the patch and handling any duplicate technology or UI elements that might be causing confusion. Let's refine this!
+
+
+Edited SEOPanel.tsx
+
+Edited SEOPanel.tsx
+Checking compilation errors
+
+Checking compilation errors
+Checking compilation errors
+
+I want to keep track of the user's current task and check for any compilation errors. Before I build, it seems like I should run a search without including the sitemap. That will help me ensure everything is set up properly. I need to be thorough while going through this process so I’m not missing anything important. It’s crucial to double-check everything before proceeding with the build!
+
+تم توحيد المسارات الأساسية وإلغاء القائمة القديمة من جدول sitemap. أضيف الآن التحقق الأخير: سأفحص أخطاء TypeScript/PHP، ثم أعيد بناء نسخة Hostinger وأقارن canonical مع sitemap من الأرشيف النهائي، وبعدها أراجع أصول الشعار والـ favicon وrobots والـ JSON-LD عملياً.
+
+
+
+Show less
+
+Searched for "SITEMAP_URLS|const tech…"
+
+Ran php
+
+Searched for "logo.png|favicon|robots…"
+
+Opened sitemap.ts
+Applying tech patch
+
+Applying tech patch
+Applying tech patch
+
+I need to keep things moving and continue with the process. It’s crucial to apply the tech patch for techTotal. However, I noticed that the previous tool revealed some unrelated changes, which I definitely shouldn’t touch. So, I'll focus specifically on applying the required patch instead of getting sidetracked by those preexisting changes. Keeping things neat and organized will help everything run smoothly!
+
+
+Edited SEOPanel.tsx
+
+Checked for code errors
+
+Checked for code errors
+
+Ran php
+
+Refreshed logs
+فحوص TypeScript وPHP نجحت، لكن اكتشفت خطأ واجهة صغيراً في عدّاد لوحة السيو أثناء التحقق وأصلحته. سأعيد تشغيل سيرفر الـ API والواجهة لتطبيق التغييرات، ثم أنفذ بناء Hostinger الكامل لأن المطابقة المطلوبة لا تثبت إلا من build_php والأرشيف النهائي.
+
+
+
+Show less
+Loaded skill workflows
+Considering restart workflows
+
+Considering restart workflows
+Considering restart workflows
+
+I need to restart the workflows in parallel, possibly using multi_tool_use.parallel with two allowed WorkflowsRestart. Then, I can build the Hostinger shell right after the restart. But I wonder if I can build in parallel while the workflows are restarting, since that might cause some race conditions. It seems better to restart the API and services sequentially before proceeding with the build. So, the first step is to restart both.
+
+Restarted workflow artifacts/api-server: API Server
+Restarted workflow artifacts/sabaik-almasa: web
+Considering build process
+
+Considering build process
+Considering build process
+
+I need to continue with the current task. It seems like I need to run the build for Hostinger. I’m thinking that the command might be pnpm --filter @workspace/scripts run build-hostinger. I’ll want to inspect the package scripts in the root to verify the details and ensure everything is set up correctly before I proceed. It's important to get this right!
+
+
+Read scripts/package.json
+
+Refreshed logs
+
+Ran scripts/build-hostinger.mjs
+Inspecting build errors
+
+Inspecting build errors
+Inspecting build errors
+
+I need to continue from where the output was truncated. It’s crucial to inspect the full relevant build errors and any invariants involved. I’ll start by checking the output in the /tmp directory, particularly looking into the tail and using grep to filter for the necessary information. This way, I can identify what's gone wrong and think about how to proceed. Let’s ensure I cover all angles here!
+
+اكتمل بناء Hostinger وإنشاء الأرشيف دون فشل، لكن خرج البناء طويل ومقتطع في العرض. سأراجع الآن نتائج بوابة الجودة نفسها والأرشيف النهائي (وليس المصدر)، ثم أصلح أي عدم تطابق متبقٍ قبل التسليم.
+
+
+
+Show less
+
+Searched for "(ERROR|فشل|FAIL|WARNING…"
+
+Ran the seo-quality-gate script
+
+Ran a Node.js script
+
+Opened prerender.mjs
+
+Opened prerender.mjs
+
+Worked for 5 minutes
+You've reached your daily free quota limit. It will reset at 12:00 AM UTC.
