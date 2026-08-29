@@ -790,7 +790,7 @@ export default function AdminPackages() {
                         </div>
                         <Input value={form.seoTitle}
                           onChange={e => setForm({ ...form, seoTitle: e.target.value })}
-                          placeholder={`مثال: شركة تنظيف منازل بالرياض — ${companyName}`}
+                          placeholder={`مثال: تأجير حاويات الأنقاض بالرياض — ${companyName}`}
                           dir="rtl" />
                         <p className="text-[11px] text-gray-400 mt-1">الهدف: 50-60 حرف — يظهر كعنوان النتيجة في جوجل</p>
                       </div>
@@ -839,7 +839,7 @@ export default function AdminPackages() {
                             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-mono">/</span>
                             <Input value={form.seoSlug}
                               onChange={e => setForm({ ...form, seoSlug: slugify(e.target.value) })}
-                              placeholder="تنظيف-فلل-بالرياض"
+                              placeholder="تأجير-حاويات-الأنقاض-بالرياض"
                               dir="rtl"
                               className="pr-6 bg-white font-mono text-sm" />
                           </div>

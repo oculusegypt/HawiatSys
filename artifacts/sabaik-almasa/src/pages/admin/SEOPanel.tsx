@@ -213,36 +213,36 @@ interface BlogKeyword {
 // from Search Console or a verified keyword data source before being displayed
 // as measurements.
 const DEFAULT_KEYWORDS: Keyword[] = [
-  { id: "1",  term: "شركة تنظيف بالرياض",                 position: 1,    volume: 0, difficulty: 0, trend: "up",     lastChecked: "", url: "/",                    intent: "transactional" },
-  { id: "2",  term: "شركة تنظيف منازل بالرياض",           position: 2,    volume: 0, difficulty: 0, trend: "up",     lastChecked: "", url: "/",                    intent: "transactional" },
-  { id: "3",  term: "شركة تنظيف فلل بالرياض",             position: 1,    volume: 0, difficulty: 0, trend: "up",     lastChecked: "", url: "/",                    intent: "transactional" },
-  { id: "4",  term: "تنظيف شقق بعد التشطيب الرياض",        position: 3,    volume: 0, difficulty: 0, trend: "up",     lastChecked: "", url: "/pricing",             intent: "commercial"    },
-  { id: "5",  term: "شركة تنظيف مكاتب بالرياض",           position: 4,    volume: 0, difficulty: 0, trend: "stable", lastChecked: "", url: "/",                    intent: "transactional" },
-  { id: "6",  term: "تنظيف مجالس بالبخار الرياض",          position: 2,    volume: 0, difficulty: 0, trend: "up",     lastChecked: "", url: "/",                    intent: "transactional" },
-  { id: "7",  term: "أسعار تنظيف المنازل بالرياض 2026",    position: 1,    volume: 0, difficulty: 0, trend: "up",     lastChecked: "", url: "/pricing",             intent: "commercial"    },
-  { id: "8",  term: "شركة تنظيف بعد البناء الرياض",        position: 2,    volume: 0, difficulty: 0, trend: "up",     lastChecked: "", url: "/",                    intent: "transactional" },
-  { id: "9",  term: "جلي وتلميع رخام بالرياض",            position: 3,    volume: 0, difficulty: 0, trend: "up",     lastChecked: "", url: "/",                    intent: "commercial"    },
-  { id: "10", term: "تنظيف منازل شمال الرياض الملقا",     position: 1,    volume: 0, difficulty: 0, trend: "up",     lastChecked: "", url: "/areas/al-malqa",     intent: "transactional" },
-  { id: "11", term: "غسيل سجاد بالبخار مع التعقيم بالرياض", position: 2,   volume: 0, difficulty: 0, trend: "up",     lastChecked: "", url: "/",                    intent: "transactional" },
-  { id: "12", term: "شركة تنظيف خزانات مياه بالرياض",     position: 4,    volume: 0, difficulty: 0, trend: "stable", lastChecked: "", url: "/",                    intent: "transactional" },
-  { id: "13", term: "شركة تنظيف بالرياض حراج",             position: 2,    volume: 0, difficulty: 0, trend: "up",     lastChecked: "", url: "/",                    intent: "transactional" },
-  { id: "14", term: "شركة تنظيف منازل حطين والملقا",        position: 1,    volume: 0, difficulty: 0, trend: "up",     lastChecked: "", url: "/areas/al-malqa",     intent: "transactional" },
-  { id: "15", term: "افضل شركة تنظيف فلل بالرياض حراج",     position: 3,    volume: 0, difficulty: 0, trend: "up",     lastChecked: "", url: "/pricing",             intent: "commercial"    },
+  { id: "1",  term: "تأجير حاويات بالرياض",                 position: 0, volume: 0, difficulty: 0, trend: "stable", lastChecked: "", url: "/containers", intent: "transactional" },
+  { id: "2",  term: "حاويات أنقاض بالرياض",                 position: 0, volume: 0, difficulty: 0, trend: "stable", lastChecked: "", url: "/containers/debris", intent: "transactional" },
+  { id: "3",  term: "حاويات مخلفات البناء بالرياض",         position: 0, volume: 0, difficulty: 0, trend: "stable", lastChecked: "", url: "/containers/debris", intent: "transactional" },
+  { id: "4",  term: "أسعار تأجير الحاويات بالرياض",         position: 0, volume: 0, difficulty: 0, trend: "stable", lastChecked: "", url: "/pricing", intent: "commercial" },
+  { id: "5",  term: "نقل الأنقاض والمخلفات بالرياض",        position: 0, volume: 0, difficulty: 0, trend: "stable", lastChecked: "", url: "/services", intent: "transactional" },
+  { id: "6",  term: "حاويات نفايات للمطاعم بالرياض",        position: 0, volume: 0, difficulty: 0, trend: "stable", lastChecked: "", url: "/containers/waste", intent: "transactional" },
+  { id: "7",  term: "مكبس نفايات بالرياض",                  position: 0, volume: 0, difficulty: 0, trend: "stable", lastChecked: "", url: "/containers/waste", intent: "commercial" },
+  { id: "8",  term: "عقد نظافة إلكتروني بلدي بالرياض",     position: 0, volume: 0, difficulty: 0, trend: "stable", lastChecked: "", url: "/containers/contracts", intent: "transactional" },
+  { id: "9",  term: "حاوية 12 ياردة بالرياض",               position: 0, volume: 0, difficulty: 0, trend: "stable", lastChecked: "", url: "/containers", intent: "commercial" },
+  { id: "10", term: "تأجير حاويات شمال الرياض",             position: 0, volume: 0, difficulty: 0, trend: "stable", lastChecked: "", url: "/areas/شمال-الرياض", intent: "transactional" },
+  { id: "11", term: "تأجير حاويات حي الملقا",               position: 0, volume: 0, difficulty: 0, trend: "stable", lastChecked: "", url: "/areas/حي-الملقا", intent: "transactional" },
+  { id: "12", term: "تأجير حاويات شرق الرياض",             position: 0, volume: 0, difficulty: 0, trend: "stable", lastChecked: "", url: "/areas/شرق-الرياض", intent: "transactional" },
+  { id: "13", term: "تأجير حاويات غرب الرياض",             position: 0, volume: 0, difficulty: 0, trend: "stable", lastChecked: "", url: "/areas/غرب-الرياض", intent: "transactional" },
+  { id: "14", term: "تأجير حاويات جنوب الرياض",             position: 0, volume: 0, difficulty: 0, trend: "stable", lastChecked: "", url: "/areas/جنوب-الرياض", intent: "transactional" },
+  { id: "15", term: "نقل مخلفات البناء في الرياض",           position: 0, volume: 0, difficulty: 0, trend: "stable", lastChecked: "", url: "/services", intent: "commercial" },
 ]
 
 const DEFAULT_META: SeoMeta = {
-  title: "شركة تنظيف منازل وفلل بالرياض",
-  description: "خدمات تنظيف المنازل والفلل والمكاتب وجلي الرخام وغسيل المجالس بالبخار بالرياض. احجز خدمتك الآن عبر الهاتف أو واتساب.",
-  keywords: "شركة تنظيف بالرياض, شركة تنظيف منازل بالرياض, تنظيف فلل بالرياض, غسيل مجالس بالبخار, جلي رخام بالرياض",
+  title: "تأجير حاويات ونقل مخلفات البناء بالرياض",
+  description: "تأجير حاويات الأنقاض والنفايات ونقل مخلفات البناء بالرياض. اختر المقاس المناسب واحصل على توصيل وسحب منسق لموقعك.",
+  keywords: "تأجير حاويات بالرياض, حاويات أنقاض, حاويات نفايات, نقل مخلفات البناء, عقود نظافة بلدي",
   canonicalUrl: "/",
-  ogTitle: "شركة تنظيف منازل وفلل بالرياض",
-  ogDescription: "خدمات تنظيف المنازل والفلل والمكاتب وجلي الرخام بالرياض بأحدث الأجهزة والعمالة الفنية.",
+  ogTitle: "تأجير حاويات ونقل مخلفات البناء بالرياض",
+  ogDescription: "حلول حاويات الأنقاض والنفايات ونقل المخلفات للمشاريع والمنشآت في الرياض.",
 }
 
 const TECHNICAL_CHECKS: TechnicalCheck[] = [
   { id: "t1",  label: "HTTPS آمن",                    status: "ok",      detail: "الموقع يعمل عبر HTTPS بشهادة SSL صالحة",                                   priority: "high" },
   { id: "t2",  label: "وصف الصفحة (Meta Description)", status: "ok",      detail: "وصف الصفحة موجود في HTML الأساسي؛ راجع الطول والوضوح قبل النشر",               priority: "high" },
-  { id: "t3",  label: "العنوان الرئيسي (Title Tag)",   status: "ok",      detail: "العنوان موجود في HTML الأساسي ويستهدف خدمات التنظيف في الرياض",             priority: "high" },
+  { id: "t3",  label: "العنوان الرئيسي (Title Tag)",   status: "ok",      detail: "العنوان موجود في HTML الأساسي ويستهدف تأجير الحاويات ونقل المخلفات في الرياض", priority: "high" },
   { id: "t4",  label: "البيانات المنظمة (Schema)",      status: "ok",      detail: "تم اكتشاف LocalBusiness + FAQPage + Service schemas",                     priority: "high" },
   { id: "t5",  label: "سرعة التحميل (LCP)",           status: "ok",      detail: "تحسينات LCP مطبّقة: preconnect للخطوط، code-splitting لـ Vite، لا JS blocking، preload للأصول المهمة", priority: "high" },
   { id: "t6",  label: "رابط Canonical",                status: "ok",      detail: "الرابط الأساسي يُحدَّد من النطاق الحالي — صحيح",                         priority: "medium" },
@@ -279,7 +279,7 @@ const SITEMAP_URLS = [
 
 const SCHEMAS = [
   { type: "LocalBusiness + HousekeepingService", icon: "🏢", status: "ok",  note: "بيانات المنشأة، العنوان، الهاتف، النطاق الجغرافي بالرياض، وساعات العمل الرسمية" },
-  { type: "OfferCatalog + Service",             icon: "💎", status: "ok",  note: "باقات وأسعار تنظيف الفلل والشقق والمجالس والمكيفات وجلي الرخام بالريال" },
+  { type: "OfferCatalog + Service",             icon: "💎", status: "ok",  note: "باقات وأسعار تأجير حاويات الأنقاض والنفايات ونقل المخلفات بالريال" },
   { type: "FAQPage (Rich Snippets)",            icon: "❓", status: "ok",  note: "الأسئلة الشائعة وإجاباتها الفورية لظهور الأسئلة مباشرة في نتائج بحث Google" },
   { type: "BreadcrumbList",                     icon: "🗺️", status: "ok",  note: "مسار التنقل الهرمي لكافة صفحات الخدمات والأحياء والباقات" },
   { type: "WebSite + SearchAction",             icon: "🔍", status: "ok",  note: "دعم Google Sitelinks Search Box والبحث المباشر داخل الموقع" },
@@ -430,8 +430,8 @@ export default function SEOPanel() {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("admin_token")}` },
         body: JSON.stringify({
-          title: meta.title || `${companyName} — شركة تنظيف بالرياض`,
-          description: meta.description || "شركة متخصصة في تنظيف المنازل والفلل والمكاتب بالرياض",
+          title: meta.title || `${companyName} — تأجير حاويات بالرياض`,
+          description: meta.description || "شركة متخصصة في تأجير حاويات الأنقاض والنفايات ونقل المخلفات بالرياض",
         }),
       })
       const data = await r.json() as {
@@ -1121,8 +1121,8 @@ export default function SEOPanel() {
               </div>
 
               {[
-                { key: "title",          label: "عنوان الصفحة (Title)",            max: 60,  ph: `${companyName} | شركة تنظيف بالرياض` },
-                { key: "description",    label: "وصف الصفحة (Meta Description)",   max: 160, ph: "متخصصون في تنظيف المنازل والفلل بالرياض..." },
+                { key: "title",          label: "عنوان الصفحة (Title)",            max: 60,  ph: `${companyName} | تأجير حاويات بالرياض` },
+                { key: "description",    label: "وصف الصفحة (Meta Description)",   max: 160, ph: "متخصصون في تأجير حاويات الأنقاض ونقل المخلفات بالرياض..." },
                 { key: "keywords",       label: "الكلمات المفتاحية (Keywords)",     max: 0,   ph: "كلمة1, كلمة2, كلمة3" },
                 { key: "canonicalUrl",   label: "الرابط الأساسي (Canonical URL)",  max: 0,   ph: "اتركه / ليُستخدم النطاق الحالي" },
                 { key: "ogTitle",        label: "عنوان Open Graph (OG:Title)",      max: 90,  ph: `${companyName} | WhatsApp, Facebook` },
@@ -1355,11 +1355,11 @@ export default function SEOPanel() {
 
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
               <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-                <Code size={16} className="text-primary" /> أنواع Schema الموصى بها لخدمات التنظيف
+                <Code size={16} className="text-primary" /> أنواع Schema الموصى بها لخدمات الحاويات ونقل المخلفات
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {[
-                  { type: "Product",     desc: "لكل باقة تنظيف مع السعر",         status: "recommended" },
+                  { type: "Product",     desc: "لكل مقاس حاوية مع السعر",         status: "recommended" },
                   { type: "Review",      desc: "لآراء العملاء الفردية",           status: "recommended" },
                   { type: "VideoObject", desc: "لمقاطع الفيديو التوضيحية",       status: "optional" },
                   { type: "Event",       desc: "للعروض والتخفيضات الموسمية",      status: "optional" },

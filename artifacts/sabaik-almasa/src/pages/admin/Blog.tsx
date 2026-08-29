@@ -31,7 +31,7 @@ const EMPTY: PostForm = {
   seoTitle: "", seoDescription: "", seoKeywords: "", seoSlug: "", ogImage: "", canonicalUrl: "",
 }
 
-const CATEGORIES = ["عام", "نصائح", "تنظيف منازل", "تنظيف فلل", "جلي رخام", "غسيل مجالس", "أسعار", "أحياء الرياض", "أخبار"]
+const CATEGORIES = ["عام", "دليل الحاويات", "نقل المخلفات", "أسعار", "المقاولون", "المنشآت", "أحياء الرياض", "أخبار"]
 
 function slugify(title: string): string {
   // Arabic-first slug: keep Arabic chars, numbers, hyphens — no transliteration
@@ -660,7 +660,7 @@ export default function AdminBlog() {
                     value={topic}
                     onChange={e => setTopic(e.target.value)}
                     onKeyDown={e => e.key === "Enter" && aiGenerateAll()}
-                    placeholder="مثال: أسعار شركات تنظيف المنازل والفلل بالرياض 2026..."
+                      placeholder="مثال: أسعار تأجير الحاويات بالرياض 2026..."
                     className="rounded-xl text-sm flex-1 border-purple-200 focus-visible:ring-purple-300"
                   />
                   <Button
@@ -765,7 +765,7 @@ export default function AdminBlog() {
                     <Input
                       value={form.title}
                       onChange={e => set("title", e.target.value)}
-                      placeholder="مثال: أفضل شركة تنظيف منازل وفلل بالرياض"
+                      placeholder="مثال: أفضل حاويات أنقاض لمشاريع البناء بالرياض"
                       className="rounded-xl"
                     />
                   </div>
@@ -971,7 +971,7 @@ export default function AdminBlog() {
                       <Input
                         value={form.seoSlug}
                         onChange={e => { set("seoSlug", e.target.value); set("slug", e.target.value) }}
-                         placeholder="مثال: تنظيف-منازل-بالرياض"
+                         placeholder="مثال: اسعار-تأجير-الحاويات-بالرياض"
                         className="rounded-xl font-mono text-sm"
                          dir="rtl"
                       />
@@ -1025,7 +1025,7 @@ export default function AdminBlog() {
                       value={form.seoKeywords}
                       onChange={e => set("seoKeywords", e.target.value)}
                       rows={2}
-                      placeholder="شركة تنظيف بالرياض, تنظيف منازل بالرياض, تنظيف فلل بالرياض..."
+                      placeholder="تأجير حاويات بالرياض, حاويات أنقاض, نقل مخلفات البناء..."
                       className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
                     />
                     <p className="text-xs text-gray-400 mt-1">افصل الكلمات بفاصلة</p>

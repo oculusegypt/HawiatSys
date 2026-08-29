@@ -525,7 +525,7 @@ export default function SeoPages() {
           </div>
           <h3 className="mt-4 font-black text-gray-900">{pages.length ? "لا توجد نتائج مطابقة" : "ابدأ أول صفحة بحث"}</h3>
           <p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-gray-500">
-            {pages.length ? "جرّب كلمة أخرى أو غيّر حالة العرض." : "أنشئ صفحة تستهدف سؤالاً حقيقياً يبحث عنه عملاء التنظيف في الرياض."}
+            {pages.length ? "جرّب كلمة أخرى أو غيّر حالة العرض." : "أنشئ صفحة تستهدف سؤالاً حقيقياً يبحث عنه عملاء الحاويات ونقل المخلفات في الرياض."}
           </p>
           {!pages.length && (
             <Button onClick={openNew} className="mt-5 rounded-xl" data-testid="button-empty-new-seo-page">
@@ -647,7 +647,7 @@ export default function SeoPages() {
                 <div className="space-y-5">
                   <div>
                     <label className="mb-2 block text-sm font-bold text-gray-800" htmlFor="seo-target-keyword">الكلمة المفتاحية المستهدفة <span className="text-secondary">*</span></label>
-                    <Input id="seo-target-keyword" value={form.targetKeyword} onChange={event => updateField("targetKeyword", event.target.value)} placeholder="مثال: شركة تنظيف منازل بالرياض" className="h-11 rounded-xl" data-testid="input-target-keyword" />
+                    <Input id="seo-target-keyword" value={form.targetKeyword} onChange={event => updateField("targetKeyword", event.target.value)} placeholder="مثال: تأجير حاويات أنقاض بالرياض" className="h-11 rounded-xl" data-testid="input-target-keyword" />
                     <p className="mt-1.5 text-[11px] text-gray-400">اكتب العبارة التي يستخدمها العميل عند البحث عن الخدمة.</p>
                   </div>
                   <div>
@@ -661,7 +661,7 @@ export default function SeoPages() {
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
                       <label className="mb-2 block text-sm font-bold text-gray-800" htmlFor="seo-page-slug">المسار</label>
-                      <Input id="seo-page-slug" dir="ltr" value={form.seoSlug} onChange={event => updateField("seoSlug", event.target.value)} placeholder="تنظيف-منازل-بالرياض" className="h-11 rounded-xl text-left" data-testid="input-seo-page-slug" />
+                       <Input id="seo-page-slug" dir="ltr" value={form.seoSlug} onChange={event => updateField("seoSlug", event.target.value)} placeholder="تأجير-حاويات-بالرياض" className="h-11 rounded-xl text-left" data-testid="input-seo-page-slug" />
                     </div>
                     <div>
                       <label className="mb-2 block text-sm font-bold text-gray-800" htmlFor="seo-page-status">الحالة</label>
@@ -718,7 +718,7 @@ export default function SeoPages() {
                   </div>
                   <div>
                     <label className="mb-2 block text-sm font-bold text-gray-800" htmlFor="seo-keywords">كلمات SEO الإضافية</label>
-                    <Input id="seo-keywords" value={form.seoKeywords} onChange={event => updateField("seoKeywords", event.target.value)} placeholder="تنظيف، منازل، فلل، الرياض" className="h-11 rounded-xl" data-testid="input-seo-keywords" />
+                    <Input id="seo-keywords" value={form.seoKeywords} onChange={event => updateField("seoKeywords", event.target.value)} placeholder="حاويات، أنقاض، مخلفات، الرياض" className="h-11 rounded-xl" data-testid="input-seo-keywords" />
                   </div>
                   <div>
                     <label className="mb-2 block text-sm font-bold text-gray-800" htmlFor="seo-canonical">الرابط الأساسي</label>

@@ -568,21 +568,21 @@ function generateFullHomepageStaticContent() {
   <main style="max-width:1200px;margin:0 auto;padding:24px 16px;color:#1a202c;line-height:1.8">
     <!-- Hero Section -->
     <section id="hero" style="text-align:center;padding:40px 16px;background:linear-gradient(180deg,#ebf8ff 0%,#fff 100%);border-radius:20px;margin-bottom:40px;border:1px solid #bee3f8">
-      <span style="display:inline-block;background:#ebf4ff;color:#2b6cb0;padding:6px 16px;border-radius:20px;font-size:14px;font-weight:700;margin-bottom:16px">⭐ الخيار الأول لخدمات تنظيف المنازل والفلل بالرياض</span>
+      <span style="display:inline-block;background:#ebf4ff;color:#2b6cb0;padding:6px 16px;border-radius:20px;font-size:14px;font-weight:700;margin-bottom:16px">⭐ حلول موثوقة لتأجير الحاويات ونقل المخلفات بالرياض</span>
       <h1 style="font-size:clamp(26px,5vw,42px);font-weight:900;color:#1e3a5f;margin:0 0 16px;line-height:1.3">
-        مؤسسة تقي جروب لخدمات تنظيف المنازل والفلل بالرياض
+        مؤسسة تقي جروب لتأجير الحاويات ونقل المخلفات بالرياض
       </h1>
       <p style="font-size:18px;color:#4a5568;max-width:850px;margin:0 auto 24px;line-height:1.8">
-        نقدم خدمات النظافة المتخصصة والشاملة للفلل، القصور، الشقق، والمباني بعد التشطيب، وغسيل المجالس والمفروشات بالبخار 140°، وجلي وتلميع الرخام بالألماس، وصيانة وتنظيف المكيفات مع ضمان 100% وسرعة وصول خلال 30 إلى 45 دقيقة لكافة أحياء الرياض.
+        نوفر حاويات الأنقاض والنفايات بأحجام مختلفة، مع توصيل وسحب ونقل منسق لمواقع البناء والترميم والمنشآت خلال مواعيد واضحة في جميع أحياء الرياض.
       </p>
       <div style="display:flex;justify-content:center;gap:16px;flex-wrap:wrap;margin-bottom:24px">
         <a href="tel:${esc(phoneCall)}" style="background:#1e3a5f;color:#fff;padding:14px 32px;border-radius:12px;font-size:16px;font-weight:800;text-decoration:none">اتصال مباشر: ${esc(phoneCall)}</a>
         <a href="${esc(waUrl)}" style="background:#25d366;color:#fff;padding:14px 32px;border-radius:12px;font-size:16px;font-weight:800;text-decoration:none">حجز موعد عبر واتساب ↗</a>
       </div>
       <div style="display:flex;justify-content:center;gap:24px;flex-wrap:wrap;font-size:14px;color:#4a5568;font-weight:700">
-        <span>⏱️ وصول خلال 30-45 دقيقة</span>
-        <span>🛡️ ضمان كامل على العمل</span>
-        <span>✨ ماكينات إيطالية ومواد معتمدة</span>
+        <span>⏱️ توصيل وسحب منسق</span>
+        <span>🛡️ متابعة واضحة للطلب</span>
+        <span>✨ أحجام متعددة للمواقع</span>
         <span>★ 4.9 تقييم العملاء (184 تقييماً)</span>
       </div>
     </section>
@@ -590,39 +590,39 @@ function generateFullHomepageStaticContent() {
     <!-- Services Pillars -->
     <section id="services" style="margin-bottom:48px">
       <div style="text-align:center;margin-bottom:32px">
-        <h2 style="font-size:28px;font-weight:800;color:#1e3a5f;margin:0 0 8px">خدماتنا الأساسية للتنظيف المتخصص بالرياض</h2>
-        <p style="font-size:16px;color:#718096;margin:0">خدمات متكاملة للمباني السكنية والتجارية بأحدث المعدات الفنية والعمالة المدربة</p>
+        <h2 style="font-size:28px;font-weight:800;color:#1e3a5f;margin:0 0 8px">حلول الحاويات ونقل المخلفات بالرياض</h2>
+        <p style="font-size:16px;color:#718096;margin:0">خدمات عملية للمشاريع والمنشآت مع مقاسات مناسبة وجدولة مرنة للتوصيل والسحب</p>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px">
         <div style="padding:24px;background:#fff;border:1px solid #e2e8f0;border-radius:16px;box-shadow:0 2px 8px rgba(0,0,0,0.04)">
-          <h3 style="font-size:20px;font-weight:800;color:#2b6cb0;margin:0 0 10px"><a href="/services/tanzeef-filal-alryad" style="color:inherit;text-decoration:none">تنظيف الفلل والقصور</a></h3>
-          <p style="font-size:15px;color:#4a5568;margin-bottom:16px">تنظيف شامل للأدوار، الأجنحة، المسابح، الواجهات، والحدائق مع التعقيم الشامل.</p>
-          <a href="/services/tanzeef-filal-alryad" style="color:#3182ce;font-weight:700;text-decoration:none">تفاصيل الخدمة والأسعار ←</a>
+           <h3 style="font-size:20px;font-weight:800;color:#2b6cb0;margin:0 0 10px"><a href="/containers" style="color:inherit;text-decoration:none">تأجير حاويات مخلفات البناء</a></h3>
+           <p style="font-size:15px;color:#4a5568;margin-bottom:16px">حاويات بأحجام مختلفة لمخلفات الهدم والترميم مع توصيل وسحب منسق.</p>
+           <a href="/containers" style="color:#3182ce;font-weight:700;text-decoration:none">اختيار الحاوية المناسبة ←</a>
         </div>
         <div style="padding:24px;background:#fff;border:1px solid #e2e8f0;border-radius:16px;box-shadow:0 2px 8px rgba(0,0,0,0.04)">
-          <h3 style="font-size:20px;font-weight:800;color:#2b6cb0;margin:0 0 10px"><a href="/services/tanzeef-shaqaq-alryad" style="color:inherit;text-decoration:none">تنظيف الشقق السكنية</a></h3>
-          <p style="font-size:15px;color:#4a5568;margin-bottom:16px">غسيل السيراميك، المطابخ، الحمامات، الدرايش، وتطهير كامل بأحدث المنظفات.</p>
-          <a href="/services/tanzeef-shaqaq-alryad" style="color:#3182ce;font-weight:700;text-decoration:none">تفاصيل الخدمة والأسعار ←</a>
+           <h3 style="font-size:20px;font-weight:800;color:#2b6cb0;margin:0 0 10px"><a href="/services" style="color:inherit;text-decoration:none">نقل الأنقاض والمخلفات</a></h3>
+           <p style="font-size:15px;color:#4a5568;margin-bottom:16px">رفع مخلفات البناء والترميم ونقلها من موقع العميل في موعد منسق.</p>
+           <a href="/services" style="color:#3182ce;font-weight:700;text-decoration:none">تفاصيل الخدمة ←</a>
         </div>
         <div style="padding:24px;background:#fff;border:1px solid #e2e8f0;border-radius:16px;box-shadow:0 2px 8px rgba(0,0,0,0.04)">
-          <h3 style="font-size:20px;font-weight:800;color:#2b6cb0;margin:0 0 10px"><a href="/services/tanzeef-bad-altashteeb-alryad" style="color:inherit;text-decoration:none">تنظيف بعد البناء والتشطيب</a></h3>
-          <p style="font-size:15px;color:#4a5568;margin-bottom:16px">إزالة بقايا الإسمنت، الدهان، الترويبة، وتلميع الأرضيات وتسليم مفتاح جاهز للسكن.</p>
-          <a href="/services/tanzeef-bad-altashteeb-alryad" style="color:#3182ce;font-weight:700;text-decoration:none">تفاصيل الخدمة والأسعار ←</a>
+           <h3 style="font-size:20px;font-weight:800;color:#2b6cb0;margin:0 0 10px"><a href="/containers/debris" style="color:inherit;text-decoration:none">حاويات لمخلفات البناء والترميم</a></h3>
+           <p style="font-size:15px;color:#4a5568;margin-bottom:16px">حل مناسب للأنقاض والإسمنت ومخلفات الترميم مع مقاسات للمواقع الصغيرة والكبيرة.</p>
+           <a href="/containers/debris" style="color:#3182ce;font-weight:700;text-decoration:none">تفاصيل الحاويات ←</a>
         </div>
         <div style="padding:24px;background:#fff;border:1px solid #e2e8f0;border-radius:16px;box-shadow:0 2px 8px rgba(0,0,0,0.04)">
-          <h3 style="font-size:20px;font-weight:800;color:#2b6cb0;margin:0 0 10px"><a href="/services/gaseel-majalis-bukhar-alryad" style="color:inherit;text-decoration:none">غسيل المجالس والكنب بالبخار</a></h3>
-          <p style="font-size:15px;color:#4a5568;margin-bottom:16px">تنظيف حراري بدرجة 140° وتعقيم وإزالة البقع الصعبة مع تجفيف فوري خلال 30 دقيقة.</p>
-          <a href="/services/gaseel-majalis-bukhar-alryad" style="color:#3182ce;font-weight:700;text-decoration:none">تفاصيل الخدمة والأسعار ←</a>
+           <h3 style="font-size:20px;font-weight:800;color:#2b6cb0;margin:0 0 10px"><a href="/containers/waste" style="color:inherit;text-decoration:none">حاويات النفايات للمنشآت</a></h3>
+           <p style="font-size:15px;color:#4a5568;margin-bottom:16px">حاويات للنفايات العامة مع تبديل وسحب وفق جدول المطاعم والمصانع والمستودعات.</p>
+           <a href="/containers/waste" style="color:#3182ce;font-weight:700;text-decoration:none">حلول المنشآت ←</a>
         </div>
         <div style="padding:24px;background:#fff;border:1px solid #e2e8f0;border-radius:16px;box-shadow:0 2px 8px rgba(0,0,0,0.04)">
-          <h3 style="font-size:20px;font-weight:800;color:#2b6cb0;margin:0 0 10px"><a href="/services/tanzeef-mokeyafat-alryad" style="color:inherit;text-decoration:none">تنظيف وغسيل المكيفات</a></h3>
-          <p style="font-size:15px;color:#4a5568;margin-bottom:16px">غسيل بضغط ماء 150 بار مع جراب الحماية المائي لمنع تناثر المياه وفحص الفريون.</p>
-          <a href="/services/tanzeef-mokeyafat-alryad" style="color:#3182ce;font-weight:700;text-decoration:none">تفاصيل الخدمة والأسعار ←</a>
+           <h3 style="font-size:20px;font-weight:800;color:#2b6cb0;margin:0 0 10px"><a href="/containers/contracts" style="color:inherit;text-decoration:none">عقود الحاويات للمشاريع</a></h3>
+           <p style="font-size:15px;color:#4a5568;margin-bottom:16px">توريد منتظم وتبديل وسحب مجدول للمقاولين والمطورين والمنشآت التجارية.</p>
+           <a href="/containers/contracts" style="color:#3182ce;font-weight:700;text-decoration:none">اطلب عقداً مناسباً ←</a>
         </div>
         <div style="padding:24px;background:#fff;border:1px solid #e2e8f0;border-radius:16px;box-shadow:0 2px 8px rgba(0,0,0,0.04)">
-          <h3 style="font-size:20px;font-weight:800;color:#2b6cb0;margin:0 0 10px"><a href="/services/jaly-rakham-alryad" style="color:inherit;text-decoration:none">جلي وتلميع الرخام والبلاط</a></h3>
-          <p style="font-size:15px;color:#4a5568;margin-bottom:16px">جلي مائي بأقراص الألماس وتلميع بالكريستال الإيطالي لإعادة البريق ولمعان المرآة.</p>
-          <a href="/services/jaly-rakham-alryad" style="color:#3182ce;font-weight:700;text-decoration:none">تفاصيل الخدمة والأسعار ←</a>
+           <h3 style="font-size:20px;font-weight:800;color:#2b6cb0;margin:0 0 10px"><a href="/services" style="color:inherit;text-decoration:none">إدارة المخلفات للمواقع</a></h3>
+           <p style="font-size:15px;color:#4a5568;margin-bottom:16px">تنسيق عملية الحاوية من التوصيل إلى السحب مع متابعة حالة الطلب والموقع.</p>
+           <a href="/services" style="color:#3182ce;font-weight:700;text-decoration:none">تفاصيل الحلول ←</a>
         </div>
       </div>
     </section>
@@ -630,40 +630,40 @@ function generateFullHomepageStaticContent() {
     <!-- Pricing Packages -->
     <section id="packages" style="margin-bottom:48px;padding:32px 20px;background:#f7fafc;border-radius:20px;border:1px solid #e2e8f0">
       <div style="text-align:center;margin-bottom:28px">
-        <h2 style="font-size:26px;font-weight:800;color:#1e3a5f;margin:0 0 8px">باقات وأسعار التنظيف في الرياض</h2>
-        <p style="font-size:15px;color:#718096;margin:0">أسعار واضحة وشفافة بدون أي رسوم خفية مع معاينة مجانية</p>
+        <h2 style="font-size:26px;font-weight:800;color:#1e3a5f;margin:0 0 8px">مقاسات الحاويات والعروض في الرياض</h2>
+        <p style="font-size:15px;color:#718096;margin:0">عرض مناسب حسب نوع المخلفات والمقاس والمدة وموقع المشروع</p>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px">
         <div style="padding:20px;background:#fff;border-radius:12px;border:1px solid #e2e8f0;text-align:center">
-          <h3 style="font-size:18px;font-weight:700;margin:0 0 8px">تنظيف الشقق السكنية</h3>
-          <div style="font-size:24px;font-weight:900;color:#2b6cb0;margin-bottom:8px">يبدأ من 350 <span style="font-size:14px;font-weight:600">ريال</span></div>
-          <p style="font-size:13px;color:#718096;margin:0">تنظيف وتعقيم كامل للغرف والمطبخ والحمامات</p>
+           <h3 style="font-size:18px;font-weight:700;margin:0 0 8px">حاوية 6 ياردة</h3>
+           <div style="font-size:24px;font-weight:900;color:#2b6cb0;margin-bottom:8px">عرض سعر <span style="font-size:14px;font-weight:600">حسب الموقع</span></div>
+           <p style="font-size:13px;color:#718096;margin:0">مناسبة للترميمات والمواقع الصغيرة</p>
         </div>
         <div style="padding:20px;background:#fff;border-radius:12px;border:2px solid #2b6cb0;text-align:center;position:relative">
           <span style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:#2b6cb0;color:#fff;padding:2px 10px;border-radius:10px;font-size:11px;font-weight:700">الأكثر طلباً</span>
-          <h3 style="font-size:18px;font-weight:700;margin:0 0 8px">تنظيف الفلل والقصور</h3>
-          <div style="font-size:24px;font-weight:900;color:#2b6cb0;margin-bottom:8px">يبدأ من 750 <span style="font-size:14px;font-weight:600">ريال</span></div>
-          <p style="font-size:13px;color:#718096;margin:0">تنظيف شامل للأدوار والدرج والأحواش والمسابح</p>
+           <h3 style="font-size:18px;font-weight:700;margin:0 0 8px">حاوية 12 ياردة</h3>
+           <div style="font-size:24px;font-weight:900;color:#2b6cb0;margin-bottom:8px">عرض سعر <span style="font-size:14px;font-weight:600">حسب المدة</span></div>
+           <p style="font-size:13px;color:#718096;margin:0">مناسبة لمواقع البناء والترميم المتوسطة</p>
         </div>
         <div style="padding:20px;background:#fff;border-radius:12px;border:1px solid #e2e8f0;text-align:center">
-          <h3 style="font-size:18px;font-weight:700;margin:0 0 8px">تنظيف بعد التشطيب</h3>
-          <div style="font-size:24px;font-weight:900;color:#2b6cb0;margin-bottom:8px">يبدأ من 900 <span style="font-size:14px;font-weight:600">ريال</span></div>
-          <p style="font-size:13px;color:#718096;margin:0">إزالة الإسمنت والدهان والترويبة وتسليم مفتاح</p>
+           <h3 style="font-size:18px;font-weight:700;margin:0 0 8px">حاوية 20 ياردة</h3>
+           <div style="font-size:24px;font-weight:900;color:#2b6cb0;margin-bottom:8px">عرض سعر <span style="font-size:14px;font-weight:600">حسب المشروع</span></div>
+           <p style="font-size:13px;color:#718096;margin:0">مناسبة لمواقع الهدم والمشاريع الكبيرة</p>
         </div>
         <div style="padding:20px;background:#fff;border-radius:12px;border:1px solid #e2e8f0;text-align:center">
-          <h3 style="font-size:18px;font-weight:700;margin:0 0 8px">غسيل المجالس بالبخار</h3>
-          <div style="font-size:24px;font-weight:900;color:#2b6cb0;margin-bottom:8px">يبدأ من 200 <span style="font-size:14px;font-weight:600">ريال</span></div>
-          <p style="font-size:13px;color:#718096;margin:0">تنظيف عميق بالبخار 140° مع التجفيف الفوري</p>
+           <h3 style="font-size:18px;font-weight:700;margin:0 0 8px">حاويات النفايات</h3>
+           <div style="font-size:24px;font-weight:900;color:#2b6cb0;margin-bottom:8px">عرض سعر <span style="font-size:14px;font-weight:600">للمنشآت</span></div>
+           <p style="font-size:13px;color:#718096;margin:0">تبديل وسحب وفق جدول المنشأة</p>
         </div>
         <div style="padding:20px;background:#fff;border-radius:12px;border:1px solid #e2e8f0;text-align:center">
-          <h3 style="font-size:18px;font-weight:700;margin:0 0 8px">غسيل المكيفات سبليت</h3>
-          <div style="font-size:24px;font-weight:900;color:#2b6cb0;margin-bottom:8px">يبدأ من 80 <span style="font-size:14px;font-weight:600">ريال</span></div>
-          <p style="font-size:13px;color:#718096;margin:0">غسيل بالضغط العالي مع جراب الحماية المائي</p>
+           <h3 style="font-size:18px;font-weight:700;margin:0 0 8px">توصيل وسحب</h3>
+           <div style="font-size:24px;font-weight:900;color:#2b6cb0;margin-bottom:8px">جدولة <span style="font-size:14px;font-weight:600">مرنة</span></div>
+           <p style="font-size:13px;color:#718096;margin:0">تنسيق الموعد مع مسؤول الموقع</p>
         </div>
         <div style="padding:20px;background:#fff;border-radius:12px;border:1px solid #e2e8f0;text-align:center">
-          <h3 style="font-size:18px;font-weight:700;margin:0 0 8px">جلي وتلميع الرخام</h3>
-          <div style="font-size:24px;font-weight:900;color:#2b6cb0;margin-bottom:8px">يبدأ من 15 <span style="font-size:14px;font-weight:600">ريال / م²</span></div>
-          <p style="font-size:13px;color:#718096;margin:0">جلي بالألماس وتلميع بالكريستال الإيطالي</p>
+           <h3 style="font-size:18px;font-weight:700;margin:0 0 8px">عقود المشاريع</h3>
+           <div style="font-size:24px;font-weight:900;color:#2b6cb0;margin-bottom:8px">عرض مخصص <span style="font-size:14px;font-weight:600">للكميات</span></div>
+           <p style="font-size:13px;color:#718096;margin:0">توريد منتظم وتبديل مستمر للحاويات</p>
         </div>
       </div>
     </section>
@@ -672,24 +672,24 @@ function generateFullHomepageStaticContent() {
     <section id="why-us" style="margin-bottom:48px;padding:32px 24px;background:#1e3a5f;color:#fff;border-radius:20px">
       <div style="text-align:center;margin-bottom:28px">
         <h2 style="font-size:26px;font-weight:800;margin:0 0 8px">لماذا تختار مؤسسة تقي جروب بالرياض؟</h2>
-        <p style="font-size:16px;color:#cbd5e0;margin:0">نلتزم بأعلى معايير الجودة والاحترافية لتقديم تجربة تنظيف استثنائية</p>
+        <p style="font-size:16px;color:#cbd5e0;margin:0">ننسق الحاوية والموعد ونقل المخلفات بما يناسب طبيعة كل موقع</p>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px">
         <div style="padding:16px;background:rgba(255,255,255,0.08);border-radius:12px">
-          <h4 style="font-size:17px;font-weight:700;margin:0 0 8px">🛠️ أحدث المعدات العالمية</h4>
-          <p style="font-size:14px;color:#e2e8f0;margin:0">ماكينات جلي الرخام الإيطالية (Klindex)، ومضخات غسيل 150 بار، وأجهزة بخار 140°C.</p>
+          <h4 style="font-size:17px;font-weight:700;margin:0 0 8px">📦 مقاسات متعددة</h4>
+          <p style="font-size:14px;color:#e2e8f0;margin:0">حاويات صغيرة ومتوسطة وكبيرة لمخلفات الترميم والهدم والنفايات العامة.</p>
         </div>
         <div style="padding:16px;background:rgba(255,255,255,0.08);border-radius:12px">
-          <h4 style="font-size:17px;font-weight:700;margin:0 0 8px">🌿 مواد آمنة ومعتمدة</h4>
-          <p style="font-size:14px;color:#e2e8f0;margin:0">منظفات ومعقمات ألمانية مصرحة وصديقة للبيئة بدون أي روائح نفاذة أو أضرار صحية.</p>
+          <h4 style="font-size:17px;font-weight:700;margin:0 0 8px">🚚 توصيل وسحب منسق</h4>
+          <p style="font-size:14px;color:#e2e8f0;margin:0">نحدد معك وقت التوصيل والسحب وننسق الحركة مع مسؤول الموقع.</p>
         </div>
         <div style="padding:16px;background:rgba(255,255,255,0.08);border-radius:12px">
-          <h4 style="font-size:17px;font-weight:700;margin:0 0 8px">🛡️ ضمان الجودة 100%</h4>
-          <p style="font-size:14px;color:#e2e8f0;margin:0">تسليم الموقع وفق جدول ملاحظات العميل مع استعداد تام لمعاينة وتعديل أي ملاحظة مجاناً.</p>
+          <h4 style="font-size:17px;font-weight:700;margin:0 0 8px">🛡️ متابعة الطلب</h4>
+          <p style="font-size:14px;color:#e2e8f0;margin:0">تأكيد واضح للتفاصيل ومتابعة حالة الحاوية حتى اكتمال السحب.</p>
         </div>
         <div style="padding:16px;background:rgba(255,255,255,0.08);border-radius:12px">
           <h4 style="font-size:17px;font-weight:700;margin:0 0 8px">📍 تغطية شاملة لكافة الأحياء</h4>
-          <p style="font-size:14px;color:#e2e8f0;margin:0">أكثر من 50 حياً في شمال وشرق وغرب وجنوب ووسط الرياض مع فرق ميدانية سريعة الانتشار.</p>
+          <p style="font-size:14px;color:#e2e8f0;margin:0">تغطية أحياء شمال وشرق وغرب وجنوب ووسط الرياض للمشاريع والمنشآت.</p>
         </div>
       </div>
     </section>
@@ -698,17 +698,17 @@ function generateFullHomepageStaticContent() {
     <section id="reviews" style="margin-bottom:48px">
       <div style="text-align:center;margin-bottom:24px">
         <h2 style="font-size:24px;font-weight:800;color:#1e3a5f;margin:0 0 6px">آراء وتقييمات العملاء الموثقة في الرياض</h2>
-        <p style="font-size:15px;color:#718096;margin:0">★ 4.9 من 5 بناءً على 184 تقييماً موثقاً لخدمات التنظيف بالرياض</p>
+        <p style="font-size:15px;color:#718096;margin:0">★ 4.9 من 5 بناءً على 184 تقييماً موثقاً لخدمات الحاويات ونقل المخلفات بالرياض</p>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">
         <div style="padding:20px;background:#fff;border:1px solid #e2e8f0;border-radius:12px">
           <div style="color:#d69e2e;font-size:16px;margin-bottom:6px">★★★★★ (5/5)</div>
-          <p style="font-size:14px;color:#4a5568;margin:0 0 10px;line-height:1.7">"خدمة تنظيف فيلا بعد التشطيب بحي الملقا ممتازة جداً. تمت إزالة كل بقع الدهان والإسمنت وتلميع الرخام باحتراف عالي."</p>
+          <p style="font-size:14px;color:#4a5568;margin:0 0 10px;line-height:1.7">"التوصيل كان في الموعد، واختيار مقاس الحاوية كان مناسباً لمخلفات الترميم. تجربة واضحة وسريعة."</p>
           <strong style="font-size:13px;color:#1e3a5f">— أبو فهد القحطاني (حي الملقا)</strong>
         </div>
         <div style="padding:20px;background:#fff;border:1px solid #e2e8f0;border-radius:12px">
           <div style="color:#d69e2e;font-size:16px;margin-bottom:6px">★★★★★ (5/5)</div>
-          <p style="font-size:14px;color:#4a5568;margin:0 0 10px;line-height:1.7">"غسيل مجالس وكنب بالبخار وتنظيف 4 مكيفات سبليت. شغل نظيف جداً وتجفيف سريع بدون أي فوضى."</p>
+          <p style="font-size:14px;color:#4a5568;margin:0 0 10px;line-height:1.7">"التوصيل كان في الموعد، واختيار مقاس الحاوية كان مناسباً لمخلفات الترميم. تجربة واضحة وسريعة."</p>
           <strong style="font-size:13px;color:#1e3a5f">— سلطان العتيبي (حي الياسمين)</strong>
         </div>
         <div style="padding:20px;background:#fff;border:1px solid #e2e8f0;border-radius:12px">
@@ -747,33 +747,33 @@ function generateFullHomepageStaticContent() {
     <!-- FAQ Section -->
     <section id="faq" style="margin-bottom:48px">
       <div style="text-align:center;margin-bottom:24px">
-        <h2 style="font-size:24px;font-weight:800;color:#1e3a5f;margin:0 0 6px">الأسئلة الشائعة حول خدمات التنظيف بالرياض</h2>
+        <h2 style="font-size:24px;font-weight:800;color:#1e3a5f;margin:0 0 6px">الأسئلة الشائعة حول الحاويات ونقل المخلفات بالرياض</h2>
         <p style="font-size:15px;color:#718096;margin:0">إجابات مباشرة على أكثر الاستفسارات شيوعاً</p>
       </div>
       <div style="display:flex;flex-direction:column;gap:12px">
         <div style="padding:18px 20px;background:#fff;border:1px solid #e2e8f0;border-radius:12px">
           <h3 style="font-size:16px;font-weight:800;color:#1e3a5f;margin:0 0 6px">ما هي الخدمات التي تقدمها مؤسسة تقي جروب بالرياض؟</h3>
-          <p style="font-size:14px;color:#4a5568;margin:0;line-height:1.7">نقدم تنظيف الفلل، القصور، الشقق، المباني بعد التشطيب وإزالة الإسمنت، غسيل المجالس والكنب بالبخار 140°، جلي وتلميع الرخام بالألماس، تنظيف المكيفات سبليت، وتعقيم الخزانات ومكافحة الحشرات.</p>
+          <p style="font-size:14px;color:#4a5568;margin:0;line-height:1.7">نوفر حاويات لمخلفات البناء والترميم والنفايات العامة، مع توصيل وسحب ونقل منسق للمشاريع والمنشآت داخل الرياض.</p>
         </div>
         <div style="padding:18px 20px;background:#fff;border:1px solid #e2e8f0;border-radius:12px">
-          <h3 style="font-size:16px;font-weight:800;color:#1e3a5f;margin:0 0 6px">كم تبدأ أسعار خدمات التنظيف لديكم؟</h3>
-          <p style="font-size:14px;color:#4a5568;margin:0;line-height:1.7">تبدأ أسعار الشقق من 350 ريال، الفلل من 750 ريال، غسيل المجالس من 200 ريال، غسيل المكيفات من 80 ريال، وجلي الرخام من 15 ريال/م²، مع معاينة مجانية وضمان كامل.</p>
+          <h3 style="font-size:16px;font-weight:800;color:#1e3a5f;margin:0 0 6px">كيف تحددون سعر تأجير الحاوية؟</h3>
+          <p style="font-size:14px;color:#4a5568;margin:0;line-height:1.7">يحدد العرض حسب المقاس ونوع المخلفات ومدة الإيجار وموقع التوصيل وعدد مرات التبديل أو السحب.</p>
         </div>
         <div style="padding:18px 20px;background:#fff;border:1px solid #e2e8f0;border-radius:12px">
           <h3 style="font-size:16px;font-weight:800;color:#1e3a5f;margin:0 0 6px">ما هي مدة وصول الفريق بعد تأكيد الحجز؟</h3>
           <p style="font-size:14px;color:#4a5568;margin:0;line-height:1.7">تصل فرقنا الميدانية المجهزة بكافة المعدات والمواد إلى موقع العميل في أي حي داخل الرياض خلال 30 إلى 45 دقيقة.</p>
         </div>
         <div style="padding:18px 20px;background:#fff;border:1px solid #e2e8f0;border-radius:12px">
-          <h3 style="font-size:16px;font-weight:800;color:#1e3a5f;margin:0 0 6px">هل تقدمون ضماناً على خدمات التنظيف وجلي الرخام؟</h3>
-          <p style="font-size:14px;color:#4a5568;margin:0;line-height:1.7">نعم، نقدم ضماناً كاملاً على جودة التنفيذ وعدم وجود أي تلفيات، مع تسليم الموقع وفق قائمة فحص دقيقة ومطابقة لاشتراطات العميل.</p>
+          <h3 style="font-size:16px;font-weight:800;color:#1e3a5f;margin:0 0 6px">هل يمكن تبديل الحاوية عند امتلائها؟</h3>
+          <p style="font-size:14px;color:#4a5568;margin:0;line-height:1.7">نعم، يمكن تنسيق التبديل أو السحب وفق جدول المشروع وطبيعة الموقع، مع تحديد التفاصيل قبل بدء الخدمة.</p>
         </div>
       </div>
     </section>
 
     <!-- Categorized Directory -->
     <section id="directory" style="margin-bottom:32px;padding:24px;background:#f8fafc;border-radius:16px;border:1px solid #e2e8f0">
-      <h2 style="font-size:20px;font-weight:800;color:#1e3a5f;margin:0 0 12px;text-align:center">دليل موضوعات وخدمات النظافة المتخصصة بالرياض</h2>
-      <p style="font-size:14px;color:#718096;text-align:center;margin:0 0 20px">فهرس منظم لأدلة وموضوعات التنظيف المصنفة لخدمة سكان ومنشآت مدينة الرياض</p>
+       <h2 style="font-size:20px;font-weight:800;color:#1e3a5f;margin:0 0 12px;text-align:center">دليل الحاويات ونقل المخلفات بالرياض</h2>
+       <p style="font-size:14px;color:#718096;text-align:center;margin:0 0 20px">فهرس منظم لأدلة المقاسات والأسعار وحلول المخلفات للمشاريع والمنشآت</p>
       <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center">
         ${db.prepare(`SELECT title, slug FROM seo_pages WHERE status = 'published' AND is_active = 1 LIMIT 30`).all().map(p => 
           `<a href="/page/${esc(p.slug)}" style="padding:6px 12px;background:#fff;color:#4a5568;border-radius:8px;text-decoration:none;font-size:12px;border:1px solid #e2e8f0">${esc(p.title.replace(/\|.*/, "").trim())}</a>`
@@ -1673,7 +1673,7 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
         <tbody>
           <tr>
             <td style="padding:12px 16px;border:1px solid #e2e8f0;font-weight:700">حاوية مخلفات صغيرة</td>
-            <td style="padding:12px 16px;border:1px solid #e2e8f0">أعمال الترميم المنزلية والتنظيف الإنشائي الخفيف</td>
+            <td style="padding:12px 16px;border:1px solid #e2e8f0">أعمال الترميم المنزلية وإخلاء المخلفات الخفيفة</td>
             <td style="padding:12px 16px;border:1px solid #e2e8f0;font-weight:800;color:#2b6cb0">حسب المقاس والموقع ومدة التأجير</td>
           </tr>
           <tr style="background:#f7fafc">

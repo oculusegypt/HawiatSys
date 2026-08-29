@@ -1,0 +1,51 @@
+Evaluating code and scripts
+
+I’m considering whether to remove old scripts or just ignore legacy sources. The user wants to keep all sources and the database, but it seems like the existing runtime relies mostly on current data, not on outdated scripts. If certain scripts are still present, searches might fail, so I should delete them. I also need to check NeighborhoodPage.tsx, since it might be generating outdated SEO pages. I'll update keywords to "containers" and "hauling" or remove irrelevant routes. I'll search through all the files to identify any mentions of cleaning.
+
+تأكدت من قاعدة البيانات الحالية: إعداد Google Business Profile موجود كرابط Google Maps حقيقي، كما أن بيانات الاسم والعنوان والهاتف والإحداثيات موجودة. لذلك لن أستبدله أو أختلق رابطًا جديدًا. الآن أحدد كل المصدر البرمجي الذي يمكنه إعادة إدخال محتوى التنظيف مستقبلًا، وليس فقط الصفحات الناتجة حاليًا.
+
+
+
+Show less
+
+Ran continue
+
+Searched for "شركة تنظيف|تنظيف منازل|…"
+
+Opened NeighborhoodPage.tsx
+
+Opened aiChat.ts
+
+Opened aiSeo.ts
+
+Opened index.html
+
+Opened seoMedia.ts
+
+Opened themePresets.ts
+
+Opened update-site-settings.mjs
+
+Opened setup-standalone-categories-no-prices.mjs
+Considering neighborhood features
+
+Considering neighborhood features
+Analyzing script updates
+
+I'm considering replacing only the first data arrays, but it might be better to apply a patch to update the blocks instead. I need to identify old cleaning files, including ones like scripts/setup-9-standalone-categories.mjs.
+
+It seems safest to delete all old cleaning scripts, though seed-seo-pages.mjs could be a general SEO tool needed, so I may want to rewrite that to contain a keyword list. I might also remove scripts with "cleaning" in the name to avoid conflicts with user requests. Rewriting or deleting might be necessary for several scripts, particularly verify-reviews-build. It looks like some parts, like NeighborhoodPage.tsx, will require more extensive rewriting. Overall, there are many search strings I might need to update.Considering neighborhood features
+
+I’m wondering if the easiest approach would be to delete the neighborhood feature. However, I need to consider that the app routes might be importing AREAS. It’s crucial to evaluate how removing that feature affects the overall functionality. I want to make sure that if I take that step, it won't cause issues elsewhere in the application. I’ll need to look into the dependencies and see what other adjustments might be necessary if I proceed with this deletion.
+
+Evaluating file replacement
+
+Evaluating file replacement
+Evaluating file replacement
+
+I need to replace the existing file with a smaller, dynamic generic container area page. First, I'll inspect tail exports and functions. It looks like I can rewrite the entire file through a delete and add approach, using a more concise implementation with current types. However, applying the patch adds around 200 lines. I need to preserve the functional route and inspect the API or route usage, particularly searching for AREAS and NeighborhoodPage.
+
+
+Searched for "NeighborhoodPage|AREAS|…"
+
+Searched for "شركة تنظيف|تنظيف منازل|…"

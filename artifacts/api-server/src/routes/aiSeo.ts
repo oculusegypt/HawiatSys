@@ -553,7 +553,7 @@ function analyzeLocalSeo(data: {
       field: "title", impact: "high",
       issue: "عنوان الصفحة غير محدد",
       current: "",
-      suggestion: `${siteName} | خدمات التنظيف بالرياض — تواصل معنا`,
+      suggestion: `${siteName} | تأجير الحاويات ونقل المخلفات بالرياض — تواصل معنا`,
       reason: "العنوان ضروري لظهور الموقع في نتائج البحث.",
     });
   } else if (title.length < 50) {
@@ -590,7 +590,7 @@ function analyzeLocalSeo(data: {
       field: "description", impact: "high",
       issue: "وصف الصفحة (Meta Description) غير محدد",
       current: "",
-      suggestion: `${siteName} — متخصصون في خدمات التنظيف بالرياض. تواصل معنا للحصول على عرض مناسب.`,
+      suggestion: `${siteName} — متخصصون في تأجير الحاويات ونقل المخلفات بالرياض. تواصل معنا للحصول على عرض مناسب.`,
       reason: "الوصف يظهر مباشرة في نتائج البحث ويرفع معدل النقر.",
     });
   } else if (description.length < 120) {
@@ -630,7 +630,7 @@ function analyzeLocalSeo(data: {
       field: "keywords", impact: "low",
       issue: "الكلمات المفتاحية غير محددة",
       current: "",
-      suggestion: "شركة تنظيف بالرياض، شركة تنظيف منازل بالرياض، تنظيف فلل بالرياض، غسيل مجالس بالبخار، جلي رخام بالرياض",
+      suggestion: "تأجير حاويات بالرياض، حاويات أنقاض، حاويات نفايات، نقل مخلفات البناء، عقود مواقع",
       reason: "رغم أن جوجل لا يعتمدها مباشرة، تساعد في تنظيم المحتوى ومحركات أخرى.",
     });
   } else {
@@ -640,7 +640,7 @@ function analyzeLocalSeo(data: {
         field: "keywords", impact: "low",
         issue: `عدد الكلمات المفتاحية قليل (${kwList.length} كلمة — الموصى به 5-8)`,
         current: keywords.slice(0, 100),
-        suggestion: keywords + "، تنظيف منازل بالرياض، أسعار تنظيف الفلل بالرياض، شركة تنظيف بعد البناء",
+        suggestion: keywords + "، تأجير حاويات بالرياض، أسعار الحاويات، نقل مخلفات البناء",
         reason: "إضافة كلمات متنوعة يُوسّع نطاق الظهور في نتائج البحث الطويلة.",
       });
     }
@@ -649,7 +649,7 @@ function analyzeLocalSeo(data: {
         field: "keywords", impact: "medium",
         issue: "الكلمات المفتاحية لا تتضمن مصطلحاً جغرافياً",
         current: keywords.slice(0, 100),
-        suggestion: keywords + "، شركة تنظيف بالرياض، تنظيف منازل شمال الرياض",
+        suggestion: keywords + "، تأجير حاويات بالرياض، حاويات أنقاض شمال الرياض",
         reason: "الكلمات الجغرافية ضرورية لـ Local SEO وتحسين الظهور في البحث المحلي.",
       });
     }
@@ -661,7 +661,7 @@ function analyzeLocalSeo(data: {
       field: "ogTitle", impact: "medium",
       issue: "OG Title غير محدد — لن يظهر العنوان الصحيح عند المشاركة",
       current: "",
-      suggestion: title || `${siteName} | خدمات التنظيف بالرياض`,
+        suggestion: title || `${siteName} | تأجير الحاويات ونقل المخلفات بالرياض`,
       reason: "OG Title يُحدد كيف يظهر رابطك عند مشاركته على واتساب وتويتر وفيسبوك.",
     });
   }
@@ -769,7 +769,7 @@ router.post("/admin/ai/generate-llms-txt", async (req, res) => {
 
     // Get site settings for context
     const siteName   = (await getSetting("company_name")).trim() || "الشركة";
-    const siteDesc   = await getSetting("site_desc")   || "متخصصون في خدمات التنظيف بالرياض";
+    const siteDesc   = await getSetting("site_desc")   || "متخصصون في تأجير الحاويات ونقل المخلفات بالرياض";
     const sitePhone  = await getSetting("company_phone_call")  || "";
     const siteEmail  = await getSetting("company_email")  || "";
     const siteUrl    = await getSetting("site_public_url")    ||
