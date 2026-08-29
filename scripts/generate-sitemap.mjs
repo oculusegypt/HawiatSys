@@ -61,6 +61,7 @@ const staticPages = [
   ["/about", "0.9", "monthly"],
   ["/pricing", "0.95", "weekly"],
   ["/containers", "0.9", "weekly"],
+  ["/services", "0.95", "weekly"],
   ["/contact", "0.85", "monthly"],
   ["/partners", "0.75", "monthly"],
   ["/areas", "0.9", "weekly"],
@@ -142,7 +143,9 @@ const addEntry = ({ path, priority, changefreq, title, lastmod = today, images =
 for (const [path, priority, changefreq] of staticPages) {
   const staticImages = path === "/"
     ? ["/images/hero-1.webp", "/images/logo.png", "/images/seo/taqi-home.jpg"]
-    : path === "/taqi-group-platform"
+    : path === "/services"
+      ? ["/images/seo/taqi-services.jpg"]
+      : path === "/taqi-group-platform"
       ? []
       : [];
   addEntry({ path, priority, changefreq, title: siteName, images: staticImages });

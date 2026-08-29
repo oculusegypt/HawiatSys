@@ -49,6 +49,18 @@
   </url>
 
   <url>
+    <loc>https://taqigroup.com/services</loc>
+    <lastmod>2026-08-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.95</priority>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://taqigroup.com/services"/>
+    <image:image>
+      <image:loc>https://taqigroup.com/images/seo/taqi-services.jpg</image:loc>
+      <image:title>مؤسسة تقي جروب — صورة 1</image:title>
+    </image:image>
+  </url>
+
+  <url>
     <loc>https://taqigroup.com/contact</loc>
     <lastmod>2026-08-29</lastmod>
     <changefreq>monthly</changefreq>

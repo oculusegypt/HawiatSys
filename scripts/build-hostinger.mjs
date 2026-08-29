@@ -645,7 +645,8 @@ writeFileSync(join(ROOT, "build_php/.htaccess"), `DirectoryIndex index.html inde
 
   # Directory indexes can be disabled by the host. Resolve public SEO hubs
   # explicitly so /blog/ and /areas/ never become a 403 or SPA soft fallback.
-  RewriteRule ^blog/?$ blog/index.html [END]
+   RewriteRule ^services/?$ services/index.html [END]
+   RewriteRule ^blog/?$ blog/index.html [END]
   RewriteRule ^areas/?$ areas/index.html [END]
 
   # Allow direct access to existing files and directories

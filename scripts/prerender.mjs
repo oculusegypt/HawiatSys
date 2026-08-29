@@ -346,6 +346,7 @@ function renderPage({
   <meta name="twitter:image:alt" content="${esc(imgAlt)}" />
 
   <!-- Favicon -->
+  <link rel="icon" type="image/png" sizes="512x512" href="/favicon-512x512.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="/favicon.png" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
@@ -871,6 +872,7 @@ function updateIndexSeo(html) {
   const title = HOMEPAGE_SEO_TITLE;
   const description = HOMEPAGE_SEO_DESCRIPTION;
   const logo = siteLogo ? absoluteImg(siteLogo) : publicUrl("/images/logo.png");
+  const homeOgImage = publicUrl("/images/seo/taqi-home.jpg");
   const heroPreload = `<link rel="preload" as="image" href="${esc(absoluteImg(heroLcpImage))}" fetchpriority="high" imagesizes="100vw" data-lcp-hero="true" />`;
   const replace = (source, pattern, value) => source.replace(pattern, value);
   const upsert = (source, pattern, tag) => pattern.test(source)
@@ -907,12 +909,12 @@ function updateIndexSeo(html) {
   next = replace(next, /(<meta\s+property="og:title"\s+content=")[^"]*(")/i, `$1${esc(title)}$2`);
   next = replace(next, /(<meta\s+property="og:description"\s+content=")[^"]*(")/i, `$1${esc(description)}$2`);
   next = upsert(next, /<meta\s+property=["']og:url["'][^>]*>/i, `<meta property="og:url" content="${esc(publicUrl("/"))}" />`);
-  next = replace(next, /(<meta\s+property="og:image"\s+content=")[^"]*(")/i, `$1${esc(logo)}$2`);
-  next = upsert(next, /<meta\s+property=["']og:image:type["'][^>]*>/i, `<meta property="og:image:type" content="${imageMimeType(logo)}" />`);
+  next = replace(next, /(<meta\s+property="og:image"\s+content=")[^"]*(")/i, `$1${esc(homeOgImage)}$2`);
+  next = upsert(next, /<meta\s+property=["']og:image:type["'][^>]*>/i, `<meta property="og:image:type" content="${imageMimeType(homeOgImage)}" />`);
   next = replace(next, /(<meta\s+property="og:image:alt"\s+content=")[^"]*(")/i, `$1${esc(siteCompanyName)}$2`);
   next = replace(next, /(<meta\s+name="twitter:title"\s+content=")[^"]*(")/i, `$1${esc(title)}$2`);
   next = replace(next, /(<meta\s+name="twitter:description"\s+content=")[^"]*(")/i, `$1${esc(description)}$2`);
-  next = replace(next, /(<meta\s+name="twitter:image"\s+content=")[^"]*(")/i, `$1${esc(logo)}$2`);
+  next = replace(next, /(<meta\s+name="twitter:image"\s+content=")[^"]*(")/i, `$1${esc(homeOgImage)}$2`);
   next = next.replace(/<script\s+type="application\/ld\+json">[\s\S]*?<\/script>\s*/gi, "");
   const schemaIds = ["home-local-business-schema", "home-website-schema", "home-faq-schema", "home-breadcrumbs-schema"];
   const schemas = dynamicHomeSchema().map((schema, index) =>
@@ -1079,7 +1081,7 @@ console.log(`   ✅ ${posts.length} مقالة`);
     siteDescription || "مقالات ونصائح تساعدك على اختيار الخدمات المناسبة لتأجير الحاويات ونقل المخلفات.",
     "مدونة تأجير الحاويات ونقل المخلفات",
   );
-  const blogOgImage    = posts[0]?.cover_image || `${SITE_URL}/images/hero-1.webp`;
+  const blogOgImage    = `${SITE_URL}/images/seo/taqi-blog.jpg`;
 
   const blogSchema = {
     "@context": "https://schema.org",
@@ -1299,6 +1301,94 @@ for (const svc of services) {
   savePage(`services/${slug}`, html);
 }
 console.log(`   ✅ ${services.length} خدمة`);
+
+// ── صفحة قائمة الخدمات /services/index.html ─────────────────────────────────
+// Hostinger treats an existing directory without an index file as forbidden.
+// Keep this route as a real static document so /services/ is crawlable even
+// when directory listings are disabled.
+{
+  const canonical = `${SITE_URL}/services`;
+  const title = `خدمات تأجير الحاويات ونقل المخلفات بالرياض | ${siteCompanyName}`;
+  const description = normalizeMetaDescription(
+    "استعرض خدمات مؤسسة تقي جروب في الرياض: تأجير الحاويات، نقل الأنقاض ومخلفات البناء، وحلول المواقع والمنشآت مع تنسيق التوصيل والسحب.",
+    "خدمات تأجير الحاويات ونقل المخلفات بالرياض",
+  );
+  const serviceLinks = services.map((svc) => {
+    const slug = entitySlug({ slug: svc.seo_slug, title: svc.title, id: svc.id, fallback: "service" });
+    return `
+      <li style="padding:16px 18px;border:1px solid #dbe7ec;border-radius:14px;background:#fff">
+        <a href="${esc(publicUrl(`/services/${slug}`))}" style="display:block;color:#12384b;text-decoration:none">
+          <h2 style="margin:0 0 7px;font-size:18px;font-weight:900">${esc(svc.title)}</h2>
+          <p style="margin:0;color:#52707c;font-size:14px;line-height:1.8">${esc(svc.description || "حل عملي منظم للموقع حسب نوع المخلفات والمقاس والموعد.")}</p>
+        </a>
+      </li>`;
+  }).join("\n");
+  const bodyContent = `
+    <div style="max-width:980px;margin:0 auto">
+      <h1 style="font-size:clamp(24px,4vw,36px);font-weight:900;color:#12384b;margin:0 0 14px;line-height:1.35">
+        خدماتنا الفعلية في الرياض
+      </h1>
+      <p style="font-size:17px;color:#52707c;line-height:1.9;margin:0 0 26px">
+        ننسق الحل المناسب لموقعك من اختيار الحاوية أو الخدمة، إلى التوصيل والسحب ونقل المخلفات حسب نوع المشروع وموعده.
+      </p>
+      <ul style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;list-style:none;padding:0;margin:0">
+        ${serviceLinks}
+      </ul>
+      <div style="margin-top:28px;padding:22px;background:#12384b;color:#fff;border-radius:16px;text-align:center">
+        <h2 style="margin:0 0 8px;font-size:20px;color:#f6c453">هل تحتاج تحديد الخدمة المناسبة؟</h2>
+        <p style="margin:0 0 16px;color:#d5e4e7;line-height:1.8">أرسل نوع المخلفات والموقع والمقاس المتوقع، وسيراجع فريق العمليات التفاصيل معك.</p>
+        <a href="${esc(publicUrl("/contact"))}" style="display:inline-block;background:#f6c453;color:#12384b;padding:11px 22px;border-radius:10px;text-decoration:none;font-weight:900">تواصل مع فريق العمليات</a>
+      </div>
+    </div>`;
+  const serviceListSchema = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": title,
+    "url": canonical,
+    "numberOfItems": services.length,
+    "itemListElement": services.map((svc, index) => {
+      const slug = entitySlug({ slug: svc.seo_slug, title: svc.title, id: svc.id, fallback: "service" });
+      return {
+        "@type": "ListItem",
+        "position": index + 1,
+        "name": svc.title,
+        "url": publicUrl(`/services/${slug}`),
+      };
+    }),
+  };
+  savePage(
+    "services",
+    renderPage({
+      title,
+      description,
+      canonical,
+      ogImage: publicUrl("/images/seo/taqi-services.jpg"),
+      keywords: "خدمات تأجير الحاويات بالرياض, نقل مخلفات البناء, نقل الأنقاض بالرياض, خدمات ميدانية",
+      schemas: [
+        {
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          "@id": `${canonical}#webpage`,
+          "name": title,
+          "description": description,
+          "url": canonical,
+          "inLanguage": "ar",
+        },
+        serviceListSchema,
+        breadcrumbSchema([
+          { name: "الرئيسية", url: publicUrl("/") },
+          { name: "الخدمات", url: canonical },
+        ]),
+      ],
+      breadcrumbs: [
+        { name: "الرئيسية", url: publicUrl("/") },
+        { name: "الخدمات", url: canonical },
+      ],
+      bodyContent,
+    }),
+  );
+  console.log("   ✅ صفحة قائمة الخدمات /services");
+}
 
 // ══════════════════════════════════════════════════════════════════════════════
 // 3. صفحات الحاويات والباقات (containers)
@@ -1603,7 +1693,7 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
     "دليل مقاسات وأسعار تأجير حاويات الأنقاض والنفايات والمكابس بالرياض. اطلب عرضاً حسب نوع المخلفات والموقع ومدة التأجير.",
     "أسعار ومقاسات تأجير الحاويات",
   );
-  const ogImage = `${SITE_URL}/images/seo/taqi-containers.jpg`;
+  const ogImage = `${SITE_URL}/images/seo/taqi-pricing.jpg`;
 
   const crumbs = [
     { name: "الرئيسية", url: SITE_URL },
