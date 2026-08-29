@@ -8,7 +8,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { requirePublicOrigin } from "./public-origin.mjs";
-import { entitySlug } from "./friendly-slug.mjs";
+import { entityPath } from "./friendly-slug.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(join(root, "lib", "db", "package.json"));
@@ -188,7 +188,7 @@ const seoPageImage = (page) => {
 
 for (const service of services) {
   addEntry({
-    path: `/services/${entitySlug({ slug: service.slug, title: service.title, id: service.id, fallback: "service" })}`,
+    path: `/services/${entityPath({ slug: service.slug, title: service.title, id: service.id, fallback: "service" })}`,
     priority: "0.95",
     changefreq: "weekly",
     title: service.title,
@@ -198,7 +198,7 @@ for (const service of services) {
 
 for (const container of containers) {
   addEntry({
-    path: `/containers/${entitySlug({ slug: container.slug, title: container.title, id: container.id, fallback: "container" })}`,
+    path: `/containers/${entityPath({ slug: container.slug, title: container.title, id: container.id, fallback: "container" })}`,
     priority: "0.90",
     changefreq: "weekly",
     title: container.title,
@@ -208,7 +208,7 @@ for (const container of containers) {
 
 for (const post of posts) {
   addEntry({
-    path: `/blog/${entitySlug({ slug: post.slug, title: post.title, id: post.id, fallback: "post" })}`,
+    path: `/blog/${entityPath({ slug: post.slug, title: post.title, id: post.id, fallback: "post" })}`,
     priority: "0.85",
     changefreq: "weekly",
     title: post.title,
@@ -219,7 +219,7 @@ for (const post of posts) {
 
 for (const page of seoPages) {
   addEntry({
-    path: `/page/${entitySlug({ slug: page.slug, title: page.title, id: page.id, fallback: "page" })}`,
+    path: `/page/${entityPath({ slug: page.slug, title: page.title, id: page.id, fallback: "page" })}`,
     priority: "0.88",
     changefreq: "weekly",
     title: page.title,

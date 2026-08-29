@@ -9,7 +9,7 @@ import { useSiteSettings } from "@/context/SiteSettingsContext"
 import { useDocumentSEO } from "@/hooks/useDocumentSEO"
 import { getContainerImage, ARABIC_CATEGORY_NAMES } from "@/components/home/packages/PackageCard"
 import { siteUrl } from "@/lib/siteUrl"
-import { entitySlug } from "@/lib/friendlySlug"
+import { entityPath } from "@/lib/friendlySlug"
 
 const FACTORS = [
   { icon: Ruler, title: "المقاس والسعة", desc: "نطابق حجم الحاوية مع كمية المخلفات ومساحة الوقوف في موقعك." },
@@ -168,7 +168,7 @@ export default function PricingPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="grid-pricing-containers">
               {containers.map((container) => {
                 const features = parseFeatures(container.features)
-                const href = `/containers/${entitySlug({ slug: container.seoSlug, title: container.name, id: container.id, fallback: "container" })}`
+                const href = `/containers/${entityPath({ slug: container.seoSlug, title: container.name, id: container.id, fallback: "container" })}`
                 return (
                   <article key={container.id} className="inventory-card rounded-3xl overflow-hidden flex flex-col" data-testid={`card-pricing-container-${container.id}`}>
                     <Link href={href} className="inventory-media block relative bg-slate-100" data-testid={`link-pricing-image-${container.id}`}>

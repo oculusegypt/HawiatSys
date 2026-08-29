@@ -5,6 +5,7 @@ import fs from "fs";
 import path from "path";
 import { getSetting } from "./settings";
 import { requireAdmin, requireSectionPermission } from "../middleware/adminAuth";
+import { entityPath } from "../lib/friendlySlug";
 
 const router = Router();
 
@@ -19,9 +20,21 @@ function getSitemapPath(): string {
   return candidates.find((candidate) => fs.existsSync(path.dirname(candidate))) ?? candidates[0];
 }
 
-/** Detect the canonical base URL from the incoming request */
-function getBaseUrl(req: Request): string {
-  // Prefer X-Forwarded-Proto (set by reverse proxies)
+/** Use the configured public origin so preview and production generate the same URLs. */
+async function getBaseUrl(req: Request): Promise<string> {
+  const configuredOrigin = process.env.SITE_URL || await getSetting("site_public_url");
+  if (configuredOrigin?.trim()) {
+    try {
+      const parsed = new URL(configuredOrigin.trim());
+      if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+        return parsed.origin;
+      }
+    } catch {
+      // Fall through to the request origin when the setting is malformed.
+    }
+  }
+
+  // Fallback for installations that have not configured a public origin.
   const proto = (req.headers["x-forwarded-proto"] as string | undefined)?.split(",")[0]?.trim() || req.protocol || "https";
   const host  = (req.headers["x-forwarded-host"] as string | undefined)?.split(",")[0]?.trim()  || req.headers.host || "";
   return host ? `${proto}://${host}` : "";
@@ -90,24 +103,32 @@ function getArabicAreaSlug(name: string): string {
 
 function getStaticPages(base: string, siteName: string) {
   return [
-    { path: "/",                               priority: "1.0",  freq: "weekly",  images: [
+    { path: "/",                               priority: "1.0",  freq: "daily",   images: [
       { loc: `${base}/images/hero-1.webp`, title: `${siteName} — خدمات الرياض` },
       { loc: `${base}/images/logo.png`,    title: `شعار ${siteName}` },
     ]},
     { path: "/about",                          priority: "0.9",  freq: "monthly", images: [
       { loc: `${base}/images/shareek-mawsouq.webp`, title: `رسالة المدير التنفيذي — ${siteName}` },
     ]},
-    { path: "/pricing",                        priority: "0.95", freq: "monthly", images: [] },
-    { path: "/container/",                     priority: "0.9",  freq: "monthly", images: [
-      { loc: `${base}/images/Taqi-hero1.webp`, title: "حاويات الأنقاض والنفايات بالرياض" },
+    { path: "/pricing",                        priority: "0.95", freq: "weekly",  images: [] },
+    { path: "/containers",                     priority: "0.9",  freq: "weekly",  images: [
+      { loc: `${base}/images/seo/taqi-containers.jpg`, title: "حاويات الأنقاض والنفايات بالرياض" },
+    ]},
+    { path: "/services",                       priority: "0.95", freq: "weekly",  images: [
+      { loc: `${base}/images/seo/taqi-services.jpg`, title: "خدمات الرياض" },
     ]},
     { path: "/contact",                        priority: "0.85", freq: "monthly", images: [] },
     { path: "/partners",                       priority: "0.75", freq: "monthly", images: [] },
-    { path: "/areas",                          priority: "0.85", freq: "monthly", images: [] },
-    { path: "/why-us/leadership",              priority: "0.75", freq: "monthly", images: [] },
-    { path: "/why-us/what-we",                 priority: "0.75", freq: "monthly", images: [] },
-    { path: "/why-us/commitment",              priority: "0.75", freq: "monthly", images: [] },
-    { path: "/why-us/accumulated-experience",  priority: "0.7",  freq: "monthly", images: [] },
+    { path: "/areas",                          priority: "0.9",  freq: "weekly",  images: [] },
+    { path: "/faq",                            priority: "0.85", freq: "monthly", images: [] },
+    { path: "/terms",                          priority: "0.6",  freq: "monthly", images: [] },
+    { path: "/privacy",                        priority: "0.6",  freq: "monthly", images: [] },
+    { path: "/why-us/leadership",              priority: "0.8",  freq: "monthly", images: [] },
+    { path: "/why-us/what-we-do",              priority: "0.8",  freq: "monthly", images: [] },
+    { path: "/why-us/commitment",              priority: "0.8",  freq: "monthly", images: [] },
+    { path: "/why-us/experience",              priority: "0.8",  freq: "monthly", images: [] },
+    { path: "/blog",                           priority: "0.9",  freq: "daily",   images: [] },
+    { path: "/taqi-group-platform",            priority: "0.9",  freq: "monthly", images: [] },
   ];
 }
 
@@ -126,12 +147,13 @@ async function buildXml(baseUrl: string): Promise<{ xml: string; totalUrls: numb
   const STATIC_PAGES = getStaticPages(baseUrl, siteName);
 
   // Fetch SEO-enabled services
-  let seoServices: Array<{ seoSlug: string; seoTitle: string; images: string; title: string }> = [];
+  let seoServices: Array<{ id: number; seoSlug: string; seoTitle: string; images: string; title: string }> = [];
   try {
     const rows = await db.select().from(servicesTable).orderBy(asc(servicesTable.order));
     seoServices = (rows as any[])
       .filter(r => (r.seo_enabled || r.seoEnabled) && (r.is_active ?? r.isActive ?? true))
       .map(r => ({
+        id:        r.id,
         seoSlug:  r.seo_slug  || r.seoSlug  || "",
         seoTitle: r.seo_title || r.seoTitle  || r.title || "",
         images:   r.images ?? "[]",
@@ -141,7 +163,7 @@ async function buildXml(baseUrl: string): Promise<{ xml: string; totalUrls: numb
   } catch {}
 
   // Fetch published blog posts
-  let blogPosts: Array<{ slug: string; title: string; coverImage: string; ogImage: string; publishedAt: string | null; updatedAt: string }> = [];
+  let blogPosts: Array<{ id: number; slug: string; title: string; coverImage: string; ogImage: string; publishedAt: string | null; updatedAt: string }> = [];
   try {
     const rows = await db
       .select()
@@ -149,6 +171,7 @@ async function buildXml(baseUrl: string): Promise<{ xml: string; totalUrls: numb
       .where(and(eq(postsTable.status, "published"), eq(postsTable.isActive, true)))
       .orderBy(desc(postsTable.publishedAt));
     blogPosts = (rows as any[]).map(r => ({
+      id:          r.id,
       slug:        r.slug || r.seo_slug || "",
       title:       r.title || "",
       coverImage:  r.cover_image || r.coverImage || "",
@@ -158,7 +181,7 @@ async function buildXml(baseUrl: string): Promise<{ xml: string; totalUrls: numb
     })).filter(r => r.slug);
   } catch {}
 
-  let seoPages: Array<{ slug: string; title: string; coverImage: string; publishedAt: string | null; updatedAt: string }> = [];
+  let seoPages: Array<{ id: number; slug: string; title: string; coverImage: string; publishedAt: string | null; updatedAt: string }> = [];
   try {
     const rows = await db
       .select()
@@ -167,6 +190,7 @@ async function buildXml(baseUrl: string): Promise<{ xml: string; totalUrls: numb
       .orderBy(desc(seoPagesTable.publishedAt));
     seoPages = (rows as any[])
       .map(r => ({
+        id:          r.id,
         slug:        r.slug || r.seo_slug || "",
         title:       r.title || "",
         coverImage:  r.cover_image || r.coverImage || "",
@@ -184,9 +208,16 @@ async function buildXml(baseUrl: string): Promise<{ xml: string; totalUrls: numb
     `        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">`,
     ``,
   ];
+  const seenUrls = new Set<string>();
+  const addUrl = (url: string): boolean => {
+    if (seenUrls.has(url)) return false;
+    seenUrls.add(url);
+    return true;
+  };
 
   // Static pages
   for (const page of STATIC_PAGES) {
+    if (!addUrl(baseUrl + page.path)) continue;
     lines.push(`  <url>`);
     lines.push(`    <loc>${escapeXml(baseUrl + page.path)}</loc>`);
     lines.push(`    <lastmod>${today}</lastmod>`);
@@ -203,9 +234,10 @@ async function buildXml(baseUrl: string): Promise<{ xml: string; totalUrls: numb
     lines.push(``);
   }
 
-  // Neighborhood area pages (12 areas of Riyadh)
+  // Neighborhood area pages (50 Riyadh areas)
   for (const n of NEIGHBORHOODS) {
     const url = `${baseUrl}/areas/${encodeURIComponent(getArabicAreaSlug(n.name))}`;
+    if (!addUrl(url)) continue;
     lines.push(`  <!-- حي: ${n.name} -->`);
     lines.push(`  <url>`);
     lines.push(`    <loc>${escapeXml(url)}</loc>`);
@@ -222,12 +254,13 @@ async function buildXml(baseUrl: string): Promise<{ xml: string; totalUrls: numb
   }
 
   // Dynamic container pages
-  let seoContainers: Array<{ seoSlug: string; seoTitle: string; images: string; title: string }> = [];
+  let seoContainers: Array<{ id: number; seoSlug: string; seoTitle: string; images: string; title: string }> = [];
   try {
     const crows = await db.select().from(containersTable).orderBy(asc(containersTable.order));
     seoContainers = (crows as any[])
       .filter(r => r.seo_enabled || r.seoEnabled)
       .map(r => ({
+        id:        r.id,
         seoSlug:  r.seo_slug  || r.seoSlug  || "",
         seoTitle: r.seo_title || r.seoTitle  || r.title || "",
         images:   r.images ?? "[]",
@@ -238,7 +271,8 @@ async function buildXml(baseUrl: string): Promise<{ xml: string; totalUrls: numb
 
   // Dynamic service pages
   for (const svc of seoServices) {
-    const url = `${baseUrl}/services/${svc.seoSlug}`;
+    const url = `${baseUrl}/services/${entityPath({ slug: svc.seoSlug, title: svc.title, id: svc.id, fallback: "service" })}`;
+    if (!addUrl(url)) continue;
     let imgs: Array<{ loc: string; title: string }> = [];
     try {
       const parsed: string[] = JSON.parse(svc.images || "[]");
@@ -270,7 +304,8 @@ async function buildXml(baseUrl: string): Promise<{ xml: string; totalUrls: numb
 
   // Dynamic container pages
   for (const c of seoContainers) {
-    const url = `${baseUrl}/container/${c.seoSlug}`;
+    const url = `${baseUrl}/containers/${entityPath({ slug: c.seoSlug, title: c.title, id: (c as any).id, fallback: "container" })}`;
+    if (!addUrl(url)) continue;
     let imgs: Array<{ loc: string; title: string }> = [];
     try {
       const parsed: string[] = JSON.parse(c.images || "[]");
@@ -301,19 +336,23 @@ async function buildXml(baseUrl: string): Promise<{ xml: string; totalUrls: numb
   }
 
   // Blog listing page
-  lines.push(`  <url>`);
-  lines.push(`    <loc>${escapeXml(baseUrl + "/blog")}</loc>`);
-  lines.push(`    <lastmod>${today}</lastmod>`);
-  lines.push(`    <changefreq>weekly</changefreq>`);
-  lines.push(`    <priority>0.8</priority>`);
-  lines.push(`    <xhtml:link rel="alternate" hreflang="ar" href="${escapeXml(baseUrl + "/blog")}"/>`);
-  lines.push(`  </url>`);
-  lines.push(``);
+  const blogListingUrl = `${baseUrl}/blog`;
+  if (addUrl(blogListingUrl)) {
+    lines.push(`  <url>`);
+    lines.push(`    <loc>${escapeXml(blogListingUrl)}</loc>`);
+    lines.push(`    <lastmod>${today}</lastmod>`);
+    lines.push(`    <changefreq>daily</changefreq>`);
+    lines.push(`    <priority>0.9</priority>`);
+    lines.push(`    <xhtml:link rel="alternate" hreflang="ar" href="${escapeXml(blogListingUrl)}"/>`);
+    lines.push(`  </url>`);
+    lines.push(``);
+  }
 
   // Individual blog posts
   for (const post of blogPosts) {
-    const url     = `${baseUrl}/blog/${post.slug}`;
+    const url     = `${baseUrl}/blog/${entityPath({ slug: post.slug, title: post.title, id: post.id, fallback: "post" })}`;
     const lastmod = (post.publishedAt || post.updatedAt || today).slice(0, 10);
+    if (!addUrl(url)) continue;
     lines.push(`  <!-- مقالة: ${post.title} -->`);
     lines.push(`  <url>`);
     lines.push(`    <loc>${escapeXml(url)}</loc>`);
@@ -335,8 +374,9 @@ async function buildXml(baseUrl: string): Promise<{ xml: string; totalUrls: numb
 
   // Standalone SEO landing pages
   for (const page of seoPages) {
-    const url = `${baseUrl}/page/${page.slug}`;
+    const url = `${baseUrl}/page/${entityPath({ slug: page.slug, title: page.title, id: page.id, fallback: "page" })}`;
     const lastmod = (page.publishedAt || page.updatedAt || today).slice(0, 10);
+    if (!addUrl(url)) continue;
     lines.push(`  <!-- صفحة SEO: ${page.title} -->`);
     lines.push(`  <url>`);
     lines.push(`    <loc>${escapeXml(url)}</loc>`);
@@ -361,12 +401,13 @@ async function buildXml(baseUrl: string): Promise<{ xml: string; totalUrls: numb
   const areaCount   = NEIGHBORHOODS.length;
   return {
     xml: lines.join("\n"),
-    totalUrls:      staticCount + areaCount + 1 + seoServices.length + seoContainers.length + blogPosts.length + seoPages.length,
+    totalUrls:      seenUrls.size,
     staticPages:    staticCount,
     areaPages:      areaCount,
     servicePages:   seoServices.length,
     containerPages: seoContainers.length,
-    blogPages:      blogPosts.length + 1, // +1 for /blog listing
+    // /blog is already included in staticPages; count detail pages only here.
+    blogPages:      blogPosts.length,
     seoPages:      seoPages.length,
   };
 }
@@ -379,7 +420,7 @@ router.post(
   requireSectionPermission("seo"),
   async (req: Request, res: Response): Promise<void> => {
   try {
-    const baseUrl = getBaseUrl(req);
+    const baseUrl = await getBaseUrl(req);
     const { xml, totalUrls, staticPages, areaPages, servicePages, containerPages, blogPages, seoPages } = await buildXml(baseUrl);
     const dest = getSitemapPath();
     fs.writeFileSync(dest, xml, "utf-8");
@@ -408,7 +449,7 @@ router.post(
 // Preview only — returns the XML string (used by the panel preview section)
 router.get("/sitemap/generate", async (req: Request, res: Response): Promise<void> => {
   try {
-    const baseUrl = getBaseUrl(req);
+    const baseUrl = await getBaseUrl(req);
     const data = await buildXml(baseUrl);
     res.json({ ...data, generatedAt: new Date().toISOString().slice(0, 10) });
   } catch (err: any) {

@@ -4,7 +4,7 @@ import { Navbar } from "@/components/layout/Navbar"
 import { Footer } from "@/components/layout/Footer"
 import { BookOpen, Calendar, Clock, Search, ChevronRight, ChevronLeft, ArrowLeft, Loader2 } from "lucide-react"
 import { useDocumentSEO } from "@/hooks/useDocumentSEO"
-import { entitySlug } from "@/lib/friendlySlug"
+import { entityPath } from "@/lib/friendlySlug"
 import { siteUrl } from "@/lib/siteUrl"
 
 const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
@@ -160,7 +160,7 @@ export default function Blog() {
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
               {filtered.map(post => (
-                <Link key={post.id} href={`/blog/${entitySlug({ slug: post.slug, title: post.title, id: post.id, fallback: "post" })}`}>
+                <Link key={post.id} href={`/blog/${entityPath({ slug: post.slug, title: post.title, id: post.id, fallback: "post" })}`}>
                   <article className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer group h-full flex flex-col">
                     {/* Cover */}
                     <div className="aspect-[16/10] min-h-56 bg-gradient-to-br from-primary/10 to-secondary/10 relative overflow-hidden shrink-0">

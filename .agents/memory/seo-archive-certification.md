@@ -21,6 +21,12 @@ The SEO gate must resolve the public origin through the same explicit build over
 
 **How to apply:** Pass the production origin explicitly during archive certification and compare the extracted archive against that origin.
 
+The API sitemap preview must prefer the configured public origin over the request host, while retaining the request origin only as a fallback for unconfigured installations.
+
+**Why:** An admin preview opened through localhost can otherwise generate a numerically correct sitemap whose every URL has the wrong origin, producing a false mismatch against the production archive.
+
+**How to apply:** Resolve `SITE_URL` or `site_public_url` before using forwarded request headers, then compare API and static URL sets after origin normalization.
+
 Unicode filenames in sitemap and prerendered HTML are commonly percent-encoded by `URL`; archive image checks must decode the URL pathname before looking up the extracted file.
 
 **Why:** The files can exist with Arabic names while a literal filesystem lookup of `/images/content/%D8...jpg` reports them as missing, producing a false release failure.

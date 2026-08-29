@@ -1,0 +1,141 @@
+31 minutes ago
+Inspecting modifications
+
+Inspecting modifications
+Inspecting modifications
+
+I need to continue and understand that the user asks for a complete report of the last two modifications. Maybe it's also about finishing up any potential issues. I should check the current changes and read relevant information from memory. It makes sense to read the react-vite before modifying the existing web app. I might be working on scripts or backend rather than the UI. I’ll inspect the git diff and relevant files. It's also important to consider restarting workflows after code changes.
+
+سأراجع نقطة التوقف بدقة: التعديلات الأخيرة، أماكن توليد الروابط في Node وPHP والواجهة، ثم أصلح أي عدم اتساق متبقٍ قبل إعادة البناء والفحص. بعد ذلك سأعطيك تقريرًا واضحًا يشرح التعديلين الأخيرين والغرض من كل واحد، مع نتيجة التحقق الفعلية.
+
+
+
+43 actions
+المراجعة أظهرت أن قاعدة الروابط الجديدة مطبقة فعلاً في المولّد والواجهة، لكن ما زالت هناك نقطتان تحتاجان ضبطًا قبل الاعتماد: فصل قيمة الـslug الخام المستخدمة كمسار ملفات عن القيمة المشفّرة المستخدمة في URL، والتأكد من أن المسارات القديمة تبقى توافقية فقط ولا تدخل في عدّاد الصفحات القابلة للفهرسة. سأثبت ذلك الآن ثم أعيد التوليد والفحص على المخرجات النهائية.
+
+
+
+14 actions
+حددت مصدر عدم التطابق: مولّد generate-sitemap كان يمرر الـslug العربي الخام إلى XML، بينما مولّد الـprerender وواجهة الـAPI كانا يخرجان النسخة المشفّرة؛ لذلك كانت المقارنة ترى نفس الرابط بصيغتين مختلفتين. سأوحّد الجميع على دالة واحدة للـURL المشفّر، وأفصلها عن مسار الملف الخام، مع إبقاء الـASCII القديم كصفحات noindex توافقية.
+
+
+
+15 actions
+الآن أصبحت القواعد موحّدة في المصدر، ونجح فحص TypeScript ومولّد الخريطة أعاد نفس العدد 152 بدون تكرارات. سأشغّل بناء الأرشيف الكامل كما سيُرفع، لأن الحكم النهائي يجب أن يكون على نسخة Hostinger المستخرجة لا على ملفات المصدر وحدها.
+
+
+
+Ran scripts/build-hostinger.mjs
+اكتمل بناء الأرشيف الرسمي بنجاح، وظهر أن الصفحات الديناميكية أصبحت بمسارات عربية مثل services/تأجير-... داخل الأرشيف، مع بقاء مسارات التوافق القديمة منفصلة. سأجري الآن بوابة SEO على build_php وأقارن الـcanonical مع الـSitemap، ثم أعيد تشغيل الخدمات للتأكد من أن النسخة الحالية تعمل بعد التعديل.
+
+
+
+5 actions
+التحقق النهائي مرّ بالكامل: الخريطة 152 رابطًا فريدًا، وكل 152 صفحة قابلة للفهرسة لها canonical مطابق لها في الـSitemap، بينما 162 صفحة توافقية مستبعدة بـnoindex. سأعيد تشغيل خدمات الموقع والـAPI الآن حتى تظهر النسخة الجديدة في المعاينة، ثم أتحقق من السجلات.
+
+
+
+5 actions
+أُعيد تشغيل الخدمتين بنجاح. سأفحص سجلات التشغيل ولقطة المعاينة، ثم أتحقق من أن مولّد الـAPI يخرج نفس مجموعة الروابط الـ152 — بما فيها جميع صفحات الأحياء — قبل إغلاق العمل.
+
+
+
+9 actions
+المعاينة تعمل بلا أخطاء، لكن اختبار endpoint استخدم المسار الجذري بدل بادئة /api، لذلك أعاد HTML وليس JSON؛ هذا ليس فشلًا في التعديل. سأعيد الاختبار بالمسار المركّب الصحيح، وأتحقق من السجلات الأخيرة فقط.
+
+
+
+6 actions
+ظهر في الاختبار الأخير فرق مهم يجب إصلاحه قبل التسليم: عدد الروابط متساوٍ، لكن المقارنة الحرفية بين API والملف الثابت فشلت لأن endpoint المحلي ولّد النطاق المحلي/المطلوب من الطلب بدل https://taqigroup.com. هذا يؤكد أن المشكلة ليست في الـslug هذه المرة بل في مصدر baseUrl أثناء المعاينة؛ سأفحص قيمة النطاق التي يعيدها API وأجعل المقارنة تستخدم نفس origin المعلن للموقع، ثم أعيد بوابة الاختبار.
+
+
+
+5 actions
+السبب مؤكد: getBaseUrl في الـAPI كان يعتمد على Host للطلب أولًا، وهذا صحيح للروابط التشغيلية لكنه يجعل preview المحلي ينتج http://127.0.0.1:8080 بدل نطاق الموقع المحفوظ. سأجعل SITE_URL/site_public_url المصدر المفضّل، مع إبقاء Host كـfallback فقط عند غياب إعداد النطاق.
+
+
+
+Show less
+
+Edited sitemap.ts
+Running tasks and testing
+
+Running tasks and testing
+
+Checked for code errors
+
+Viewed code changes
+Continuing with API updates
+
+Continuing with API updates
+Restarted workflow artifacts/api-server: API Server
+
+Ran a Python script
+
+Refreshed logs
+
+Ran the seo-quality-gate script
+Updating project details
+
+Updating project details
+اكتمل الفحص الأخير بنجاح: أصبح endpoint الـAPI يطابق ملف الـSitemap الثابت حرفيًا بعد توحيد النطاق، وليس فقط في العدد. قبل التقرير النهائي سأوثّق هذه القاعدة التشغيلية في ذاكرة المشروع، ثم أقترح النشر لأن الأرشيف والـSEO gate جاهزان.
+
+
+
+Show less
+
+Opened seo-archive-certification.md
+
+Opened prerender-seo-parity.md
+
+Opened seo-dashboard-node-php-parity.md
+
+Opened MEMORY.md
+
+Updated memory: seo-archive-certification
+--- .agents/memory/seo-archive-certification.md
++++ .agents/memory/seo-archive-certification.md
+@@ -20,8 +20,14 @@
+ **Why:** The development database may leave the public URL empty for runtime auto-detection, while a production archive still needs one canonical HTTPS origin.
+ 
+ **How to apply:** Pass the production origin explicitly during archive certification and compare the extracted archive against that origin.
+ 
++The API sitemap preview must prefer the configured public origin over the request host, while retaining the request origin only as a fallback for unconfigured installations.
++
++**Why:** An admin preview opened through localhost can otherwise generate a numerically correct sitemap whose every URL has the wrong origin, producing a false mismatch against the production archive.
++
++**How to apply:** Resolve `SITE_URL` or `site_public_url` before using forwarded request headers, then compare API and static URL sets after origin normalization.
++
+ Unicode filenames in sitemap and prerendered HTML are commonly percent-encoded by `URL`; archive image checks must decode the URL pathname before looking up the extracted file.
+ 
+ **Why:** The files can exist with Arabic names while a literal filesystem lookup of `/images/content/%D8...jpg` reports them as missing, producing a false release failure.
+ 
+Calculating blog page categories
+
+Calculating blog page categories
+Clarifying blog page counts
+
+Clarifying blog page counts
+قبل الإغلاق لاحظت بقايا تسمية قديمة في ملخص مولّد الـAPI: التعليق يقول 12 حيًا رغم أن المصدر يحتوي 50، كما أن blogPages كان يضيف صفحة /blog التي تُحسب أصلًا ضمن الصفحات الثابتة. سأصحح هذين الرقمين في الملخص حتى لا تعرض لوحة الإدارة أرقامًا تفصيلية لا تجمع إلى الإجمالي 152، ثم أعيد فحصًا سريعًا.
+
+
+
+Show less
+
+Searched for "blogPages|areaPages|12 …"
+
+Searched for "sitemap.*summary|servic…"
+
+Edited sitemap.ts
+
+Worked for 6 minutes
+Publish
+Domain
+Available
+hawiat-sys-142--401111
+.replit.app
+Who can access your app
+
+Public
+Anyone on the internet with the URL
+You've reached your daily free quota limit. It will reset at 12:00 AM UTC.

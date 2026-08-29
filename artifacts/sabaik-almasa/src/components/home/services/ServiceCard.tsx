@@ -4,7 +4,7 @@ import { ArrowLeft, CheckCircle2 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { useServiceRequest } from "@/context/ServiceRequestContext"
 import { useState } from "react"
-import { entitySlug } from "@/lib/friendlySlug"
+import { entityPath } from "@/lib/friendlySlug"
 
 export interface ServiceCardProps {
   id: number
@@ -31,7 +31,7 @@ export function ServiceCard({
   const { openModal } = useServiceRequest()
   const hasImages = images.length > 0
   const [imageFailed, setImageFailed] = useState(false)
-  const detailHref = `/services/${entitySlug({ slug: seoSlug, title, id, fallback: "service" })}`
+  const detailHref = `/services/${entityPath({ slug: seoSlug, title, id, fallback: "service" })}`
 
   return (
     <motion.article

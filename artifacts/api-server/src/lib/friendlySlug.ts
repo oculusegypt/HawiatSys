@@ -10,7 +10,7 @@ const ARABIC_PAIRS: Array<[string, string]> = [
   ["ي", "y"], ["ة", "h"],
 ];
 
-export function friendlySlug(value: unknown, fallback = "page"): string {
+function legacyFriendlySlug(value: unknown, fallback = "page"): string {
   const source = String(value ?? "")
     .normalize("NFKC")
     .replace(/[\u064B-\u065F\u0670ـ]/g, "")
@@ -32,18 +32,71 @@ export function friendlySlug(value: unknown, fallback = "page"): string {
   return result.slice(0, 64).replace(/-[^-]*$/, "").replace(/-+$/, "") || result.slice(0, 64);
 }
 
+export function friendlySlug(value: unknown, fallback = "page"): string {
+  const source = String(value ?? "")
+    .normalize("NFKC")
+    .replace(/[\u064B-\u065F\u0670ـ]/g, "")
+    .trim();
+  if (!source) return fallback;
+  const result = source
+    .replace(/&/g, " و ")
+    .replace(/['’`"]/g, "")
+    .replace(/[^\u0600-\u06FF\u0750-\u077F0-9a-zA-Z-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  if (!result) return fallback;
+  if (result.length <= 100) return result;
+  return result.slice(0, 100).replace(/-[^-]*$/, "").replace(/-+$/, "") || result.slice(0, 100);
+}
+
+function publicSource(slug: unknown, title: unknown): string {
+  const rawSlug = String(slug ?? "").trim();
+  const rawTitle = String(title ?? "").trim();
+  const isGeneratedNumericSlug = /^(?:مقالة|post)[-_]?\d+$/i.test(rawSlug);
+  const hasArabic = (value: string) => /[\u0600-\u06FF]/u.test(value);
+  return isGeneratedNumericSlug && rawTitle
+    ? rawTitle
+    : hasArabic(rawSlug)
+      ? rawSlug
+      : (hasArabic(rawTitle) ? rawTitle : (rawSlug || rawTitle));
+}
+
+function legacySource(slug: unknown, title: unknown): string {
+  const rawSlug = String(slug ?? "").trim();
+  const rawTitle = String(title ?? "").trim();
+  const isGeneratedNumericSlug = /^(?:مقالة|post)[-_]?\d+$/i.test(rawSlug);
+  return isGeneratedNumericSlug && rawTitle ? rawTitle : (rawSlug || rawTitle);
+}
+
 export function entitySlug(value: {
   slug?: unknown;
   title?: unknown;
   id?: unknown;
   fallback?: string;
 }): string {
-  const rawSlug = String(value.slug ?? "").trim();
-  const rawTitle = String(value.title ?? "").trim();
-  const source = /^(?:مقالة|post)[-_]?\d+$/i.test(rawSlug) && rawTitle
-    ? rawTitle
-    : (rawSlug || rawTitle);
+  const source = publicSource(value.slug, value.title);
   const suffix = value.id == null ? "" : `-${String(value.id).replace(/[^0-9]/g, "")}`;
   const base = friendlySlug(source, `${value.fallback || "page"}${suffix}`);
+  return base + (suffix && !base.endsWith(suffix) ? suffix : "");
+}
+
+export function entityPath(value: {
+  slug?: unknown;
+  title?: unknown;
+  id?: unknown;
+  fallback?: string;
+}): string {
+  return encodeURIComponent(entitySlug(value));
+}
+
+export function legacyEntitySlug(value: {
+  slug?: unknown;
+  title?: unknown;
+  id?: unknown;
+  fallback?: string;
+}): string {
+  const source = legacySource(value.slug, value.title);
+  const suffix = value.id == null ? "" : `-${String(value.id).replace(/[^0-9]/g, "")}`;
+  const base = legacyFriendlySlug(source, `${value.fallback || "page"}${suffix}`);
   return base + (suffix && !base.endsWith(suffix) ? suffix : "");
 }

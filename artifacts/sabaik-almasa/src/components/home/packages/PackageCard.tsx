@@ -3,7 +3,7 @@ import { Link } from "wouter"
 import type { Container } from "@workspace/api-client-react"
 import { Check, Maximize, Weight, Info, Clock, Phone, MessageCircle } from "lucide-react"
 import { resolveContactNumbers, useSiteSettings } from "@/context/SiteSettingsContext"
-import { entitySlug } from "@/lib/friendlySlug"
+import { entityPath } from "@/lib/friendlySlug"
 
 export interface PackageCardProps {
   container: Container
@@ -86,7 +86,7 @@ export function PackageCard({ container: c, onRequest }: PackageCardProps) {
   const whatsappNumber = c.contactPhone1 || defaultWa
 
   const categoryArabic = ARABIC_CATEGORY_NAMES[c.category || ""] || "حاوية متاحة"
-  const detailHref = `/containers/${entitySlug({ slug: c.seoSlug, title: c.name, id: c.id, fallback: "container" })}`
+  const detailHref = `/containers/${entityPath({ slug: c.seoSlug, title: c.name, id: c.id, fallback: "container" })}`
 
   return (
     <article className="inventory-card bg-white rounded-3xl overflow-hidden flex flex-col justify-between group" data-testid={`card-container-${c.id}`}>

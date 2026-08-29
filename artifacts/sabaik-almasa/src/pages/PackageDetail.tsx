@@ -11,7 +11,7 @@ import { useServiceRequest } from "@/context/ServiceRequestContext"
 import { resolveServiceTypeFromContainer, getContainerImage, ARABIC_CATEGORY_NAMES } from "@/components/home/packages/PackageCard"
 import { siteUrl } from "@/lib/siteUrl"
 import { resolveContactNumbers, useSiteSettings } from "@/context/SiteSettingsContext"
-import { entitySlug } from "@/lib/friendlySlug"
+import { entityPath, entitySlug, legacyEntitySlug } from "@/lib/friendlySlug"
 
 /** Convert container name+size to a URL slug (mirrors the old site's pattern) */
 function toSlug(text: string): string {
@@ -32,6 +32,7 @@ function findContainer(containers: Container[], slug: string): Container | undef
     return (
       s === String(c.id).toLowerCase() ||
       s === friendlyPart.toLowerCase() ||
+      s === legacyEntitySlug({ slug: c.seoSlug, title: c.name, id: c.id, fallback: "container" }).toLowerCase() ||
       (seoPart && s === seoPart) ||
       s === namePart ||
       s === sizePart ||
@@ -68,7 +69,7 @@ export default function PackageDetail() {
       ? `${container.name}${container.size ? ` ${container.size}` : ""} | تأجير حاويات بالرياض`
       : "تفاصيل الباقة — خدمات التنظيف",
     description: container?.description ?? "تفاصيل وأسعار باقات تنظيف المنازل والفلل بالرياض.",
-    canonical: siteUrl(`/containers/${entitySlug({ slug: container?.seoSlug, title: container?.name, id: container?.id, fallback: "container" })}`),
+    canonical: siteUrl(`/containers/${entityPath({ slug: container?.seoSlug, title: container?.name, id: container?.id, fallback: "container" })}`),
     ogImage: container ? getContainerImage(container) : "/images/seo/taqi-containers.jpg",
     ogImageAlt: container ? `${container.name} لتأجير الحاويات بالرياض` : "حاويات للإيجار بالرياض",
   })
