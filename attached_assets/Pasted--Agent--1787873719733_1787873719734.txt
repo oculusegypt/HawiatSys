@@ -85,7 +85,7 @@
 
 في production يجب أن ينتج النطاق المهيأ:
 
-`https://alsahmm.com`
+`https://taqigroup.com`
 
 لكن من configuration/settings وليس hardcoded.
 

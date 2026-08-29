@@ -122,7 +122,7 @@ PHP validation: PASS
 
 بينما canonical المكتشف هو:
 
-`https://alsahmm.com/`
+`https://taqigroup.com/`
 
 هذه نقطة يجب التحقيق فيها فورًا.
 
@@ -145,7 +145,7 @@ PHP validation: PASS
 حدد هل:
 
 * `taqigroup.com` redirect domain قديم،
-* أم أن `alsahmm.com` هو production domain الحقيقي،
+* أم أن `taqigroup.com` هو production domain الحقيقي،
 * أم أن التقرير قديم،
 * أم أن هناك alias/domain migration.
 

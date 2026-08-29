@@ -523,7 +523,7 @@ try {
 
             $vapidPub = $settings['vapid_public_key'] ?? 'BOyIDMpcJcUHn3UIVrWDqnSrLQYvZlKHu-PSLGwiWKZbIRxTAvrDEjV8OBJeH2UGPiq2SyDkn_ZBUUsu2wyKvW0';
             $vapidPriv = $settings['vapid_private_key'] ?? 'K_Vh6d_wV5pxl4XQQ9wC9PhFj9MnIeU0993KS3YKaNQ';
-            $vapidSub = $settings['vapid_subject'] ?? 'mailto:info@alsahmm.com';
+            $vapidSub = $settings['vapid_subject'] ?? 'mailto:info@taqigroup.com';
 
             $subsStmt = $pdo->query("SELECT id, endpoint, p256dh, auth FROM push_subscriptions");
             $subs = $subsStmt->fetchAll();
@@ -544,7 +544,7 @@ try {
     function generateSitemapXml(PDO $pdo, string $baseUrl): array {
         $today = date('Y-m-d');
         $baseUrl = rtrim($baseUrl, '/');
-        if (empty($baseUrl)) $baseUrl = 'https://alsahmm.com';
+        if (empty($baseUrl)) $baseUrl = 'https://taqigroup.com';
 
         $neighborhoods = [
             'north-riyadh', 'al-malqa', 'al-yasmin', 'al-narjis', 'al-aarid', 'hittin', 'al-sahafa', 'al-nafal', 'al-aqiq', 'al-rabi', 'al-ghadeer', 'al-wadi', 'al-nada', 'al-falah',
@@ -2265,7 +2265,7 @@ try {
     // 12. Sitemap Save: POST /api/admin/sitemap/save
     if ($path === '/admin/sitemap/save' && $method === 'POST') {
         $proto = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-        $host = $_SERVER['HTTP_HOST'] ?? 'alsahmm.com';
+        $host = $_SERVER['HTTP_HOST'] ?? 'taqigroup.com';
         $baseUrl = "{$proto}://{$host}";
 
         $sitemapData = generateSitemapXml($pdo, $baseUrl);
@@ -2303,7 +2303,7 @@ try {
     // Sitemap Preview: GET /api/sitemap/generate or /api/admin/sitemap/generate
     if (($path === '/sitemap/generate' || $path === '/admin/sitemap/generate') && $method === 'GET') {
         $proto = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-        $host = $_SERVER['HTTP_HOST'] ?? 'alsahmm.com';
+        $host = $_SERVER['HTTP_HOST'] ?? 'taqigroup.com';
         $baseUrl = "{$proto}://{$host}";
         $sitemapData = generateSitemapXml($pdo, $baseUrl);
         echo json_encode(array_merge($sitemapData, ['generatedAt' => date('Y-m-d')]), JSON_UNESCAPED_UNICODE);

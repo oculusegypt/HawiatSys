@@ -577,7 +577,7 @@ taqigroup.com
 بينما canonical المكتشف:
 
 ```text
-https://alsahmm.com/
+https://taqigroup.com/
 ```
 
 لا تغير أي domain بشكل أعمى.
@@ -597,7 +597,7 @@ images
 favicon
 ```
 
-إذا كانت `alsahmm.com` هي production domain فعلًا، يجب أن تكون كل SEO URLs متسقة معها.
+إذا كان `taqigroup.com` هو production domain فعلًا، يجب أن تكون كل SEO URLs متسقة معه.
 
 إذا كان `taqigroup.com` alias/redirect، وثّق ذلك.
 
