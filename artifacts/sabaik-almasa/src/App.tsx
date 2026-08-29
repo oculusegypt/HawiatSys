@@ -114,23 +114,30 @@ function AnonymousAnalyticsTracker() {
 
   useEffect(() => {
     const isAdmin = location.startsWith("/admin");
-    try {
-      const tracking = getVisitorTracking();
-      fetch(`${import.meta.env.BASE_URL.replace(/\/$/, "")}/api/track`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ page: location, ...tracking }),
-      }).catch(() => {});
-    } catch {}
+    // Analytics and presence are useful, but neither should compete with the
+    // hero image and CSS during the first paint on a slow mobile connection.
+    const timer = window.setTimeout(() => {
+      try {
+        const tracking = getVisitorTracking();
+        fetch(`${import.meta.env.BASE_URL.replace(/\/$/, "")}/api/track`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ page: location, ...tracking }),
+        }).catch(() => {});
+      } catch {}
 
-    // Hostinger has no Node/WebSocket process. Keep customer presence alive
-    // through the PHP heartbeat instead of relying on a realtime connection.
-    if (isAdmin) return;
-    void sendVisitorHeartbeat();
-    const timer = window.setInterval(() => {
+      // Hostinger has no Node/WebSocket process. Keep customer presence alive
+      // through the PHP heartbeat instead of relying on a realtime connection.
+      if (isAdmin) return;
       void sendVisitorHeartbeat();
-    }, 30000);
-    return () => window.clearInterval(timer);
+    }, 2000);
+    const heartbeatTimer = isAdmin
+      ? undefined
+      : window.setInterval(() => void sendVisitorHeartbeat(), 30000);
+    return () => {
+      window.clearTimeout(timer);
+      if (heartbeatTimer !== undefined) window.clearInterval(heartbeatTimer);
+    };
   }, [location]);
 
   return null;

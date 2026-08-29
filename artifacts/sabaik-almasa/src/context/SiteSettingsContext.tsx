@@ -283,7 +283,13 @@ function parseHeroPosition(raw: unknown, fallback: string): string {
 type FetchedSiteSettings = Omit<SiteSettings, "reload">
 
 async function fetchSettings(): Promise<FetchedSiteSettings> {
-  const response = await fetch(`${API_BASE}/api/settings?ts=${Date.now()}`, { cache: "no-store" })
+  // Revalidate the settings endpoint without defeating browser/CDN validators.
+  // A unique timestamp made every first visit download a fresh response and
+  // prevented a fast 304/cache path on mobile connections.
+  const response = await fetch(`${API_BASE}/api/settings`, {
+    cache: "no-cache",
+    headers: { Accept: "application/json" },
+  })
   if (!response.ok) throw new Error(`Settings request failed with ${response.status}`)
   const data = await response.json()
   if (!data || typeof data !== "object" || Array.isArray(data)) {

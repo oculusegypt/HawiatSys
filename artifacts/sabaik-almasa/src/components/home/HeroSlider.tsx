@@ -7,6 +7,7 @@ import { useSiteSettings } from "@/context/SiteSettingsContext"
 export function HeroSlider() {
   const { data: slides, isLoading } = useGetSlides()
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [loadedSlides, setLoadedSlides] = useState<Set<number>>(() => new Set([0]))
   const [isPaused, setIsPaused] = useState(false)
   const [isFocusWithin, setIsFocusWithin] = useState(false)
   const [failedImages, setFailedImages] = useState<Set<number>>(new Set())
@@ -53,6 +54,21 @@ export function HeroSlider() {
     if (currentIndex >= displaySlides.length && displaySlides.length > 0) {
       setCurrentIndex(0)
     }
+  }, [currentIndex, displaySlides.length])
+
+  // Keep the first slide (the LCP candidate) and only the next requested
+  // slide in the browser's image queue. Hidden absolute-positioned images are
+  // still considered near the viewport by browsers, so rendering all of them
+  // defeats lazy loading and downloads several hundred KB on first visit.
+  useEffect(() => {
+    if (!displaySlides.length) return
+    const nextIndex = (currentIndex + 1) % displaySlides.length
+    setLoadedSlides((previous) => {
+      const next = new Set(previous)
+      next.add(currentIndex)
+      if (displaySlides.length > 1) next.add(nextIndex)
+      return next
+    })
   }, [currentIndex, displaySlides.length])
 
   const goToSlide = (index: number) => {
@@ -121,6 +137,8 @@ export function HeroSlider() {
         >
           <div className="absolute inset-0">
             {failedImages.has(index) ? (
+              <div className="hero-slide-fallback absolute inset-0" aria-hidden="true" />
+            ) : !loadedSlides.has(index) ? (
               <div className="hero-slide-fallback absolute inset-0" aria-hidden="true" />
             ) : (
               <img
