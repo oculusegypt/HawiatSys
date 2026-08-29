@@ -68,6 +68,19 @@ const getCanonicalTags = (html) => (html.match(/<link\b[^>]*>/gi) ?? [])
 const getJsonLdBlocks = (html) => [...html.matchAll(
   /<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi,
 )].map((match) => match[1]);
+const parseJsonLd = (html) => getJsonLdBlocks(html).flatMap((block) => {
+  try {
+    const parsed = JSON.parse(block);
+    return Array.isArray(parsed) ? parsed : [parsed];
+  } catch {
+    return [];
+  }
+});
+const hasJsonLdType = (value, expected) => {
+  if (!value || typeof value !== "object") return false;
+  const type = value["@type"];
+  return type === expected || (Array.isArray(type) && type.includes(expected));
+};
 const isInternalHtmlLink = (href) => {
   if (!href || href.startsWith("#") || href.startsWith("javascript:")) return false;
   if (href.startsWith("/")) return !href.startsWith("/admin") && !href.startsWith("/api");
@@ -159,6 +172,18 @@ if (archiveDir) {
   const homepageJsonLd = count(homepage, /application\/ld\+json/gi);
   if (homepageJsonLd > 0) pass(`homepage JSON-LD: ${homepageJsonLd} blocks`);
   else fail("homepage JSON-LD is missing");
+  const homepageSchemas = parseJsonLd(homepage);
+  const localBusinessSchema = homepageSchemas.find((schema) => hasJsonLdType(schema, "LocalBusiness"));
+  if (localBusinessSchema) pass("homepage LocalBusiness JSON-LD");
+  else fail("homepage LocalBusiness JSON-LD is missing");
+  if (localBusinessSchema?.hasMap || homepageSchemas.some((schema) =>
+    Array.isArray(schema?.sameAs) && schema.sameAs.some((url) => /google\.[^/]+\/maps|maps\.google\./i.test(url)),
+  )) pass("homepage Google Maps / Business Profile reference");
+  else fail("homepage Google Maps / Business Profile reference is missing");
+  const homepageOgImage = (homepage.match(/<meta\b[^>]*property=["']og:image["'][^>]*>/i) || [])[0] || "";
+  const ogImageUrl = getAttribute(homepageOgImage, "content");
+  if (/^https:\/\//i.test(ogImageUrl) && ogImageUrl.startsWith(`${siteUrl}/`)) pass("homepage og:image is absolute");
+  else fail(`homepage og:image is not an absolute production URL (${ogImageUrl || "missing"})`);
 
   const htmlFiles = [];
   const walk = (directory) => {

@@ -407,7 +407,7 @@ function dynamicHomeSchema() {
     availableLanguage: ["ar"],
   } : null;
   const localBusiness = {
-    "@type": ["LocalBusiness", "ProfessionalService"],
+    "@type": "LocalBusiness",
     "@id": `${publicUrl("/")}#local-business`,
     "name": siteCompanyName,
     ...(siteDescription ? { description: siteDescription } : {}),
@@ -424,6 +424,9 @@ function dynamicHomeSchema() {
       : {}),
     ...(address.city ? { areaServed: { "@type": "City", name: address.city } } : {}),
     ...(contactPoint ? { contactPoint } : {}),
+    ...(settingMap.company_google_business_profile?.trim()
+      ? { hasMap: settingMap.company_google_business_profile.trim() }
+      : {}),
     ...(dynamicServices.length ? {
       hasOfferCatalog: {
         "@type": "OfferCatalog",
@@ -915,8 +918,18 @@ function updateIndexSeo(html) {
   next = replace(next, /(<meta\s+name="twitter:title"\s+content=")[^"]*(")/i, `$1${esc(title)}$2`);
   next = replace(next, /(<meta\s+name="twitter:description"\s+content=")[^"]*(")/i, `$1${esc(description)}$2`);
   next = replace(next, /(<meta\s+name="twitter:image"\s+content=")[^"]*(")/i, `$1${esc(homeOgImage)}$2`);
-  next = next.replace(/<script\s+type="application\/ld\+json">[\s\S]*?<\/script>\s*/gi, "");
-  const schemaIds = ["home-local-business-schema", "home-website-schema", "home-faq-schema", "home-breadcrumbs-schema"];
+  next = next.replace(
+    /<script\b(?=[^>]*\btype=["']application\/ld\+json["'])[^>]*>[\s\S]*?<\/script>\s*/gi,
+    "",
+  );
+  const schemaIds = [
+    "home-organization-schema",
+    "home-local-business-schema",
+    "home-website-schema",
+    "home-webpage-schema",
+    "home-faq-schema",
+    "home-breadcrumbs-schema",
+  ];
   const schemas = dynamicHomeSchema().map((schema, index) =>
     `<script id="${schemaIds[index] || `home-schema-${index}`}" type="application/ld+json">\n${JSON.stringify(schema, null, 2)}\n</script>`,
   ).join("\n");

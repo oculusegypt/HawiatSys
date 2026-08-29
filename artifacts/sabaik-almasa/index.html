@@ -22,14 +22,15 @@
       name="keywords"
       content="تأجير حاويات بالرياض, حاويات مخلفات الرياض, حاويات أنقاض الرياض, حاوية 12 ياردة, حاوية 20 ياردة, حاويات نفايات, عقد نظافة إلكتروني, نقل مخلفات البناء"
     />
-    <meta name="author" content="خدمات تأجير الحاويات ونقل الأنقاض بالرياض" />
+    <meta name="author" content="مؤسسة تقي جروب" />
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large" />
     <meta name="language" content="Arabic" />
     <meta name="geo.region" content="SA-01" />
     <meta name="geo.placename" content="الرياض، المملكة العربية السعودية" />
     <meta name="theme-color" content="#0f172a" />
-    <meta name="site-public-url" content="" />
+    <meta name="site-public-url" content="https://taqigroup.com" />
+    <link rel="canonical" href="https://taqigroup.com/" />
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="ar_SA" />
@@ -39,10 +40,12 @@
       property="og:description"
       content="تأجير حاويات — تأجير حاويات وتأجير الحاويات بالرياض من مؤسسة تقي جروب في الرياض لنقل الأنقاض والمخلفات واختيار الحاوية المناسبة."
     />
-    <meta property="og:url" content="/" />
-    <meta property="og:image" content="/images/logo.png" />
-    <meta property="og:image:type" content="image/png" />
-    <meta property="og:image:alt" content="تأجير الحاويات بالرياض" />
+    <meta property="og:url" content="https://taqigroup.com/" />
+    <meta property="og:image" content="https://taqigroup.com/images/seo/taqi-home.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1024" />
+    <meta property="og:image:height" content="1024" />
+    <meta property="og:image:alt" content="مؤسسة تقي جروب — تأجير الحاويات ونقل الأنقاض بالرياض" />
 
     <!-- Twitter / X -->
     <meta name="twitter:card" content="summary_large_image" />
@@ -51,7 +54,8 @@
       name="twitter:description"
       content="تأجير حاويات — تأجير حاويات وتأجير الحاويات بالرياض من مؤسسة تقي جروب في الرياض لنقل الأنقاض والمخلفات واختيار الحاوية المناسبة."
     />
-    <meta name="twitter:image" content="/images/logo.png" />
+    <meta name="twitter:image" content="https://taqigroup.com/images/seo/taqi-home.jpg" />
+    <meta name="twitter:image:alt" content="مؤسسة تقي جروب — تأجير الحاويات ونقل الأنقاض بالرياض" />
 
     <!-- Google Search favicon: square PNG first, multi-resolution ICO fallback -->
     <link rel="icon" type="image/png" sizes="512x512" href="/favicon-512x512.png" />
@@ -69,6 +73,58 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Stable identity fallback for crawlers and social scrapers before JavaScript runs. -->
+    <script id="home-organization-schema" type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "@id": "https://taqigroup.com/#organization",
+        "name": "مؤسسة تقي جروب",
+        "url": "https://taqigroup.com/",
+        "logo": "https://taqigroup.com/images/logo.png",
+        "sameAs": [
+          "https://www.facebook.com/Aiservx",
+          "https://x.com/Aiservx",
+          "https://www.instagram.com/Aiservx/",
+          "https://www.linkedin.com/company/aiservx",
+          "https://www.google.com/maps?cid=16777605780937543839"
+        ]
+      }
+    </script>
+    <script id="home-local-business-schema" type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "LocalBusiness",
+        "@id": "https://taqigroup.com/#local-business",
+        "name": "مؤسسة تقي جروب",
+        "url": "https://taqigroup.com/",
+        "image": "https://taqigroup.com/images/seo/taqi-home.jpg",
+        "logo": "https://taqigroup.com/images/logo.png",
+        "telephone": "+966536312121",
+        "priceRange": "$",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "طريق الملك فهد، حي الصحافة، الرياض",
+          "addressLocality": "الرياض",
+          "addressRegion": "منطقة الرياض",
+          "addressCountry": "SA",
+          "postalCode": "13321"
+        },
+        "geo": {
+          "@type": "GeoCoordinates",
+          "latitude": 24.7937,
+          "longitude": 46.6371
+        },
+        "areaServed": {
+          "@type": "City",
+          "name": "الرياض"
+        },
+        "hasMap": "https://www.google.com/maps?cid=16777605780937543839",
+        "parentOrganization": {
+          "@id": "https://taqigroup.com/#organization"
+        }
+      }
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

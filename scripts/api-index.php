@@ -882,6 +882,53 @@ try {
         }
     }
 
+    /**
+     * Keep Hostinger's runtime sitemap URLs identical to the Node prerender.
+     * Editorial Arabic slugs remain in SQLite, while public entity URLs use
+     * deterministic ASCII slugs with the record id as a collision guard.
+     */
+    function publicFriendlySlug(string $value, string $fallback = 'page'): string {
+        $source = trim($value);
+        if ($source === '') return $fallback;
+        if (class_exists('Normalizer')) {
+            $source = \Normalizer::normalize($source, \Normalizer::FORM_KC) ?: $source;
+        }
+        $source = preg_replace('/[\x{064B}-\x{065F}\x{0670}\x{0640}]/u', '', $source) ?? $source;
+        $pairs = [
+            'لا' => 'la', 'لأ' => 'la', 'لإ' => 'la', 'لآ' => 'la',
+            'ث' => 'th', 'ذ' => 'dh', 'ش' => 'sh', 'خ' => 'kh', 'غ' => 'gh',
+            'ض' => 'd', 'ظ' => 'z', 'ع' => 'a', 'ء' => 'a', 'أ' => 'a',
+            'إ' => 'i', 'آ' => 'a', 'ؤ' => 'w', 'ئ' => 'y',
+            'ا' => 'a', 'ب' => 'b', 'ت' => 't', 'ج' => 'j', 'ح' => 'h',
+            'د' => 'd', 'ر' => 'r', 'ز' => 'z', 'س' => 's', 'ص' => 's',
+            'ط' => 't', 'ف' => 'f', 'ق' => 'q', 'ك' => 'k', 'ل' => 'l',
+            'م' => 'm', 'ن' => 'n', 'ه' => 'h', 'و' => 'w', 'ى' => 'a',
+            'ي' => 'y', 'ة' => 'h',
+        ];
+        $source = strtolower(str_replace(array_keys($pairs), array_values($pairs), $source));
+        $source = str_replace('&', ' and ', $source);
+        $source = preg_replace('/[\'’`"]/', '', $source) ?? $source;
+        $source = preg_replace('/[^a-z0-9]+/i', '-', $source) ?? '';
+        $source = trim(preg_replace('/-+/', '-', $source) ?? '', '-');
+        if ($source === '') return $fallback;
+        if (strlen($source) > 64) {
+            $source = rtrim(substr($source, 0, 64), '-');
+            $source = preg_replace('/-[^-]*$/', '', $source) ?: $source;
+        }
+        return $source ?: $fallback;
+    }
+
+    function publicEntitySlug(?string $slug, ?string $title, $id, string $fallback): string {
+        $rawSlug = trim((string)($slug ?? ''));
+        $rawTitle = trim((string)($title ?? ''));
+        $value = preg_match('/^(?:مقالة|post)[-_]?\d+$/iu', $rawSlug) && $rawTitle !== ''
+            ? $rawTitle
+            : ($rawSlug !== '' ? $rawSlug : $rawTitle);
+        $suffix = $id === null || $id === '' ? '' : '-' . preg_replace('/[^0-9]/', '', (string)$id);
+        $base = publicFriendlySlug($value, $fallback . $suffix);
+        return $base . ($suffix !== '' && !str_ends_with($base, $suffix) ? $suffix : '');
+    }
+
     function generateSitemapXml(PDO $pdo, string $baseUrl): array {
         $today = date('Y-m-d');
         $baseUrl = rtrim($baseUrl, '/');
@@ -889,9 +936,9 @@ try {
             throw new RuntimeException('site_public_url is not configured with a valid public origin');
         }
 
-        // Public area URLs are Arabic slugs. Keep the stored/displayed area
-        // names Arabic as well; English keys are accepted by the app only as
-        // legacy aliases and must not be emitted into the sitemap.
+        // Area pages intentionally keep their Arabic canonical URLs. The
+        // prerender writes both the ASCII compatibility directory (noindex)
+        // and the Arabic indexable directory.
         $neighborhoods = [
             'شمال-الرياض', 'حي-الملقا', 'حي-الياسمين', 'حي-النرجس', 'حي-العارض', 'حي-حطين', 'حي-الصحافة', 'حي-النفل', 'حي-العقيق', 'حي-الربيع', 'حي-الغدير', 'حي-الوادي', 'حي-الندى', 'حي-الفلاح',
             'جنوب-الرياض', 'حي-بدر', 'حي-الحائر', 'حي-الشفا', 'حي-العزيزية', 'حي-الدار-البيضاء', 'حي-المناخ', 'حي-الإسكان',
@@ -904,14 +951,20 @@ try {
             ['path' => '', 'priority' => '1.0', 'freq' => 'weekly'],
             ['path' => '/about', 'priority' => '0.9', 'freq' => 'monthly'],
             ['path' => '/pricing', 'priority' => '0.95', 'freq' => 'monthly'],
-            ['path' => '/packages', 'priority' => '0.9', 'freq' => 'monthly'],
+            ['path' => '/containers', 'priority' => '0.9', 'freq' => 'weekly'],
+            ['path' => '/services', 'priority' => '0.95', 'freq' => 'weekly'],
             ['path' => '/contact', 'priority' => '0.85', 'freq' => 'monthly'],
             ['path' => '/partners', 'priority' => '0.75', 'freq' => 'monthly'],
-            ['path' => '/areas', 'priority' => '0.85', 'freq' => 'monthly'],
+            ['path' => '/areas', 'priority' => '0.9', 'freq' => 'weekly'],
+            ['path' => '/faq', 'priority' => '0.85', 'freq' => 'monthly'],
+            ['path' => '/terms', 'priority' => '0.6', 'freq' => 'monthly'],
+            ['path' => '/privacy', 'priority' => '0.6', 'freq' => 'monthly'],
             ['path' => '/why-us/leadership', 'priority' => '0.75', 'freq' => 'monthly'],
-            ['path' => '/why-us/what-we', 'priority' => '0.75', 'freq' => 'monthly'],
-            ['path' => '/why-us/commitment', 'priority' => '0.75', 'freq' => 'monthly'],
-            ['path' => '/why-us/accumulated-experience', 'priority' => '0.7', 'freq' => 'monthly'],
+            ['path' => '/why-us/what-we-do', 'priority' => '0.8', 'freq' => 'monthly'],
+            ['path' => '/why-us/commitment', 'priority' => '0.8', 'freq' => 'monthly'],
+            ['path' => '/why-us/experience', 'priority' => '0.8', 'freq' => 'monthly'],
+            ['path' => '/blog', 'priority' => '0.9', 'freq' => 'daily'],
+            ['path' => '/taqi-group-platform', 'priority' => '0.9', 'freq' => 'monthly'],
         ];
 
         $lines = [
@@ -963,7 +1016,7 @@ try {
             $lines[] = '    <lastmod>' . $today . '</lastmod>';
             $lines[] = '    <changefreq>' . $sp['freq'] . '</changefreq>';
             $lines[] = '    <priority>' . $sp['priority'] . '</priority>';
-            if ($sp['path'] === '') $addImageTags(['/images/hero-1.webp', '/images/logo.png'], 'الصفحة الرئيسية');
+            if ($sp['path'] === '') $addImageTags(['/images/hero-1.webp', '/images/logo.png', '/images/seo/taqi-home.jpg'], 'الصفحة الرئيسية');
             $lines[] = '  </url>';
         }
 
@@ -980,10 +1033,10 @@ try {
         }
 
         // Services
-        $servicesStmt = $pdo->query("SELECT seo_slug, seo_title, title, image_url, images FROM services WHERE is_active = 1");
+        $servicesStmt = $pdo->query("SELECT id, seo_slug, seo_title, title, image_url, images FROM services WHERE is_active = 1 AND seo_enabled = 1 AND seo_slug IS NOT NULL AND seo_slug != ''");
         $services = $servicesStmt->fetchAll();
         foreach ($services as $srv) {
-            $slug = $srv['seo_slug'] ?: '';
+            $slug = publicEntitySlug($srv['seo_slug'] ?? '', $srv['title'] ?? '', $srv['id'] ?? null, 'service');
             if (!$slug) continue;
             $u = $baseUrl . '/services/' . $slug;
             $lines[] = '  <url>';
@@ -1001,12 +1054,12 @@ try {
         // Packages
         $pkgCount = 0;
         try {
-            $pkgStmt = $pdo->query("SELECT seo_slug, name, image_url, images FROM packages WHERE is_active = 1");
+            $pkgStmt = $pdo->query("SELECT id, seo_slug, name, image_url, images FROM packages WHERE is_active = 1 AND seo_enabled = 1 AND seo_slug IS NOT NULL AND seo_slug != ''");
             $pkgs = $pkgStmt->fetchAll();
             foreach ($pkgs as $pkg) {
-                $slug = $pkg['seo_slug'] ?: '';
+                $slug = publicEntitySlug($pkg['seo_slug'] ?? '', $pkg['name'] ?? '', $pkg['id'] ?? null, 'container');
                 if (!$slug) continue;
-                $u = $baseUrl . '/package/' . $slug;
+                $u = $baseUrl . '/containers/' . $slug;
                 $lines[] = '  <url>';
                 $lines[] = '    <loc>' . htmlspecialchars($u, ENT_XML1) . '</loc>';
                 $lines[] = '    <lastmod>' . $today . '</lastmod>';
@@ -1030,10 +1083,10 @@ try {
         $addImageTags(['/images/hero-1.webp'], 'مدونة الشركة');
         $lines[] = '  </url>';
 
-        $postsStmt = $pdo->query("SELECT slug, title, cover_image, og_image, published_at FROM posts WHERE status = 'published' AND is_active = 1");
+        $postsStmt = $pdo->query("SELECT id, slug, title, cover_image, og_image, published_at FROM posts WHERE status = 'published' AND is_active = 1 AND slug IS NOT NULL AND slug != ''");
         $posts = $postsStmt->fetchAll();
         foreach ($posts as $post) {
-            $slug = $post['slug'] ?: '';
+            $slug = publicEntitySlug($post['slug'] ?? '', $post['title'] ?? '', $post['id'] ?? null, 'post');
             if (!$slug) continue;
             $u = $baseUrl . '/blog/' . $slug;
             $lines[] = '  <url>';
@@ -1055,10 +1108,10 @@ try {
         }
 
         // SEO Pages
-        $pagesStmt = $pdo->query("SELECT slug, seo_slug, title, cover_image, og_image, published_at FROM seo_pages WHERE status = 'published' AND is_active = 1");
+        $pagesStmt = $pdo->query("SELECT id, slug, seo_slug, title, cover_image, og_image, published_at FROM seo_pages WHERE status = 'published' AND is_active = 1 AND slug IS NOT NULL AND slug != ''");
         $seoPages = $pagesStmt->fetchAll();
         foreach ($seoPages as $sp) {
-            $slug = $sp['slug'] ?: $sp['seo_slug'] ?: '';
+            $slug = publicEntitySlug($sp['slug'] ?? $sp['seo_slug'] ?? '', $sp['title'] ?? '', $sp['id'] ?? null, 'page');
             if (!$slug) continue;
             $u = $baseUrl . '/page/' . $slug;
             $lines[] = '  <url>';

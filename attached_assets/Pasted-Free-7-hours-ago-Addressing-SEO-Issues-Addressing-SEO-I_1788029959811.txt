@@ -1,0 +1,290 @@
+Free
+7 hours ago
+Addressing SEO Issues
+
+Addressing SEO Issues
+Addressing SEO Issues
+
+It seems like the user wants to fix some SEO issues, so I need to act quickly. I’ll need to familiarize myself with the existing web app and get some React-Vite skills before making any modifications. Since they mentioned an image, I might not need to read any uploaded files unless necessary. I'll focus on relevant artifacts and memory to check topics like SEO dashboard parity and sitemap generation. I should start with a brief introduction and then conduct parallel reads and searches.
+
+سأعالج المشكلة من جذورها: سأراجع توليد الـ sitemap والـ canonical والـ structured data والـ prerender، ثم أصلح بيانات المؤسسة والصورة والقراءة الخام للمحتوى، وأتحقق من أن النسخة المرفوعة إلى Hostinger تحمل نفس الإصلاحات.
+
+
+
+Show less
+Loaded skill react-vite
+
+Opened seo-dashboard-node-php-parity.md
+
+Opened prerender-seo-parity.md
+
+Opened vite-canonical-root.md
+
+Opened seo-archive-certification.md
+
+Searched for "canonical|sitemap|Local…"
+Investigating search outputs
+
+Investigating search outputs
+Investigating search outputs
+
+I need to figure out why the search output is truncated. It seems I also need targeted rg files to investigate further. Understanding the actual request is likely a step toward fixing this issue. I’ll inspect the artifact package, source entry, SEO components, and scripts to gather more context. I should remember to use commands like rg --files and rg as needed to assist with my inspection.
+
+
+Searched for "canonical|og:image|appl…"
+
+Searched for "function.*SEO|const.*SE…"
+
+Listed files
+
+Checked git status
+Inspecting files for issues
+
+Inspecting files for issues
+Inspecting files for issues
+
+I need to check specific files that might be related to the latest commit, especially concerning the sitemap or prerendering issues. I’ll look through scripts like prerender and generate-sitemap, and other important files like index.html, useDocumentSEO, App SiteIdentitySEO, seoMedia, vite config, and build-hostinger. I should also consider public sitemap and robots, along with llms. Let’s plan to read around ten files to gather the right information.
+
+وجدت أن الخلل مرتبط فعلاً بخط أنابيب التوليد الأخير، وليس بمحتوى الصفحة وحده. سأطابق الآن ما يخرج في أول HTML مع ما يخرجه الـ sitemap والأرشيف، لأن Google وPageSpeed وLLM يقرأون هذه النسخة قبل تشغيل React.
+
+
+
+Show less
+
+Opened prerender.mjs
+
+Opened generate-sitemap.mjs
+
+Opened useDocumentSEO.ts
+
+Opened App.tsx
+
+Opened index.html
+
+Opened seoMedia.ts
+
+Opened siteUrl.ts
+
+Opened build-hostinger.mjs
+Investigating schema issues
+
+Investigating schema issues
+Investigating schema issues
+
+It seems like the LocalBusiness schema is missing on the live site, which might mean that the deployment served an outdated index from an old process. I probably need to fix the build pipeline and check if static public files are part of the issue. Let's take a look at the current commit diff and documentation. I plan to run git show --stat to see the changes, especially focusing on the latest sitemap with git show 614500d.
+
+
+Opened prerender.mjs
+
+Opened prerender.mjs
+
+Opened prerender.mjs
+
+Opened package.json
+
+Opened package.json
+
+Ran a Node.js script
+Building and inspecting scripts
+
+Building and inspecting scripts
+Analyzing site issues
+
+I need to figure out the exact issue here. It looks like the public/index.html is missing the LocalBusiness schema, though prerender inserts are there. The user might have run the live site before archiving, leading to old deployment links. My code can improve the source index by adding static schema and using absolute images for OG. However, I don't think I need to edit the generated public sitemap directly but probably should regenerate it after changes. There's a problem with canonical parity, too, with 147 URLs versus 152 canonicals. I'll need to run the current build/prerender with the latest database and scripts.Building and inspecting scripts
+
+I need to ensure that pnpm ... build uses the workflow environment. The direct package build for each skill should type-check, though I plan to run pnpm run typecheck later. For inspecting the archive, a full build on Hostinger could help clean assets and the database. I might want to run pnpm --filter @workspace/scripts run generate-sitemap, and then proceed with the build. There’s a node require issue due to the root not using better-sqlite3, but the script should handle that. I'll also identify canonical mismatches by parsing the output after generating and possibly utilize an existing SEO gate script.
+
+
+Opened seo-quality-gate.mjs
+
+Opened public-origin.mjs
+
+Found files
+
+Viewed a commit
+Executing scripts for sitemap generation
+
+Executing scripts for sitemap generation
+Executing scripts for sitemap generation
+
+I need to execute the current scripts to generate a sitemap and build it for inspection. Before making any edits, it's probably best to understand the live output first. I should run the generate sitemap process followed by build or prerender sequentially, since prerender likely depends on the build step. I'll be using ShellExec for this, making sure everything runs smoothly!
+
+سأعيد بناء نسخة SEO محلياً الآن قبل التعديل، وأقيس الفرق بين canonical والـ sitemap كما تقيسه أدوات التدقيق. هذا سيحدد الروابط الثمانية المختلفة بدقة بدل معالجة الأعراض بالتخمين.
+
+
+
+Show less
+
+Ran the generate-sitemap script
+Investigating source bug
+
+Investigating source bug
+Investigating source bug
+
+I need to figure out a source bug where build-hostinger.mjs is set to use BASE_PATH="/taqi-group-platform/". The problem is that it registers artifacts under the platform preview /cleanflow-platform/, which isn't matching up. This leads to placing the platform distribution in build_php/taqi-group-platform instead of cleanflow-platform. I'm thinking that the user’s issue after generating the sitemap is linked to it including /taqi-group-platform while the live route is different. I need to run pnpm --filter platform build to inspect the index.
+
+
+Built the project
+Inspecting build process
+
+Inspecting build process
+Inspecting build process
+
+I think we should run the current full build to inspect things more closely. It might change a lot of generated files and the database, which could be risky but is likely intended. Since the user wants a fix and verification, I need to be careful. I'll run the script node scripts/build-hostinger.mjs, as it may take about 1-2 minutes and could alter the public source while generating the sitemap. I'll make sure to capture everything for review.
+
+Inspecting platform details
+
+Inspecting platform details
+Inspecting platform details
+
+I need to take a closer look at the platform. It's interesting that build-hostinger uses the platform with BASE_PATH=/taqi-group-platform/ and copies platformDistDir into build_php/taqi-group-platform. That seems alright. I think I need to move forward with running this process to finalize the archive, which includes everything. It's all part of ensuring everything is set up correctly!
+
+القياس أكد سبباً محدداً: خريطة الموقع تحتوي رابط منصة إضافياً لا ينتج له الموقع الرئيسي صفحة HTML، كما أن بيانات المؤسسة موجودة في مولّد الأرشيف فقط وليست مضمّنة في صفحة المصدر الأولى. سأصلح التوافق في المصدر والمولّد معاً، ثم أعيد استخراج الأرشيف وأتأكد من أن كل canonical له رابط sitemap مطابق وصالح.
+
+
+
+Show less
+
+Ran scripts/build-hostinger.mjs
+Running SEO gate
+
+Running SEO gate
+Running SEO gate
+
+I need to continue my work and run the SEO quality gate before making any changes. I think the current build might include the platform, so it’s essential to verify that first. I’ll use the command pnpm --filter @workspace/scripts run seo-quality-gate to do this. It’s important to ensure everything aligns well with the SEO standards before moving forward with the changes!
+
+
+Ran the seo-quality-gate script
+Analyzing build pipeline error
+
+Analyzing build pipeline error
+Assessing gate pass issues
+
+Alright, I'm looking at the gate passes and the current generated archive. I wonder if I need to implement fixes since there was an interruption during tool execution. The user doesn't know if they need inspection or a report, but it seems like they want a fix. The live issue might stem from the deployment not being updated, so I’ll need to inspect git status after the build. It seems the JSON-LD needs to be embedded in the raw index.html for better visibility across deployments.Planning static index update
+
+I need to create a new shared static index.html with the correct https://taqigroup.com values since that's the configured site. There’s a Vite issue with root-relative canonical URLs that may lead to problems, so I should consider using absolute URLs instead. I can also add JSON-LD for LocalBusiness and an absolute OG image, like /images/seo/taqi-home.jpg, since Google prefers absolute links. It seems I should switch existing OG tags to absolute URLs and avoid leaving placeholders empty, knowing the production origin is already available from the database.Analyzing build pipeline error
+
+I’m encountering a build pipeline error where public/index.html isn’t being copied to the public directory, even though the dist folder is created. It seems that prerender is only generating the dist and hostinger archive. In the Replit preview, Vite doesn't serve the prerendered static content, so the live artifact isn’t SEO-friendly. Since the user seems to be checking taqigroup.com on Hostinger, I could consider adding static schema in the source to improve things.
+
+
+Ran a Node.js script
+
+Checked git status
+Considering debugging options
+
+Considering debugging options
+Evaluating deployment issues
+
+I think I need to check if the deployed URL isn't archived because the user hasn't uploaded the necessary archive yet. I can't deploy on Hostinger myself unless that happens. It seems like I might also need to update the scripts/seo-quality-gate, adding validations for the LocalBusiness schema and social media elements to avoid false positives in the future.
+
+Also, the user mentioned that after generating the sitemap, there are discrepancies in the Sitemap count versus canonical URLs — maybe due to missing trailing slashes. I should inspect those mismatches!Considering debugging options
+
+I’m thinking that using shell curl could be a good way to debug this issue. It seems the user provided a live domain, so I might try fetching that external site with a command like curl -sI https://taqigroup.com. I assume that should be okay, but I’m not sure about integrating with any external APIs. The user already attached a screenshot, but I need to ensure I fetch the current live data. Using shell commands feels like the right approach here!
+
+هناك نقطة مهمة ظهرت أثناء الفحص: الأرشيف المحلي الحالي يمرّر كل الاختبارات، لكن هذا لا يثبت أن النسخة الموجودة على taqigroup.com هي الأرشيف الأخير. سأقارن الآن الاستجابة العامة الفعلية بالمخرجات المحلية، ثم أضيف فحصاً يمنع مستقبلاً نجاح البناء مع غياب LocalBusiness أو صورة المشاركة.
+
+
+
+39 actions
+المقارنة مع النسخة المنشورة حسمت المشكلة: taqigroup.com يعرض خريطة موقع قديمة (147 رابطاً) فيها مسارات مثل /packages وروابط عربية للخدمات، بينما الـ HTML الحالي يستخدم canonical مترجمة ومختلفة. لذلك المشكلة ليست في Google نفسه؛ بل في عدم تحديث مولّد Sitemap في PHP مع نفس قواعد الروابط التي يستخدمها الـ prerender. سأوحّد القواعد وأضيف تحققاً صريحاً من LocalBusiness وGoogle Maps وصورة المشاركة.
+
+
+
+Show less
+
+Edited index.html
+
+Edited prerender.mjs
+
+Edited api-index.php
+
+Edited seo-quality-gate.mjs
+Considering fallback sources
+
+Considering fallback sources
+Considering fallback sources
+
+I'm looking into the potential static fallback source schema, which is still in development. The raw index source has a file at /images/logo.png, and there's an archive copy available too. It seems essential to run a PHP linter to catch any issues, and then I'll need to build it afterward. I'm intrigued by how this all ties together, and I want to make sure everything is working smoothly!
+
+التعديلات أصبحت في ثلاثة مستويات: صفحة المصدر، مولّد prerender، ومولّد Sitemap الخاص بـ PHP على Hostinger، مع تقوية بوابة الجودة. سأشغّل الآن بناءً كاملاً جديداً ثم أتحقق من الأرشيف النهائي ومن توافق عدد/روابط الصفحات، بما في ذلك فحص PHP نفسه.
+
+
+
+Show less
+
+Ran php
+
+Viewed code changes
+
+Ran scripts/build-hostinger.mjs
+Continuing development tasks
+
+Continuing development tasks
+Continuing development tasks
+
+I need to keep moving from the build phase. First, I have to run the gate, and then I'll probably need to test the PHP sitemap function by invoking it through the route, which could be tricky. Using php -r include isn't an option since the script executes the router. I think I should check the syntax to make sure everything's correct before proceeding. Overall, running the gate is essential to continue.
+
+
+Ran the seo-quality-gate script
+البناء والبوابة النهائية نجحا الآن: 152 صفحة قابلة للفهرسة، 152 رابط Sitemap، وتطابق كامل، مع تحقق مستقل من LocalBusiness ورابط Google Maps وصورة OG. بقيت خطوة التشغيل فقط: سأعيد تشغيل خدمة الموقع، أراجع السجل والـ preview، ثم أوضح ما يحتاج رفعه إلى Hostinger لأن النطاق العام ما زال يعرض الأرشيف القديم.
+
+
+
+Show less
+Loaded skill workflows
+Restarted workflow artifacts/sabaik-almasa: web
+Refreshing tools for delivery
+
+Refreshing tools for delivery
+
+Refreshed logs
+
+Took a screenshot
+Restarting the API
+
+Restarting the API
+Restarting the API
+
+I see we’re facing a blank error due to the API not running. It’s important to restart the API because the frontend relies on it. I’ll check the relevant source index, but I need to make sure the app still expects the API to be up and running. Additionally, I’ll inspect the API logs to find out what's going on and use the WorkflowsRestart API to get everything back on track!
+
+الـ SEO build سليم، لكن فحص الـ preview كشف مشكلة تشغيل منفصلة: واجهة الموقع تحاول الاتصال بـ API غير المشغّل حالياً، لذلك ظهرت شاشة “تعذر تجهيز الموقع” و502. سأشغّل API وأعيد فحص الـ preview حتى لا أعتبر البناء ناجحاً بينما المعاينة غير مكتملة.
+
+
+
+Show less
+Restarted workflow artifacts/api-server: API Server
+
+Refreshed logs
+
+Took a screenshot
+Updating image sources
+
+Updating image sources
+Updating memory and verifying files
+
+I need to continue with the task and update my memory because I've learned that the runtime PHP sitemap needs to reflect Node slug rules. The memory already includes SEO dashboard parity and archive certification. I should probably update the topic file seo-dashboard-node-php-parity.md since it’s relevant. Before finishing, I need to check for any unwanted pre-existing files like data/sabaik.db. I'll look into the git diff to ensure it's only our files and generated items. After that, I can verify everything.Testing PHP and Node slugs
+
+I need to test PHP's computed slugs against Node to ensure they match exactly. It might help to extract this function by converting it somehow. I could write a temporary PHP snippet to copy the function for testing. But hmm, I wonder if it's better to call a dynamic endpoint instead. This way, I can ensure I’m working with the most accurate and up-to-date data. Let’s try to figure out the best approach!Auditing PHP script and sitemap
+
+The PHP script executes using $_SERVER, so there’s no need to change much. I could leverage php -r to read a substring function, or even create a /tmp/test-slug.php to manually require things. The api-index.php file likely includes essential functions and dispatches router side effects.
+
+I need to audit the current sitemap and compare it post-deployment since the old one remains. I should also ensure all services are now properly transliterated. There's a potential bug in handling publicFriendlySlug where the slug column could be empty, not falling back to seo_slug. I'll also check the current platform count in $staticPages.Updating image sources
+
+I’m considering whether I need to update the replit.md file, but it doesn’t seem necessary. However, I might want to add an absolute twitter:image source since it’s required for the image return. Right now, the source is still relative for Twitter. Prerender seems to overwrite it to absolute for the archive. But I wonder if the HTML source being relative might affect crawlers during development. I should think this through carefully!
+
+فحص الـ preview أصبح سليماً ويعرض الصفحة كاملة. أثناء مراجعة الناتج لاحظت تفصيلاً مهماً: لأن fallback الجديد يضع id قبل type في وسم JSON-LD، كان مولّد prerender لا يحذفه، فيضيف نسخة ثانية من المخطط. سأصلح نمط الإزالة حتى يبقى في HTML النهائي مخطط واحد منظم، ثم أعيد البوابة مرة أخيرة.
+
+
+
+Show less
+
+Edited index.html
+
+Edited prerender.mjs
+
+Ran scripts/build-hostinger.mjs
+
+Ran the seo-quality-gate script
+
+Worked for 7 minutes
+You've reached your daily free quota limit. It will reset at 12:00 AM UTC.
