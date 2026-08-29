@@ -3953,12 +3953,40 @@ try {
         $slug = urldecode($rawSlug);
         $slugClean = trim($slug, '/');
 
-        $stmt = $pdo->prepare("SELECT * FROM posts WHERE (slug = :s OR seo_slug = :s OR slug = :raw OR id = :raw) LIMIT 1");
-        $stmt->execute([':s' => $slugClean, ':raw' => $rawSlug]);
-        $p = $stmt->fetch();
+        // The public frontend uses an Arabic title slug with the numeric
+        // record id appended (for example: حاويات-نفايات-للمطاعم-76).
+        // Older PHP builds only compared the stored slug and therefore
+        // returned 404 for every generated article URL.
+        $stmt = $pdo->query("SELECT * FROM posts WHERE status = 'published' AND is_active = 1 ORDER BY id ASC");
+        $p = null;
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $candidate) {
+            $candidateSlugs = array_values(array_filter([
+                (string)($candidate['slug'] ?? ''),
+                (string)($candidate['seo_slug'] ?? ''),
+            ], static fn(string $value): bool => trim($value) !== ''));
+            $candidateAliases = [];
+            foreach ($candidateSlugs as $candidateSlug) {
+                $candidateAliases[] = $candidateSlug;
+                $candidateAliases[] = publicEntitySlug(
+                    $candidateSlug,
+                    (string)($candidate['title'] ?? ''),
+                    $candidate['id'] ?? null,
+                    'post',
+                );
+            }
+            foreach (array_unique($candidateAliases) as $candidateAlias) {
+                if ($candidateAlias === $slugClean
+                    || $candidateAlias === $rawSlug
+                    || strcasecmp($candidateAlias, $slugClean) === 0
+                    || (string)($candidate['id'] ?? '') === $rawSlug) {
+                    $p = $candidate;
+                    break 2;
+                }
+            }
+        }
 
         if (!$p) {
-            $stmt = $pdo->prepare("SELECT * FROM posts WHERE (slug LIKE :like OR seo_slug LIKE :like OR title LIKE :like) LIMIT 1");
+            $stmt = $pdo->prepare("SELECT * FROM posts WHERE (slug LIKE :like OR seo_slug LIKE :like OR title LIKE :like) AND status = 'published' AND is_active = 1 LIMIT 1");
             $stmt->execute([':like' => '%' . $slugClean . '%']);
             $p = $stmt->fetch();
         }

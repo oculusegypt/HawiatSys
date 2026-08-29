@@ -87,6 +87,22 @@ function normalizeArabicSlug(value: unknown, fallbackTitle = "مقالة"): stri
   return normalized || generateSlug(fallbackTitle);
 }
 
+function matchesPublicPostSlug(row: any, requestedSlug: string): boolean {
+  const normalized = requestedSlug.trim().toLowerCase();
+  const storedSlugs = [row.slug, row.seoSlug, row.seo_slug]
+    .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+    .map(value => value.trim().toLowerCase());
+
+  return storedSlugs.includes(normalized)
+    || storedSlugs.some(value => value === normalized)
+    || entitySlug({
+      slug: row.slug ?? row.seoSlug ?? row.seo_slug,
+      title: row.title,
+      id: row.id,
+      fallback: "post",
+    }).toLowerCase() === normalized;
+}
+
 // ── Public routes ─────────────────────────────────────────────────────────────
 
 // GET /posts/categories — list unique categories (must come BEFORE /posts/:slug)
@@ -147,10 +163,7 @@ router.get("/posts/:slug", async (req, res) => {
       .from(postsTable)
       .where(and(eq(postsTable.status, "published"), eq(postsTable.isActive, true)));
     const requestedSlug = decodeURIComponent(req.params.slug).trim().toLowerCase();
-    const row = rows.find(candidate =>
-      candidate.slug.toLowerCase() === requestedSlug
-      || entitySlug({ slug: candidate.slug, title: candidate.title, id: candidate.id, fallback: "post" }) === requestedSlug
-    );
+    const row = rows.find(candidate => matchesPublicPostSlug(candidate, requestedSlug));
     if (!row) return res.status(404).json({ error: "Not found" });
     // increment view count
     try {

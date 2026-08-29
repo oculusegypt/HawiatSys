@@ -6,6 +6,7 @@
   "scripts": {
     "validate:operational": "node ./validate-operational-invariants.mjs",
     "generate-sitemap": "node ./generate-sitemap.mjs",
-    "seo-quality-gate": "node ./seo-quality-gate.mjs"
+    "seo-quality-gate": "node ./seo-quality-gate.mjs",
+    "prepare-seo-drafts": "node ./prepare-seo-drafts.mjs"
   }
 }
