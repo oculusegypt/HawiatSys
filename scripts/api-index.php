@@ -123,6 +123,19 @@ function seoIsInternalLink(string $href, string $siteUrl): bool {
     return $origin === $siteUrl;
 }
 
+function seoCollectEntityTypes(mixed $value, array &$types): void {
+    if (!is_array($value)) return;
+    if (array_key_exists('@type', $value)) {
+        $candidates = is_array($value['@type']) ? $value['@type'] : [$value['@type']];
+        foreach ($candidates as $candidate) {
+            if (is_string($candidate) && trim($candidate) !== '') $types[] = trim($candidate);
+        }
+    }
+    foreach ($value as $child) {
+        if (is_array($child)) seoCollectEntityTypes($child, $types);
+    }
+}
+
 function seoCompareUrlSets(array $canonicalUrls, array $sitemapUrls): array {
     $canonicalUrls = array_values(array_unique(array_filter($canonicalUrls)));
     $sitemapUrls = array_values(array_unique(array_filter($sitemapUrls)));
@@ -167,6 +180,17 @@ function seoProductionFiles(string $root): array {
     return $files;
 }
 
+function seoFaqEligiblePath(string $relativePath): bool {
+    return $relativePath === 'index.html'
+        || preg_match('#^faq/index\.html$#u', $relativePath)
+        || preg_match('#^pricing/index\.html$#u', $relativePath)
+        || preg_match('#^areas/[^/]+/index\.html$#u', $relativePath)
+        || preg_match('#^containers/[^/]+/index\.html$#u', $relativePath)
+        || preg_match('#^services/[^/]+/index\.html$#u', $relativePath)
+        || preg_match('#^page/[^/]+/index\.html$#u', $relativePath)
+        || preg_match('#^pages/[^/]+/index\.html$#u', $relativePath);
+}
+
 function seoMetricsSnapshot(PDO $pdo): array {
     $workspaceRoot = dirname(__DIR__);
     $productionRoot = is_dir($workspaceRoot . '/build_php')
@@ -207,20 +231,18 @@ function seoMetricsSnapshot(PDO $pdo): array {
             $length = function_exists('mb_strlen') ? mb_strlen($description) : strlen($description);
             if ($length >= 120 && $length <= 160) $qualityDescriptions++;
         }
-        preg_match_all('/<script\b[^>]*type=["\']application\/ld\+json["\'][^>]*>/i', $html, $schemaMatches);
+        preg_match_all('/<script\b[^>]*type=["\']application\/ld\+json["\'][^>]*>([\s\S]*?)<\/script>/i', $html, $schemaMatches, PREG_SET_ORDER);
         if (!empty($schemaMatches[0])) {
             $withSchema++;
-            foreach ($schemaMatches[0] as $schemaTag) {
-                $schemaType = seoHtmlAttribute($schemaTag, 'data-type');
-                if ($schemaType !== '') $entityTypes[] = $schemaType;
+            foreach ($schemaMatches as $schemaMatch) {
+                $decoded = json_decode((string)($schemaMatch[1] ?? ''), true);
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    seoCollectEntityTypes($decoded, $entityTypes);
+                }
             }
         }
         $relativePath = ltrim(str_replace('\\', '/', substr($file, strlen($productionRoot))), '/');
-        $faqEligible = $relativePath === 'index.html'
-            || $relativePath === 'taqi-group-platform/index.html'
-            || preg_match('#^(areas|containers|faq|pricing|services)/#u', $relativePath)
-            || preg_match('#^page/[^/]+/index\.html$#u', $relativePath)
-            || preg_match('#^pages/[^/]+/index\.html$#u', $relativePath);
+        $faqEligible = seoFaqEligiblePath($relativePath);
         if ($faqEligible && preg_match('/FAQPage|الأسئلة الشائعة|faqpage/i', $html)) $faqPages++;
         if (!$faqEligible) {
             // Legal, interactive, listing-only, and editorial pages do not
@@ -234,13 +256,7 @@ function seoMetricsSnapshot(PDO $pdo): array {
     $faqEligibleCount = 0;
     foreach ($htmlFiles as $file) {
         $relativePath = ltrim(str_replace('\\', '/', substr($file, strlen($productionRoot))), '/');
-        if (
-            $relativePath === 'index.html'
-            || $relativePath === 'taqi-group-platform/index.html'
-            || preg_match('#^(areas|containers|faq|pricing|services)/#u', $relativePath)
-            || preg_match('#^page/[^/]+/index\.html$#u', $relativePath)
-            || preg_match('#^pages/[^/]+/index\.html$#u', $relativePath)
-        ) {
+        if (seoFaqEligiblePath($relativePath)) {
             if (!preg_match('/<meta\b[^>]*name=["\']robots["\'][^>]*content=["\'][^"\']*noindex/i', (string)@file_get_contents($file))) {
                 $faqEligibleCount++;
             }
@@ -273,6 +289,7 @@ function seoMetricsSnapshot(PDO $pdo): array {
     foreach ($files as $file) {
         if (str_contains(str_replace('\\', '/', $file), '/api/')) continue;
         if (!preg_match('/\.(html?|css|js|json|xml|txt|php|webmanifest)$/i', $file)) continue;
+        if (in_array(basename($file), ['BUILD_INFO.json', 'UPLOAD_INSTRUCTIONS.txt'], true)) continue;
         $text = (string)@file_get_contents($file);
         if (preg_match('/sabaik|سبائك|الماسة/iu', $text)) $legacyFiles[] = $file;
     }

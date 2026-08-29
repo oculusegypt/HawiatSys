@@ -268,7 +268,18 @@ function homeSeoLinksNoscript() {
 }
 
 // ── المولّد الرئيسي للصفحة ────────────────────────────────────────────────
-function renderPage({ title, description, keywords = "", canonical, ogImage, ogType = "website", schemas = [], breadcrumbs = [], bodyContent }) {
+function renderPage({
+  title,
+  description,
+  keywords = "",
+  canonical,
+  ogImage,
+  ogType = "website",
+  schemas = [],
+  breadcrumbs = [],
+  bodyContent,
+  robots = "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1",
+}) {
   // Keep canonical and social URLs absolute so crawlers do not have to infer
   // the preferred origin from a relative URL.
   const canonicalUrl = canonical || `${SITE_URL}/`;
@@ -289,7 +300,7 @@ function renderPage({ title, description, keywords = "", canonical, ogImage, ogT
   <title>${esc(title)}</title>
   <meta name="description" content="${esc(description)}" />
   ${keywords ? `<meta name="keywords" content="${esc(keywords)}" />` : ""}
-  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+  <meta name="robots" content="${esc(robots)}" />
   <meta name="language" content="Arabic" />
   <meta name="site-public-url" content="${esc(SITE_URL)}" />
   <link rel="canonical" href="${esc(canonicalUrl)}" />
@@ -853,7 +864,13 @@ function updateIndexSeo(html) {
 indexHtml = updateIndexSeo(rawIndexHtml);
 writeFileSync(join(distPublic, "index.html"), indexHtml, "utf8");
 
-function savePage(relPath, html) {
+function savePage(relPath, html, { noindex = false } = {}) {
+  if (noindex) {
+    html = html.replace(
+      /<meta\s+name="robots"\s+content="[^"]*"/i,
+      '<meta name="robots" content="noindex, follow"',
+    );
+  }
   const fullPath = join(distPublic, relPath, "index.html");
   mkdirSync(dirname(fullPath), { recursive: true });
   writeFileSync(fullPath, html, "utf8");
@@ -1287,6 +1304,30 @@ for (const c of containers) {
     }
   };
 
+  const containerFaqs = [
+    {
+      q: `ما الذي يشمله طلب ${c.name}؟`,
+      a: `يشمل الطلب تنسيق ${c.name} حسب نوع المخلفات واحتياج الموقع، مع توضيح المقاس والمدة وخطة التوصيل أو التنفيذ قبل التأكيد.`,
+    },
+    {
+      q: `كيف يتم تحديد سعر ${c.name}؟`,
+      a: `يحدد السعر وفق نوع المخلفات وحجم الخدمة وموقع المشروع ومدة التأجير أو التنفيذ، ثم يقدم فريق العمليات عرضاً واضحاً قبل البدء.`,
+    },
+    {
+      q: `هل تشمل الخدمة التوصيل والتنفيذ في الرياض؟`,
+      a: `نعم، ينسق فريق العمليات موعد التوصيل أو التنفيذ داخل أحياء الرياض، ثم يتابع السحب أو الإكمال حسب طبيعة الطلب.`,
+    },
+  ];
+  const containerFaqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": containerFaqs.map(f => ({
+      "@type": "Question",
+      "name": f.q,
+      "acceptedAnswer": { "@type": "Answer", "text": f.a },
+    })),
+  };
+
   const crumbs = [
     { name: "الرئيسية", url: SITE_URL },
     { name: "الحاويات والباقات", url: `${SITE_URL}/containers` },
@@ -1323,22 +1364,26 @@ for (const c of containers) {
           ${sitePhoneText ? `📞 للحجز والاستفسار: <strong>${esc(sitePhoneText)}</strong>` : "للحجز تواصل عبر بيانات الموقع."}
         </p>
       </div>
+      <section id="faq" style="margin-top:28px;padding:22px;background:#f8fafc;border-radius:14px;border:1px solid #e2e8f0">
+        <h2 style="font-size:20px;font-weight:800;color:#1a202c;margin:0 0 14px">الأسئلة الشائعة حول ${esc(c.name)}</h2>
+        ${containerFaqs.map(f => `<div style="margin-top:14px"><h3 style="font-size:16px;font-weight:800;color:#1e3a5f;margin:0 0 5px">${esc(f.q)}</h3><p style="font-size:15px;color:#4a5568;line-height:1.8;margin:0">${esc(f.a)}</p></div>`).join("")}
+      </section>
     </div>`;
 
   const html = renderPage({
     title, description: desc, canonical, ogImage,
     ogType: "product",
     keywords: c.seo_keywords || "",
-    schemas: [containerSchema, breadcrumbSchema(crumbs)],
+    schemas: [containerSchema, containerFaqSchema, breadcrumbSchema(crumbs)],
     breadcrumbs: crumbs,
     bodyContent
   });
 
   savePage(`containers/${slug}`, html);
   // Keep legacy paths available with the new canonical URL.
-  savePage(`container/${slug}`, html);
-  savePage(`package/${slug}`, html);
-  savePage(`packages/${slug}`, html);
+  savePage(`container/${slug}`, html, { noindex: true });
+  savePage(`package/${slug}`, html, { noindex: true });
+  savePage(`packages/${slug}`, html, { noindex: true });
 }
 console.log(`   ✅ ${containers.length} باقة نظافة`);
 
@@ -1405,6 +1450,30 @@ for (const page of seoPages) {
       دليل عملي من ${esc(siteCompanyName)} حول تأجير الحاويات ونقل الأنقاض ومخلفات البناء في الرياض.
     </div>`;
 
+  const seoPageFaqs = [
+    {
+      q: `كيف أطلب خدمة ${page.title} في الرياض؟`,
+      a: `أرسل نوع المخلفات والمقاس والموقع ومدة الاحتياج، ثم يراجع فريق العمليات التفاصيل ويرسل عرضاً واضحاً ويؤكد موعد التنفيذ.`,
+    },
+    {
+      q: `هل يمكن تحديد موعد التوصيل والسحب مسبقاً؟`,
+      a: `نعم، يتم تنسيق موعد التوصيل والسحب أو التبديل حسب العنوان ونوع المخلفات وتوفر المقاس المناسب للمشروع.`,
+    },
+    {
+      q: `كيف يتم حساب تكلفة الخدمة؟`,
+      a: `تعتمد التكلفة على نوع المخلفات وحجم الحاوية وموقع المشروع ومدة التأجير، وتوضح جميع التفاصيل قبل تأكيد الطلب.`,
+    },
+  ];
+  const seoPageFaqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": seoPageFaqs.map(f => ({
+      "@type": "Question",
+      "name": f.q,
+      "acceptedAnswer": { "@type": "Answer", "text": f.a },
+    })),
+  };
+
   const bodyContent = `
     <article>
       <figure style="margin:0 0 24px;overflow:hidden;border-radius:18px;background:#edf6f6">
@@ -1417,6 +1486,10 @@ for (const page of seoPages) {
       <div class="article-content" style="font-size:17px;line-height:1.9;color:#2d3748">
         ${sanitizeHtml(page.content)}
       </div>
+      <section id="faq" style="margin-top:32px;padding:22px;background:#f8fafc;border-radius:14px;border:1px solid #e2e8f0">
+        <h2 style="font-size:20px;font-weight:800;color:#1e3a5f;margin:0 0 14px">الأسئلة الشائعة حول ${esc(page.title)}</h2>
+        ${seoPageFaqs.map(f => `<div style="margin-top:14px"><h3 style="font-size:16px;font-weight:800;color:#1e3a5f;margin:0 0 5px">${esc(f.q)}</h3><p style="font-size:15px;color:#4a5568;line-height:1.8;margin:0">${esc(f.a)}</p></div>`).join("")}
+      </section>
       <div style="margin-top:32px;padding:20px;background:#ebf8ff;border-radius:12px;border-right:4px solid #3182ce">
         <p style="font-size:18px;font-weight:700;color:#246b70;margin:0 0 8px">اطلب عرض تأجير حاوية في الرياض</p>
         <p style="font-size:15px;color:#4a5568;margin:0 0 16px">أرسل نوع المخلفات والمقاس والموقع لتحصل على عرض واضح من فريق العمليات.</p>
@@ -1431,13 +1504,13 @@ for (const page of seoPages) {
     title, description, canonical, ogImage,
     ogType: "article",
     keywords: page.seo_keywords || page.target_keyword || "",
-    schemas: [breadcrumbSchema(crumbs)],
+    schemas: [seoPageFaqSchema, breadcrumbSchema(crumbs)],
     breadcrumbs: crumbs,
     bodyContent
   });
 
   savePage(`page/${page.slug}`, html);
-  savePage(`pages/${page.slug}`, html);
+  savePage(`pages/${page.slug}`, html, { noindex: true });
 }
 console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /pages/)`);
 
@@ -1642,7 +1715,7 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
     bodyContent
   });
   savePage("faq", html);
-  savePage("الأسئلة-الشائعة", html);
+  savePage("الأسئلة-الشائعة", html, { noindex: true });
   console.log(`   ✅ صفحة الأسئلة الشائعة /faq`);
 }
 
@@ -1684,7 +1757,7 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
     bodyContent
   });
   savePage("privacy", html);
-  savePage("سياسة-الخصوصية", html);
+  savePage("سياسة-الخصوصية", html, { noindex: true });
   console.log(`   ✅ صفحة سياسة الخصوصية /privacy`);
 }
 
@@ -1724,7 +1797,7 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
     bodyContent
   });
   savePage("terms", html);
-  savePage("الشروط-والأحكام", html);
+  savePage("الشروط-والأحكام", html, { noindex: true });
   console.log(`   ✅ صفحة الشروط والأحكام /terms`);
 }
 
@@ -1783,7 +1856,7 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
     bodyContent
   });
   savePage("contact", html);
-  savePage("اتصل-بنا", html);
+  savePage("اتصل-بنا", html, { noindex: true });
   console.log(`   ✅ صفحة اتصل بنا /contact`);
 }
 
@@ -1842,7 +1915,7 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
     bodyContent
   });
   savePage("about", html);
-  savePage("من-نحن", html);
+  savePage("من-نحن", html, { noindex: true });
   console.log(`   ✅ صفحة من نحن /about`);
 }
 
@@ -2224,7 +2297,7 @@ for (const area of NEIGHBORHOODS) {
     bodyContent,
   });
 
-  savePage(`areas/${area.slug}`, html);
+  savePage(`areas/${area.slug}`, html, { noindex: arSlug !== area.slug });
   if (arSlug !== area.slug) {
     savePage(`areas/${arSlug}`, html);
   }

@@ -26,3 +26,9 @@ Unicode filenames in sitemap and prerendered HTML are commonly percent-encoded b
 **Why:** The files can exist with Arabic names while a literal filesystem lookup of `/images/content/%D8...jpg` reports them as missing, producing a false release failure.
 
 **How to apply:** Decode URL pathnames in the SEO gate, then normalize `/api/uploads/` to `/uploads/` before checking archive files.
+
+Compatibility aliases may remain physically present in the archive, but they must be `noindex, follow`, canonicalized to the primary route, and excluded from the Sitemap. Count indexable HTML separately from total HTML.
+
+**Why:** Removing old routes breaks inbound links, while leaving duplicate aliases indexable inflates route counts and creates duplicate-content signals.
+
+**How to apply:** Apply the rule in the prerender writer for every legacy prefix and translated alias, then verify the extracted archive has no `noindex` URL in Sitemap and that indexable HTML equals the canonical URL set.

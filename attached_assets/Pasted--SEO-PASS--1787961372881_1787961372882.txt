@@ -1,0 +1,180 @@
+نفّذ المهمة بالكامل، ولا تعتبرها منتهية إلا بعد أن تصبح **كل مؤشرات صحة SEO الفعلية خضراء PASS** من مخرجات الإنتاج الحقيقية.
+
+التقرير الحالي يثبت أن هناك خللًا ونقصًا حقيقيًا، والمطلوب الآن **إصلاح الأسباب من المصدر** وليس تعديل الـmetrics أو استثناء الصفحات لإخفاء المشاكل.
+
+### الحالة الحالية التي يجب إغلاقها بالكامل
+
+* SEO HTML / Prerender: PASS — لكن يوجد 183 canonical مقابل 315 HTML، راجع التناقض وأثبت أن كل HTML عام مقصود ومولّد بطريقة صحيحة.
+* Indexable HTML Pages / Routes: PASS — 315 pages / 166 routes، راجع لماذا عدد HTML أكبر من المسارات وما إذا كانت هناك ملفات مكررة/قديمة/غير مقصودة.
+* Meta Description Coverage: WARNING — 314/315 فقط.
+* Meta Description Quality: WARNING — 302 فقط من 315 ضمن 120–160 حرفًا.
+* Canonical Coverage: WARNING — 314/315 فقط.
+* Canonical ↔ Sitemap Parity: WARNING — 166/183 فقط.
+* Sitemap Health: PASS — 166 URLs.
+* Structured Data: WARNING — 287/315 فقط.
+* FAQ / GEO Content: PASS — 157/157، لا تفسد هذا النجاح بإضافة FAQ مكررة أو مصطنعة.
+* Internal Linking: WARNING — 287/315 فقط.
+* SEO Media: WARNING — 12/24 فقط.
+* Legacy Branding: FAIL — 27 ملفًا عامًا.
+* Business Contact Consistency: PASS — حافظ عليه.
+* Site URL: WARNING — لم يتم إثبات نطاق إنتاج واحد.
+
+### المطلوب
+
+1. **Canonical**
+
+   * حدد الـ1 صفحة التي بلا canonical وأصلحها من المصدر.
+   * افحص الـ183 canonical الفعلية مقابل الـ166 Sitemap.
+   * لا تحذف URLs من sitemap لمجرد جعل النسبة 100%.
+   * لا تضف canonical وهمية.
+   * كل صفحة indexable يجب أن يكون لها canonical صحيح ومطابق لمسارها الحقيقي.
+
+2. **Sitemap ↔ Canonical Parity**
+
+   * اعمل inventory كامل للـ315 HTML.
+   * صنّف الملفات إلى:
+
+     * indexable public HTML
+     * prerender pages
+     * duplicate/generated artifacts
+     * application shells
+     * admin/internal
+     * assets أو ملفات لا ينبغي تحليلها كصفحات.
+   * أصلح سبب وجود 183 canonical مقابل 166 sitemap.
+   * يجب أن يكون الناتج النهائي متسقًا منطقيًا، وليس مجرد رفع الرقم إلى 100% باستثناء الصفحات.
+
+3. **Meta Descriptions**
+
+   * أصلح الصفحة الناقصة.
+   * أصلح جودة الـ13 وصفًا خارج 120–160.
+   * استخدم أوصافًا حقيقية مرتبطة بمحتوى كل صفحة.
+   * ممنوع تكرار description واحد على عشرات الصفحات.
+   * ممنوع حشو الكلمات المفتاحية فقط للوصول إلى عدد الحروف.
+
+4. **Structured Data**
+
+   * الـ28 صفحة التي لا تحتوي JSON-LD صالح يجب فحصها واحدة واحدة.
+   * أضف Schema مناسبًا **حسب نوع الصفحة الحقيقي**.
+   * لا تضف Schema عشوائيًا لمجرد رفع العداد.
+   * حافظ على الأنواع الصحيحة الموجودة حاليًا مثل Organization / LocalBusiness / Service / Product / FAQPage / BreadcrumbList / Article وغيرها حيث تنطبق.
+   * تحقق أن JSON-LD صالح فعليًا وقابل للتحليل.
+
+5. **Internal Linking**
+
+   * الـ28 صفحة الناقصة روابط داخلية يجب إصلاحها من محتوى الصفحة أو قالبها.
+   * الروابط يجب أن تكون حقيقية ومفيدة للمستخدم ومرتبطة بالصفحة.
+   * ممنوع إضافة روابط مخفية أو روابط dummy أو روابط متكررة فقط لإرضاء الـmetric.
+   * تأكد أن صفحات الخدمات والمناطق والصفحات التجارية مترابطة منطقيًا.
+
+6. **SEO Media**
+
+   * افحص الـ24 ملف SEO المتوقعين واحدًا واحدًا.
+   * حدد لماذا الـ12 غير مستخدمة.
+   * إذا كانت أصولًا مطلوبة فعلًا، اربطها بالصفحات المناسبة من المصدر.
+   * إذا كانت obsolete أو غير لازمة، أزلها من manifest/source بدل اعتبارها "مطلوبة".
+   * لا تستخدم fallback عشوائيًا فقط لرفع النسبة.
+   * لا تترك صورًا مكسورة أو references إلى ملفات غير موجودة.
+
+7. **Legacy Branding**
+
+   * FAIL بـ27 ملفًا يجب ألا يبقى.
+   * ابحث في **المصدر + build output + generated artifacts + PHP + JS + HTML + metadata + service worker + build info + upload instructions**.
+   * حدد كل إشارة قديمة قبل تعديلها.
+   * أصلح الاسم/المعرفات القديمة من المصدر.
+   * لا تستخدم global replace أعمى.
+   * فرّق بين branding قديم فعلي وبين identifiers تقنية لازمة للتشغيل.
+   * إذا كان الملف generated، أصلح generator وليس الملف الناتج فقط.
+   * بعد ذلك أعد build كامل وتأكد أن الإشارات القديمة لا تعود.
+
+8. **Site URL**
+
+   * يجب أن يكون هناك مصدر واحد authoritative لنطاق الإنتاج.
+   * `https://taqigroup.com` هو نطاق الإنتاج الصحيح.
+   * وحّد Node / PHP / sitemap / canonical / OpenGraph / JSON-LD / prerender / build scripts على نفس المصدر.
+   * لا تعتمد على قيمة مختلفة حسب البيئة.
+   * لا تجعل metric تقول WARNING بسبب عدم قدرتها على إثبات القيمة رغم أن build يستخدمها.
+   * يجب أن تستطيع البوابة إثبات Production URL واحد بشكل deterministic.
+
+9. **315 HTML / 166 routes**
+
+   * لا تفترض أن العدد الأعلى خطأ.
+   * افحص كل HTML فعليًا.
+   * أنشئ classification واضحة للأسباب.
+   * إذا كانت هناك ملفات HTML مولدة بلا داعٍ أو duplicates، أصلح generator.
+   * إذا كانت صفحات indexable حقيقية، يجب أن تكون لها canonical وmetadata وstructured data وinternal links حسب نوعها.
+   * الهدف ليس تقليل الرقم؛ الهدف أن يعكس inventory الحقيقي للموقع.
+
+10. **FAQ / GEO**
+
+* حافظ على PASS الحالي 157/157.
+* لا تضف FAQ عامة مكررة.
+* لا تضف FAQ إلى صفحات قانونية أو تفاعلية أو مقالات لمجرد تحسين metric.
+* أي FAQ جديدة يجب أن تكون unique ومفيدة ومناسبة لنية الصفحة.
+
+### قواعد إلزامية
+
+* لا تغيّر الأرقام يدويًا.
+* لا تخفِ الصفحات من الـmetric.
+* لا توسّع الاستثناءات فقط للحصول على PASS.
+* لا تضف محتوى SEO مصطنعًا.
+* لا تضف FAQ مكررة.
+* لا تحذف URLs من Sitemap إلا إذا أثبتت أنها غير indexable فعلًا.
+* لا تغيّر routes العامة القائمة بدون سبب موثق.
+* أصلح generators / prerender / templates / source data بدل ترقيع build output.
+* Node وPHP يجب أن يعطيا **نفس النتائج الفعلية**.
+* الـSEO dashboard يجب أن يقرأ من آخر production archive وليس من constants.
+* بعد كل إصلاح أعد بناء الإنتاج من الصفر.
+
+### التحقق النهائي الإلزامي
+
+بعد الإصلاح:
+
+1. TypeScript
+2. PHP syntax
+3. git diff --check
+4. Full Hostinger build
+5. Full prerender
+6. Sitemap generation
+7. SEO quality gate
+8. Archive extraction/integrity
+9. فحص جميع HTML الفعلية
+10. Canonical inventory
+11. Sitemap ↔ Canonical parity
+12. Meta coverage + quality
+13. Structured Data validity
+14. FAQ/GEO eligibility
+15. Internal linking
+16. SEO media references
+17. Legacy branding scan
+18. Production URL consistency
+19. Business contact consistency
+20. Node ↔ PHP metrics parity
+21. Runtime smoke test
+22. مراجعة logs وعدم وجود أخطاء جديدة
+
+### معيار الإغلاق
+
+لا تقل "تم" لمجرد أن Build نجح.
+
+المهمة لا تُغلق إلا عندما يكون التقرير النهائي:
+
+* SEO HTML / Prerender → **PASS**
+* Indexable HTML Pages / Routes → **PASS**
+* Meta Description Coverage → **PASS**
+* Meta Description Quality → **PASS**
+* Canonical Coverage → **PASS**
+* Canonical ↔ Sitemap Parity → **PASS**
+* Sitemap Health → **PASS**
+* Structured Data → **PASS**
+* FAQ / GEO Content → **PASS**
+* Internal Linking → **PASS**
+* SEO Media → **PASS**
+* Legacy Branding → **PASS**
+* Business Contact Consistency → **PASS**
+* Site URL → **PASS**
+
+والأهم: **كل PASS يجب أن يكون ناتجًا عن إصلاح فعلي قابل للإثبات من production output، وليس تعديلًا في طريقة الحساب لإخفاء الخلل.**
+
+إذا اكتشفت أثناء التنفيذ تعارضًا معماريًا، لا تتوقف لتكتب لي خطة جديدة؛ حلّه بأكثر طريقة محافظة ومتوافقة مع بنية التطبيق، ثم اختبر النتيجة.
+
+**نفّذ الآن من الحالة الحالية مباشرة، ولا تعيد إصلاح الأشياء التي أصبحت VERIFIED بالفعل. وفي النهاية أعطني فقط ملخصًا دقيقًا لما تم إصلاحه، وما الذي أثبته التحقق النهائي، وأي شيء بقي فعلًا إن وُجد.**

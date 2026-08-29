@@ -193,6 +193,21 @@ run(
 // ── 3. نسخ ملفات البناء ───────────────────────────────────────────────────────
 step("نسخ ملفات الواجهة → build_php/");
 
+// Always start the production output from a clean directory. Keeping files from
+// a previous build makes the PHP SEO scanner count stale HTML, canonical URLs,
+// images, and old branding that are no longer part of the current sitemap.
+// Keep only the temporary database snapshot until it is copied into the final
+// archive database below.
+const buildPhpDir = join(ROOT, "build_php");
+if (existsSync(buildPhpDir)) {
+  for (const entry of readdirSync(buildPhpDir)) {
+    if (entry === ".archive-source.db" || entry === ".archive-source.db-wal" || entry === ".archive-source.db-shm") continue;
+    rmSync(join(buildPhpDir, entry), { recursive: true, force: true });
+  }
+}
+mkdirSync(buildPhpDir, { recursive: true });
+console.log("  ✅ تم تنظيف ناتج Hostinger السابق مع الحفاظ على نسخة قاعدة البيانات المؤقتة");
+
 // نسخ assets/
 rmSync(join(ROOT, "build_php/assets"), { recursive: true, force: true });
 rmSync(join(ROOT, "build_php/images"), { recursive: true, force: true });
@@ -681,7 +696,9 @@ step("كتابة معلومات النسخة وتعليمات النشر");
       "1) استخرج محتويات الأرشيف مباشرة داخل public_html.",
       "2) يجب أن تكون index.html و api/ و data/ و uploads/ في جذر public_html.",
       "3) لا تترك مجلداً باسم build_php داخل public_html.",
-      "4) خذ نسخة احتياطية من data/ و uploads/ قبل الاستبدال إذا كان الموقع يعمل مسبقاً.",
+      "4) هذه حزمة استبدال كاملة وليست تحديثاً جزئياً؛ احذف ملفات الموقع العامة القديمة من public_html قبل فك الضغط حتى لا تبقى صفحات HTML أو صور أو مجلدات قديمة.",
+      "5) خذ نسخة احتياطية من data/ و uploads/ قبل الاستبدال إذا كان الموقع يعمل مسبقاً.",
+      "6) لا تدمج الحزمة فوق الملفات القديمة. بعد الرفع يجب ألا تبقى مجلدات قديمة مثل page/ أو pages/ أو container/ أو package/ إذا لم تكن موجودة في الحزمة.",
       "",
        "يشمل الأرشيف قاعدة البيانات وواجهة PHP والواجهة الرئيسية وCleanFlow Platform وجميع الأصول.",
        "يتضمن api/index.php مسار DELETE /api/admin/employees/{id} مع حماية الحساب الحالي وآخر مدير.",

@@ -39,8 +39,11 @@ function relativeProductionPath(file: string, productionRoot: string): string {
 function isFaqEligiblePage(page: HtmlPage, productionRoot: string): boolean {
   const relativePath = relativeProductionPath(page.file, productionRoot);
   return relativePath === "index.html"
-    || relativePath === "taqi-group-platform/index.html"
-    || /^(areas|containers|faq|pricing|services)\//u.test(relativePath)
+    || /^faq\/index\.html$/u.test(relativePath)
+    || /^pricing\/index\.html$/u.test(relativePath)
+    || /^areas\/[^/]+\/index\.html$/u.test(relativePath)
+    || /^containers\/[^/]+\/index\.html$/u.test(relativePath)
+    || /^services\/[^/]+\/index\.html$/u.test(relativePath)
     || /^page\/[^/]+\/index\.html$/u.test(relativePath)
     || /^pages\/[^/]+\/index\.html$/u.test(relativePath);
 }
@@ -271,7 +274,8 @@ export async function getSeoMetrics(): Promise<SeoMetricsSnapshot> {
   const publicFiles = allFiles.filter((file) =>
     TEXT_EXTENSIONS.test(file) &&
     !file.includes(`${path.sep}api${path.sep}`) &&
-    !file.includes(`${path.sep}cleanflow-platform${path.sep}`),
+    !file.includes(`${path.sep}cleanflow-platform${path.sep}`) &&
+    !["BUILD_INFO.json", "UPLOAD_INSTRUCTIONS.txt"].includes(path.basename(file)),
   );
   const legacyFiles = publicFiles.filter((file) => LEGACY_BRANDING.test(readText(file)));
   const settingsName = (await getSetting("company_name")).trim();
