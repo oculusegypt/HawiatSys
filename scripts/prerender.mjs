@@ -36,9 +36,9 @@ const SEO_DEFAULTS = {
 };
 // Keep the homepage's search-facing identity aligned with the latest
 // production archive while leaving the operational company name unchanged.
-const HOMEPAGE_SEO_TITLE = "تأجير حاويات الرياض | تأجير حاويات وتأجير الحاويات بالرياض | مؤسسة تقي جروب في الرياض | نقل الأنقاض والمخلفات والحاوية";
-const HOMEPAGE_SEO_DESCRIPTION = "تأجير حاويات — تأجير حاويات وتأجير الحاويات بالرياض من مؤسسة تقي جروب في الرياض لنقل الأنقاض والمخلفات واختيار الحاوية المناسبة.";
-const HOMEPAGE_SCHEMA_NAME = "تأجير حاويات الرياض";
+const HOMEPAGE_SEO_TITLE = "تأجير حاويات بالرياض | مؤسسة تقي جروب";
+const HOMEPAGE_SEO_DESCRIPTION = "تأجير حاويات الأنقاض والنفايات بالرياض مع التوصيل والسحب ونقل مخلفات البناء. اطلب عرضك من مؤسسة تقي جروب حسب المقاس والموقع.";
+const HOMEPAGE_SCHEMA_NAME = "تأجير حاويات بالرياض";
 // The administrator-configured public URL is the only production origin.
 const SITE_URL = requirePublicOrigin({ settings: settingMap });
 const siteCompanyName = settingMap.company_name?.trim() || SEO_DEFAULTS.companyName;
@@ -54,6 +54,26 @@ function normalizeMetaDescription(value, context = "") {
     text = `${text.slice(0, 159).replace(/\s+\S*$/u, "").trim()}…`;
   }
   return text;
+}
+
+function normalizeSeoTitle(value) {
+  const text = String(value || "").replace(/\s+/g, " ").trim();
+  if (text.length <= 65) return text;
+
+  // Preserve the brand suffix when a generated title is long, rather than
+  // cutting the title at an arbitrary point and dropping the business name.
+  const separator = text.match(/\s[|—-]\s/);
+  if (separator?.index !== undefined) {
+    const primary = text.slice(0, separator.index).trim();
+    const suffix = text.slice(separator.index + separator[0].length).trim();
+    const budget = 65 - suffix.length - 3;
+    if (budget >= 18) {
+      const shortened = primary.slice(0, budget).replace(/\s+\S*$/u, "").trim();
+      return `${shortened} | ${suffix}`;
+    }
+  }
+
+  return `${text.slice(0, 62).replace(/\s+\S*$/u, "").trim()}…`;
 }
 const siteDescription = normalizeMetaDescription(
   settingMap.site_desc,
@@ -296,7 +316,8 @@ function renderPage({
   // the preferred origin from a relative URL.
   const canonicalUrl = canonical || `${SITE_URL}/`;
   const imgUrl = ogImage || `${SITE_URL}/images/logo.png`;
-  const imgAlt   = title.replace(/\|.*/,"").trim();
+  const normalizedTitle = normalizeSeoTitle(title);
+  const imgAlt   = normalizedTitle.replace(/\|.*/,"").trim();
 
   const schemaTags = schemas.map((schema) => jsonLd(schema)).join("\n  ");
   // Analytics is loaded by the hydrated app after the first meaningful paint.
@@ -314,7 +335,7 @@ function renderPage({
     document.documentElement.classList.remove("no-js");
     document.documentElement.classList.add("js");
   </script>
-  <title>${esc(title)}</title>
+  <title>${esc(normalizedTitle)}</title>
   <meta name="description" content="${esc(description)}" />
   ${keywords ? `<meta name="keywords" content="${esc(keywords)}" />` : ""}
   <meta name="robots" content="${esc(robots)}" />
@@ -326,7 +347,7 @@ function renderPage({
   <meta property="og:type" content="${esc(ogType)}" />
   <meta property="og:locale" content="ar_SA" />
   <meta property="og:site_name" content="${esc(siteCompanyName)}" />
-  <meta property="og:title" content="${esc(title)}" />
+  <meta property="og:title" content="${esc(normalizedTitle)}" />
   <meta property="og:description" content="${esc(description)}" />
   <meta property="og:url" content="${esc(canonicalUrl)}" />
   <meta property="og:image" content="${esc(imgUrl)}" />
@@ -335,7 +356,7 @@ function renderPage({
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="${esc(title)}" />
+  <meta name="twitter:title" content="${esc(normalizedTitle)}" />
   <meta name="twitter:description" content="${esc(description)}" />
   <meta name="twitter:image" content="${esc(imgUrl)}" />
   <meta name="twitter:image:alt" content="${esc(imgAlt)}" />

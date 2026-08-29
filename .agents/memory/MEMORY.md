@@ -32,6 +32,7 @@
 - [Operational work-order boundary](operational-work-order-boundary.md) — contract/container actions must create work_order records; service_requests remain commercial intake records.
 - [SEO archive certification](seo-archive-certification.md) — certify SEO from the extracted final Hostinger archive, not only the Vite output.
 - [Prerender first-paint protection](prerender-first-paint-protection.md) — hide database snapshots immediately for JS clients while preserving them for crawlers and no-JS visitors.
+- [Hero LCP loading](hero-lcp-loading.md) — preload the first hero image and avoid rendering hidden carousel images into the initial browser queue.
 - [Blog image compatibility](blog-image-compatibility.md) — content-image migrations must preserve originals and protect every database/HTML reference during Hostinger cleanup.
 - [Hostinger legacy asset matching](hostinger-legacy-asset-matching.md) — production exclusion stems are normalized; verify the final ZIP so compatibility copies cannot reintroduce retired assets.
 - [Prerender SEO parity](prerender-seo-parity.md) — normalize metadata in static generation, not only in the runtime hook, or production HTML can ship short descriptions.
