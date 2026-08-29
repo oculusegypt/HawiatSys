@@ -16,6 +16,7 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync, rmSync } from "node
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { requirePublicOrigin } from "./public-origin.mjs";
+import { entitySlug } from "./friendly-slug.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
@@ -259,7 +260,7 @@ function homeSeoLinksNoscript() {
 
   const links = pages.map((page) => {
     const keyword = page.target_keyword || String(page.seo_keywords || "").split(/[，,]/)[0]?.trim() || "تأجير الحاويات بالرياض";
-    const href = `${SITE_URL}/page/${encodeURIComponent(page.slug)}`;
+    const href = `${SITE_URL}/page/${entitySlug({ slug: page.slug, title: page.title, id: page.id, fallback: "page" })}`;
     return `<a href="${esc(href)}" style="display:inline-block;margin:4px 6px;padding:7px 12px;border:1px solid #bee3f8;border-radius:8px;color:#1e3a5f;text-decoration:none;font-size:13px">${esc(page.title)} — ${esc(keyword)}</a>`;
   }).join("");
 
@@ -943,10 +944,10 @@ const posts = db.prepare(`
 console.log(`\n📝 إنشاء ${posts.length} صفحة مقالات...`);
 
 for (const post of posts) {
-  const slug = post.slug || post.seo_slug;
+  const slug = entitySlug({ slug: post.slug || post.seo_slug, title: post.title, id: post.id, fallback: "post" });
   if (!slug) continue;
 
-  const canonical   = `${SITE_URL}/blog/${encodeURIComponent(slug)}`;
+  const canonical   = `${SITE_URL}/blog/${slug}`;
   const title       = post.seo_title || `${post.title} | ${siteCompanyName}`;
   const description = normalizeMetaDescription(post.seo_description || post.excerpt || post.title, post.title);
   const ogImage     = post.og_image || post.cover_image || `${SITE_URL}/images/hero-1.webp`;
@@ -1047,7 +1048,7 @@ console.log(`   ✅ ${posts.length} مقالة`);
   ];
 
   const postCardsHtml = posts.slice(0, 30).map(post => {
-    const slug   = post.slug || post.seo_slug;
+    const slug   = entitySlug({ slug: post.slug || post.seo_slug, title: post.title, id: post.id, fallback: "post" });
     const img    = post.cover_image || post.og_image || "";
     const date   = (post.published_at || post.created_at || "").slice(0, 10);
     return `
@@ -1098,8 +1099,8 @@ const services = db.prepare(`
 console.log(`\n🔧 إنشاء ${services.length} صفحة خدمات...`);
 
 for (const svc of services) {
-  const slug      = svc.seo_slug;
-  const canonical = `${SITE_URL}/services/${encodeURIComponent(slug)}`;
+  const slug      = entitySlug({ slug: svc.seo_slug, title: svc.title, id: svc.id, fallback: "service" });
+  const canonical = `${SITE_URL}/services/${slug}`;
   const title     = svc.seo_title || `${svc.title} | ${siteCompanyName}`;
   const desc      = normalizeMetaDescription(svc.seo_description || svc.description, svc.title);
 
@@ -1288,8 +1289,8 @@ try {
 console.log(`\n📦 إنشاء ${containers.length} صفحة حاويات...`);
 
 for (const c of containers) {
-  const slug      = c.seo_slug;
-  const canonical = `${SITE_URL}/containers/${encodeURIComponent(slug)}`;
+  const slug      = entitySlug({ slug: c.seo_slug, title: c.name, id: c.id, fallback: "container" });
+  const canonical = `${SITE_URL}/containers/${slug}`;
   const title     = c.seo_title || `${c.name} بالرياض | ${siteCompanyName}`;
   const desc      = normalizeMetaDescription(c.seo_description || c.description, c.name);
   const ogImage   = resolveLocalImage(c.image_url, "/images/hero-1.webp");
@@ -1433,7 +1434,7 @@ saveSimplePage({
     </p>
     <ul style="margin:0;padding-right:22px;color:#334155;line-height:2">
       ${containers.map((container) => `
-        <li><a href="${esc(publicUrl(`/containers/${encodeURIComponent(container.seo_slug)}`))}" style="color:#1d4ed8;font-weight:700">${esc(container.name)}</a>${container.description ? ` — ${esc(container.description)}` : ""}</li>
+        <li><a href="${esc(publicUrl(`/containers/${entitySlug({ slug: container.seo_slug, title: container.name, id: container.id, fallback: "container" })}`))}" style="color:#1d4ed8;font-weight:700">${esc(container.name)}</a>${container.description ? ` — ${esc(container.description)}` : ""}</li>
       `).join("")}
     </ul>
     <p style="margin-top:24px;line-height:1.8">
@@ -1457,7 +1458,7 @@ console.log(`\n🔎 إنشاء ${seoPages.length} صفحة SEO...`);
 
 for (const page of seoPages) {
   if (!page.slug) continue;
-  const canonical = `${SITE_URL}/page/${encodeURIComponent(page.slug)}`;
+   const canonical = `${SITE_URL}/page/${entitySlug({ slug: page.slug, title: page.title, id: page.id, fallback: "page" })}`;
   const title = page.seo_title || `${page.title} | ${siteCompanyName}`;
   const description = normalizeMetaDescription(
     page.seo_description || page.excerpt || page.title,

@@ -31,6 +31,7 @@ import { resolveContactNumbers, useSiteSettings } from "@/context/SiteSettingsCo
 import { RIYADH_AREA_GROUPS, AREAS, ARABIC_AREA_SLUGS } from "@/pages/NeighborhoodPage"
 import { ServiceReviewsSection } from "@/components/reviews/ServiceReviewsSection"
 import { normalizeSeoDescription } from "@/lib/seoText"
+import { entitySlug } from "@/lib/friendlySlug"
 
 function normalizeSlug(value: string): string {
   return decodeURIComponent(value).trim().toLowerCase()
@@ -51,7 +52,8 @@ function findService(services: Service[], slug: string): Service | undefined {
     const sSlug = normalizeSlug(service.seoSlug || "")
     const sTitle = normalizeSlug(service.title || "")
     const sId = String(service.id)
-    return sSlug === normalized || sTitle === normalized || sId === normalized || (normalized.length > 3 && (sSlug.includes(normalized) || normalized.includes(sSlug) || sTitle.includes(normalized) || normalized.includes(sTitle)))
+    const sFriendly = entitySlug({ slug: service.seoSlug, title: service.title, id: service.id, fallback: "service" })
+    return sSlug === normalized || sFriendly === normalized || sTitle === normalized || sId === normalized || (normalized.length > 3 && (sSlug.includes(normalized) || normalized.includes(sSlug) || sTitle.includes(normalized) || normalized.includes(sTitle)))
   })
 }
 
@@ -186,7 +188,7 @@ export default function ServiceDetail() {
   const bodyText = service ? bodyDescription(service) : (companyName ? `تعرف على خدمات ${companyName} لتأجير الحاويات ونقل الأنقاض في الرياض.` : "تعرف على خدمات تأجير الحاويات ونقل الأنقاض في الرياض.")
   const metaText = service ? metaDescription(service) : (companyName ? `خدمات تأجير حاويات ونقل مخلفات احترافية في الرياض من ${companyName} بأسطول حديث 24/7.` : "خدمات تأجير حاويات ونقل مخلفات احترافية في الرياض بأسطول حديث 24/7.")
   const title = service ? (companyName ? `${service.seoTitle?.trim() || service.title} | ${companyName}` : (service.seoTitle?.trim() || service.title)) : (companyName ? `خدمات الحاويات بالرياض | ${companyName}` : "خدمات تأجير الحاويات بالرياض")
-  const canonical = siteUrl(`/services/${encodeURIComponent(slug)}`)
+  const canonical = siteUrl(`/services/${entitySlug({ slug: service?.seoSlug, title: service?.title, id: service?.id, fallback: "service" })}`)
 
   const activeIntel = (service?.seoSlug && SERVICE_INTEL[service.seoSlug]) || DEFAULT_CONTAINER_INTEL
 
@@ -495,7 +497,7 @@ export default function ServiceDetail() {
                     {services.filter(s => s.id !== service.id && s.isActive).map(s => (
                       <Link
                         key={s.id}
-                        href={`/services/${encodeURIComponent(s.seoSlug || String(s.id))}`}
+                        href={`/services/${entitySlug({ slug: s.seoSlug, title: s.title, id: s.id, fallback: "service" })}`}
                         className="block p-3 rounded-xl hover:bg-slate-50 border border-slate-100 transition group"
                       >
                         <h4 className="text-xs font-bold text-slate-800 group-hover:text-primary transition-colors flex items-center justify-between">

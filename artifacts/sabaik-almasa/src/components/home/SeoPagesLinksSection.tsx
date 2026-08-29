@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from "react"
 import { motion } from "framer-motion"
 import { ArrowLeft, BookOpen, Layers, Box } from "lucide-react"
+import { entitySlug } from "@/lib/friendlySlug"
 
 const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
 
@@ -110,7 +111,7 @@ export function SeoPagesLinksSection() {
           {filteredPages.map(page => (
             <a
               key={page.id}
-              href={`/صفحة/${encodeURIComponent(page.slug)}`}
+              href={`/page/${entitySlug({ slug: page.slug, title: page.title, id: page.id, fallback: "page" })}`}
               className="group flex items-center justify-between rounded-2xl border border-slate-200/80 bg-white p-4 text-slate-800 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-slate-50 hover:shadow-md"
             >
               <div className="min-w-0 flex items-center gap-3">

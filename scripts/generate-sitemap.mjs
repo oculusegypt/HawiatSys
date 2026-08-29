@@ -8,6 +8,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { requirePublicOrigin } from "./public-origin.mjs";
+import { entitySlug } from "./friendly-slug.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(join(root, "lib", "db", "package.json"));
@@ -75,21 +76,21 @@ const staticPages = [
 ];
 
 const services = db.prepare(`
-  SELECT title, seo_slug AS slug, images, image_url
+  SELECT id, title, seo_slug AS slug, images, image_url
   FROM services
   WHERE is_active = 1 AND seo_enabled = 1 AND seo_slug IS NOT NULL AND seo_slug != ''
   ORDER BY "order" ASC
 `).all();
 
 const packageRows = tableExists("packages") ? db.prepare(`
-  SELECT name AS title, seo_slug AS slug, images, image_url
+  SELECT id, name AS title, seo_slug AS slug, images, image_url
   FROM packages
   WHERE is_active = 1 AND seo_enabled = 1 AND seo_slug IS NOT NULL AND seo_slug != ''
   ORDER BY "order" ASC
 `).all() : [];
 
 const legacyContainerRows = tableExists("containers") ? db.prepare(`
-  SELECT name AS title, seo_slug AS slug, images, image_url
+  SELECT id, name AS title, seo_slug AS slug, images, image_url
   FROM containers
   WHERE is_active = 1 AND seo_enabled = 1 AND seo_slug IS NOT NULL AND seo_slug != ''
   ORDER BY "order" ASC
@@ -97,7 +98,7 @@ const legacyContainerRows = tableExists("containers") ? db.prepare(`
 const containers = packageRows.length ? packageRows : legacyContainerRows;
 
 const posts = db.prepare(`
-  SELECT title, slug, cover_image AS coverImage, og_image AS ogImage,
+   SELECT id, title, slug, cover_image AS coverImage, og_image AS ogImage,
          published_at AS publishedAt, updated_at AS updatedAt
   FROM posts
   WHERE status = 'published' AND is_active = 1 AND slug IS NOT NULL AND slug != ''
@@ -105,7 +106,7 @@ const posts = db.prepare(`
 `).all();
 
 const seoPages = db.prepare(`
-  SELECT title, slug, target_keyword AS targetKeyword,
+   SELECT id, title, slug, target_keyword AS targetKeyword,
          cover_image AS coverImage, og_image AS ogImage,
          published_at AS publishedAt, updated_at AS updatedAt
   FROM seo_pages
@@ -184,7 +185,7 @@ const seoPageImage = (page) => {
 
 for (const service of services) {
   addEntry({
-    path: `/services/${encodeURIComponent(service.slug)}`,
+    path: `/services/${entitySlug({ slug: service.slug, title: service.title, id: service.id, fallback: "service" })}`,
     priority: "0.95",
     changefreq: "weekly",
     title: service.title,
@@ -194,7 +195,7 @@ for (const service of services) {
 
 for (const container of containers) {
   addEntry({
-    path: `/containers/${encodeURIComponent(container.slug)}`,
+    path: `/containers/${entitySlug({ slug: container.slug, title: container.title, id: container.id, fallback: "container" })}`,
     priority: "0.90",
     changefreq: "weekly",
     title: container.title,
@@ -204,7 +205,7 @@ for (const container of containers) {
 
 for (const post of posts) {
   addEntry({
-    path: `/blog/${encodeURIComponent(post.slug)}`,
+    path: `/blog/${entitySlug({ slug: post.slug, title: post.title, id: post.id, fallback: "post" })}`,
     priority: "0.85",
     changefreq: "weekly",
     title: post.title,
@@ -215,7 +216,7 @@ for (const post of posts) {
 
 for (const page of seoPages) {
   addEntry({
-    path: `/page/${encodeURIComponent(page.slug)}`,
+    path: `/page/${entitySlug({ slug: page.slug, title: page.title, id: page.id, fallback: "page" })}`,
     priority: "0.88",
     changefreq: "weekly",
     title: page.title,

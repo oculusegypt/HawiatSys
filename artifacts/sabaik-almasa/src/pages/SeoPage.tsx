@@ -4,6 +4,7 @@ import { Navbar } from "@/components/layout/Navbar"
 import { Footer } from "@/components/layout/Footer"
 import { useServiceRequest } from "@/context/ServiceRequestContext"
 import { normalizeCompanyText, useSiteSettings } from "@/context/SiteSettingsContext"
+import { entitySlug } from "@/lib/friendlySlug"
 import { seoImageAlt, seoImageForPath } from "@/lib/seoMedia"
 import { getSiteUrl, sitePath, siteUrl } from "@/lib/siteUrl"
 import {
@@ -151,7 +152,7 @@ export default function SeoPage() {
 
         const title = resolvedData.seoTitle || resolvedData.title
         const description = resolvedData.seoDescription || resolvedData.excerpt
-        const canonical = siteUrl(sitePath(resolvedData.canonicalUrl || window.location.pathname))
+         const canonical = siteUrl(`/page/${entitySlug({ slug: resolvedData.slug, title: resolvedData.title, id: resolvedData.id, fallback: "page" })}`)
         const image = toAbsoluteAsset(resolvedData.ogImage || resolvedData.coverImage) || siteUrl(seoImageForPath(`/page/${resolvedData.slug}`))
         const resolvedTitle = normalizeCompanyText(`${title} | ${companyName || "الشركة"}`)
         document.title = resolvedTitle

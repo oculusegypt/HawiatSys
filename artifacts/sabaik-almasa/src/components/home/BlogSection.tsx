@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { Link } from "wouter"
 import { ArrowLeft, Calendar, Clock, BookOpen, Tag } from "lucide-react"
 import { useSiteSettings } from "@/context/SiteSettingsContext"
+import { entitySlug } from "@/lib/friendlySlug"
 
 const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
 
@@ -86,7 +87,7 @@ export function BlogSection() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {posts.map((post, i) => (
-              <Link key={post.id} href={`/blog/${encodeURIComponent(post.slug)}`}>
+              <Link key={post.id} href={`/blog/${entitySlug({ slug: post.slug, title: post.title, id: post.id, fallback: "post" })}`}>
                 <article className={`bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer group ${i === 0 ? "md:col-span-1" : ""}`}>
                   {/* Cover */}
                   <div className="relative aspect-[16/10] min-h-56 bg-gradient-to-br from-primary/10 to-secondary/10 overflow-hidden">

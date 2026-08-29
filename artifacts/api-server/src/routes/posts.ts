@@ -5,6 +5,7 @@ import { eq, asc, desc, and, like } from "drizzle-orm";
 import { getSetting } from "./settings";
 import { replaceLegacyCompanyName } from "../lib/companyName";
 import { requireAdmin, requireSectionPermission } from "../middleware/adminAuth";
+import { entitySlug } from "../lib/friendlySlug";
 
 const router = Router();
 
@@ -144,14 +145,19 @@ router.get("/posts/:slug", async (req, res) => {
     const rows = await db
       .select()
       .from(postsTable)
-      .where(and(eq(postsTable.slug, req.params.slug), eq(postsTable.status, "published"), eq(postsTable.isActive, true)));
-    if (!rows.length) return res.status(404).json({ error: "Not found" });
+      .where(and(eq(postsTable.status, "published"), eq(postsTable.isActive, true)));
+    const requestedSlug = decodeURIComponent(req.params.slug).trim().toLowerCase();
+    const row = rows.find(candidate =>
+      candidate.slug.toLowerCase() === requestedSlug
+      || entitySlug({ slug: candidate.slug, title: candidate.title, id: candidate.id, fallback: "post" }) === requestedSlug
+    );
+    if (!row) return res.status(404).json({ error: "Not found" });
     // increment view count
     try {
       const client = (db as any).$client;
-      client.prepare("UPDATE posts SET view_count = view_count + 1 WHERE slug = ?").run(req.params.slug);
+      client.prepare("UPDATE posts SET view_count = view_count + 1 WHERE id = ?").run(row.id);
     } catch {}
-    return res.json(castRow(rows[0], await getSetting("company_name")));
+    return res.json(castRow(row, await getSetting("company_name")));
   } catch (e) {
     return res.status(500).json({ error: String(e) });
   }

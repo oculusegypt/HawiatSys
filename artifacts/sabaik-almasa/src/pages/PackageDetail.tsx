@@ -11,6 +11,7 @@ import { useServiceRequest } from "@/context/ServiceRequestContext"
 import { resolveServiceTypeFromContainer, getContainerImage, ARABIC_CATEGORY_NAMES } from "@/components/home/packages/PackageCard"
 import { siteUrl } from "@/lib/siteUrl"
 import { resolveContactNumbers, useSiteSettings } from "@/context/SiteSettingsContext"
+import { entitySlug } from "@/lib/friendlySlug"
 
 /** Convert container name+size to a URL slug (mirrors the old site's pattern) */
 function toSlug(text: string): string {
@@ -27,8 +28,10 @@ function findContainer(containers: Container[], slug: string): Container | undef
     const sizePart  = c.size ? toSlug(c.size).toLowerCase() : ""
     const combined  = toSlug(`${c.name}-${c.size}`).toLowerCase()
     const seoPart   = c.seoSlug ? toSlug(c.seoSlug).toLowerCase() : ""
+    const friendlyPart = entitySlug({ slug: c.seoSlug, title: c.name, id: c.id, fallback: "container" })
     return (
       s === String(c.id).toLowerCase() ||
+      s === friendlyPart.toLowerCase() ||
       (seoPart && s === seoPart) ||
       s === namePart ||
       s === sizePart ||
@@ -65,7 +68,7 @@ export default function PackageDetail() {
       ? `${container.name}${container.size ? ` ${container.size}` : ""} | تأجير حاويات بالرياض`
       : "تفاصيل الباقة — خدمات التنظيف",
     description: container?.description ?? "تفاصيل وأسعار باقات تنظيف المنازل والفلل بالرياض.",
-    canonical: siteUrl(`/containers/${encodeURIComponent(slug)}`),
+    canonical: siteUrl(`/containers/${entitySlug({ slug: container?.seoSlug, title: container?.name, id: container?.id, fallback: "container" })}`),
     ogImage: container ? getContainerImage(container) : "/images/seo/taqi-containers.jpg",
     ogImageAlt: container ? `${container.name} لتأجير الحاويات بالرياض` : "حاويات للإيجار بالرياض",
   })

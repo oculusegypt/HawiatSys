@@ -4,6 +4,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { getSetting } from "./settings";
 import { replaceLegacyCompanyName } from "../lib/companyName";
 import { requireAdmin, requireSectionPermission } from "../middleware/adminAuth";
+import { entitySlug } from "../lib/friendlySlug";
 
 const router = Router();
 
@@ -67,15 +68,20 @@ router.get("/pages/:slug", async (req, res) => {
     const rows = await db
       .select()
       .from(seoPagesTable)
-      .where(and(eq(seoPagesTable.slug, req.params.slug), publicFilter));
-    if (!rows.length) return res.status(404).json({ error: "Not found" });
+      .where(publicFilter);
+    const requestedSlug = decodeURIComponent(req.params.slug).trim().toLowerCase();
+    const row = rows.find(candidate =>
+      candidate.slug.toLowerCase() === requestedSlug
+      || entitySlug({ slug: candidate.slug, title: candidate.title, id: candidate.id, fallback: "page" }) === requestedSlug
+    );
+    if (!row) return res.status(404).json({ error: "Not found" });
 
     try {
       const client = (db as any).$client;
-      client.prepare("UPDATE seo_pages SET view_count = view_count + 1 WHERE id = ?").run(rows[0].id);
+      client.prepare("UPDATE seo_pages SET view_count = view_count + 1 WHERE id = ?").run(row.id);
     } catch {}
 
-    return res.json(castRow(rows[0], await getSetting("company_name")));
+    return res.json(castRow(row, await getSetting("company_name")));
   } catch (error) {
     return res.status(500).json({ error: String(error) });
   }

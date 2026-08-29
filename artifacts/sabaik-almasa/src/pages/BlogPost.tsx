@@ -13,6 +13,7 @@ import { getSiteUrl, sitePath, siteUrl } from "@/lib/siteUrl"
 import { normalizeCompanyText, useSiteSettings } from "@/context/SiteSettingsContext"
 import { useGetContainers } from "@workspace/api-client-react"
 import type { Container } from "@workspace/api-client-react"
+import { entitySlug } from "@/lib/friendlySlug"
 
 const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
 interface Post {
@@ -182,7 +183,7 @@ function RelatedPosts({ category, currentSlug }: { category: string; currentSlug
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {posts.map(p => (
-          <Link key={p.id} href={`/blog/${encodeURIComponent(p.slug)}`}>
+          <Link key={p.id} href={`/blog/${entitySlug({ slug: p.slug, title: p.title, id: p.id, fallback: "post" })}`}>
             <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md hover:border-primary/20 transition-all group cursor-pointer">
               {p.coverImage && (
                 <div className="h-36 overflow-hidden">
@@ -239,7 +240,7 @@ export default function BlogPost() {
         setLoading(false)
 
         // ── Inject SEO meta tags ──────────────────────────────────────────
-        const canonical = siteUrl(sitePath(d.canonicalUrl || `/blog/${d.slug}`))
+        const canonical = siteUrl(`/blog/${entitySlug({ slug: d.slug, title: d.title, id: d.id, fallback: "post" })}`)
         const ogImg     = siteUrl(sitePath(d.ogImage || d.coverImage || "/logo.webp"))
         const title     = d.seoTitle || d.title
         const desc      = d.seoDescription || d.excerpt
@@ -374,7 +375,7 @@ export default function BlogPost() {
     </div>
   )
 
-  const postUrl = siteUrl(`/blog/${post.slug}`)
+  const postUrl = siteUrl(`/blog/${entitySlug({ slug: post.slug, title: post.title, id: post.id, fallback: "post" })}`)
   const resolvedPost = {
     ...post,
     title: normalizeCompanyText(post.title),
