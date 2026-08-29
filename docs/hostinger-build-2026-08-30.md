@@ -166,5 +166,65 @@ SITE_URL=https://taqigroup.com node scripts/build-hostinger.mjs
 pnpm run typecheck
 SITE_URL=https://taqigroup.com pnpm --filter @workspace/scripts run seo-quality-gate
 pnpm --filter @workspace/scripts run validate:operational
+node scripts/test-php-api.mjs
 unzip -t taqi-group-hostinger.zip
 ```
+
+## تحديث لاحق: إصلاح 404 لصفحات SEO
+
+### سبب الخطأ
+
+الروابط العامة التي يولدها الموقع تستخدم convention موحدًا من نوع:
+
+```text
+/page/<slug>-<id>
+/pages/<slug>-<id>
+```
+
+مثل:
+
+```text
+/pages/حاويات-مخلفات-البناء-والأنقاض-بالرياض-2
+```
+
+كانت طبقة PHP في النسخة المنشورة تبحث عن `slug` المخزن حرفيًا فقط، أو عن تطابق جزئي، ولا تحسب alias الناتج من `slug + id`. لذلك كان طلب `GET /api/pages/<slug>-<id>` يعيد 404 رغم أن السجل موجود في SQLite. الترميز العربي في الرابط لم يكن سبب المشكلة.
+
+### الإصلاح
+
+- تم توحيد مطابقة PHP مع منطق `entitySlug` المستخدم في Node وReact.
+- المسار الآن يقبل:
+  - `slug` المخزن.
+  - `seo_slug` المخزن.
+  - alias العام الناتج من `slug` أو `seo_slug` مع رقم السجل.
+- بقيت المطابقة مقيدة بالصفحات المنشورة والنشطة فقط.
+- تم تحويل `scripts/test-php-api.mjs` إلى اختبار فعلي لجميع صفحات SEO المنشورة، باستخدام alias العام لكل سجل بدل اختبار إداري غير موثّق.
+
+### إثبات الإصلاح
+
+- الرابط الوارد في بلاغ الخطأ، المنتهي بـ`-2`، أعاد HTTP 200 وبيانات الصفحة الصحيحة من `build_php/api/index.php`.
+- اختبار PHP الشامل: **PASS (15/15)**.
+- فحص الصياغة لنسخة المصدر ونسخة الأرشيف: **PASS**.
+- بوابة SEO بعد إعادة البناء: **PASS**.
+- الأرشيف الجديد يتضمن الإصلاح داخل `api/index.php`، ولذلك يجب رفعه كحزمة كاملة بدل تعديل ملف PHP منفردًا.
+
+### بيانات الحزمة بعد الإصلاح
+
+- الحجم: `38,351,967` بايت.
+- SHA-256:
+
+  ```text
+  938b6c1599614474f3a3532cf5444abacb8c84127b4dbb705e529fc67b6d72a4
+  ```
+
+- `taqi-group-hostinger.zip` و`cleanflow-services-hostinger.zip` متطابقان.
+
+### المطلوب على Hostinger
+
+ارفع الحزمة الجديدة واستخرجها مباشرة داخل `public_html` بعد أخذ نسخة احتياطية، ولا تكتفِ باستبدال ملفات HTML. يجب أن يصل الإصلاح إلى:
+
+```text
+public_html/api/index.php
+public_html/data/sabaik.db
+```
+
+بعد الرفع أعد فتح أحد روابط `/page/...-id` أو `/pages/...-id` في نافذة خاصة، وتحقق من أن طلب `/api/pages/...-id` يعيد JSON للصفحة بدل 404.

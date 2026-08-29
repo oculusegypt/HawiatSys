@@ -2987,9 +2987,36 @@ try {
         $slug = urldecode($rawSlug);
         $slugClean = trim($slug, '/');
 
-        $stmt = $pdo->prepare("SELECT * FROM seo_pages WHERE (slug = :s OR seo_slug = :s OR slug = :raw OR seo_slug = :raw) AND status = 'published' AND is_active = 1 LIMIT 1");
-        $stmt->execute([':s' => $slugClean, ':raw' => $rawSlug]);
-        $p = $stmt->fetch();
+        // Public SEO links use the same entitySlug convention as the Node
+        // frontend: the Arabic base slug followed by the record id
+        // (for example: حاويات-الأنقاض-بالرياض-2). Match that generated
+        // alias as well as the stored slug so Hostinger serves the exact URLs
+        // emitted by prerender and by the React page.
+        $stmt = $pdo->query("SELECT * FROM seo_pages WHERE status = 'published' AND is_active = 1 ORDER BY id ASC");
+        $p = null;
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $candidate) {
+            $candidateSlugs = [
+                (string)($candidate['slug'] ?? ''),
+                (string)($candidate['seo_slug'] ?? ''),
+            ];
+            $candidateSlugs = array_values(array_filter($candidateSlugs, static fn(string $value): bool => trim($value) !== ''));
+            $candidateAliases = [];
+            foreach ($candidateSlugs as $candidateSlug) {
+                $candidateAliases[] = $candidateSlug;
+                $candidateAliases[] = publicEntitySlug(
+                    $candidateSlug,
+                    (string)($candidate['title'] ?? ''),
+                    $candidate['id'] ?? null,
+                    'page',
+                );
+            }
+            foreach (array_unique($candidateAliases) as $candidateAlias) {
+                if ($candidateAlias === $slugClean || $candidateAlias === $rawSlug || strcasecmp($candidateAlias, $slugClean) === 0) {
+                    $p = $candidate;
+                    break 2;
+                }
+            }
+        }
 
         if (!$p) {
             $stmt = $pdo->prepare("SELECT * FROM seo_pages WHERE (slug LIKE :like OR seo_slug LIKE :like) AND status = 'published' AND is_active = 1 LIMIT 1");
