@@ -3,9 +3,8 @@ import { Route, Switch, Router as WouterRouter, useLocation } from 'wouter';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { ServiceRequestProvider } from '@/context/ServiceRequestContext';
+import { ServiceRequestProvider, useServiceRequest } from '@/context/ServiceRequestContext';
 import { SiteSettingsProvider, useSiteSettings } from '@/context/SiteSettingsContext';
-import { ServiceRequestModal } from '@/components/home/ServiceRequestModal';
 import { MarketingBadge } from '@/components/layout/MarketingBadge';
 import { FloatingContactButtons } from '@/components/layout/FloatingContactButtons';
 import { ScrollToTop } from "@/components/common/ScrollToTop";
@@ -29,6 +28,7 @@ const AdminLogin = lazy(() => import('@/pages/admin/Login'));
 const RequestPrint = lazy(() => import('@/pages/admin/RequestPrint'));
 const AdminRoutes = lazy(() => import('@/routes/AdminRoutes').then(m => ({ default: m.AdminRoutes })));
 const PublicRoutes = lazy(() => import('@/routes/PublicRoutes').then(m => ({ default: m.PublicRoutes })));
+const ServiceRequestModal = lazy(() => import('@/components/home/ServiceRequestModal').then(m => ({ default: m.ServiceRequestModal })));
 
 function Router() {
   return (
@@ -63,6 +63,18 @@ function SettingsErrorShell({ onRetry }: { onRetry: () => void }) {
   )
 }
 
+function DeferredServiceRequestModal() {
+  const { isOpen } = useServiceRequest()
+
+  if (!isOpen) return null
+
+  return (
+    <Suspense fallback={null}>
+      <ServiceRequestModal />
+    </Suspense>
+  )
+}
+
 function SettingsBootstrap() {
   const [location] = useLocation()
   const { isLoaded, isError, reload } = useSiteSettings()
@@ -91,7 +103,7 @@ function SettingsBootstrap() {
       <Router />
       <FloatingContactButtons />
       <MarketingBadge />
-      <ServiceRequestModal />
+      <DeferredServiceRequestModal />
       <Toaster />
     </>
   )
