@@ -69,7 +69,7 @@ export function Navbar() {
             {/* Logo */}
             <Link href="/" className="flex items-center gap-2 shrink-0 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2">
               {isLoaded && logoUrl ? (
-                <img src={logoUrl} alt={companyName || "تأجير حاويات بالرياض"} className="h-10 md:h-12 w-auto object-contain" />
+                <img src={logoUrl} alt={companyName || "تأجير حاويات بالرياض"} width={220} height={80} className="h-10 md:h-12 w-auto object-contain" />
               ) : (
                 <span className="font-extrabold text-primary text-lg md:text-xl">
                   {companyName || "تأجير الحاويات"}
@@ -160,7 +160,7 @@ export function Navbar() {
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-[#e7dccb]">
           {isLoaded && logoUrl ? (
-            <img src={logoUrl} alt={companyName || "تأجير حاويات بالرياض"} className="h-10 w-auto" />
+            <img src={logoUrl} alt={companyName || "تأجير حاويات بالرياض"} width={220} height={80} className="h-10 w-auto" />
           ) : (
             <span className="font-bold text-primary text-base">{companyName || "تأجير الحاويات"}</span>
           )}

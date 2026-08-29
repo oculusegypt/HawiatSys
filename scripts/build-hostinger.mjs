@@ -668,6 +668,47 @@ writeFileSync(join(ROOT, "build_php/.htaccess"), `DirectoryIndex index.html inde
   # SPA fallback — everything else loads index.html
   RewriteRule ^  index.html  [L]
 </IfModule>
+
+# Compress text responses on Apache where the hosting plan exposes the module.
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/plain text/html text/xml text/css
+  AddOutputFilterByType DEFLATE application/javascript application/x-javascript application/json
+  AddOutputFilterByType DEFLATE application/xml image/svg+xml
+</IfModule>
+
+# Brotli is preferred when available; mod_deflate remains the fallback.
+<IfModule mod_brotli.c>
+  AddOutputFilterByType BROTLI_COMPRESS text/plain text/html text/xml text/css
+  AddOutputFilterByType BROTLI_COMPRESS application/javascript application/json application/xml image/svg+xml
+</IfModule>
+
+# Vite assets are content-hashed and can be cached for a year. Documents and
+# manifests stay short-lived so publishing new content never requires a cache purge.
+<IfModule mod_headers.c>
+  Header append Vary Accept-Encoding
+  Header set X-Content-Type-Options "nosniff"
+  <FilesMatch "\\.(?:css|js|mjs|map|webp|avif|jpe?g|png|gif|svg|ico|woff2?)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+  <FilesMatch "\\.(?:html|xml|txt|json|webmanifest)$">
+    Header set Cache-Control "public, max-age=300, must-revalidate"
+  </FilesMatch>
+  <Files "sw.js">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </Files>
+</IfModule>
+
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType text/css "access plus 1 year"
+  ExpiresByType application/javascript "access plus 1 year"
+  ExpiresByType image/webp "access plus 1 year"
+  ExpiresByType image/avif "access plus 1 year"
+  ExpiresByType image/svg+xml "access plus 1 year"
+  ExpiresByType image/png "access plus 1 year"
+  ExpiresByType image/jpeg "access plus 1 year"
+  ExpiresByType font/woff2 "access plus 1 year"
+</IfModule>
 `);
 
 writeFileSync(join(ROOT, "build_php/api/.htaccess"), `DirectoryIndex index.php

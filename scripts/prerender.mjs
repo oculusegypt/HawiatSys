@@ -352,10 +352,11 @@ function renderPage({
   <!-- Schema.org JSON-LD — emitted with the configured public origin -->
   ${schemaTags}
 
-  <!-- Fonts -->
+  <!-- Fonts: load after the first paint; the system fallback keeps the page readable immediately. -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet" /></noscript>
   <!-- App assets -->
   ${leafletCss}
   ${preloads.join("\n  ")}

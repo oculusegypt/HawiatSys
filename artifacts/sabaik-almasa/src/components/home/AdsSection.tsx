@@ -70,6 +70,10 @@ function ImageAd({ ad }: { ad: Ad }) {
         src={ad.imageUrl}
         alt=""
         className="block w-full h-auto object-contain transition-transform duration-500 group-hover:scale-[1.01]"
+        width={1200}
+        height={630}
+        loading="lazy"
+        decoding="async"
       />
     </Wrapper>
   )

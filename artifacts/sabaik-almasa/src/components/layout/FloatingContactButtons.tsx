@@ -1,6 +1,5 @@
 import React, { lazy, Suspense, useEffect, useState } from "react"
 import { useLocation } from "wouter"
-import { motion } from "framer-motion"
 import { Phone, MessageCircle } from "lucide-react"
 import { FaWhatsapp } from "react-icons/fa"
 import { useSiteSettings, resolveContactNumbers } from "@/context/SiteSettingsContext"
@@ -52,14 +51,10 @@ export function FloatingContactButtons() {
       {/* Floating Call & WhatsApp on the Right side */}
       <div className="fixed bottom-6 right-4 sm:right-6 z-40 flex flex-col gap-3 items-end">
         {/* Call Button */}
-        {call && <motion.a
+        {call && <a
           href={callHref}
-          initial={{ opacity: 0, scale: 0.8, x: 20 }}
-          animate={{ opacity: 1, scale: 1, x: 0 }}
-          transition={{ duration: 0.4, delay: 0.2 }}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.95 }}
-          className="group relative flex items-center justify-center w-13 h-13 sm:w-14 sm:h-14 bg-primary text-white rounded-full shadow-2xl hover:bg-primary/90 transition-all shadow-primary/30"
+          style={{ animationDelay: "200ms" }}
+          className="floating-contact-enter group relative flex items-center justify-center w-13 h-13 sm:w-14 sm:h-14 bg-primary text-white rounded-full shadow-2xl hover:bg-primary/90 hover:scale-110 active:scale-95 transition-all shadow-primary/30"
           title={`اتصال مباشر: ${call}`}
           aria-label="اتصال فوري"
         >
@@ -67,19 +62,15 @@ export function FloatingContactButtons() {
           <span className="hidden group-hover:block absolute right-16 bg-slate-900 text-white text-xs font-bold px-3 py-1.5 rounded-lg whitespace-nowrap shadow-lg transition-opacity pointer-events-none">
             اتصال هاتفي سريع
           </span>
-        </motion.a>}
+        </a>}
 
         {/* WhatsApp Button */}
-        {whatsapp && <motion.a
+        {whatsapp && <a
           href={waHref}
           target="_blank"
           rel="noopener noreferrer"
-          initial={{ opacity: 0, scale: 0.8, x: 20 }}
-          animate={{ opacity: 1, scale: 1, x: 0 }}
-          transition={{ duration: 0.4, delay: 0.1 }}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.95 }}
-          className="group relative flex items-center justify-center w-13 h-13 sm:w-14 sm:h-14 bg-emerald-500 text-white rounded-full shadow-2xl hover:bg-emerald-600 transition-all shadow-emerald-500/30"
+          style={{ animationDelay: "100ms" }}
+          className="floating-contact-enter group relative flex items-center justify-center w-13 h-13 sm:w-14 sm:h-14 bg-emerald-500 text-white rounded-full shadow-2xl hover:bg-emerald-600 hover:scale-110 active:scale-95 transition-all shadow-emerald-500/30"
           title={`تواصل عبر واتساب: ${whatsapp}`}
           aria-label="محادثة واتساب"
         >
@@ -88,7 +79,7 @@ export function FloatingContactButtons() {
           <span className="hidden group-hover:block absolute right-16 bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg whitespace-nowrap shadow-lg transition-opacity pointer-events-none">
             تواصل عبر واتساب
           </span>
-        </motion.a>}
+        </a>}
       </div>
 
       {/* AI Assistant & Live Chat Widget on the Left side */}

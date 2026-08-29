@@ -419,6 +419,21 @@ section[id] {
     linear-gradient(135deg, #12384b, #1f6370);
 }
 
+@keyframes floating-contact-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(20px, 0, 0) scale(.8);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+.floating-contact-enter {
+  animation: floating-contact-enter .4s ease-out both;
+}
+
 .hero-slide-overlay {
   background:
     radial-gradient(

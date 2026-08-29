@@ -15,7 +15,10 @@ echo $output . "\\n";
 
 fs.writeFileSync("scripts/temp_sitemap_test.php", phpScript);
 try {
-  const res = execSync("php scripts/temp_sitemap_test.php", { cwd: "e:/Hawiat", encoding: "utf8" });
+  const res = execSync("php scripts/temp_sitemap_test.php", {
+    cwd: process.cwd(),
+    encoding: "utf8",
+  });
   console.log(res);
 } finally {
   fs.unlinkSync("scripts/temp_sitemap_test.php");

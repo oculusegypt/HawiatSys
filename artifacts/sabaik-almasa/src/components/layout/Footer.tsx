@@ -35,7 +35,7 @@ export function Footer() {
 
           <div className="space-y-4">
             {siteSettings.isLoaded && siteSettings.logoUrl ? (
-              <img src={siteSettings.logoUrl} alt={`شعار ${siteSettings.companyName}`} className="h-16 w-auto mb-4 object-contain" />
+              <img src={siteSettings.logoUrl} alt={`شعار ${siteSettings.companyName}`} width={220} height={80} className="h-16 w-auto mb-4 object-contain" />
             ) : (
               <h3 className="text-2xl font-bold text-white mb-4">{siteSettings.companyName || "تأجير الحاويات بالرياض"}</h3>
             )}

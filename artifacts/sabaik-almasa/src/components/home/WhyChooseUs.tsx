@@ -40,6 +40,10 @@ export function WhyChooseUs() {
                 src={imageUrl}
                 alt={titleHighlight}
                 className="w-full h-full object-cover"
+                width={960}
+                height={720}
+                loading="lazy"
+                decoding="async"
               />
               <div className="absolute top-8 right-8 bg-white p-4 rounded-xl shadow-xl flex items-center gap-4">
                 <div className="w-12 h-12 bg-secondary/20 rounded-full flex items-center justify-center text-secondary">

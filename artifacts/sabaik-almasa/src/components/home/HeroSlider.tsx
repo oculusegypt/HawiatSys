@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react"
-import { motion } from "framer-motion"
 import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react"
 import { useGetSlides } from "@workspace/api-client-react"
 import { useServiceRequest } from "@/context/ServiceRequestContext"
@@ -146,11 +145,12 @@ export function HeroSlider() {
                   <span className="text-secondary font-medium tracking-wider text-sm md:text-base">{resolvedCompany}</span>
                 </div>
               )}
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: index === currentIndex ? 1 : 0, y: index === currentIndex ? 0 : 30 }}
-                transition={{ duration: 0.8, delay: 0.2 }}
-                className={`hero-slide-content hero-content absolute inset-x-4 top-1/2 max-w-4xl mx-auto -translate-y-1/2 ${centeredCta ? "flex flex-col items-center" : ""}`}
+              <div
+                className={`hero-slide-content hero-content absolute inset-x-4 top-1/2 max-w-4xl mx-auto transition-[opacity,transform] duration-700 ease-out ${
+                  index === currentIndex
+                    ? "translate-y-[-50%] opacity-100"
+                    : "translate-y-[calc(-50%+30px)] opacity-0 pointer-events-none"
+                } ${centeredCta ? "flex flex-col items-center" : ""}`}
               >
                 {/* Only the active slide gets h1 */}
                 {index === 0 ? (
@@ -175,13 +175,12 @@ export function HeroSlider() {
                     {slide.ctaText}
                   </button>
                 )}
-              </motion.div>
+              </div>
               {heroCtaVisible && slide.ctaText && !centeredCta && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: index === currentIndex ? 1 : 0, scale: index === currentIndex ? 1 : 0.9 }}
-                  transition={{ duration: 0.5, delay: 0.6 }}
-                  className={`absolute z-30 flex gap-4 flex-wrap ${positionClasses(heroCtaPosition)}`}
+                <div
+                  className={`absolute z-30 flex gap-4 flex-wrap transition-[opacity,transform] duration-500 ease-out ${
+                    index === currentIndex ? "scale-100 opacity-100" : "scale-90 opacity-0 pointer-events-none"
+                  } ${positionClasses(heroCtaPosition)}`}
                 >
                   <button
                     onClick={() => openModal()}
@@ -189,7 +188,7 @@ export function HeroSlider() {
                   >
                     {slide.ctaText}
                   </button>
-                </motion.div>
+                </div>
               )}
             </div>
           </div>
