@@ -372,6 +372,13 @@ function renderPage({
   <!-- React mounts here — replaces loading indicator with full styled app -->
   <div id="root"><div class="app-loading-shell" aria-live="polite"><div class="app-loading-spinner" aria-hidden="true"></div><p>جاري التحميل...</p></div></div>
 
+  <script>
+    // The static snapshot is for no-JS crawlers. Once JavaScript is active,
+    // remove it before React paints so headings and copy are not duplicated.
+    if (document.documentElement.classList.contains("js")) {
+      document.getElementById("seo-static-page-content")?.remove();
+    }
+  </script>
   <script type="module" crossorigin src="${esc(jsHref)}"></script>
 </body>
 </html>`;
@@ -819,6 +826,38 @@ function generateHomepageStaticContent() {
           ${internalLinks.map(([href, label]) => `<a href="${href}" style="display:inline-block;border:1px solid #d2e2e6;border-radius:10px;padding:9px 13px;color:#246b70;text-decoration:none;font-weight:700;font-size:14px">${esc(label)}</a>`).join("")}
         </div>
       </section>
+      <section id="faq" style="border-top:1px solid #e5eef1;margin-top:32px;padding-top:30px">
+        <h2 style="margin:0 0 10px;color:#12384b;font-size:26px;font-weight:900">الأسئلة الشائعة حول تأجير الحاويات بالرياض</h2>
+        <p style="margin:0 0 20px;color:#52707c;font-size:16px">إجابات مباشرة حول المقاسات والتسعير والتوصيل والسحب داخل الرياض.</p>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div style="padding:16px 18px;background:#f8fafc;border:1px solid #dbe7ec;border-radius:12px">
+            <h3 style="margin:0 0 6px;color:#12384b;font-size:16px">ما المقاس المناسب لحاوية مخلفات البناء في الرياض؟</h3>
+            <p style="margin:0;color:#52707c;font-size:15px;line-height:1.8">يعتمد المقاس على كمية المخلفات ومساحة المشروع ونوع العمل. نساعدك في اختيار الحاوية المناسبة لأعمال الترميم أو البناء أو الهدم قبل التوصيل.</p>
+          </div>
+          <div style="padding:16px 18px;background:#f8fafc;border:1px solid #dbe7ec;border-radius:12px">
+            <h3 style="margin:0 0 6px;color:#12384b;font-size:16px">كيف يتم تحديد سعر تأجير الحاوية بالرياض؟</h3>
+            <p style="margin:0;color:#52707c;font-size:15px;line-height:1.8">يتحدد العرض حسب حجم الحاوية ونوع المخلفات وموقع المشروع ومدة التأجير، مع توضيح تكلفة التوصيل والسحب أو التبديل قبل تأكيد الطلب.</p>
+          </div>
+          <div style="padding:16px 18px;background:#f8fafc;border:1px solid #dbe7ec;border-radius:12px">
+            <h3 style="margin:0 0 6px;color:#12384b;font-size:16px">هل تشمل الخدمة توصيل الحاوية وسحبها؟</h3>
+            <p style="margin:0;color:#52707c;font-size:15px;line-height:1.8">نعم، ننسق موعد توصيل الحاوية إلى موقعك ثم سحبها أو تبديلها عند الامتلاء أو انتهاء مدة التأجير حسب احتياج المشروع.</p>
+          </div>
+          <div style="padding:16px 18px;background:#f8fafc;border:1px solid #dbe7ec;border-radius:12px">
+            <h3 style="margin:0 0 6px;color:#12384b;font-size:16px">هل توفرون حاويات أنقاض ونفايات لجميع أحياء الرياض؟</h3>
+            <p style="margin:0;color:#52707c;font-size:15px;line-height:1.8">نخدم شمال وشرق وغرب وجنوب ووسط الرياض، ونؤكد التغطية والموعد بعد استلام العنوان ونوع المخلفات والمقاس المطلوب.</p>
+          </div>
+        </div>
+      </section>
+      ${(address.address || address.city || address.region || settingMap.company_google_business_profile) ? `
+      <section id="local-business" style="border-top:1px solid #e5eef1;margin-top:32px;padding-top:30px">
+        <h2 style="margin:0 0 10px;color:#12384b;font-size:26px;font-weight:900">موقع وخدمة ${esc(siteCompanyName)} في الرياض</h2>
+        <p style="margin:0 0 16px;color:#52707c;font-size:16px;line-height:1.8">نخدم مشاريع المنازل والمقاولين والمنشآت في أحياء الرياض، مع تنسيق التوصيل والسحب حسب العنوان وموعد المشروع.</p>
+        <address style="margin:0;color:#334e5c;font-style:normal;line-height:1.9">
+          ${address.address ? `<div><strong>العنوان:</strong> ${esc(address.address)}</div>` : ""}
+          ${[address.city, address.region, address.country].filter(Boolean).length ? `<div><strong>نطاق الخدمة:</strong> ${esc([address.city, address.region, address.country].filter(Boolean).join("، "))}</div>` : ""}
+        </address>
+        ${settingMap.company_google_business_profile ? `<p style="margin:16px 0 0"><a href="${esc(settingMap.company_google_business_profile)}" target="_blank" rel="noopener noreferrer" style="color:#246b70;font-weight:800">عرض ملفنا على Google Business Profile ↗</a></p>` : ""}
+      </section>` : ""}
     </main>
   `;
 }
@@ -878,10 +917,19 @@ function updateIndexSeo(html) {
   
   // Keep the data-backed snapshot outside React's mount point. It remains
   // available to crawlers/no-JS clients and is hidden before the app paints.
-  return withSchemas.replace(
+  const withStaticPage = withSchemas.replace(
     /<div id="root">\s*<\/div>/i,
     `<div id="seo-static-page-content" class="seo-crawler-content">${stripInlineStyles(generateHomepageStaticContent())}</div>
     <div id="root"><div id="app-loading-shell" class="app-loading-shell" aria-live="polite"><div class="app-loading-spinner" aria-hidden="true"></div><p>جاري تجهيز البيانات الحقيقية...</p></div></div>`,
+  );
+  return withStaticPage.replace(
+    /<\/body>/i,
+    `<script>
+      if (document.documentElement.classList.contains("js")) {
+        document.getElementById("seo-static-page-content")?.remove();
+      }
+    </script>
+  </body>`,
   );
 }
 

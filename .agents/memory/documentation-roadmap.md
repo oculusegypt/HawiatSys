@@ -1,10 +1,10 @@
 ---
 name: Documentation roadmap
-description: The project uses one Arabic README plus a dated audit and UX roadmap as the shared reference for future product work.
+description: The project uses the Arabic README plus current operational guides and the latest Hostinger release record as shared references.
 ---
 
-The canonical product overview is the root README, while the dated audit and UX roadmap holds the current maturity assessment, risks, release checklist, and phased priorities.
+The canonical product overview is the root README. Current operational truth lives in the container-system guides and the latest Hostinger build record; superseded audits and handoff reports are intentionally removed rather than treated as active guidance.
 
-**Why:** The project contains several specialized operational documents; without a single index, future changes can drift from the actual roles, routes, security boundaries, and Hostinger constraints.
+**Why:** Historical audits and imported handoffs can contradict the deployed product after later fixes, especially around Hostinger packaging, SEO, permissions, and financial behavior.
 
-**How to apply:** Update the roadmap when a major operational or UX milestone changes the maturity assessment, and keep new implementation work aligned with its exit criteria and release checklist.
+**How to apply:** Update README and the current release record when the product or release contract changes; keep specialized container-system guides focused on durable operating rules.

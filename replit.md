@@ -27,7 +27,7 @@
 
 - **Frontend**: React 19 + Vite 7 + Tailwind CSS v4 + Wouter + Framer Motion + Lucide Icons + Leaflet
 - **Backend API**: Express 5 + Drizzle ORM + Zod
-- **Build & SSG**: Node.js SSG Pre-rendering (توليد 46 صفحة HTML ثابتة جاهزة للأرشفة الفورية)
+- **Build & SSG**: Node.js SSG Pre-rendering (توليد 166 صفحة قابلة للفهرسة مع صفحات توافق قديمة جاهزة للأرشفة الفورية)
 
 ## الهيكلية البرمجية للمشروع (Project Structure)
 
@@ -83,7 +83,7 @@ node scripts/build-hostinger.mjs
 ينتج الملف **`cleanflow-services-hostinger.zip`**. هذا الأمر يعمل في بيئة البناء فقط؛ لا يتم تشغيله على Hostinger.
 
 توثيق آخر حزمة ونتائج فحصها موجود في:
-`docs/hostinger-build-2026-08-28.md`.
+`docs/hostinger-build-2026-08-29.md`.
 
 بعد استخراج الأرشيف في `public_html/` يجب أن تكون البنية الأساسية:
 ```text

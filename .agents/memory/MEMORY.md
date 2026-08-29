@@ -15,6 +15,7 @@
 - [Container route authorization](container-route-authorization.md) — enforce container-system permissions at the API boundary, not through hidden admin navigation.
 - [Node/PHP authorization parity](node-php-authorization-parity.md) — security fixes must be mirrored in the Hostinger PHP router, not only the development API.
 - [Documentation roadmap](documentation-roadmap.md) — root README and dated audit are the shared reference for product scope and UX priorities.
+- [Release cleanup policy](release-cleanup-policy.md) — retain repeatable production tools and current operational guides; remove one-off scripts and superseded reports.
 - [Hostinger preflight headers](hostinger-preflight-headers.md) — PHP CORS headers must include every custom browser header used by financial/idempotent workflows.
 - [Financial posting boundary](financial-posting-boundary.md) — financial totals must use posted records only, with receipt/payment deduplication and explicit reversal entries for cancellations.
 - [Financial final certification](financial-final-certification.md) — code checks alone cannot certify finance; require a full safe transaction cycle and cross-report reconciliation.
@@ -36,3 +37,4 @@
 - [Prerender SEO parity](prerender-seo-parity.md) — normalize metadata in static generation, not only in the runtime hook, or production HTML can ship short descriptions.
 - [SEO dashboard parity](seo-dashboard-node-php-parity.md) — Node and Hostinger PHP SEO diagnostics must share URL-set and reference-scanning semantics.
 - [Static analytics tag ordering](static-analytics-tag-ordering.md) — stable IDs and complete-block ordering prevent duplicate runtime tags and crawler-visible head regressions.
+- [SQLite archive replacement safety](sqlite-archive-replacement-safety.md) — replace restored SQLite snapshots only while API writers are stopped, then remove stale WAL sidecars and verify integrity.

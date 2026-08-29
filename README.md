@@ -11,10 +11,10 @@
 - إدارة الموظفين والأدوار والصلاحيات الدقيقة.
 - إدارة الخدمات والباقات والمقالات وصفحات SEO والإعلانات والمراجعات.
 - تحليلات الزيارات ومصادرها والتحويلات، مع تصدير CSV وطباعة التقرير.
-- التقارير المالية تعتمد على العلاقات الرسمية والتوزيعات الفعلية، مع تقرير معاينة آمن لترقية روابط السجلات القديمة عبر `pnpm --filter @workspace/scripts run upgrade-financial-links`.
+- التقارير المالية تعتمد على العلاقات الرسمية والتوزيعات الفعلية، مع حماية التكرار وقفل الفترات وسجل تدقيق قابل للمراجعة.
 - محادثات الدعم، الإشعارات، واتساب، وإعدادات الموقع.
 - حزمة نشر مستقلة لـ Hostinger تعمل عبر PHP وSQLite دون الاعتماد على Node.js في الإنتاج.
-- دورة حياة النظام وخطة تطوير تجربة الإدارة موثقة في [دليل دورة الحياة وخطة تجربة المستخدم](docs/system-lifecycle-and-ux-development-plan.md).
+- قواعد التشغيل والصلاحيات والحركات موثقة في أدلة نظام الحاويات الحالية داخل `docs/`.
 
 ## التطبيقات
 
@@ -109,17 +109,11 @@ node scripts/build-hostinger.mjs
 
 ## التوثيق
 
-- [تقرير المراجعة الشاملة](docs/PROJECT_AUDIT_AND_UX_PLAN.md)
-- [المراجعة الحالية الشاملة وخطة الإصدارات](docs/COMPREHENSIVE_SYSTEM_REVIEW_2026-08-22.md)
-- [شهادة Hostinger Fresh Production E2E — 2026-08-23](docs/HOSTINGER_FRESH_PRODUCTION_E2E_CERTIFICATION_2026-08-23.md)
-- [التدقيق المالي التاريخي — 2026-08-23](docs/FINAL_FINANCIAL_AUDIT_2026-08-23.md) — مرجع سابق قبل شهادة الإنتاج الحية
+- [توثيق حزمة Hostinger النهائية — 2026-08-29](docs/hostinger-build-2026-08-29.md)
 - [دليل تشغيل وأمان نظام الحاويات](docs/container-system-security-and-operations.md)
-- [خطة تطوير نظام الحاويات](docs/container-system-development-plan.md)
 - [خطة صيانة نظام الحاويات](docs/container-system-maintenance-plan.md)
 - [دليل الحركات](docs/container-system-movements.md)
-- [دليل Hostinger](docs/HOSTINGER_DEPLOYMENT_GUIDE.md)
 - [مواصفات المتطلبات](docs/REQUIREMENT_SPECIFICATION_FULL.md)
-- [خطة ترحيل البيانات](docs/MIGRATION_PLAN.md)
 
 ## النشر على Hostinger
 
@@ -140,4 +134,4 @@ node scripts/build-hostinger.mjs
 
 ## الحالة الحالية
 
-تم اعتماد دورة إنتاج حية شاملة على Hostinger بتاريخ 23 أغسطس 2026 بنتيجة `PASS` ودرجة `10/10`، وتشمل Golden Dataset، التحصيل، القيود، المطابقة البنكية، المرتجعات، قفل الفترات، وفحوصات سلامة وأمان قاعدة الإنتاج. التفاصيل والحدود التشغيلية موثقة في [شهادة Hostinger Fresh Production E2E](docs/HOSTINGER_FRESH_PRODUCTION_E2E_CERTIFICATION_2026-08-23.md). أما تحسينات تجربة المستخدم والتفكيك التدريجي للسجل العام والمالية المتقدمة فتتبع خارطة الطريق.
+آخر حزمة Hostinger موثقة في [تقرير البناء النهائي](docs/hostinger-build-2026-08-29.md)، وتشمل PHP 8.x وPDO SQLite، صفحات SSG، واجهة API، لوحة التشغيل، ونتائج بوابة SEO وفحص الأرشيف المستخرج.

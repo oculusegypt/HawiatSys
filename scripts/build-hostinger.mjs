@@ -179,14 +179,6 @@ function prepareArchiveSourceDatabase() {
   }
 }
 
-// Preserve the requested legacy images separately before the cleanup/build
-// touches generated output. The archive is never copied into production.
-run(
-  "pnpm --filter @workspace/scripts run archive:legacy-images",
-  "إنشاء أرشيف مستقل للصور القديمة ومجلد صور حسام",
-  {},
-);
-
 // Normalize article media and quarantine unused legacy images before taking
 // the archive database snapshot and generating the sitemap.
 run(
