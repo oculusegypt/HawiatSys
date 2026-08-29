@@ -1,18 +1,37 @@
-import React from "react"
+import React, { lazy, Suspense, useEffect, useState } from "react"
 import { useLocation } from "wouter"
 import { motion } from "framer-motion"
 import { Phone, MessageCircle } from "lucide-react"
 import { FaWhatsapp } from "react-icons/fa"
 import { useSiteSettings, resolveContactNumbers } from "@/context/SiteSettingsContext"
-import { AIChatbotWidget } from "@/components/chat/AIChatbotWidget"
+const AIChatbotWidget = lazy(() =>
+  import("@/components/chat/AIChatbotWidget").then(({ AIChatbotWidget: Widget }) => ({ default: Widget })),
+)
+
+function DeferredAIChatbot() {
+  const [ready, setReady] = useState(false)
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setReady(true), 2500)
+    return () => window.clearTimeout(timer)
+  }, [])
+
+  if (!ready) return null
+  return (
+    <Suspense fallback={null}>
+      <AIChatbotWidget />
+    </Suspense>
+  )
+}
 
 export function FloatingContactButtons() {
   const [location] = useLocation()
+  const { phoneCall, phoneWhatsapp, phones, companyName } = useSiteSettings()
+
   if (location.startsWith("/admin")) {
     return null
   }
 
-  const { phoneCall, phoneWhatsapp, phones, companyName } = useSiteSettings()
   const { call, whatsapp } = resolveContactNumbers(phoneCall, phoneWhatsapp, phones)
 
   const waDigits = whatsapp.replace(/\D/g, "")
@@ -73,7 +92,7 @@ export function FloatingContactButtons() {
       </div>
 
       {/* AI Assistant & Live Chat Widget on the Left side */}
-      <AIChatbotWidget />
+      <DeferredAIChatbot />
     </>
   )
 }

@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useEffect, useRef, useState, type ComponentType } from "react"
 import { Navbar } from "@/components/layout/Navbar"
 import { Footer } from "@/components/layout/Footer"
 import { getSiteUrl } from "@/lib/siteUrl"
@@ -158,22 +158,97 @@ function injectLocalBusinessSchema({
 }
 
 import { HeroSlider } from "@/components/home/HeroSlider"
-import { StatsBar } from "@/components/home/StatsBar"
-import { PackagesSection } from "@/components/home/PackagesSection"
-import { ServicesSection } from "@/components/home/ServicesSection"
-import { AboutSection } from "@/components/home/AboutSection"
-import { HowItWorksSection } from "@/components/home/HowItWorksSection"
-import { WhyChooseUs } from "@/components/home/WhyChooseUs"
-import { ServiceAreasSection } from "@/components/home/ServiceAreasSection"
-import { ValuesSection } from "@/components/home/ValuesSection"
-import { Testimonials } from "@/components/home/Testimonials"
-import { Partners } from "@/components/home/Partners"
-import { BlogSection } from "@/components/home/BlogSection"
-import { ServiceRequestForm } from "@/components/home/ServiceRequestForm"
-import { AdsSection } from "@/components/home/AdsSection"
-import { SeoPagesLinksSection } from "@/components/home/SeoPagesLinksSection"
-import { CEOMessage } from "@/components/home/CEOMessage"
-import { HomeFaqSection } from "@/components/home/HomeFaqSection"
+
+type HomeSectionLoader = () => Promise<{ default: ComponentType<any> }>
+
+const loadStatsBar: HomeSectionLoader = () =>
+  import("@/components/home/StatsBar").then(({ StatsBar }) => ({ default: StatsBar }))
+const loadPackagesSection: HomeSectionLoader = () =>
+  import("@/components/home/PackagesSection").then(({ PackagesSection }) => ({ default: PackagesSection }))
+const loadServicesSection: HomeSectionLoader = () =>
+  import("@/components/home/ServicesSection").then(({ ServicesSection }) => ({ default: ServicesSection }))
+const loadAboutSection: HomeSectionLoader = () =>
+  import("@/components/home/AboutSection").then(({ AboutSection }) => ({ default: AboutSection }))
+const loadHowItWorksSection: HomeSectionLoader = () =>
+  import("@/components/home/HowItWorksSection").then(({ HowItWorksSection }) => ({ default: HowItWorksSection }))
+const loadWhyChooseUs: HomeSectionLoader = () =>
+  import("@/components/home/WhyChooseUs").then(({ WhyChooseUs }) => ({ default: WhyChooseUs }))
+const loadServiceAreasSection: HomeSectionLoader = () =>
+  import("@/components/home/ServiceAreasSection").then(({ ServiceAreasSection }) => ({ default: ServiceAreasSection }))
+const loadValuesSection: HomeSectionLoader = () =>
+  import("@/components/home/ValuesSection").then(({ ValuesSection }) => ({ default: ValuesSection }))
+const loadTestimonials: HomeSectionLoader = () =>
+  import("@/components/home/Testimonials").then(({ Testimonials }) => ({ default: Testimonials }))
+const loadPartners: HomeSectionLoader = () =>
+  import("@/components/home/Partners").then(({ Partners }) => ({ default: Partners }))
+const loadBlogSection: HomeSectionLoader = () =>
+  import("@/components/home/BlogSection").then(({ BlogSection }) => ({ default: BlogSection }))
+const loadServiceRequestForm: HomeSectionLoader = () =>
+  import("@/components/home/ServiceRequestForm").then(({ ServiceRequestForm }) => ({ default: ServiceRequestForm }))
+const loadAdsSection: HomeSectionLoader = () =>
+  import("@/components/home/AdsSection").then(({ AdsSection }) => ({ default: AdsSection }))
+const loadSeoPagesLinksSection: HomeSectionLoader = () =>
+  import("@/components/home/SeoPagesLinksSection").then(({ SeoPagesLinksSection }) => ({ default: SeoPagesLinksSection }))
+const loadCeoMessage: HomeSectionLoader = () =>
+  import("@/components/home/CEOMessage").then(({ CEOMessage }) => ({ default: CEOMessage }))
+const loadHomeFaqSection: HomeSectionLoader = () =>
+  import("@/components/home/HomeFaqSection").then(({ HomeFaqSection }) => ({ default: HomeFaqSection }))
+
+function DeferredHomeSection({
+  load,
+  props,
+  minHeight = "min-h-[24rem]",
+}: {
+  load: HomeSectionLoader
+  props?: Record<string, unknown>
+  minHeight?: string
+}) {
+  const hostRef = useRef<HTMLDivElement>(null)
+  const [shouldLoad, setShouldLoad] = useState(false)
+  const [LoadedSection, setLoadedSection] = useState<ComponentType<any> | null>(null)
+
+  useEffect(() => {
+    if (shouldLoad) return
+    const host = hostRef.current
+    if (!host) return
+    if (!("IntersectionObserver" in window)) {
+      setShouldLoad(true)
+      return
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          setShouldLoad(true)
+          observer.disconnect()
+        }
+      },
+      { rootMargin: "700px 0px" },
+    )
+    observer.observe(host)
+    return () => observer.disconnect()
+  }, [shouldLoad])
+
+  useEffect(() => {
+    if (!shouldLoad || LoadedSection) return
+    let active = true
+    load()
+      .then(({ default: Component }) => {
+        if (active) setLoadedSection(() => Component)
+      })
+      .catch((error) => {
+        console.error("Failed to load homepage section", error)
+      })
+    return () => {
+      active = false
+    }
+  }, [LoadedSection, load, shouldLoad])
+
+  return (
+    <div ref={hostRef} className={LoadedSection ? "" : minHeight} aria-busy={shouldLoad && !LoadedSection}>
+      {LoadedSection ? <LoadedSection {...props} /> : null}
+    </div>
+  )
+}
 
 function SectionBlock({
   id,
@@ -195,56 +270,48 @@ function SectionBlock({
       return (
         <>
           <HeroSlider />
-          <AdsSection position="after_hero" />
+          <DeferredHomeSection load={loadAdsSection} props={{ position: "after_hero" }} minHeight="min-h-0" />
         </>
       )
     case "stats":
-      return <StatsBar />
+      return <DeferredHomeSection load={loadStatsBar} />
     case "packages":
     case "containers":
       return (
         <>
-          <PackagesSection />
-          <AdsSection position="after_packages" />
+          <DeferredHomeSection load={loadPackagesSection} />
+          <DeferredHomeSection load={loadAdsSection} props={{ position: "after_packages" }} minHeight="min-h-0" />
         </>
       )
     case "services":
-      return <ServicesSection />
+      return <DeferredHomeSection load={loadServicesSection} />
     case "about":
-      return <AboutSection />
+      return <DeferredHomeSection load={loadAboutSection} />
     case "ceo":
     case "ceo_message":
-      return <CEOMessage />
+      return <DeferredHomeSection load={loadCeoMessage} />
     case "how_it_works":
-      return <HowItWorksSection />
+      return <DeferredHomeSection load={loadHowItWorksSection} />
     case "why_choose_us":
-      return <WhyChooseUs />
+      return <DeferredHomeSection load={loadWhyChooseUs} />
     case "areas":
-      return <ServiceAreasSection />
+      return <DeferredHomeSection load={loadServiceAreasSection} />
     case "values":
-      return <ValuesSection />
+      return <DeferredHomeSection load={loadValuesSection} />
     case "testimonials":
-      return <Testimonials />
+      return <DeferredHomeSection load={loadTestimonials} />
     case "partners":
-      return (
-        <>
-          <Partners />
-        </>
-      )
+      return <DeferredHomeSection load={loadPartners} />
     case "blog":
-      return (
-        <>
-          <BlogSection />
-        </>
-      )
+      return <DeferredHomeSection load={loadBlogSection} />
     case "service_request":
-      return <ServiceRequestForm />
+      return <DeferredHomeSection load={loadServiceRequestForm} />
     case "contact":
       if (!phoneCall && !phoneWhatsapp) return null
       const contactCopy = homepageContent.sections?.contact
       return (
         <>
-          <AdsSection position="before_footer" />
+          <DeferredHomeSection load={loadAdsSection} props={{ position: "before_footer" }} minHeight="min-h-0" />
           <section id="contact" className="py-12 bg-white border-t">
             <div className="container mx-auto px-4 md:px-6">
               <div className="flex flex-col md:flex-row items-center justify-between gap-6 bg-primary/5 p-8 rounded-2xl border border-primary/10">
@@ -374,7 +441,7 @@ export default function Home() {
               homepageContent={homepageContent}
             />
           ))}
-        <HomeFaqSection />
+        <DeferredHomeSection load={loadHomeFaqSection} />
         {(address || city || region || googleBusinessProfile) && (
           <section
             id="local-business"
@@ -409,7 +476,7 @@ export default function Home() {
             </div>
           </section>
         )}
-        <SeoPagesLinksSection />
+        <DeferredHomeSection load={loadSeoPagesLinksSection} />
       </main>
 
       <Footer />

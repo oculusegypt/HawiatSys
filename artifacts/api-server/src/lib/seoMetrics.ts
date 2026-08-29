@@ -198,7 +198,25 @@ function getOrigin(value: string): string {
   }
 }
 
-function compareUrlSets(canonicalUrls: string[], sitemapUrls: string[]): {
+function normalizeSeoUrl(value: string, siteUrl: string): string {
+  const raw = value.trim().replace(/&amp;/gi, "&");
+  if (!raw) return "";
+  try {
+    const url = new URL(raw, siteUrl || undefined);
+    let pathname = url.pathname;
+    try {
+      pathname = decodeURIComponent(pathname);
+    } catch {
+      // Keep the encoded pathname if it contains malformed escape sequences.
+    }
+    pathname = pathname.replace(/\/+$/u, "") || "/";
+    return `${url.origin.toLowerCase()}${pathname}${url.search}`;
+  } catch {
+    return raw.replace(/\/+$/u, "") || "/";
+  }
+}
+
+function compareUrlSets(canonicalUrls: string[], sitemapUrls: string[], siteUrl: string): {
   status: SeoMetricStatus;
   value: string;
   detail: string;
@@ -211,8 +229,8 @@ function compareUrlSets(canonicalUrls: string[], sitemapUrls: string[]): {
     };
   }
 
-  const canonicalSet = new Set(canonicalUrls);
-  const sitemapSet = new Set(sitemapUrls);
+  const canonicalSet = new Set(canonicalUrls.map((url) => normalizeSeoUrl(url, siteUrl)).filter(Boolean));
+  const sitemapSet = new Set(sitemapUrls.map((url) => normalizeSeoUrl(url, siteUrl)).filter(Boolean));
   const matched = [...canonicalSet].filter((url) => sitemapSet.has(url)).length;
   const unionSize = new Set([...canonicalSet, ...sitemapSet]).size;
   const ratio = unionSize ? matched / unionSize : 0;
@@ -300,7 +318,7 @@ export async function getSeoMetrics(): Promise<SeoMetricsSnapshot> {
   const source = production.label;
   const hasBuild = fs.existsSync(path.join(production.root, "index.html")) && htmlFiles.length > 0;
   const seoMediaValue = mediaFiles.length ? `${referencedMedia.length}/${mediaFiles.length}` : "—";
-  const canonicalSitemapParity = compareUrlSets(canonicalUrls, sitemapUnique);
+  const canonicalSitemapParity = compareUrlSets(canonicalUrls, sitemapUnique, siteUrl);
 
   return {
     generatedAt: new Date().toISOString(),

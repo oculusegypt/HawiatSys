@@ -1,0 +1,165 @@
+Interpreting performance results
+النتيجة الحالية تعني أن مشكلة SEO البنيوية منفصلة عن الأداء: الـSEO يمكن أن يكون صحيحًا، لكن سرعة الصفحة ضعيفة فعلًا.
+
+التقييم 36 منخفض، وأكبر مشكلتين واضحتين هما:
+
+LCP = 8 ثوانٍ: غالبًا صورة الـHero أو طريقة تحميلها.
+TBT = 1.27 ثانية: JavaScript كثير أو تنفيذ ثقيل قبل اكتمال الصفحة.
+سأفحص حجم صورة الـHero، ترتيب التحميل، الحزم البرمجية، وملفات الـCSS/JS، ثم أطبق تحسينات مباشرة لا تغيّر المحتوى أو الروابط، وأعيد قياس البناء محليًا قبل تسليم نسخة Hostinger جديدة.
+
+
+
+Show less
+
+Found files
+
+Opened main.tsx
+
+Opened Home.tsx
+
+Found files
+
+Found files
+Optimizing performance
+
+Optimizing performance
+Optimizing performance
+
+I'm looking at the current work performance and thinking we need to continue inspecting the hero component and the App. The Home.tsx file imports all sections statically, which is quite large. It seems like we should consider optimizing the home page by implementing lazy loading for the sections that are below the fold and prioritizing the hero image. I also need to understand the HeroSlider.tsx, App.tsx, index.html, and the assets better.
+
+
+Opened HeroSlider.tsx
+
+Opened App.tsx
+
+Opened index.html
+
+Searched for "<img|backgroundImage|Ta…"
+
+Found files
+Optimizing route code
+
+Optimizing route code
+Optimizing route code
+
+I need to keep going with this! I want to optimize the routing for my application. It seems like the PublicRoutes could be lazy loaded, which might help with performance. Am I right that the Home route is statically imported? I should double-check this. Making sure that routes are efficient is important, so I’ll dig deeper into the code to confirm how it’s set up. Let's see where I can make improvements!
+
+
+Opened PublicRoutes.tsx
+
+Opened SiteSettingsContext.tsx
+
+Opened StatsBar.tsx
+
+Opened PackagesSection.tsx
+
+Opened ServicesSection.tsx
+
+Opened prerender.mjs
+Optimizing performance
+
+Optimizing performance
+Optimizing performance
+
+I need to continue from my previous build and focus on optimization. My goal is to think minimally but meaningfully. The performance likely relates to PageSpeed on Hostinger. I should check if the first-party HTML prerender is fast. My current runtime JavaScript consists of multiple files: 188KB for the main, 324KB for vendor React, 127KB for vendor motion, 55KB for utils, and 124KB for public route loaded. The index.html might be complicated by modulepreload due to dynamic React. I'll check the built index HTML.
+
+
+Processed text
+
+Searched for "from ['"]leaflet|from […"
+
+Processed text
+Refining lazy imports
+
+Refining lazy imports
+Optimizing performance
+
+I think we need to focus on optimizing performance through code changes. It seems the user is just informing us of the results, but our previous task was around SEO. Now, it looks like we need to address performance implications. We should implement fixes carefully.
+
+One idea might be to reduce the initial JavaScript. Currently, the Home component imports sections statically. Maybe we can lazy load below-the-fold components and use dynamic imports for the SectionBlock instead of static imports?Addressing lazy loading concerns
+
+I realize that using React.lazy for component loading may lead to multiple requests. All sections are rendered on the initial load since they’re part of the DOM tree, not just what's in the viewport. If I want to lazy load below-the-fold components using IntersectionObserver, I’ll need a wrapper like LazySection to dynamically import components when they’re near the viewport. This approach should help reduce initial JS and improve Total Blocking Time.
+
+To maintain user experience, maybe I'll use min-height placeholders for sections, loading key sections like stats when they're close to being viewed.Refining lazy imports
+
+I need to adjust how I handle imports in my code. I want to keep the Hero component as a static import, while the other sections are lazy-loaded. The lazy imports are still included in the Home module chunk, but Vite’s dynamic import generates separate chunks, which is good.
+
+The challenge is avoiding all lazy-loaded components from being triggered immediately. When SectionBlock returns <LazySection><PackagesSection /></LazySection>, the evaluation of <PackagesSection /> starts the lazy loading, even for components that are offscreen. I need to find a way to control this behavior more effectively.
+
+
+Processed text
+Optimizing PageSpeed and preload
+
+Optimizing PageSpeed and preload
+Optimizing performance reminders
+
+I need to ensure reminders don’t derail progress. First, I realize the user may not directly ask for this, but it’s crucial for the current task. We can optimize, starting with prerendering static content that is removed before React paints. This impacts the Largest Contentful Paint. I’m wondering if we can keep static content visible until React is ready. Perhaps, deferring removal until the app is loaded might help, but static content might still show, so CSS adjustments could be beneficial.Implementing static content logic
+
+In SettingsBootstrap, I see that if the route isn't for login and it's not loaded, it returns null. This means static content will stay visible until the settings load. After loading, the Router app mounts and removes the static content using useEffect. I think I should implement this logic after isLoaded in the App. The initial static content will be non-interactive, which is okay, as it will be removed following the app's mount.
+
+One thing to note is that only the homepage will have the snapshot; others like /admin/login won’t show any static content. Keeping all static visible until the settings load seems acceptable, along with handling SettingsLoadingShell.Optimizing PageSpeed and preload
+
+The PageSpeed deployment uses prerender output, which is a big improvement! I need to optimize the hero preload. Currently, heroPreload might generate an absolute local URL and preloads the configured first hero. However, the dynamic HeroSlider waits for settings and slides API, while the static snapshot has the hero image. I also need to address the third-party Google tag in the head; it might be blocking. I’m wondering if using async for the script would help, though it’s not render-blocking but related to network performance. Plus, I need to look at MarketingMeasurementScripts since it duplicates the runtime Google script!
+
+Optimizing hero layout
+
+Optimizing hero layout
+Optimizing hero layout
+
+I'm considering how to optimize the current section block for better performance. Right now, the hero section returns both HeroSlider and AdsSection. To enhance the Largest Contentful Paint (LCP), I think it makes sense to defer rendering the AdsSection while ensuring that the hero content is displayed directly. It's a small adjustment that could lead to better load times and a smoother experience for users. I want to make sure this works well!
+
+
+Searched for "hero-slide-content|hero…"
+Continuing with CSS Analysis
+
+Continuing with CSS Analysis
+Continuing with CSS Analysis
+
+I need to keep going despite the user interrupting me. It's important to focus on the CSS lines, particularly those related to the hero section. I want to comb through the styles and ensure I understand how they contribute to the overall design. This will help us maintain clarity and cohesion in the project. Alright, let’s dive back in and make sure everything aligns with our goals!
+
+
+Opened index.css
+Optimizing Home component imports
+
+Optimizing Home component imports
+Planning optimization strategies
+
+I need to figure out how to implement some clear fixes. First, I want to keep a static snapshot until the app is ready. Then, I notice that the CSS @import for Google fonts duplicates the external link in index.html, which could cause render-blocking. I should remove the @import from the CSS file since the index.html link already includes the fonts. It seems like optimizing with media="print" onload could help with loading efficiency. I’ll also look into managing how we load images in the HeroSlider.Optimizing Home component imports
+
+I’m reviewing how all slide images are loaded lazily; that seems effective. For the Home sections, I think I should implement deferred sections but not overdo it, since the main app's JavaScript is still heavy. Maybe I want to measure the JavaScript performance after these lazy-loading changes. I need to patch the Home component and the Floating widget accordingly, adjusting the imports with useEffect, useRef, and useState. I’ll define loader types and functions right after my imports to ensure everything aligns well.
+
+Considering error handling and optimization
+
+Considering error handling and optimization
+Considering error handling and optimization
+
+I'm thinking about how to manage error displays for the public. I believe having static content remain visible even if there's an error makes sense, although the error shell might replace the root component. Also, for the login route, if it's not loaded, we should return the Router and leave out the static content.
+
+I wonder if I should remove the unused SettingsLoadingShell to minimize the bundle size. Also, I need to address potential delays with MarketingMeasurementScripts and ensure that scripts load efficiently after a slight delay.
+
+الفحص أكد أن الصفحة تُحمّل نسخة HTML جيدة، ثم تحذفها فورًا قبل اكتمال إعدادات الموقع، وتعرض هيكل تحميل بينما تنتظر طلب /api/settings. هذا يفسّر جزءًا كبيرًا من LCP المرتفع.
+
+سأغيّر التسلسل بحيث تبقى نسخة HTML المرئية أمام الزائر حتى تجهز React، وأؤجل الأقسام أسفل الشاشة والمساعد العائم، وأزيل ازدواج تحميل خط Google. هذه تحسينات أداء فقط ولن تمس مسارات SEO أو المحتوى.
+
+
+
+Show less
+
+Edited App.tsx
+
+Edited Home.tsx
+
+Edited FloatingContactButtons.tsx
+
+Edited index.css
+
+Edited index.html
+
+Checked for code errors
+
+Built the project
+
+Viewed code changes
+
+Worked for 4 minutes
+You've reached your daily free quota limit. It will reset at 12:00 AM UTC.

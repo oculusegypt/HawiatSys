@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Route, Switch, Router as WouterRouter, useLocation } from 'wouter';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/toaster';
@@ -49,25 +49,6 @@ function Router() {
   );
 }
 
-function SettingsLoadingShell() {
-  return (
-    <div className="min-h-screen bg-background p-4 sm:p-8" dir="rtl" aria-busy="true" aria-label="جاري تجهيز الموقع">
-      <div className="mx-auto max-w-7xl space-y-6">
-        <div className="h-16 animate-pulse rounded-2xl bg-primary/10" />
-        <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
-          <div className="h-72 animate-pulse rounded-3xl bg-primary/10" />
-          <div className="h-72 animate-pulse rounded-3xl bg-primary/5" />
-        </div>
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div className="h-28 animate-pulse rounded-2xl bg-primary/5" />
-          <div className="h-28 animate-pulse rounded-2xl bg-primary/5" />
-          <div className="h-28 animate-pulse rounded-2xl bg-primary/5" />
-        </div>
-      </div>
-    </div>
-  )
-}
-
 function SettingsErrorShell({ onRetry }: { onRetry: () => void }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-6 text-center" dir="rtl">
@@ -87,10 +68,19 @@ function SettingsBootstrap() {
   const { isLoaded, isError, reload } = useSiteSettings()
   const isLoginRoute = location === "/admin/login"
 
+  // Keep the prerendered, data-backed page visible while settings load. The
+  // old loading shell replaced it immediately and made the shell itself the
+  // largest contentful paint on slower mobile connections.
+  useEffect(() => {
+    if (isLoaded && !isLoginRoute) {
+      document.documentElement.classList.remove("seo-static-pending")
+      document.getElementById("seo-static-page-content")?.remove()
+    }
+  }, [isLoaded, isLoginRoute])
+
   // The login screen does not need public site settings. Keeping it outside the
   // settings gate prevents a slow public-settings request from flashing a
   // bootstrap screen before the credentials form.
-  if (!isLoginRoute && !isLoaded) return <SettingsLoadingShell />
   if (!isLoginRoute && isError) return <SettingsErrorShell onRetry={reload} />
   return (
     <>
@@ -136,9 +126,16 @@ function AnonymousAnalyticsTracker() {
 
 function MarketingMeasurementScripts() {
   const { analyticsGoogleTagId, facebookPixelId, isLoaded } = useSiteSettings();
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     if (!isLoaded) return;
+    const timer = window.setTimeout(() => setReady(true), 1500);
+    return () => window.clearTimeout(timer);
+  }, [isLoaded]);
+
+  useEffect(() => {
+    if (!isLoaded || !ready) return;
 
     const googleId = /^G-[A-Z0-9]+$/i.test(analyticsGoogleTagId) ? analyticsGoogleTagId : "";
     const pixelId = /^\d{5,20}$/.test(facebookPixelId) ? facebookPixelId : "";
@@ -181,7 +178,7 @@ function MarketingMeasurementScripts() {
       document.getElementById(googleScriptId)?.remove();
       document.getElementById(facebookScriptId)?.remove();
     };
-  }, [analyticsGoogleTagId, facebookPixelId, isLoaded]);
+  }, [analyticsGoogleTagId, facebookPixelId, isLoaded, ready]);
 
   return null;
 }

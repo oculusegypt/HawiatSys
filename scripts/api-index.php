@@ -136,9 +136,35 @@ function seoCollectEntityTypes(mixed $value, array &$types): void {
     }
 }
 
-function seoCompareUrlSets(array $canonicalUrls, array $sitemapUrls): array {
-    $canonicalUrls = array_values(array_unique(array_filter($canonicalUrls)));
-    $sitemapUrls = array_values(array_unique(array_filter($sitemapUrls)));
+function seoNormalizeUrl(string $value, string $siteUrl = ''): string {
+    $value = trim(html_entity_decode($value, ENT_QUOTES | ENT_XML1, 'UTF-8'));
+    if ($value === '') return '';
+    $parts = parse_url($value);
+    if (!is_array($parts) || empty($parts['scheme']) || empty($parts['host'])) {
+        if ($siteUrl === '') return rtrim($value, '/') ?: '/';
+        $parts = parse_url(rtrim($siteUrl, '/') . '/' . ltrim($value, '/'));
+    }
+    if (!is_array($parts) || empty($parts['scheme']) || empty($parts['host'])) {
+        return rtrim($value, '/') ?: '/';
+    }
+    $scheme = strtolower((string)$parts['scheme']);
+    $host = strtolower((string)$parts['host']);
+    $port = isset($parts['port']) ? ':' . (int)$parts['port'] : '';
+    $path = rawurldecode((string)($parts['path'] ?? '/'));
+    $path = rtrim($path, '/') ?: '/';
+    $query = isset($parts['query']) && $parts['query'] !== '' ? '?' . $parts['query'] : '';
+    return $scheme . '://' . $host . $port . $path . $query;
+}
+
+function seoCompareUrlSets(array $canonicalUrls, array $sitemapUrls, string $siteUrl = ''): array {
+    $canonicalUrls = array_values(array_unique(array_filter(array_map(
+        fn($url) => seoNormalizeUrl((string)$url, $siteUrl),
+        $canonicalUrls,
+    ))));
+    $sitemapUrls = array_values(array_unique(array_filter(array_map(
+        fn($url) => seoNormalizeUrl((string)$url, $siteUrl),
+        $sitemapUrls,
+    ))));
     if (count($canonicalUrls) === 0 || count($sitemapUrls) === 0) {
         return [
             'status' => 'not_verified',
@@ -263,7 +289,7 @@ function seoMetricsSnapshot(PDO $pdo): array {
         }
     }
     $canonicalUrls = array_values(array_unique(array_filter($canonicalUrls)));
-    $canonicalSitemapParity = seoCompareUrlSets($canonicalUrls, $sitemapUnique);
+    $canonicalSitemapParity = seoCompareUrlSets($canonicalUrls, $sitemapUnique, $siteUrl);
     $validSitemap = array_values(array_filter($sitemapUrls, function ($url) {
         $parts = parse_url($url);
         return is_array($parts) && ($parts['scheme'] ?? '') === 'https' && !preg_match('/\s|[<>]/', $url);
@@ -975,6 +1001,12 @@ try {
             '        xmlns:xhtml="http://www.w3.org/1999/xhtml">',
             ''
         ];
+        $seenUrls = [];
+        $addUrl = function (string $url) use (&$seenUrls): bool {
+            if (isset($seenUrls[$url])) return false;
+            $seenUrls[$url] = true;
+            return true;
+        };
 
         $imageCandidates = function ($jsonValue, $fallback = null): array {
             $items = [];
@@ -1011,6 +1043,7 @@ try {
         // Static pages
         foreach ($staticPages as $sp) {
             $u = $baseUrl . $sp['path'];
+            if (!$addUrl($u)) continue;
             $lines[] = '  <url>';
             $lines[] = '    <loc>' . htmlspecialchars($u, ENT_XML1) . '</loc>';
             $lines[] = '    <lastmod>' . $today . '</lastmod>';
@@ -1023,6 +1056,7 @@ try {
         // Neighborhoods
         foreach ($neighborhoods as $nh) {
             $u = $baseUrl . '/areas/' . $nh;
+            if (!$addUrl($u)) continue;
             $lines[] = '  <url>';
             $lines[] = '    <loc>' . htmlspecialchars($u, ENT_XML1) . '</loc>';
             $lines[] = '    <lastmod>' . $today . '</lastmod>';
@@ -1039,6 +1073,7 @@ try {
             $slug = publicEntitySlug($srv['seo_slug'] ?? '', $srv['title'] ?? '', $srv['id'] ?? null, 'service');
             if (!$slug) continue;
             $u = $baseUrl . '/services/' . $slug;
+            if (!$addUrl($u)) continue;
             $lines[] = '  <url>';
             $lines[] = '    <loc>' . htmlspecialchars($u, ENT_XML1) . '</loc>';
             $lines[] = '    <lastmod>' . $today . '</lastmod>';
@@ -1060,6 +1095,7 @@ try {
                 $slug = publicEntitySlug($pkg['seo_slug'] ?? '', $pkg['name'] ?? '', $pkg['id'] ?? null, 'container');
                 if (!$slug) continue;
                 $u = $baseUrl . '/containers/' . $slug;
+                if (!$addUrl($u)) continue;
                 $lines[] = '  <url>';
                 $lines[] = '    <loc>' . htmlspecialchars($u, ENT_XML1) . '</loc>';
                 $lines[] = '    <lastmod>' . $today . '</lastmod>';
@@ -1075,13 +1111,16 @@ try {
         } catch (\Exception $e) {}
 
         // Blog
+        $blogUrl = $baseUrl . '/blog';
+        if ($addUrl($blogUrl)) {
         $lines[] = '  <url>';
-        $lines[] = '    <loc>' . htmlspecialchars($baseUrl . '/blog', ENT_XML1) . '</loc>';
+        $lines[] = '    <loc>' . htmlspecialchars($blogUrl, ENT_XML1) . '</loc>';
         $lines[] = '    <lastmod>' . $today . '</lastmod>';
         $lines[] = '    <changefreq>weekly</changefreq>';
         $lines[] = '    <priority>0.8</priority>';
         $addImageTags(['/images/hero-1.webp'], 'مدونة الشركة');
         $lines[] = '  </url>';
+        }
 
         $postsStmt = $pdo->query("SELECT id, slug, title, cover_image, og_image, published_at FROM posts WHERE status = 'published' AND is_active = 1 AND slug IS NOT NULL AND slug != ''");
         $posts = $postsStmt->fetchAll();
@@ -1089,6 +1128,7 @@ try {
             $slug = publicEntitySlug($post['slug'] ?? '', $post['title'] ?? '', $post['id'] ?? null, 'post');
             if (!$slug) continue;
             $u = $baseUrl . '/blog/' . $slug;
+            if (!$addUrl($u)) continue;
             $lines[] = '  <url>';
             $lines[] = '    <loc>' . htmlspecialchars($u, ENT_XML1) . '</loc>';
             $lines[] = '    <lastmod>' . substr((string)($post['published_at'] ?: $today), 0, 10) . '</lastmod>';
@@ -1114,6 +1154,7 @@ try {
             $slug = publicEntitySlug($sp['slug'] ?? $sp['seo_slug'] ?? '', $sp['title'] ?? '', $sp['id'] ?? null, 'page');
             if (!$slug) continue;
             $u = $baseUrl . '/page/' . $slug;
+            if (!$addUrl($u)) continue;
             $lines[] = '  <url>';
             $lines[] = '    <loc>' . htmlspecialchars($u, ENT_XML1) . '</loc>';
             $lines[] = '    <lastmod>' . substr((string)($sp['published_at'] ?: $today), 0, 10) . '</lastmod>';
@@ -1126,7 +1167,7 @@ try {
         $lines[] = '</urlset>';
 
         $xml = implode("\n", $lines);
-        $totalUrls = count($staticPages) + count($neighborhoods) + count($services) + $pkgCount + 1 + count($posts) + count($seoPages);
+        $totalUrls = count($seenUrls);
 
         return [
             'xml' => $xml,

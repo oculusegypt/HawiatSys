@@ -299,15 +299,10 @@ function renderPage({
   const imgAlt   = title.replace(/\|.*/,"").trim();
 
   const schemaTags = schemas.map((schema) => jsonLd(schema)).join("\n  ");
-  const analyticsTag = siteAnalyticsId ? `
-  <!-- Google Analytics 4 -->
-  <script async id="google-tag-script" src="https://www.googletagmanager.com/gtag/js?id=${esc(siteAnalyticsId)}"></script>
-  <script id="google-tag-init">
-    window.dataLayer = window.dataLayer || [];
-    window.gtag = window.gtag || function(){ window.dataLayer.push(arguments); };
-    window.gtag('js', new Date());
-    window.gtag('config', '${esc(siteAnalyticsId)}');
-  </script>` : "";
+  // Analytics is loaded by the hydrated app after the first meaningful paint.
+  // Injecting the third-party script into every prerendered document delays
+  // mobile parsing and provides no value to crawlers or no-JS visitors.
+  const analyticsTag = "";
 
   return `<!DOCTYPE html>
 <html lang="ar" dir="rtl" class="no-js">
@@ -894,6 +889,7 @@ function updateIndexSeo(html) {
   <script>
     document.documentElement.classList.remove("no-js");
     document.documentElement.classList.add("js");
+    document.documentElement.classList.add("seo-static-pending");
   </script>
   <link rel="stylesheet" href="/seo-static.css" />`;
   if (googleInitMatch?.index !== undefined) {
@@ -942,15 +938,7 @@ function updateIndexSeo(html) {
     `<div id="seo-static-page-content" class="seo-crawler-content">${stripInlineStyles(generateHomepageStaticContent())}</div>
     <div id="root"><div id="app-loading-shell" class="app-loading-shell" aria-live="polite"><div class="app-loading-spinner" aria-hidden="true"></div><p>جاري تجهيز البيانات الحقيقية...</p></div></div>`,
   );
-  return withStaticPage.replace(
-    /<\/body>/i,
-    `<script>
-      if (document.documentElement.classList.contains("js")) {
-        document.getElementById("seo-static-page-content")?.remove();
-      }
-    </script>
-  </body>`,
-  );
+  return withStaticPage;
 }
 
 // Replace the source index metadata during every build so the first HTML
