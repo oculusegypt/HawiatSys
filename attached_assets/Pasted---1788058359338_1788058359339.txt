@@ -1,0 +1,728 @@
+اسمعني جيدًا قبل أن تلمس أي ملف.
+
+أنت تستلم مشروعًا تم العمل عليه لفترة طويلة، والوكيل السابق استهلك رصيدًا كبيرًا جدًا في تنفيذ إصلاحات SEO وبناء Production/Hostinger، لذلك **ممنوع تمامًا أن تبدأ من الصفر، وممنوع إعادة Audit شامل لمجرد إعادة اكتشاف ما تم اكتشافه بالفعل**.
+
+السجل السابق يحتوي على إصلاحات حقيقية، لكنه انتهى قبل أن نحصل على إغلاق موثوق ونهائي. لذلك مهمتك ليست "تحسين الأرقام"، بل **إثبات أن الناتج النهائي صحيح فعليًا، وإغلاق أي خلل متبقٍ من جذره، ثم إعادة بناء الحزمة والتحقق منها من الأرشيف النهائي نفسه.**
+
+## أولًا — اعتبر الحالة الحالية غير مغلقة
+
+لا تثق بأي جملة سابقة مثل:
+
+* "SEO أصبح أخضر بالكامل"
+* "287/287"
+* "155/155"
+* "166/166"
+* "الأرشيف جاهز"
+
+إلا بعد أن تتحقق منها بنفسك على **الناتج الحالي**.
+
+ظهرت خلال العمل أرقام مختلفة جدًا:
+
+* 315 HTML / 183 routes
+* 314/315 Meta
+* 314/315 Canonical
+* 166 Sitemap
+* 287/315 Structured Data
+* 287/315 Internal Linking
+* 12/24 SEO Media
+* 27 Legacy Branding
+
+ثم أعلن الوكيل لاحقًا:
+
+* 287/287 canonical
+* 287/287 structured data
+* 0/287 صفحات بلا روابط داخلية
+* 12/12 SEO media
+* ثم في مرحلة أخرى تحدث عن 155 route و155 canonical و88 FAQ.
+
+هذا الاختلاف يجب تفسيره من **مصدر الأرقام نفسه**، وليس اختيار أفضل نتيجة.
+
+---
+
+# 1 — ابدأ من الحالة الحالية فقط
+
+أول خطوة:
+
+* `git status`
+* `git diff --stat`
+* `git diff --check`
+* افحص الملفات التي تغيرت بالفعل.
+* حدد آخر production build الموجود فعليًا.
+* حدد آخر Hostinger ZIP فعليًا.
+* لا تحذف تغييرات الوكيل السابق.
+* لا تعمل reset.
+* لا تعيد كتابة الملفات من الصفر.
+* لا تنشئ architecture جديدة.
+* لا تغير بنية المنتج.
+
+المطلوب هو **استكمال وإثبات وإصلاح ما تبقى**.
+
+---
+
+# 2 — اقرأ السجل السابق كـ execution history وليس كحقيقة نهائية
+
+الوكيل السابق قام بالفعل بتعديلات مهمة، منها:
+
+### تم تعديل:
+
+* `seo-quality-gate.mjs`
+* `prerender.mjs`
+* `BlogPost.tsx`
+* `seoMetrics.ts`
+* `api-index.php`
+* `generate-sitemap.mjs`
+* `build-hostinger.mjs`
+* `index.html`
+* `App.tsx`
+
+كما تم تعديل بيانات المقالات في SQLite.
+
+لذلك لا تعيد تنفيذ هذه الأشياء عشوائيًا.
+
+راجع الـdiff الحالي أولًا، ثم تحقق من أن كل تعديل يخدم المشكلة الأصلية.
+
+---
+
+# 3 — Structured Data: لا تسمح بتزوير PASS
+
+المشكلة السابقة كانت أن validator لا يفك `@graph`.
+
+هذا إصلاح صحيح من حيث المبدأ، لكن يجب التحقق من مستويين:
+
+### المستوى الأول — Validator
+
+يجب أن يستطيع اكتشاف:
+
+* JSON-LD object
+* JSON-LD array
+* `@graph`
+* nested graph entities
+
+### المستوى الثاني — Production HTML
+
+يجب أن تحتوي الصفحات فعليًا على Structured Data صالحة.
+
+افحص الأرشيف النهائي نفسه.
+
+لكل صفحة قابلة للفهرسة، تحقق من:
+
+* وجود `<script type="application/ld+json">`
+* JSON صالح
+* entities حقيقية
+* عدم وجود graph فارغ
+* عدم وجود schema وهمية لمجرد رفع العداد
+* توافق الـschema مع نوع الصفحة.
+
+يجب الحفاظ على الأنواع الموجودة في المشروع حيث تكون صحيحة، مثل:
+
+* Organization
+* LocalBusiness
+* WebSite
+* WebPage
+* Service
+* Product
+* Offer
+* BreadcrumbList
+* FAQPage
+* BlogPosting
+* CollectionPage
+* ContactPage
+* AboutPage
+* وغيرها عند استحقاقها.
+
+**لا تضف Schema غير مناسبة للصفحة فقط لكي يصبح العداد أخضر.**
+
+---
+
+# 4 — Canonical
+
+يجب أن يكون الحكم النهائي مبنيًا على HTML النهائي.
+
+لكل صفحة indexable:
+
+* Canonical واحد فقط.
+* Absolute HTTPS URL.
+* canonical يطابق الصفحة نفسها.
+* لا canonical لصفحة noindex.
+* لا canonical إلى alias قديم.
+* لا canonical مكسور.
+* لا duplicate canonical.
+
+ثم قارن:
+
+**Indexable Canonical URLs ↔ Sitemap URLs**
+
+ولا تغير تعريف metric لكي تخفي الاختلاف.
+
+إذا كان هناك 166 Sitemap URL فيجب أن نفهم لماذا توجد 183 canonical، أو لماذا توجد 287/315 HTML، قبل إعلان PASS.
+
+المطلوب تفسير كامل لكل مجموعة:
+
+1. indexable
+2. noindex
+3. aliases
+4. compatibility routes
+5. generated artifacts
+6. actual sitemap URLs
+
+---
+
+# 5 — Sitemap
+
+لا تضف URL إلى Sitemap لمجرد إصلاح رقم.
+
+Sitemap يجب أن تحتوي فقط على الصفحات التي نريد فعلًا أن تتعامل معها محركات البحث كصفحات أساسية قابلة للفهرسة.
+
+تحقق من:
+
+* uniqueness
+* HTTPS
+* canonical parity
+* عدم وجود noindex
+* عدم وجود legacy aliases
+* عدم وجود redirect-only pages
+* عدم وجود artifacts
+* عدم وجود صفحات غير موجودة فعليًا.
+
+إذا كانت الصفحة جزءًا من public product فعلًا، فقرر ذلك من architecture/source وليس من رغبة العداد.
+
+---
+
+# 6 — Meta Description
+
+كان هناك سابقًا:
+
+* 314/315 coverage
+* 302/315 ضمن 120–160
+
+ثم أعلن الوكيل لاحقًا 166/166.
+
+لا تفترض أن المشكلة اختفت.
+
+افحص **كل indexable production page**.
+
+المطلوب:
+
+* description موجودة.
+* ليست فارغة.
+* ليست generic.
+* ليست نسخة مكررة من صفحة أخرى.
+* ضمن المدى المستهدف عندما يكون ذلك مناسبًا.
+* لا keyword stuffing.
+* لا يتم قص النص بطريقة تفسد المعنى.
+* لا يتم وضع نفس description على aliases/indexable pages المختلفة.
+
+والأهم: أصلح **source generator / metadata source** وليس فقط HTML الناتج.
+
+مشكلة المقالين ذوي الوصف المتطابق تم تحديدها بالفعل؛ تأكد أن إصلاح قاعدة البيانات موجود في المصدر الصحيح وأن rebuild يعيد إنتاجه.
+
+---
+
+# 7 — المقال الذي كان يحتوي HTML كاملًا داخل المحتوى
+
+هذه نقطة مهمة جدًا.
+
+تم اكتشاف أن أحد المقالات كان يحتوي:
+
+`DOCTYPE/html/head/body`
+
+داخل content نفسه.
+
+هذا أدى إلى H1 إضافي ومشاكل HTML.
+
+الإصلاح السابق كان:
+
+* تنظيف rich text
+* إزالة document wrappers
+* الحفاظ على المحتوى
+* تحويل H1 الداخلي إلى H2
+* إبقاء H1 الخاص بقالب الصفحة هو H1 الوحيد.
+
+تحقق من هذا في:
+
+* `BlogPost.tsx`
+* `prerender.mjs`
+* أي sanitizer مشترك إن وجد.
+
+ولا تكتفِ بفحص المصدر.
+
+افتح الـHTML الناتج من المقال نفسه وتأكد من:
+
+* H1 واحد.
+* لا DOCTYPE داخل body.
+* لا `<html>` داخل content.
+* لا `<head>` داخل content.
+* لا `<body>` داخل content.
+* المحتوى الأصلي لم يختفِ.
+* JSON-LD للمقال ما زال صحيحًا.
+
+---
+
+# 8 — Internal Linking
+
+لا أريد روابط وهمية.
+
+السجل يقول إن الوكيل السابق عالج مشكلة الصفحات التي كانت تحتوي فقط على navigation أو لم يكن validator يتعرف عليها.
+
+لكن المطلوب الآن:
+
+لكل صفحة indexable:
+
+* روابط داخلية حقيقية.
+* روابط إلى صفحات موجودة.
+* لا hash-only links يتم اعتبارها روابط داخلية.
+* لا links إلى 404.
+* لا تكرار آلي بلا قيمة.
+* لا إضافة عشرات الروابط لإرضاء validator.
+
+يفضل أن تكون الروابط contextual حسب نوع الصفحة.
+
+مثلًا:
+
+* Service → related services / packages / contact
+* Package → service / related package / contact
+* Area → relevant service / package / contact
+* Blog → related service/article
+* About → services/contact
+* Contact → relevant service/home
+* Legal → لا تحتاج حشوًا تجاريًا، لكن navigation الأساسية الطبيعية كافية.
+
+والـvalidator يجب أن يقيس ما يعتبره المستخدم رابطًا داخليًا حقيقيًا، وليس مجرد وجود `<a>`.
+
+---
+
+# 9 — FAQ / GEO
+
+هنا أريد حذرًا شديدًا.
+
+الإصلاح السابق الذي جعل:
+
+`157/157`
+
+ممتاز فقط إذا كانت الـ157 صفحة فعلًا صفحات تجارية/خدمية مؤهلة.
+
+لا تعالج FAQ عن طريق:
+
+* نسخ FAQ واحدة إلى كل الصفحات.
+* إضافة FAQ عامة لا علاقة لها بالصفحة.
+* إدخال FAQ في legal pages.
+* إدخال FAQ في المقالات فقط لرفع النسبة.
+* توليد أسئلة spam.
+
+المطلوب:
+
+* تحديد eligibility بوضوح.
+* commercial/service pages فقط عندما يكون FAQ مفيدًا.
+* FAQ فعلي في HTML أو JSON-LD.
+* السؤال والإجابة متعلقان بالصفحة.
+* لا duplicate FAQ بلا سبب.
+* HTML وJSON-LD متوافقان إن استُخدم الاثنان.
+
+ويجب أن يكون تعريف metric واضحًا ومتماثلًا بين Node وPHP.
+
+---
+
+# 10 — SEO Media
+
+كانت النتيجة:
+
+`12/24`
+
+ثم أعلن الوكيل:
+
+`12/12`
+
+وهذا يحتاج تفسيرًا.
+
+لا تغير denominator لكي يصبح الرقم أخضر.
+
+افحص:
+
+* من أين تأتي قائمة الـ24؟
+* لماذا تعتبر هذه الملفات SEO media؟
+* هل الـ12 الأخرى مطلوبة فعلًا؟
+* هل هي assets عامة وليست SEO assets؟
+* هل هناك images يتم توليدها ولكن لا تستخدم؟
+* هل أسماء legacy مثل `taqi-faq` و`taqi-home` و`taqi-legal` مستخدمة فعليًا؟
+* هل ينبغي استخدامها في صفحاتها الطبيعية؟
+* أم ينبغي حذفها من قائمة SEO media لأنها ليست جزءًا من العقد؟
+
+المطلوب إصلاح العلاقة بين:
+
+**SEO media manifest → source usage → prerender output → metric**
+
+وليس تعديل العداد فقط.
+
+إذا كان هناك 24 asset معرفة كـSEO assets، فإما:
+
+1. كلها مستخدمة فعليًا في الصفحات المناسبة،
+   أو
+2. نثبت أن بعضها ليس SEO assets أصلًا ونزيلها من المصدر/manifest بشكل صحيح.
+
+لا تترك أصولًا ميتة فقط لإرضاء التقرير.
+
+---
+
+# 11 — Legacy Branding
+
+كانت نتيجة سابقة:
+
+`FAIL — 27 files`
+
+ثم في مرحلة أخرى:
+
+`4 files`
+
+ثم أعلن:
+
+`لا توجد إشارات Branding قديم`.
+
+هذه من أخطر النقاط لأن تغيير search scope يمكن أن يخفي المشكلة.
+
+ابحث بشكل حقيقي في:
+
+* source
+* generated HTML
+* JS bundles إن كانت public
+* JSON
+* PHP
+* build metadata
+* upload instructions
+* service worker
+* manifests
+* SQLite public copy
+* generated artifacts.
+
+ابحث عن كل legacy terms التي سبق تحديدها، خصوصًا:
+
+* cleanflow
+* sabaik
+* سبائك
+* الأسماء القديمة الأخرى التي كانت جزءًا من المشروع السابق.
+
+لكن لا تحذف reference حاليًا أو تشغيليًا لمجرد أنه يشبه legacy branding.
+
+يجب تصنيف كل occurrence:
+
+### A — Legacy leakage
+
+يجب إزالته.
+
+### B — Current operational identifier
+
+لا يتم كسره.
+
+### C — Internal build artifact
+
+إذا كان مكشوفًا للعامة بلا داعٍ، أعد تصميمه أو أزله من public output.
+
+### D — Compatibility alias
+
+يجب أن يكون noindex/follow حسب التصميم، ولا نكسر compatibility.
+
+وفي النهاية أريد report يذكر **كل occurrence** وتصنيفه، وليس مجرد رقم PASS.
+
+---
+
+# 12 — Site URL
+
+ظهرت:
+
+`WARNING — https://taqigroup.com — لم يمكن إثبات نطاق إنتاج واحد`
+
+هذا لا يجب أن يبقى Warning.
+
+يجب تحديد مصدر واحد canonical للحقيقة:
+
+`https://taqigroup.com`
+
+ثم تأكد من استخدامه في:
+
+* metadata
+* canonical
+* OG URL
+* JSON-LD
+* sitemap
+* robots
+* prerender
+* PHP
+* Node
+* production config
+* build metadata.
+
+والـvalidator يجب أن يستطيع إثبات ذلك من artifacts الفعلية، لا من constant داخل source فقط.
+
+إذا كانت هناك aliases، يجب فصلها عن production primary URL.
+
+---
+
+# 13 — Node / PHP Parity
+
+هذه نقطة إلزامية.
+
+المشروع يعمل عبر Node وHostinger PHP، ولذلك:
+
+**لا يكفي أن يكون Node أخضر.**
+
+قارن نفس الـproduction archive باستخدام:
+
+* Node metrics
+* PHP metrics
+
+ويجب أن تكون النتائج متطابقة:
+
+* counts
+* classifications
+* indexable pages
+* canonical
+* sitemap
+* structured data
+* FAQ
+* internal linking
+* media
+* legacy branding
+* site URL
+* status.
+
+إذا اختلف Node وPHP، أصلح مصدر الاختلاف.
+
+لا تجعل PHP "يشبه" Node عن طريق hardcoded values.
+
+---
+
+# 14 — Production Artifact هو مصدر الحقيقة
+
+بعد انتهاء source fixes:
+
+نفذ production build الحقيقي.
+
+ثم:
+
+1. prerender
+2. sitemap
+3. Hostinger build
+4. إنشاء ZIP
+5. extract ZIP في مجلد نظيف
+6. شغّل كل SEO checks على **المجلد المستخرج**
+7. لا تفحص source بدل archive.
+8. لا تعتمد على build directory القديمة.
+9. لا تعتمد على أرقام من run سابق.
+
+الاختبار النهائي يجب أن يكون على:
+
+**THE EXACT ZIP THAT WILL BE UPLOADED TO HOSTINGER**
+
+---
+
+# 15 — لا تعتبر نجاح build نجاح SEO
+
+يجب الفصل بين:
+
+### Build correctness
+
+* TypeScript
+* Vite build
+* PHP syntax
+* git diff check
+
+و:
+
+### SEO correctness
+
+* HTML
+* metadata
+* canonical
+* sitemap
+* JSON-LD
+* FAQ
+* internal links
+* media
+* branding
+* production URL
+
+و:
+
+### Runtime correctness
+
+* web 200
+* API 200
+* healthz 200
+* login
+* protected admin endpoint returns 401 when unauthenticated
+* nonexistent entity routes return 404.
+
+كل طبقة يجب إثباتها منفصلة.
+
+---
+
+# 16 — الـApp كان متوقفًا
+
+آخر السجل يحتوي:
+
+`Your app is not running`
+
+ثم تم تشغيل workflows لاحقًا، لكن لا تفترض أنها ما زالت تعمل.
+
+في النهاية شغّل/تحقق من:
+
+* API
+* web
+* preview
+
+ثم اختبر فعليًا:
+
+* homepage
+* representative service page
+* representative package
+* representative area
+* article
+* contact
+* legal page
+* API health
+* protected SEO metrics endpoint
+* nonexistent route.
+
+ولا تحتاج إلى ترك workflows تعمل بلا سبب بعد انتهاء الاختبار.
+
+---
+
+# 17 — لا تعدّل الـvalidator فقط لإزالة FAIL/WARNING
+
+هذه قاعدة أساسية:
+
+إذا metric تقول FAIL، اسأل:
+
+**هل المشكلة في الموقع أم في تعريف القياس؟**
+
+إذا كان القياس خاطئًا:
+
+* أصلح validator.
+* وثّق السبب.
+* أثبت أن validator الجديد أكثر صحة.
+
+إذا كان الموقع خاطئًا:
+
+* أصلح الموقع.
+
+إذا كان الاثنان خاطئين:
+
+* أصلح الاثنين.
+
+ممنوع تغيير:
+
+`FAIL → PASS`
+
+عن طريق تغيير denominator أو استثناء الصفحات المشكلة بدون أساس هندسي.
+
+---
+
+# 18 — لا تضف محتوى SEO مصطنعًا
+
+لا أريد:
+
+* FAQ عامة مكررة.
+* نصوص keyword stuffing.
+* روابط مصطنعة.
+* Schema وهمية.
+* صور غير مستخدمة.
+* صفحات جديدة لمجرد تحسين الأرقام.
+* تغيير بنية المنتج.
+
+الهدف هو:
+
+**SEO صحي يعكس المنتج الحقيقي.**
+
+---
+
+# 19 — المطلوب النهائي
+
+عند انتهاء التنفيذ، لا ترسل لي عبارة:
+
+"تم الإصلاح وكل شيء PASS."
+
+أريد تقريرًا قصيرًا لكنه إثباتي يحتوي:
+
+### A — Source fixes
+
+كل ملف تغير ولماذا.
+
+### B — Production inventory
+
+* total HTML
+* indexable
+* noindex
+* sitemap
+* canonical
+
+### C — SEO metrics
+
+لكل metric:
+
+* numerator
+* denominator
+* status
+* سبب الحالة.
+
+### D — Node/PHP parity
+
+النتيجتان جنبًا إلى جنب.
+
+### E — Runtime
+
+HTTP status للصفحات والخدمات الأساسية.
+
+### F — Archive
+
+* اسم ZIP النهائي
+* الحجم
+* SHA-256
+* `unzip -t`
+* SQLite integrity.
+
+### G — Legacy branding
+
+عدد occurrences قبل وبعد، وتصنيف أي occurrence باقٍ.
+
+### H — Remaining issues
+
+إذا بقي أي WARNING أو FAIL، **لا تخفِه**.
+
+---
+
+# 20 — معيار الإغلاق
+
+لن أعتبر المهمة مغلقة لأن لوحة SEO قالت PASS.
+
+الإغلاق الحقيقي يعني:
+
+**Production archive نفسه يثبت أن:**
+
+* كل indexable page لها metadata سليمة.
+* كل indexable page لها canonical صحيح.
+* canonical وSitemap متطابقان.
+* Structured Data صحيحة فعلًا.
+* FAQ موجودة فقط حيث تستحق.
+* Internal linking حقيقي.
+* SEO media سليمة وغير ميتة.
+* Legacy branding غير متسرب.
+* production URL موحد ومثبت.
+* Node وPHP متطابقان.
+* runtime يعمل.
+* ZIP سليم.
+* SQLite سليمة.
+* لا يوجد regression بسبب الإصلاحات.
+
+وأخيرًا:
+
+**لا تبدأ Audit جديدًا من الصفر.**
+ابدأ من الـdiff الحالي، والملفات التي عدّلها الوكيل السابق، وآخر artifact فعلي، ثم نفّذ verification موجّهًا لكل نقطة أعلاه.
+
+إذا اكتشفت أن الوكيل السابق أصلح المشكلة فعلًا، لا تعيد إصلاحها؛ فقط أثبتها.
+
+إذا اكتشفت أن إصلاحًا سابقًا كان مجرد تغيير في الـmetric لإخفاء المشكلة، ارجعه إلى القياس الصحيح وأصلح السبب الحقيقي.
+
+إذا احتجت تعديلًا، اجعله أقل تعديل ممكن ويحافظ على architecture الحالية.
+
+الهدف ليس تقريرًا أخضر.
+
+**الهدف Production حقيقي نظيف، قابل للفهرسة، متسق، وقابل للدفاع عنه أمام أي SEO audit مستقل.**

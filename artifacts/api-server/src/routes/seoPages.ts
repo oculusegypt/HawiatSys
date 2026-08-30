@@ -55,7 +55,7 @@ const publicFilter = and(eq(seoPagesTable.status, "published"), eq(seoPagesTable
 // Public page index is useful for internal linking and for future page hubs.
 router.get("/pages", async (_req, res) => {
   try {
-    const rows = await db.select().from(seoPagesTable).where(publicFilter).orderBy(desc(seoPagesTable.publishedAt));
+    const rows = await db.select().from(seoPagesTable).where(publicFilter).orderBy(desc(seoPagesTable.publishedAt), desc(seoPagesTable.id));
     const companyName = await getSetting("company_name");
     return res.json(rows.map(row => castRow(row, companyName)));
   } catch {

@@ -773,7 +773,8 @@ step("كتابة معلومات النسخة وتعليمات النشر");
   const sitemap = readFileSync(join(ROOT, "build_php/sitemap.xml"), "utf8");
   const sitemapUrls = [...sitemap.matchAll(/<loc>[^<]+<\/loc>/g)].length;
   const sitemapImages = [...sitemap.matchAll(/<image:loc>[^<]+<\/image:loc>/g)].length;
-  const arabicAreaUrls = [...sitemap.matchAll(/<loc>[^<]+\/areas\/%D[^<]+<\/loc>/g)].length;
+  const arabicAreaUrls = [...sitemap.matchAll(/<loc>[^<]+\/areas\/([^<]+)<\/loc>/gu)]
+    .filter((match) => /[^\u0000-\u007F]/u.test(match[1])).length;
   const articleUrlsWithImages = sitemap
     .split("<url>")
     .filter((block) => block.includes("/blog/") && block.includes("<image:loc>"))

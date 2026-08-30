@@ -99,7 +99,7 @@ router.get("/posts", async (req, res) => {
       .select()
       .from(postsTable)
       .where(and(eq(postsTable.status, "published"), eq(postsTable.isActive, true)))
-      .orderBy(desc(postsTable.publishedAt))
+      .orderBy(desc(postsTable.publishedAt), desc(postsTable.id))
       .limit(limit)
       .offset(offset);
 

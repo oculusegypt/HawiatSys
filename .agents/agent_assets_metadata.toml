@@ -148,3 +148,17 @@ mtime_ms = 1788040452478
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:a31aac72-05c5-4479-b437-63a04e2ae220/d40653b8-5301-4d9d-a63a-5043e53b16ed/172c188c-5176-4f0b-a713-7eee8f82abae"
 storage_version_token = "1788040475227082"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "xHof6uVREvP-6H8Yj04No"
+uri = "file://docs/hostinger-final-2026-08-30.md"
+type = "text"
+title = "تقرير الإغلاق النهائي لحزمة Hostinger"
+description = "التقرير المرجعي الحالي بأرقام الأرشيف النهائي ونتائج SEO وNode/PHP والتشغيل."
+logical_id = "dec5dce7-8a08-4997-a326-57b9048892e3"
+content_hash = "sha256:9046a3c0174ec6053f7aeffc8a85eba1d4eac8d0fd9f676a73d5ee07aeaf7a14"
+size = 9478
+mtime_ms = 1788059085892
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:ca0c5c7b-9ebd-4ff4-a97e-553d6accde79/dec5dce7-8a08-4997-a326-57b9048892e3/24cd26c3-4a0e-47f2-bd0b-46b49427efdd"
+storage_version_token = "1788059097908320"
+content_type = "text/markdown"

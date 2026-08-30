@@ -3089,7 +3089,7 @@ try {
     // 14. Pages / SEO Pages: GET /api/pages or /api/seo-pages
     if (($path === '/pages' || $path === '/seo-pages') && $method === 'GET') {
         try {
-            $stmt = $pdo->query("SELECT * FROM seo_pages WHERE status = 'published' AND is_active = 1 ORDER BY id ASC");
+            $stmt = $pdo->query("SELECT * FROM seo_pages WHERE status = 'published' AND is_active = 1 ORDER BY published_at DESC, id DESC");
             $pages = $stmt->fetchAll();
             $formatted = array_map(function($p) {
                 return [
@@ -3135,7 +3135,7 @@ try {
         // (for example: حاويات-الأنقاض-بالرياض-2). Match that generated
         // alias as well as the stored slug so Hostinger serves the exact URLs
         // emitted by prerender and by the React page.
-        $stmt = $pdo->query("SELECT * FROM seo_pages WHERE status = 'published' AND is_active = 1 ORDER BY id ASC");
+        $stmt = $pdo->query("SELECT * FROM seo_pages WHERE status = 'published' AND is_active = 1 ORDER BY published_at DESC, id DESC");
         $p = null;
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $candidate) {
             $candidateSlugs = [
@@ -3380,18 +3380,16 @@ try {
                 'id' => (int)$s['id'],
                 'title' => $s['title'],
                 'description' => $s['description'],
-                'price' => $s['price'] ?? null,
-                'priceText' => $s['price_text'] ?? null,
+                'icon' => $s['icon'] ?? null,
                 'imageUrl' => $s['image_url'] ?? null,
                 'images' => $s['images'] ?? '[]',
-                'category' => $s['category'] ?? null,
-                'features' => $s['features'] ?? '[]',
-                'seoTitle' => $s['seo_title'] ?? null,
-                'seoDescription' => $s['seo_description'] ?? null,
-                'seoKeywords' => $s['seo_keywords'] ?? null,
-                'seoSlug' => $s['seo_slug'] ?? null,
-                'order' => (int)($s['sort_order'] ?? 0),
-                'isActive' => (bool)$s['is_active']
+                'order' => (int)($s['order'] ?? $s['sort_order'] ?? 0),
+                'isActive' => (bool)($s['is_active'] ?? true),
+                'seoEnabled' => (bool)($s['seo_enabled'] ?? false),
+                'seoTitle' => $s['seo_title'] ?? '',
+                'seoDescription' => $s['seo_description'] ?? '',
+                'seoKeywords' => $s['seo_keywords'] ?? '',
+                'seoSlug' => $s['seo_slug'] ?? ''
             ];
         }, $services);
         echo json_encode($formatted, JSON_UNESCAPED_UNICODE);
@@ -3620,6 +3618,11 @@ try {
         }
         $packages = $stmt->fetchAll();
         $formatted = array_map(function($pkg) {
+            $features = $pkg['features'] ?? [];
+            if (is_string($features)) {
+                $decodedFeatures = json_decode($features, true);
+                $features = is_array($decodedFeatures) ? $decodedFeatures : [];
+            }
             return [
                 'id' => (int)$pkg['id'],
                 'name' => $pkg['name'],
@@ -3627,7 +3630,7 @@ try {
                 'size' => $pkg['size'] ?? '',
                 'capacity' => $pkg['capacity'] ?? '',
                 'description' => $pkg['description'],
-                'features' => $pkg['features'] ?? '[]',
+                'features' => $features,
                 'suitableFor' => $pkg['suitable_for'] ?? '',
                 'priceText' => $pkg['price_text'] ?? '',
                 'priceNote' => $pkg['price_note'] ?? '',
@@ -4122,7 +4125,7 @@ try {
     if (($path === '/posts' || $path === '/blog') && $method === 'GET') {
         try {
             $page = max(1, (int)($_GET['page'] ?? 1));
-            $limit = min(50, max(1, (int)($_GET['limit'] ?? 9)));
+            $limit = min(50, max(1, (int)($_GET['limit'] ?? 12)));
             $offset = ($page - 1) * $limit;
             $category = trim((string)($_GET['category'] ?? ''));
 
@@ -4158,11 +4161,15 @@ try {
                     'readTime' => is_numeric($p['read_time'] ?? null) ? (int)$p['read_time'] : 5,
                     'viewCount' => (int)($p['view_count'] ?? 0),
                     'isActive' => (bool)($p['is_active'] ?? true),
+                    'order' => (int)($p['order'] ?? 0),
                     'seoTitle' => seoAutoCompanyText($p['seo_title'] ?? '', $companyName),
                     'seoDescription' => seoAutoCompanyText($p['seo_description'] ?? '', $companyName),
                     'seoKeywords' => seoAutoCompanyText($p['seo_keywords'] ?? '', $companyName),
+                    'seoSlug' => $p['seo_slug'] ?? $p['slug'] ?? '',
                     'ogImage' => seoAutoCompanyText($p['og_image'] ?? '', $companyName),
-                    'canonicalUrl' => $p['canonical_url'] ?? ''
+                    'canonicalUrl' => seoAutoCompanyText($p['canonical_url'] ?? '', $companyName),
+                    'createdAt' => $p['created_at'] ?? null,
+                    'updatedAt' => $p['updated_at'] ?? null
                 ];
             }, $posts);
 
@@ -4222,24 +4229,31 @@ try {
         }
 
         if ($p) {
+            $companyName = seoAutoCompanyName($pdo);
             echo json_encode([
                 'id' => (int)$p['id'],
-                'title' => $p['title'],
+                'title' => seoAutoCompanyText($p['title'] ?? '', $companyName),
                 'slug' => $p['slug'] ?? '',
-                'content' => $p['content'] ?? '',
-                'excerpt' => $p['excerpt'] ?? '',
-                'coverImage' => $p['cover_image'] ?? '',
-                'author' => $p['author'] ?? 'مؤسسة تقي جروب',
-                'category' => $p['category'] ?? 'نظافة عامة',
-                'tags' => $p['tags'] ?? '[]',
+                'content' => seoAutoCompanyText($p['content'] ?? '', $companyName),
+                'excerpt' => seoAutoCompanyText($p['excerpt'] ?? '', $companyName),
+                'coverImage' => seoAutoCompanyText($p['cover_image'] ?? '', $companyName),
+                'author' => seoAutoCompanyText($p['author'] ?? $companyName, $companyName),
+                'category' => seoAutoCompanyText($p['category'] ?? 'عام', $companyName),
+                'tags' => seoAutoCompanyText($p['tags'] ?? '[]', $companyName),
                 'status' => $p['status'] ?? 'published',
                 'publishedAt' => $p['published_at'],
-                'readTime' => $p['read_time'] ?? '5 دقائق',
+                'readTime' => is_numeric($p['read_time'] ?? null) ? (int)$p['read_time'] : 3,
                 'viewCount' => (int)($p['view_count'] ?? 0),
                 'isActive' => (bool)($p['is_active'] ?? true),
-                'seoTitle' => $p['seo_title'] ?? '',
-                'seoDescription' => $p['seo_description'] ?? '',
-                'seoKeywords' => $p['seo_keywords'] ?? ''
+                'order' => (int)($p['order'] ?? 0),
+                'seoTitle' => seoAutoCompanyText($p['seo_title'] ?? '', $companyName),
+                'seoDescription' => seoAutoCompanyText($p['seo_description'] ?? '', $companyName),
+                'seoKeywords' => seoAutoCompanyText($p['seo_keywords'] ?? '', $companyName),
+                'seoSlug' => $p['seo_slug'] ?? $p['slug'] ?? '',
+                'ogImage' => seoAutoCompanyText($p['og_image'] ?? '', $companyName),
+                'canonicalUrl' => seoAutoCompanyText($p['canonical_url'] ?? '', $companyName),
+                'createdAt' => $p['created_at'] ?? null,
+                'updatedAt' => $p['updated_at'] ?? null
             ], JSON_UNESCAPED_UNICODE);
             exit;
         } else {
