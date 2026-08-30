@@ -1,4 +1,5 @@
 import { useEffect } from "react"
+import { replaceLegacyCompanyName, useSiteSettings } from "@/context/SiteSettingsContext"
 
 const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
 const CENTRAL_ID = "central-structured-data-schema"
@@ -37,6 +38,15 @@ function readHeadSchemas(): unknown[] {
     })
 }
 
+function replaceDeep(value: unknown, companyName: string): unknown {
+  if (typeof value === "string") return replaceLegacyCompanyName(value, companyName) || ""
+  if (Array.isArray(value)) return value.map(item => replaceDeep(item, companyName))
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, replaceDeep(item, companyName)]))
+  }
+  return value
+}
+
 /**
  * There is one runtime JSON-LD block per document. Page components can still
  * provide their data-backed nodes, while the API contributes managed
@@ -44,16 +54,17 @@ function readHeadSchemas(): unknown[] {
  * deduplicated before they reach the head.
  */
 export function useDocumentSchema(id: string, schema: unknown, enabled = true) {
+  const { companyName, isLoaded } = useSiteSettings()
   const schemaKey = JSON.stringify(schema)
   useEffect(() => {
     const previous = document.getElementById(CENTRAL_ID)
     previous?.remove()
-    if (!enabled || window.location.pathname.startsWith("/admin")) return
+    if (!enabled || !isLoaded || window.location.pathname.startsWith("/admin")) return
 
     let cancelled = false
     const publish = (managed: unknown = null) => {
       if (cancelled) return
-      const merged = mergeSchemas([...readHeadSchemas(), managed, schema])
+      const merged = mergeSchemas([...readHeadSchemas(), managed, replaceDeep(schema, companyName)])
       if (!merged.length) return
       document.querySelectorAll('script[type="application/ld+json"]').forEach((element) => element.remove())
       const script = document.createElement("script")
@@ -75,5 +86,5 @@ export function useDocumentSchema(id: string, schema: unknown, enabled = true) {
       cancelled = true
       document.getElementById(CENTRAL_ID)?.remove()
     }
-  }, [id, schemaKey, enabled])
+  }, [companyName, id, isLoaded, schemaKey, enabled])
 }

@@ -113,7 +113,16 @@ const normalizeUrl = (value, origin = siteUrl) => {
 };
 
 const schemaHasType = (schema, expected) => hasJsonLdType(schema, expected);
-const schemaText = (value) => typeof value === "string" ? value.trim() : "";
+const schemaText = (value) => {
+  if (typeof value === "string") return value.trim();
+  if (Array.isArray(value)) {
+    return value
+      .filter((item) => typeof item === "string")
+      .map((item) => item.trim())
+      .find(Boolean) || "";
+  }
+  return "";
+};
 const schemaUrlKeys = new Set([
   "url", "@id", "image", "logo", "contentUrl",
   "mainEntityOfPage", "publisher", "provider", "isPartOf",

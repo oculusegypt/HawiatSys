@@ -3,6 +3,8 @@ import { db } from "@workspace/db";
 import { servicesTable } from "@workspace/db";
 import { eq, asc } from "drizzle-orm";
 import { requireAdmin, requireSectionPermission } from "../middleware/adminAuth";
+import { getSetting } from "./settings";
+import { replaceLegacyCompanyName } from "../lib/companyName";
 import { generateSeoMetadata, uniqueSlug } from "../lib/seoMetadata";
 import { entitySlug, legacyEntitySlug } from "../lib/friendlySlug";
 
@@ -19,27 +21,29 @@ function normalizeArabicSlug(value: unknown): string {
     .slice(0, 80);
 }
 
-function castRow(row: any) {
+function castRow(row: any, companyName: string) {
+  const text = (value: unknown) => replaceLegacyCompanyName(typeof value === "string" ? value : "", companyName) || "";
   return {
     id: row.id,
-    title: row.title,
-    description: row.description,
+    title: text(row.title),
+    description: text(row.description),
     icon: row.icon,
     imageUrl: row.imageUrl ?? row.image_url ?? null,
     images: row.images ?? "[]",
     order: row.order ?? 0,
     isActive: Boolean(row.isActive ?? row.is_active ?? true),
     seoEnabled: Boolean(row.seoEnabled ?? row.seo_enabled ?? false),
-    seoTitle: row.seoTitle ?? row.seo_title ?? "",
-    seoDescription: row.seoDescription ?? row.seo_description ?? "",
-    seoKeywords: row.seoKeywords ?? row.seo_keywords ?? "",
+    seoTitle: text(row.seoTitle ?? row.seo_title ?? ""),
+    seoDescription: text(row.seoDescription ?? row.seo_description ?? ""),
+    seoKeywords: text(row.seoKeywords ?? row.seo_keywords ?? ""),
     seoSlug: row.seoSlug ?? row.seo_slug ?? "",
   };
 }
 
 router.get("/services", async (_req, res) => {
   const rows = await db.select().from(servicesTable).orderBy(asc(servicesTable.order));
-  return res.json(rows.map(castRow));
+  const companyName = await getSetting("company_name");
+  return res.json(rows.map(row => castRow(row, companyName)));
 });
 
 router.get("/services/:slug", async (req, res) => {
@@ -68,7 +72,7 @@ router.get("/services/:slug", async (req, res) => {
       || requested === String(row.id);
   });
   if (!service) return res.status(404).json({ error: "Not found" });
-  return res.json(castRow(service));
+  return res.json(castRow(service, await getSetting("company_name")));
 });
 
 router.post("/services", requireAdmin, requireSectionPermission("services"), async (req, res) => {
@@ -102,7 +106,7 @@ router.post("/services", requireAdmin, requireSectionPermission("services"), asy
     seoKeywords: seo.seoKeywords,
     seoSlug: seo.seoSlug,
   }).returning();
-  return res.status(201).json(castRow(service));
+  return res.status(201).json(castRow(service, await getSetting("company_name")));
 });
 
 router.patch("/services/:id", requireAdmin, requireSectionPermission("services"), async (req, res) => {
@@ -151,7 +155,7 @@ router.patch("/services/:id", requireAdmin, requireSectionPermission("services")
     .set(updateData)
     .where(eq(servicesTable.id, id))
     .returning();
-  return res.json(castRow(service));
+  return res.json(castRow(service, await getSetting("company_name")));
 });
 
 router.delete("/services/:id", requireAdmin, requireSectionPermission("services"), async (req, res) => {

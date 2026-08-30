@@ -232,7 +232,7 @@ export default function SeoPage() {
         description: page.seoDescription || page.excerpt,
         url: pageCanonical,
         image: pageImage,
-        companyName: companyName || "مؤسسة تقي جروب",
+        companyName: companyName || "المنشأة",
         about: page.targetKeyword || page.title,
       }),
       breadcrumbSchema([

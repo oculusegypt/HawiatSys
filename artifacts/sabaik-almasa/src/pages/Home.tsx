@@ -264,7 +264,7 @@ export default function Home() {
   } = siteSettings
 
   const homeTitle = "تأجير حاويات الرياض | طلب الحاويات ومخلفات البناء والهدم"
-  const homeDescription = "تأجير حاويات الرياض وطلب الحاويات في الرياض لمخلفات البناء والهدم والمطاعم والمنشآت، مع حاويات نفايات وأنقاض بمقاسات متعددة وتوصيل وسحب سريع من تقي جروب."
+  const homeDescription = "تأجير حاويات الرياض وطلب الحاويات في الرياض لمخلفات البناء والهدم والمطاعم والمنشآت، مع حاويات نفايات وأنقاض بمقاسات متعددة وتوصيل وسحب سريع من {{company_name}}."
 
   useDocumentSEO({
     title: homeTitle,
@@ -274,7 +274,7 @@ export default function Home() {
     ogImageAlt: "تأجير حاويات الأنقاض والنفايات بالرياض مع التوصيل والسحب",
   })
   const homeSchema = homepageSchema({
-    companyName: companyName || "مؤسسة تقي جروب",
+    companyName: companyName || "المنشأة",
     siteName: "تأجير حاويات الرياض",
     description: homeDescription,
     logo: logoUrl || "/images/logo.png",

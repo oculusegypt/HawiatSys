@@ -93,7 +93,7 @@ export default function PackageDetail() {
         description: containerDescription,
         url: containerUrl,
         image: getContainerImage(container),
-        companyName: companyName || "مؤسسة تقي جروب",
+        companyName: companyName || "المنشأة",
         about: categoryName[container.category || ""] || "تأجير الحاويات ونقل المخلفات",
       }),
       containerSchema({
@@ -102,7 +102,7 @@ export default function PackageDetail() {
         url: containerUrl,
         image: getContainerImage(container),
         category: categoryName[container.category || ""] || container.category,
-        companyName: "مؤسسة تقي جروب",
+        companyName: companyName || "المنشأة",
         priceText: container.priceText,
         pricePerDay: container.pricePerDay,
       }),

@@ -90,7 +90,7 @@ export function useDocumentSEO({
     setMeta("og:title",       resolvedTitle, "property")
     setMeta("og:type",        ogType,      "property")
     setMeta("og:locale",      "ar_SA",     "property")
-    setMeta("og:site_name",   "تأجير حاويات الرياض", "property")
+    setMeta("og:site_name",   companyName || "المنشأة", "property")
     if (resolvedDescription) setMeta("og:description", resolvedDescription, "property")
     if (canonical)   setMeta("og:url",          canonical,  "property")
     setMeta("og:image",             absoluteOgImage, "property")

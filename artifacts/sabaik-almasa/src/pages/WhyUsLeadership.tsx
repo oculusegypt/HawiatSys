@@ -10,8 +10,8 @@ import { ChevronLeft } from "lucide-react"
 export default function WhyUsLeadership() {
   useDocumentSEO({
     title: "قيادتنا — حلول الحاويات ونقل المخلفات",
-    description: "تعرف على قيادة مؤسسة تقي جروب ورؤيتها في تقديم حلول موثوقة لتأجير الحاويات ونقل مخلفات البناء في الرياض.",
-    keywords: "قيادة مؤسسة تقي جروب, رؤية المؤسسة, تأجير الحاويات بالرياض",
+    description: "تعرف على قيادة {{company_name}} ورؤيتها في تقديم حلول موثوقة لتأجير الحاويات ونقل مخلفات البناء في الرياض.",
+    keywords: "قيادة {{company_name}}, رؤية المؤسسة, تأجير الحاويات بالرياض",
     canonical: siteUrl("/why-us/leadership"),
   })
 

@@ -25,8 +25,8 @@ export default function SeoPagesIndexPage() {
   const [loading, setLoading] = useState(true)
 
   useDocumentSEO({
-    title: `فهرس الأدلة والصفحات | ${companyName || "مؤسسة تقي جروب"}`,
-    description: "فهرس الأدلة التخصصية من مؤسسة تقي جروب لاختيار الحاوية المناسبة وتنظيم رفع ونقل مخلفات البناء والأنقاض من المنازل والمشاريع داخل مدينة الرياض.",
+    title: `فهرس الأدلة والصفحات | ${companyName || "المنشأة"}`,
+    description: "فهرس الأدلة التخصصية من {{company_name}} لاختيار الحاوية المناسبة وتنظيم رفع ونقل مخلفات البناء والأنقاض من المنازل والمشاريع داخل مدينة الرياض.",
     canonical: `${getSiteUrl().replace(/\/$/, "")}/pages`,
     ogImage: "/images/seo/taqi-containers.jpg",
     ogImageAlt: "أدلة تأجير الحاويات ونقل المخلفات في الرياض",

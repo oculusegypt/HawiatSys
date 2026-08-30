@@ -1,7 +1,7 @@
 import * as React from "react"
 import { Link } from "wouter"
 import { Phone, Mail, MapPin, Map, Facebook, Instagram, Youtube, Twitter, Music2, Ghost, Linkedin, ExternalLink } from "lucide-react"
-import { getSafeGoogleBusinessProfileUrl, getSafeMapEmbedUrl, useSiteSettings } from "@/context/SiteSettingsContext"
+import { formatSaudiPhone, getSafeGoogleBusinessProfileUrl, getSafeMapEmbedUrl, useSiteSettings } from "@/context/SiteSettingsContext"
 
 export function Footer() {
   const siteSettings = useSiteSettings()
@@ -110,7 +110,7 @@ export function Footer() {
                       <a key={ph} href={`tel:${ph}`}
                         className="text-gray-300 hover:text-white transition-colors"
                         dir="ltr">
-                        {ph.replace(/(\d{4})(\d{3})(\d{3})/, "$1 $2 $3")}
+                        {formatSaudiPhone(ph)}
                       </a>
                     ))}
                   </div>

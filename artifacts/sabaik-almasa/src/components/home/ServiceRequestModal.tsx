@@ -16,6 +16,7 @@ import { getHighAccuracyPosition } from "@/lib/reverseGeocode"
 import { getActiveContainers, getContainerValue } from "@/lib/packageOptions"
 
 const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
+const MAX_CONTAINER_RENTAL_DURATION = "حتى 10 أيام أو امتلاء الحاوية، أيهما أقرب"
 
 function getTodayString() {
   const now = new Date()
@@ -131,7 +132,7 @@ export function ServiceRequestModal() {
   const [appointmentType, setAppointmentType] = useState<"immediate" | "scheduled">("immediate")
   const [scheduledDate, setScheduledDate] = useState("")
   const [scheduledTime, setScheduledTime] = useState("10:00")
-  const [duration, setDuration] = useState("يومي (رد واحد)")
+  const [duration] = useState(MAX_CONTAINER_RENTAL_DURATION)
   const [location, setLocation] = useState("")
   const [clientName, setClientName] = useState("")
   const [phone, setPhone] = useState("")
@@ -211,7 +212,7 @@ export function ServiceRequestModal() {
         serviceType: serviceType || "حاويات الأنقاض",
         containerSize: containerSize || undefined,
         location: location.trim(),
-        duration: duration || "يومي (رد واحد)",
+        duration: MAX_CONTAINER_RENTAL_DURATION,
         notes: notes.trim() || undefined,
         appointmentType,
         scheduledAt,
@@ -264,7 +265,7 @@ export function ServiceRequestModal() {
                 serviceType: serviceType || "حاويات الأنقاض",
                 containerSize: containerSize || "",
                 location: location.trim(),
-                duration: duration || "يومي (رد واحد)",
+                duration: MAX_CONTAINER_RENTAL_DURATION,
                 appointmentType,
                 scheduledAt
               }),
@@ -449,16 +450,10 @@ export function ServiceRequestModal() {
                 {/* Duration */}
                 <div>
                   <label className="text-xs font-bold text-gray-700 block mb-1">مدة الإيجار</label>
-                  <select
-                    value={duration}
-                    onChange={e => setDuration(e.target.value)}
-                    className="w-full text-xs border rounded-xl p-2.5 bg-white h-11"
-                  >
-                    <option value="يومي (رد واحد)">يومي (رد واحد / حتى 10 أيام)</option>
-                    <option value="أسبوعي">أسبوعي</option>
-                    <option value="شهري">شهري</option>
-                    <option value="عقد سنوي">عقد سنوي (للمنشآت والشركات)</option>
-                  </select>
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs font-bold leading-5 text-amber-900">
+                    {MAX_CONTAINER_RENTAL_DURATION}
+                  </div>
+                  <p className="mt-1 text-[11px] text-gray-500">تُسحب الحاوية عند امتلائها أو بعد 10 أيام كحد أقصى.</p>
                 </div>
 
                 {/* Name & Phone */}

@@ -310,7 +310,7 @@ async function getConfiguredCompanyPhones(): Promise<string[]> {
 // ─── Flow Handlers ───────────────────────────────────────────────────────────
 
 async function getWelcomeMessage(): Promise<BotResponse> {
-  const siteName = (await getSetting("company_name")).trim() || "مؤسسة تقي جروب";
+  const siteName = (await getSetting("company_name")).trim() || "المنشأة";
   return {
     reply:
       `أهلاً وسهلاً! 👋 أنا المساعد الذكي لـ **${siteName}** — متخصصون في تأجير حاويات الأنقاض والنفايات ونقل المخلفات بالرياض.\n\nكيف أقدر أساعدك اليوم؟`,

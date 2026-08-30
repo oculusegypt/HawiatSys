@@ -64,7 +64,7 @@ export function seoImageForPath(path: string): string {
 }
 
 export function seoImageAlt(title: string): string {
-  return `${title.replace(/\s*\|.*$/, "").trim()} — مؤسسة تقي جروب لتأجير الحاويات بالرياض`
+  return `${title.replace(/\s*\|.*$/, "").trim()} — خدمات تأجير الحاويات بالرياض`
 }
 
 export { SEO_MEDIA }

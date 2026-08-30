@@ -8,6 +8,18 @@ import { sourceForRow } from "../lib/attribution";
 import { syncCustomerFromRequest } from "../lib/customerSync";
 
 const router = Router();
+const MAX_CONTAINER_RENTAL_DURATION = "حتى 10 أيام أو امتلاء الحاوية، أيهما أقرب";
+
+function isContainerRequest(serviceType: unknown, containerSize: unknown) {
+  return /حاوي|container/i.test(`${String(serviceType ?? "")} ${String(containerSize ?? "")}`);
+}
+
+function validateContainerDuration(serviceType: unknown, containerSize: unknown, duration: unknown) {
+  if (!isContainerRequest(serviceType, containerSize) || duration == null || String(duration).trim() === "") return null;
+  return String(duration).trim() === MAX_CONTAINER_RENTAL_DURATION
+    ? null
+    : "مدة إيجار الحاوية لا تتجاوز 10 أيام أو حتى امتلائها، أيهما أقرب";
+}
 
 const ONLINE_WINDOW_MS = 90 * 1000;
 
@@ -479,6 +491,8 @@ router.post("/service-requests", async (req, res) => {
   const finalNotes = isQuoteRequest
     ? `[طلب عرض سعر] ${notes || ""}`.trim()
     : notes;
+  const durationError = validateContainerDuration(serviceType, containerSize, duration);
+  if (durationError) return res.status(422).json({ error: durationError });
 
   const [request] = await db.insert(serviceRequestsTable).values({
     clientName, phone, email,
@@ -599,7 +613,11 @@ router.patch("/service-requests/:id", requireAdmin, requireSectionPermission("re
   if (serviceType !== undefined)     updateData.serviceType     = serviceType;
   if (containerSize !== undefined)   updateData.containerSize   = containerSize || "";
   if (location !== undefined)        updateData.location        = location;
-  if (duration !== undefined)        updateData.duration        = duration;
+  if (duration !== undefined) {
+    const durationError = validateContainerDuration(serviceType, containerSize, duration);
+    if (durationError) return res.status(422).json({ error: durationError });
+    updateData.duration = duration;
+  }
   if (notes !== undefined)           updateData.notes           = notes;
   if (appointmentType !== undefined) updateData.appointmentType = appointmentType;
   if (scheduledAt !== undefined)     updateData.scheduledAt     = scheduledAt;

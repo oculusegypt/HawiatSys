@@ -12,7 +12,7 @@ interface AuthorityTrustSignalsProps {
  * certificates, ratings, or government affiliation.
  */
 export function AuthorityTrustSignals({
-  authorName = "فريق المحتوى في مؤسسة تقي جروب",
+  authorName = "فريق المحتوى في المنشأة",
   compact = false,
 }: AuthorityTrustSignalsProps) {
   const {
@@ -23,7 +23,7 @@ export function AuthorityTrustSignals({
     phoneCall,
     googleBusinessProfile,
   } = useSiteSettings()
-  const resolvedCompany = companyName || "مؤسسة تقي جروب"
+  const resolvedCompany = companyName || "المنشأة"
   const resolvedAddress = [address, city, region].filter(Boolean).join("، ")
 
   return (

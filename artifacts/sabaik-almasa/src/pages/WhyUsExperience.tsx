@@ -10,9 +10,9 @@ import { ChevronLeft } from "lucide-react"
 
 export default function WhyUsExperience() {
   useDocumentSEO({
-    title: "خبرتنا المتراكمة — مؤسسة تقي جروب",
+    title: "خبرتنا المتراكمة — {{company_name}}",
     description: "خبرة ميدانية في تأجير الحاويات ونقل مخلفات البناء للمنازل والمقاولين والمنشآت في الرياض.",
-    keywords: "خبرة تأجير الحاويات, نقل مخلفات البناء بالرياض, مؤسسة تقي جروب",
+    keywords: "خبرة تأجير الحاويات, نقل مخلفات البناء بالرياض, {{company_name}}",
     canonical: siteUrl("/why-us/experience"),
   })
 

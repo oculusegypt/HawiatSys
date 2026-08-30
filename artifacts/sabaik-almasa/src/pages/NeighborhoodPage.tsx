@@ -124,7 +124,7 @@ function createAreaData(definition: AreaDefinition): AreaData {
   return {
     name: definition.name,
     region: definition.region,
-    title: `تأجير حاويات ونقل مخلفات ${location} | مؤسسة تقي جروب`,
+    title: `تأجير حاويات ونقل مخلفات ${location} | المنشأة`,
     description: `نوفر في ${location} حاويات الأنقاض والنفايات ونقل مخلفات البناء، مع تنسيق التوصيل والسحب والتبديل حسب نوع المخلفات وموقع المشروع.`,
     h1: `تأجير حاويات ونقل مخلفات في ${location}`,
     keywords: serviceKeywords,
@@ -239,7 +239,7 @@ export default function NeighborhoodPage() {
     region,
     country,
   } = useSiteSettings()
-  const currentCompany = companyName || "مؤسسة تقي جروب"
+  const currentCompany = companyName || "المنشأة"
   const areaTitle = area ? normalizeCompanyText(area.title) : ""
   const areaDescription = area
     ? normalizeSeoDescription(normalizeCompanyText(area.description), area.name)

@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
 import { Route, Switch, Router as WouterRouter } from "wouter";
-import { useState, type ElementType, type FormEvent, type ReactNode } from "react";
+import { useEffect, useState, type ElementType, type FormEvent, type ReactNode } from "react";
 import {
   Activity,
   ArrowLeft,
@@ -589,10 +589,19 @@ function FAQSection({ onDemo }: { onDemo: () => void }) {
 }
 
 function Footer({ onDemo }: { onDemo: () => void }) {
+  const [companyName, setCompanyName] = useState("المنشأة")
+  useEffect(() => {
+    fetch("/api/settings", { headers: { Accept: "application/json" } })
+      .then(response => response.ok ? response.json() : null)
+      .then(data => {
+        if (typeof data?.company_name === "string" && data.company_name.trim()) setCompanyName(data.company_name.trim())
+      })
+      .catch(() => {})
+  }, [])
   return (
     <footer className="site-footer">
       <div className="page-shell footer-cta"><div><span className="eyebrow eyebrow-light">الخطوة التالية</span><h2>شغّل شركتك كما تستحق.</h2><p>عرض عملي مخصص لطريقة عملك في الرياض والسعودية.</p></div><Button onClick={onDemo} variant="primary" testId="button-footer-demo">اطلب عرض CleanFlow <ArrowLeft size={17} /></Button></div>
-      <div className="page-shell footer-main"><Logo /><div className="footer-links"><a href="#platform" data-testid="link-footer-platform">المنصة</a><a href="#capabilities" data-testid="link-footer-capabilities">الإمكانات</a><a href="#insights" data-testid="link-footer-insights">التقارير</a><a href="#faq" data-testid="link-footer-faq">الأسئلة الشائعة</a><a href="/" data-testid="link-footer-company">موقع تقي جروب</a></div><span className="copyright">CleanFlow Platform · تشغيل أوضح، نمو أهدأ</span></div>
+      <div className="page-shell footer-main"><Logo /><div className="footer-links"><a href="#platform" data-testid="link-footer-platform">المنصة</a><a href="#capabilities" data-testid="link-footer-capabilities">الإمكانات</a><a href="#insights" data-testid="link-footer-insights">التقارير</a><a href="#faq" data-testid="link-footer-faq">الأسئلة الشائعة</a><a href="/" data-testid="link-footer-company">موقع {companyName}</a></div><span className="copyright">CleanFlow Platform · تشغيل أوضح، نمو أهدأ</span></div>
     </footer>
   );
 }

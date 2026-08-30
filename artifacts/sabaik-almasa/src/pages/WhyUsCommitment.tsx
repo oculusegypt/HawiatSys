@@ -9,9 +9,9 @@ import { ChevronLeft } from "lucide-react"
 
 export default function WhyUsCommitment() {
   useDocumentSEO({
-    title: "التزامنا — مؤسسة تقي جروب | قيمنا ومبادئنا",
-    description: "تعرف على قيم ومبادئ مؤسسة تقي جروب والتزامنا بتقديم حلول منظمة لتأجير الحاويات ونقل المخلفات في الرياض.",
-    keywords: "التزام مؤسسة تقي جروب, قيم المؤسسة, جودة نقل مخلفات البناء",
+    title: "التزامنا — {{company_name}} | قيمنا ومبادئنا",
+    description: "تعرف على قيم ومبادئ {{company_name}} والتزامنا بتقديم حلول منظمة لتأجير الحاويات ونقل المخلفات في الرياض.",
+    keywords: "التزام {{company_name}}, قيم المؤسسة, جودة نقل مخلفات البناء",
     canonical: siteUrl("/why-us/commitment"),
   })
 

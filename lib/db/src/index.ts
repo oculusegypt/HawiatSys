@@ -64,6 +64,7 @@ for (const sql of serviceRequestMigrations) {
 
 const analyticsMigrations = [
   "ALTER TABLE page_views ADD COLUMN country TEXT NOT NULL DEFAULT ''",
+  "ALTER TABLE page_views ADD COLUMN region TEXT NOT NULL DEFAULT ''",
   "ALTER TABLE page_views ADD COLUMN city TEXT NOT NULL DEFAULT ''",
   "ALTER TABLE page_views ADD COLUMN utm_source TEXT NOT NULL DEFAULT ''",
   "ALTER TABLE page_views ADD COLUMN utm_medium TEXT NOT NULL DEFAULT ''",

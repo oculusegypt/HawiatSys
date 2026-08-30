@@ -10,8 +10,12 @@ import { generateSeoMetadata, uniqueSlug } from "../lib/seoMetadata";
 
 const router = Router();
 
+function replaceMarketingPrices(value: string): string {
+  return value.replace(/(20\s*(?:ياردة|م³)[\s\S]{0,160}?)(500)(?=\s*ريال)/gu, "$1600");
+}
+
 function castRow(row: any, companyName: string) {
-  const text = (value: unknown) => replaceLegacyCompanyName(value, companyName).trim();
+  const text = (value: unknown) => replaceMarketingPrices(replaceLegacyCompanyName(value, companyName).trim());
 
   return {
     id:             row.id,

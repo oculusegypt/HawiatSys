@@ -8,6 +8,7 @@ export const pageViewsTable = sqliteTable("page_views", {
   ipHash: text("ip_hash").notNull().default(""),
   deviceType: text("device_type").notNull().default("desktop"), // mobile | tablet | desktop
   country: text("country").notNull().default(""),
+  region: text("region").notNull().default(""),
   city: text("city").notNull().default(""),
   utmSource: text("utm_source").notNull().default(""),
   utmMedium: text("utm_medium").notNull().default(""),

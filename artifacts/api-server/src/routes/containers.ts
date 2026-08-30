@@ -3,6 +3,8 @@ import { db } from "@workspace/db";
 import { containersTable } from "@workspace/db";
 import { eq, asc } from "drizzle-orm";
 import { requireAdmin, requireSectionPermission } from "../middleware/adminAuth";
+import { getSetting } from "./settings";
+import { replaceLegacyCompanyName } from "../lib/companyName";
 import { generateSeoMetadata, uniqueSlug } from "../lib/seoMetadata";
 import { entitySlug } from "../lib/friendlySlug";
 
@@ -19,9 +21,28 @@ function normalizeArabicSlug(value: unknown): string {
     .slice(0, 80);
 }
 
+function castContainer(row: any, companyName: string) {
+  const text = (value: unknown) => replaceLegacyCompanyName(typeof value === "string" ? value : "", companyName) || "";
+  return {
+    ...row,
+    name: text(row.name),
+    size: text(row.size),
+    capacity: text(row.capacity),
+    description: text(row.description),
+    suitableFor: text(row.suitableFor ?? row.suitable_for),
+    priceText: text(row.priceText ?? row.price_text),
+    priceNote: text(row.priceNote ?? row.price_note),
+    rentalPeriod: text(row.rentalPeriod ?? row.rental_period),
+    seoTitle: text(row.seoTitle ?? row.seo_title),
+    seoDescription: text(row.seoDescription ?? row.seo_description),
+    seoKeywords: text(row.seoKeywords ?? row.seo_keywords),
+  };
+}
+
 router.get(["/containers", "/packages", "/cleaning-packages"], async (_req, res) => {
   const containers = await db.select().from(containersTable).orderBy(asc(containersTable.order));
-  return res.json(containers);
+  const companyName = await getSetting("company_name");
+  return res.json(containers.map(container => castContainer(container, companyName)));
 });
 
 router.get(["/containers/:slug", "/packages/:slug", "/cleaning-packages/:slug"], async (req, res) => {
@@ -36,7 +57,7 @@ router.get(["/containers/:slug", "/packages/:slug", "/cleaning-packages/:slug"],
     return requested === stored || requested === publicSlug || requested === String(row.id);
   });
   if (!container) return res.status(404).json({ error: "Not found" });
-  return res.json(container);
+  return res.json(castContainer(container, await getSetting("company_name")));
 });
 
 router.post("/containers", requireAdmin, requireSectionPermission("packages"), async (req, res) => {

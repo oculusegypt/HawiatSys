@@ -48,7 +48,7 @@ export const SERVICE_TYPES = [
 export const DEBRIS_CONTAINERS = [
   { id: "حاوية صغيرة 12 ياردة", name: "حاوية صغيرة (12 ياردة)", size: "12 ياردة", capacity: "10 م³", priceText: "400 ريال / للرد", icon: Box, best: "المشاريع الصغيرة والترميم", color: "bg-amber-50 text-amber-700 border-amber-200" },
   { id: "حاوية متوسطة 15 ياردة", name: "حاوية متوسطة (15 ياردة)", size: "15 ياردة", capacity: "12 م³", priceText: "450 ريال / للرد", icon: Box, best: "مشاريع الترميم والتوسعة", color: "bg-amber-50 text-amber-700 border-amber-200" },
-  { id: "حاوية كبيرة 20 ياردة", name: "حاوية كبيرة (20 ياردة)", size: "20 ياردة", capacity: "16 م³", priceText: "500 ريال / للرد", icon: Box, best: "المشاريع الإنشائية والهدم", color: "bg-amber-50 text-amber-700 border-amber-200" },
+  { id: "حاوية كبيرة 20 ياردة", name: "حاوية كبيرة (20 ياردة)", size: "20 ياردة", capacity: "16 م³", priceText: "600 ريال / للرد", icon: Box, best: "المشاريع الإنشائية والهدم", color: "bg-amber-50 text-amber-700 border-amber-200" },
   { id: "حاوية جامبو 30 ياردة", name: "حاوية جامبو (30 ياردة)", size: "30 ياردة", capacity: "22 م³", priceText: "700 ريال / للرد", icon: Box, best: "المشاريع الكبرى والهدم الشامل", color: "bg-amber-50 text-amber-700 border-amber-200" },
 ]
 

@@ -229,9 +229,22 @@ export function normalizeCompanyText(value: string): string {
   return value
 }
 
+export function formatSaudiPhone(value: string): string {
+  const digits = value
+    .replace(/[٠-٩]/g, digit => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)))
+    .replace(/\D/g, "")
+    .replace(/^966/, "0")
+  return /^05\d{8}$/.test(digits)
+    ? `${digits.slice(0, 2)} ${digits.slice(2, 4)} ${digits.slice(4, 6)} ${digits.slice(6, 8)} ${digits.slice(8, 10)}`
+    : value
+}
+
 export function replaceLegacyCompanyName(value: string | undefined, companyName: string): string | undefined {
   if (!value) return value
-  return normalizeCompanyText(value).replace(/\{\{company_name\}\}/g, companyName)
+  const resolved = companyName.trim() || "المنشأة"
+  return normalizeCompanyText(value)
+    .replace(/\{\{company_name\}\}/g, resolved)
+    .replace(/(?:مؤسسة|شركة)?\s*تقي\s*جروب/gi, resolved)
 }
 
 function parseHomepageContent(raw: unknown): HomepageContent {

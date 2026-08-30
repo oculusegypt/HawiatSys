@@ -9,8 +9,8 @@ import { ChevronLeft } from "lucide-react"
 
 export default function PartnersPage() {
   useDocumentSEO({
-    title: "شركاؤنا — مؤسسة تقي جروب للحاويات ونقل المخلفات",
-    description: "شركاء النجاح في مؤسسة تقي جروب. نفخر بثقة المقاولين والمنشآت والمجمعات في حلول تأجير الحاويات ونقل المخلفات بالرياض.",
+    title: "شركاؤنا — {{company_name}} للحاويات ونقل المخلفات",
+    description: "شركاء النجاح في {{company_name}}. نفخر بثقة المقاولين والمنشآت والمجمعات في حلول تأجير الحاويات ونقل المخلفات بالرياض.",
     keywords: "شركاء تأجير الحاويات بالرياض, شركاء نقل مخلفات البناء",
     canonical: siteUrl("/partners"),
   })

@@ -3,6 +3,7 @@ import { motion } from "framer-motion"
 import { ArrowLeft, CheckCircle2 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { useServiceRequest } from "@/context/ServiceRequestContext"
+import { useSiteSettings } from "@/context/SiteSettingsContext"
 import { useState } from "react"
 import { entityPath } from "@/lib/friendlySlug"
 
@@ -29,6 +30,7 @@ export function ServiceCard({
   index = 0,
 }: ServiceCardProps) {
   const { openModal } = useServiceRequest()
+  const { companyName } = useSiteSettings()
   const hasImages = images.length > 0
   const [imageFailed, setImageFailed] = useState(false)
   const detailHref = `/services/${entityPath({ slug: seoSlug, title, id, fallback: "service" })}`
@@ -69,7 +71,7 @@ export function ServiceCard({
           <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-secondary text-[#12384b] shadow-lg">
             <Icon size={23} />
           </span>
-          <span className="text-xs font-bold text-white/85">تقي جروب · الرياض</span>
+          <span className="text-xs font-bold text-white/85">{companyName || "المنشأة"} · الرياض</span>
         </div>
       </div>
 

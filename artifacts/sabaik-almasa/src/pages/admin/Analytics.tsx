@@ -89,6 +89,7 @@ interface AnalyticsData {
   }
   conversionSources: { source: string; views: number; orders: number; rate: number }[]
   countries: { country: string; count: number }[]
+  regions: { region: string; count: number }[]
   cities: { city: string; count: number }[]
   devices: { mobile: number; tablet: number; desktop: number }
   hourly: number[]
@@ -152,6 +153,7 @@ function normalizeAnalytics(raw: Partial<AnalyticsData>): AnalyticsData {
     operationalMetrics: raw.operationalMetrics ?? { assigned: 0, averageAssignmentHours: 0, completed: 0, averageCompletionHours: 0 },
     conversionSources: raw.conversionSources ?? [],
     countries: raw.countries ?? [],
+    regions: raw.regions ?? [],
     cities: raw.cities ?? [],
     devices: {
       mobile: raw.devices?.mobile ?? 0,
@@ -489,14 +491,20 @@ function SourceList({ rows, total }: { rows: { source: string; count: number }[]
   )
 }
 
-function LocationList({ items, field, total }: { items: AnalyticsData["countries"] | AnalyticsData["cities"]; field: "country" | "city"; total: number }) {
+function LocationList({ items, field, total }: {
+  items: AnalyticsData["countries"] | AnalyticsData["regions"] | AnalyticsData["cities"]
+  field: "country" | "region" | "city"
+  total: number
+}) {
   const normalized = items.map(item => {
     const label = field === "country"
       ? ("country" in item ? item.country : "")
+      : field === "region"
+        ? ("region" in item ? item.region : "")
       : ("city" in item ? item.city : "")
     return { label: label || "غير محدد", count: item.count }
   })
-  return <RankedList items={normalized} max={Math.max(...normalized.map(item => item.count), total, 1)} color={field === "country" ? "bg-[#408a70]" : "bg-[#c89b3c]"} />
+  return <RankedList items={normalized} max={Math.max(...normalized.map(item => item.count), total, 1)} color={field === "country" ? "bg-[#408a70]" : field === "region" ? "bg-[#193b63]" : "bg-[#c89b3c]"} />
 }
 
 function cleanReferrer(referrer: string) {
@@ -951,7 +959,7 @@ export default function Analytics() {
                       <TabsTrigger value="cities" className="gap-2 px-4 py-2 text-sm data-[state=active]:bg-white data-[state=active]:text-[#193b63]"><MapPinned size={14} />المدن</TabsTrigger>
                     </TabsList>
                     <TabsContent value="countries"><LocationList items={data.countries} field="country" total={sourceTotal} /></TabsContent>
-                    <TabsContent value="regions"><EmptyState message="لا توجد بيانات للمناطق من الخادم حاليًا." /></TabsContent>
+                    <TabsContent value="regions"><LocationList items={data.regions} field="region" total={sourceTotal} /></TabsContent>
                     <TabsContent value="cities"><LocationList items={data.cities} field="city" total={sourceTotal} /></TabsContent>
                   </Tabs>
                 </CardContent>

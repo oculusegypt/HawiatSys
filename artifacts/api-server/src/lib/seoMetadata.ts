@@ -99,7 +99,7 @@ function generatedTitle(source: SeoSource, displayName: string, keyword: string)
     case "service":
       return `${displayName} بالرياض | تأجير حاويات ونقل مخلفات`;
     case "container":
-      return `تأجير ${displayName}${text(source.size) ? ` ${text(source.size)}` : ""} بالرياض | تقي جروب`;
+      return `تأجير ${displayName}${text(source.size) ? ` ${text(source.size)}` : ""} بالرياض | المنشأة`;
     case "post":
       return `${displayName} | دليل تأجير الحاويات بالرياض`;
     case "page":
@@ -118,22 +118,22 @@ function generatedDescription(source: SeoSource, displayName: string, keyword: s
   switch (source.kind) {
     case "service":
       return fitDescription(
-        `خدمة ${displayName} في الرياض من تقي جروب. ${sourceText}${details ? ` ${details}.` : ""}`,
+        `خدمة ${displayName} في الرياض من المنشأة. ${sourceText}${details ? ` ${details}.` : ""}`,
         "تواصل معنا لتحديد الموعد وطلب الخدمة ونقل المخلفات بطريقة منظمة.",
       );
     case "container":
       return fitDescription(
-        `استأجر ${displayName} في الرياض من تقي جروب. ${sourceText}${details ? ` ${details}.` : ""}`,
+        `استأجر ${displayName} في الرياض من المنشأة. ${sourceText}${details ? ` ${details}.` : ""}`,
         "نوفر التوصيل والسحب ونقل الأنقاض والمخلفات من موقعك في الموعد المتفق عليه.",
       );
     case "post":
       return fitDescription(
-        `اقرأ ${displayName} من مدونة تقي جروب لمعرفة ${keyword || "أفضل حلول تأجير الحاويات ونقل المخلفات"} في الرياض. ${sourceText}`,
+        `اقرأ ${displayName} من مدونة المنشأة لمعرفة ${keyword || "أفضل حلول تأجير الحاويات ونقل المخلفات"} في الرياض. ${sourceText}`,
         "دليل عملي محدث يساعدك على اختيار الحل المناسب وطلب الخدمة بثقة.",
       );
     case "page":
       return fitDescription(
-        `${displayName} في الرياض من تقي جروب. ${sourceText}`,
+        `${displayName} في الرياض من المنشأة. ${sourceText}`,
         "معلومات عملية وخطوات واضحة لاختيار الحاوية أو خدمة نقل المخلفات المناسبة.",
       );
   }
@@ -158,12 +158,12 @@ function generatedKeywords(source: SeoSource, displayName: string, keyword: stri
     .map((item) => item.trim())
     .filter(Boolean);
   const kindKeywords = source.kind === "post"
-    ? ["مدونة تقي جروب", "دليل الحاويات", "أسعار الحاويات بالرياض"]
+    ? ["مدونة المنشأة", "دليل الحاويات", "أسعار الحاويات بالرياض"]
     : source.kind === "page"
       ? ["خدمات الحاويات", "طلب حاوية بالرياض", "حلول المخلفات بالرياض"]
       : source.kind === "container"
         ? ["حاويات للإيجار بالرياض", "حاويات مخلفات البناء", "أسعار تأجير الحاويات"]
-        : ["خدمات تقي جروب", "تأجير حاويات", "خدمة نقل المخلفات"];
+        : ["خدمات المنشأة", "تأجير حاويات", "خدمة نقل المخلفات"];
   return [...new Set([keyword, displayName, ...supplied, ...kindKeywords, ...GOLDEN_KEYWORDS]
     .map((item) => item.trim())
     .filter(Boolean))].slice(0, 12).join(", ");

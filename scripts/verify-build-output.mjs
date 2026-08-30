@@ -12,11 +12,11 @@ const h2s = [...html.matchAll(/<h2[^>]*>([\s\S]*?)<\/h2>/gi)]
   .map((match) => match[1].replace(/<[^>]+>/g, "").trim());
 
 const checks = [
-  ["homepage H1 identifies container rental", h1.includes("تأجير الحاويات بالرياض")],
+  ["homepage H1 identifies container rental", h1.includes("تأجير حاويات الرياض")],
   ["restaurant waste-container copy", html.includes("حاويات نفايات للمطاعم")],
   ["facility waste-container copy", html.includes("حاويات مخلفات المنشآت")],
   ["construction and demolition waste copy", html.includes("نقل مخلفات البناء والهدم")],
-  ["container-rental FAQ", html.includes("الأسئلة الشائعة حول تأجير الحاويات بالرياض")],
+  ["container-rental FAQ", html.includes("الأسئلة الشائعة حول تأجير حاويات الرياض")],
   ["publisher authority block", html.includes("هوية الجهة الناشرة ومراجع الخدمة")],
   ["homepage canonical", /<link\b[^>]*rel=["']canonical["'][^>]*>/i.test(html)],
   ["homepage description", /<meta\b[^>]*name=["']description["'][^>]*>/i.test(html)],

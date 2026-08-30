@@ -126,7 +126,7 @@ const SERVICE_INTEL: Record<string, {
       { title: "السحب والنقل للمردم", desc: "سحب الحاوية والتفريغ في المقالب والمرادم الرسمية المعتمدة." }
     ],
     pricingFactors: [
-      { factor: "مقاس الحاوية", detail: "12 ياردة (400 ريال) - 15 ياردة (450 ريال) - 20 ياردة (500 ريال) - 30 ياردة (700 ريال)." },
+      { factor: "مقاس الحاوية", detail: "12 ياردة (400 ريال) - 15 ياردة (450 ريال) - 20 ياردة (600 ريال) - 30 ياردة (700 ريال)." },
       { factor: "عدد الردود", detail: "خصومات خاصة للمشاريع التي تتطلب ردوداً متعددة وعقوداً دورية." }
     ],
     faqs: [
@@ -214,7 +214,7 @@ export default function ServiceDetail() {
         description: metaText,
         url: canonical,
         image: images[0] || "/images/seo/taqi-services.jpg",
-        companyName: resolvedCompany || "مؤسسة تقي جروب",
+        companyName: resolvedCompany || "المنشأة",
         about: service.title,
       }),
       serviceSchema({
@@ -222,7 +222,7 @@ export default function ServiceDetail() {
         description: metaText,
         url: canonical,
         image: images[0] || "/images/seo/taqi-services.jpg",
-        companyName: resolvedCompany || "مؤسسة تقي جروب",
+        companyName: resolvedCompany || "المنشأة",
         phoneNumbers: [phoneCall, phoneWhatsapp, ...phones],
         address,
         city,

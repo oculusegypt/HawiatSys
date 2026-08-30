@@ -34,14 +34,51 @@ function firstHeader(req: Request, names: string[]): string {
 
 // Uses GeoIP headers supplied by a reverse proxy/CDN when available. Raw IP is
 // never stored and no external lookup is performed from the request path.
-function getGeo(req: Request) {
+function getHeaderGeo(req: Request) {
   return {
     country: firstHeader(req, [
       "cf-ipcountry", "x-country-code", "x-geo-country",
       "x-country", "cloudfront-viewer-country", "x-appengine-country",
     ]),
+    region: firstHeader(req, [
+      "x-vercel-ip-country-region", "cf-region", "x-region",
+      "x-geo-region", "x-client-region",
+    ]),
     city: firstHeader(req, ["cf-ipcity", "x-city", "x-geo-city", "x-client-city"]),
   };
+}
+
+type Geo = { country: string; region: string; city: string };
+const geoCache = new Map<string, { expiresAt: number; value: Geo }>();
+
+async function getGeo(req: Request, ip: string): Promise<Geo> {
+  const fromHeaders = getHeaderGeo(req);
+  if (fromHeaders.country || fromHeaders.region || fromHeaders.city) return fromHeaders;
+  if (!ip || ip === "::1" || ip === "127.0.0.1" || ip === "0.0.0.0") {
+    return { country: "", region: "", city: "" };
+  }
+
+  const cacheKey = hashIp(ip);
+  const cached = geoCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) return cached.value;
+  try {
+    const response = await fetch(`https://ipapi.co/${encodeURIComponent(ip)}/json/`, {
+      headers: { Accept: "application/json", "User-Agent": "CleanFlow-analytics/1.0" },
+      signal: AbortSignal.timeout(1500),
+    });
+    if (response.ok) {
+      const data = await response.json() as Record<string, unknown>;
+      const value = {
+        country: String(data.country_name || data.country || data.country_code || "").trim().slice(0, 120),
+        region: String(data.region || data.region_code || "").trim().slice(0, 120),
+        city: String(data.city || "").trim().slice(0, 120),
+      };
+      geoCache.set(cacheKey, { expiresAt: Date.now() + 6 * 60 * 60 * 1000, value });
+      return value;
+    }
+  } catch {}
+  geoCache.set(cacheKey, { expiresAt: Date.now() + 10 * 60 * 1000, value: fromHeaders });
+  return fromHeaders;
 }
 
 function getQueryString(value: unknown): string {
@@ -113,7 +150,7 @@ router.post("/track", async (req, res) => {
 
     const ua = req.headers["user-agent"] || "";
     const ip = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.socket.remoteAddress || "";
-    const geo = getGeo(req);
+    const geo = await getGeo(req, ip);
     const page = typeof body.page === "string" ? body.page.slice(0, 500) : "/";
     const referrer = typeof body.referrer === "string" ? body.referrer.slice(0, 1000) : "";
     const utmSource = typeof body.utmSource === "string" ? body.utmSource.slice(0, 160) : "";
@@ -124,7 +161,7 @@ router.post("/track", async (req, res) => {
 
     await db.insert(pageViewsTable).values({
       sessionId, page, referrer, ipHash: hashIp(ip), deviceType,
-      country: geo.country, city: geo.city, utmSource, utmMedium, utmCampaign,
+      country: geo.country, region: geo.region, city: geo.city, utmSource, utmMedium, utmCampaign,
       gclid: typeof body.gclid === "string" ? body.gclid.slice(0, 200) : "",
     });
 
@@ -315,7 +352,7 @@ router.get("/admin/analytics", requireAdmin, requireSectionPermission("analytics
     }
     const dailyCounts = countBy(selectedRows, row => row.createdAt.slice(0, 10), weight);
     const daily = Object.entries(dailyCounts).sort(([a], [b]) => a.localeCompare(b)).map(([date, count]) => ({ date, count }));
-    const locationRows = (field: "country" | "city") => ranked(countBy(selectedRows, row => row[field] || ""), 10)
+    const locationRows = (field: "country" | "region" | "city") => ranked(countBy(selectedRows, row => row[field] || ""), 10)
       .map(({ label, count }) => ({ [field]: label, count }));
     const viewSourceCounts = countBy(selectedRows, sourceForRow, weight);
     const requestSourceCounts = countBy(selectedRequests, request => request.acquisitionSource || sourceForRow({
@@ -410,6 +447,7 @@ router.get("/admin/analytics", requireAdmin, requireSectionPermission("analytics
       operationalMetrics,
       conversionSources,
       countries: locationRows("country"),
+      regions: locationRows("region"),
       cities: locationRows("city"),
       devices,
       hourly,

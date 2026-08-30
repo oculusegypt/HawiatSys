@@ -25,6 +25,54 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') {
     exit;
 }
 
+function ensureAnalyticsGeoColumn(PDO $pdo): void {
+    static $ready = false;
+    if ($ready) return;
+    try { $pdo->exec("ALTER TABLE page_views ADD COLUMN region TEXT NOT NULL DEFAULT ''"); } catch (Throwable $e) {}
+    $ready = true;
+}
+
+function visitorGeoValue(array $headers): string {
+    foreach ($headers as $header) {
+        $value = trim((string)($_SERVER[$header] ?? ''));
+        if ($value !== '') return substr($value, 0, 120);
+    }
+    return '';
+}
+
+function resolveVisitorGeo(string $ip): array {
+    $geo = [
+        'country' => visitorGeoValue(['HTTP_CF_IPCOUNTRY', 'HTTP_X_COUNTRY_CODE', 'HTTP_X_GEO_COUNTRY', 'HTTP_X_COUNTRY', 'HTTP_CLOUDFRONT_VIEWER_COUNTRY', 'HTTP_X_APPENGINE_COUNTRY']),
+        'region' => visitorGeoValue(['HTTP_X_VERCEL_IP_COUNTRY_REGION', 'HTTP_CF_REGION', 'HTTP_X_REGION', 'HTTP_X_GEO_REGION', 'HTTP_X_CLIENT_REGION']),
+        'city' => visitorGeoValue(['HTTP_CF_IPCITY', 'HTTP_X_CITY', 'HTTP_X_GEO_CITY', 'HTTP_X_CLIENT_CITY']),
+    ];
+    if (($geo['country'] !== '' || $geo['region'] !== '' || $geo['city'] !== '') || !filter_var($ip, FILTER_VALIDATE_IP)) return $geo;
+
+    $url = 'https://ipapi.co/' . rawurlencode($ip) . '/json/';
+    $body = false;
+    if (function_exists('curl_init')) {
+        $curl = curl_init($url);
+        curl_setopt_array($curl, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CONNECTTIMEOUT => 1,
+            CURLOPT_TIMEOUT => 2,
+            CURLOPT_HTTPHEADER => ['Accept: application/json', 'User-Agent: CleanFlow-analytics/1.0'],
+        ]);
+        $body = curl_exec($curl);
+        curl_close($curl);
+    } else {
+        $context = stream_context_create(['http' => ['timeout' => 2, 'header' => "Accept: application/json\r\nUser-Agent: CleanFlow-analytics/1.0\r\n"]]);
+        $body = @file_get_contents($url, false, $context);
+    }
+    $data = is_string($body) ? json_decode($body, true) : null;
+    if (is_array($data)) {
+        $geo['country'] = substr(trim((string)($data['country_name'] ?? $data['country'] ?? $data['country_code'] ?? '')), 0, 120);
+        $geo['region'] = substr(trim((string)($data['region'] ?? $data['region_code'] ?? '')), 0, 120);
+        $geo['city'] = substr(trim((string)($data['city'] ?? '')), 0, 120);
+    }
+    return $geo;
+}
+
 /**
  * The database setting is the production source of truth for canonical URLs.
  * If an older deployment has no setting yet, use the current public host only
@@ -973,11 +1021,14 @@ try {
             $name = trim((string)($row['value'] ?? ''));
             if ($name !== '') return $name;
         } catch (Throwable) {}
-        return 'مؤسسة تقي جروب';
+        return 'المنشأة';
     }
 
     function seoAutoCompanyText($value, string $companyName): string {
-        return str_replace('منصة حاويات', $companyName, seoAutoText($value));
+        $text = str_replace('منصة حاويات', $companyName, seoAutoText($value));
+        $text = str_replace('{{company_name}}', $companyName, $text);
+        $text = preg_replace('/(?:مؤسسة|شركة)?\s*تقي\s*جروب/iu', $companyName, $text) ?? $text;
+        return preg_replace('/(20\s*(?:ياردة|م³)[\s\S]{0,160}?)(500)(?=\s*ريال)/u', '${1}600', $text) ?? $text;
     }
 
     function seoAutoPlainText($value): string {
@@ -1020,10 +1071,10 @@ try {
         if (seoAutoText($source['category'] ?? '') !== '') $details[] = 'ضمن خدمات ' . seoAutoText($source['category']);
         $detailText = $details ? ' ' . implode('، ', $details) . '.' : '';
         $prefix = match ($kind) {
-            'service' => "خدمة {$displayName} في الرياض من تقي جروب.",
-            'container' => "استأجر {$displayName} في الرياض من تقي جروب.",
-            'post' => "اقرأ {$displayName} من مدونة تقي جروب لمعرفة " . ($keyword ?: 'أفضل حلول تأجير الحاويات ونقل المخلفات') . " في الرياض.",
-            default => "{$displayName} في الرياض من تقي جروب.",
+            'service' => "خدمة {$displayName} في الرياض من {$companyName}.",
+            'container' => "استأجر {$displayName} في الرياض من {$companyName}.",
+            'post' => "اقرأ {$displayName} من مدونة {$companyName} لمعرفة " . ($keyword ?: 'أفضل حلول تأجير الحاويات ونقل المخلفات') . " في الرياض.",
+            default => "{$displayName} في الرياض من {$companyName}.",
         };
         $suffix = match ($kind) {
             'service' => 'تواصل معنا لتحديد الموعد وطلب الخدمة ونقل المخلفات بطريقة منظمة.',
@@ -1046,17 +1097,17 @@ try {
         if ($title === '') {
             $title = match ($kind) {
                 'service' => "{$displayName} بالرياض | تأجير حاويات ونقل مخلفات",
-                'container' => "تأجير {$displayName}" . (seoAutoText($source['size'] ?? '') ? ' ' . seoAutoText($source['size']) : '') . ' بالرياض | تقي جروب',
+                'container' => "تأجير {$displayName}" . (seoAutoText($source['size'] ?? '') ? ' ' . seoAutoText($source['size']) : '') . " بالرياض | {$companyName}",
                 'post' => "{$displayName} | دليل تأجير الحاويات بالرياض",
                 default => "{$displayName} | خدمات الحاويات بالرياض",
             };
         }
         $keywords = array_filter(array_map('trim', preg_split('/[,،|]/u', seoAutoText($source['seoKeywords'] ?? '')) ?: []));
         $kindKeywords = match ($kind) {
-            'post' => ['مدونة تقي جروب', 'دليل الحاويات', 'أسعار الحاويات بالرياض'],
+            'post' => ["مدونة {$companyName}", 'دليل الحاويات', 'أسعار الحاويات بالرياض'],
             'page' => ['خدمات الحاويات', 'طلب حاوية بالرياض', 'حلول المخلفات بالرياض'],
             'container' => ['حاويات للإيجار بالرياض', 'حاويات مخلفات البناء', 'أسعار تأجير الحاويات'],
-            default => ['خدمات تقي جروب', 'تأجير حاويات', 'خدمة نقل المخلفات'],
+            default => ["خدمات {$companyName}", 'تأجير حاويات', 'خدمة نقل المخلفات'],
         };
         $keywords = array_values(array_unique(array_filter(array_merge(
             [$keyword, $displayName],
@@ -1924,12 +1975,19 @@ try {
         $containerSize = trim((string)($input['containerSize'] ?? $input['package'] ?? ''));
         $location = trim((string)($input['location'] ?? $input['address'] ?? 'الرياض'));
         $notes = trim((string)($input['notes'] ?? $input['details'] ?? ''));
+        $duration = trim((string)($input['duration'] ?? ''));
         $appointmentType = trim((string)($input['appointmentType'] ?? 'immediate'));
         $scheduledAt = !empty($input['scheduledAt']) ? (string)$input['scheduledAt'] : null;
 
         if (empty($clientName) || empty($phone)) {
             http_response_code(400);
             echo json_encode(['error' => 'الاسم ورقم الجوال مطلوبان'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        if ($duration !== '' && preg_match('/حاوي|container/i', $serviceType . ' ' . $containerSize)
+            && $duration !== 'حتى 10 أيام أو امتلاء الحاوية، أيهما أقرب') {
+            http_response_code(422);
+            echo json_encode(['error' => 'مدة إيجار الحاوية لا تتجاوز 10 أيام أو حتى امتلائها، أيهما أقرب'], JSON_UNESCAPED_UNICODE);
             exit;
         }
 
@@ -1945,12 +2003,12 @@ try {
 
         $stmt = $pdo->prepare("INSERT INTO service_requests (
             client_name, phone, email, service_type, container_size, location,
-            notes, status, appointment_type, scheduled_at, session_id,
+            notes, status, appointment_type, scheduled_at, duration, session_id,
             attribution_referrer, attribution_utm_source, attribution_utm_medium,
             attribution_utm_campaign, attribution_gclid, created_at, updated_at
         ) VALUES (
             :cname, :phone, :email, :stype, :csize, :loc,
-            :notes, 'pending', :apptype, :schat, :sess,
+            :notes, 'pending', :apptype, :schat, :duration, :sess,
             :ref, :utms, :utmm, :utmc, :gclid, :now, :now
         )");
 
@@ -1964,6 +2022,7 @@ try {
             ':notes' => $notes,
             ':apptype' => $appointmentType,
             ':schat' => $scheduledAt,
+            ':duration' => $duration,
             ':sess' => $sessionId,
             ':ref' => $referrer,
             ':utms' => $utmSource,
@@ -2575,7 +2634,7 @@ try {
 
     // 10g. AI Chat Welcome & Message: /api/ai/chat/welcome and /api/ai/chat
     if ($path === '/ai/chat/welcome' && $method === 'GET') {
-        $siteName = 'مؤسسة تقي جروب';
+        $siteName = 'المنشأة';
         try {
             $stmt = $pdo->query("SELECT value FROM site_settings WHERE key = 'company_name' LIMIT 1");
             $v = $stmt->fetchColumn();
@@ -2602,7 +2661,7 @@ try {
             $step = $flowState['step'] ?? 'main_menu';
             $data = is_array($flowState['data'] ?? null) ? $flowState['data'] : [];
 
-            $siteName = 'مؤسسة تقي جروب';
+            $siteName = 'المنشأة';
             try {
                 $stmt = $pdo->query("SELECT value FROM site_settings WHERE key = 'company_name' LIMIT 1");
                 $v = $stmt->fetchColumn();
@@ -4381,6 +4440,7 @@ try {
 
     // 27. Visitor Tracker: POST /api/track
     if ($path === '/track' && $method === 'POST') {
+        ensureAnalyticsGeoColumn($pdo);
         $sessionId = substr(trim((string)($input['sessionId'] ?? '')), 0, 160);
         if ($sessionId === '') {
             http_response_code(400);
@@ -4402,21 +4462,12 @@ try {
                 : 'desktop');
         $ip = trim(explode(',', (string)($_SERVER['HTTP_X_FORWARDED_FOR'] ?? ''))[0] ?: (string)($_SERVER['REMOTE_ADDR'] ?? ''));
         $ipHash = substr(hash('sha256', $ip . 'cleanflow-anonymous-salt'), 0, 16);
-        $country = '';
-        foreach (['HTTP_CF_IPCOUNTRY', 'HTTP_X_COUNTRY_CODE', 'HTTP_X_GEO_COUNTRY', 'HTTP_X_COUNTRY', 'HTTP_CLOUDFRONT_VIEWER_COUNTRY', 'HTTP_X_APPENGINE_COUNTRY'] as $header) {
-            $value = trim((string)($_SERVER[$header] ?? ''));
-            if ($value !== '') { $country = substr($value, 0, 120); break; }
-        }
-        $city = '';
-        foreach (['HTTP_CF_IPCITY', 'HTTP_X_CITY', 'HTTP_X_GEO_CITY', 'HTTP_X_CLIENT_CITY'] as $header) {
-            $value = trim((string)($_SERVER[$header] ?? ''));
-            if ($value !== '') { $city = substr($value, 0, 120); break; }
-        }
+        $geo = resolveVisitorGeo($ip);
         $now = date('Y-m-d\TH:i:s.v\Z');
 
         $stmt = $pdo->prepare(
-            "INSERT INTO page_views (session_id, page, referrer, ip_hash, device_type, country, city, utm_source, utm_medium, utm_campaign, gclid, created_at)
-             VALUES (:sid, :page, :referrer, :ip_hash, :device, :country, :city, :utm_source, :utm_medium, :utm_campaign, :gclid, :created_at)"
+            "INSERT INTO page_views (session_id, page, referrer, ip_hash, device_type, country, region, city, utm_source, utm_medium, utm_campaign, gclid, created_at)
+             VALUES (:sid, :page, :referrer, :ip_hash, :device, :country, :region, :city, :utm_source, :utm_medium, :utm_campaign, :gclid, :created_at)"
         );
         $stmt->execute([
             ':sid' => $sessionId,
@@ -4424,8 +4475,9 @@ try {
             ':referrer' => $referrer,
             ':ip_hash' => $ipHash,
             ':device' => $deviceType,
-            ':country' => $country,
-            ':city' => $city,
+            ':country' => $geo['country'],
+            ':region' => $geo['region'],
+            ':city' => $geo['city'],
             ':utm_source' => $utmSource,
             ':utm_medium' => $utmMedium,
             ':utm_campaign' => $utmCampaign,
@@ -4564,6 +4616,7 @@ try {
     // ── 28. ADMIN ANALYTICS: GET /api/admin/analytics ──
     if ($path === '/admin/analytics' && $method === 'GET') {
         try {
+            ensureAnalyticsGeoColumn($pdo);
             $utc = new DateTimeZone('UTC');
             $nowDate = new DateTimeImmutable('now', $utc);
             $now = $nowDate->format('Y-m-d\TH:i:s.v\Z');
@@ -4629,7 +4682,7 @@ try {
                 if (preg_match('/facebook|instagram|twitter|t\.co|linkedin|youtube|tiktok|snapchat|pinterest/', $utmSource . ' ' . $referrer)) return 'شبكات اجتماعية';
                 return (!$referrer && !$utmSource) ? 'مباشر' : 'إحالات أخرى';
             };
-            $views = $pdo->query("SELECT session_id, page, referrer, country, city, device_type, utm_source, utm_medium, utm_campaign, gclid, created_at FROM page_views ORDER BY created_at ASC, id ASC")->fetchAll(PDO::FETCH_ASSOC);
+            $views = $pdo->query("SELECT session_id, page, referrer, country, region, city, device_type, utm_source, utm_medium, utm_campaign, gclid, created_at FROM page_views ORDER BY created_at ASC, id ASC")->fetchAll(PDO::FETCH_ASSOC);
             $selectedViews = array_values(array_filter($views, static fn(array $row): bool => $inPeriod((string)$row['created_at'], $fromIso, $toIso)));
             $viewsIn = static function (array $rows, ?string $from, ?string $to) use ($inPeriod): array {
                 return array_values(array_filter($rows, static fn(array $row): bool => $inPeriod((string)$row['created_at'], $from, $to)));
@@ -4644,6 +4697,7 @@ try {
             $pageCounts = $countValues($selectedViews, static fn(array $row): string => (string)($row['page'] ?? ''));
             $referrerCounts = $countValues($selectedViews, static fn(array $row): string => (string)($row['referrer'] ?? '') ?: 'مباشر');
             $countryCounts = $countValues($selectedViews, static fn(array $row): string => (string)($row['country'] ?? ''));
+            $regionCounts = $countValues($selectedViews, static fn(array $row): string => (string)($row['region'] ?? ''));
             $cityCounts = $countValues($selectedViews, static fn(array $row): string => (string)($row['city'] ?? ''));
             $deviceCounts = $countValues($selectedViews, static fn(array $row): string => (string)($row['device_type'] ?? 'desktop'));
             $hourly = array_fill(0, 24, 0);
@@ -4737,6 +4791,7 @@ try {
                 ],
                 'conversionSources' => $conversionSources,
                 'countries' => array_map(static fn(array $item): array => ['country' => $item['label'], 'count' => $item['count']], $rank($countryCounts)),
+                'regions' => array_map(static fn(array $item): array => ['region' => $item['label'], 'count' => $item['count']], $rank($regionCounts)),
                 'cities' => array_map(static fn(array $item): array => ['city' => $item['label'], 'count' => $item['count']], $rank($cityCounts)),
                 'devices' => ['mobile' => (int)($deviceCounts['mobile'] ?? 0), 'tablet' => (int)($deviceCounts['tablet'] ?? 0), 'desktop' => (int)($deviceCounts['desktop'] ?? 0)],
                 'hourly' => $hourly, 'daily' => $daily, 'generatedAt' => $now,
@@ -4880,7 +4935,7 @@ try {
                     'content' => $p['content'] ?? '',
                     'excerpt' => $p['excerpt'] ?? '',
                     'coverImage' => $p['cover_image'] ?? '',
-                    'author' => $p['author'] ?? 'مؤسسة تقي جروب',
+                    'author' => $p['author'] ?? 'المنشأة',
                     'category' => $p['category'] ?? 'عام',
                     'tags' => $p['tags'] ?? '[]',
                     'status' => $p['status'] ?? 'draft',
@@ -4940,7 +4995,7 @@ try {
                 ':content' => $input['content'] ?? '',
                 ':excerpt' => $input['excerpt'] ?? '',
                 ':cover_image' => $input['coverImage'] ?? '',
-                ':author' => $input['author'] ?? 'مؤسسة تقي جروب',
+                ':author' => $input['author'] ?? 'المنشأة',
                 ':category' => $input['category'] ?? 'عام',
                 ':tags' => is_array($input['tags'] ?? null) ? json_encode($input['tags'], JSON_UNESCAPED_UNICODE) : (string)($input['tags'] ?? '[]'),
                 ':status' => $input['status'] ?? 'draft',
