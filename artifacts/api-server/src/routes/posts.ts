@@ -6,6 +6,7 @@ import { getSetting } from "./settings";
 import { replaceLegacyCompanyName } from "../lib/companyName";
 import { requireAdmin, requireSectionPermission } from "../middleware/adminAuth";
 import { entitySlug } from "../lib/friendlySlug";
+import { generateSeoMetadata, uniqueSlug } from "../lib/seoMetadata";
 
 const router = Router();
 
@@ -209,11 +210,29 @@ router.post("/admin/posts", requireAdmin, requireSectionPermission("blog"), asyn
     const {
       title, content, excerpt, coverImage, author, category, tags, status,
       publishedAt, readTime, isActive, order,
-      seoTitle, seoDescription, seoKeywords, seoSlug, ogImage, canonicalUrl,
+      seoTitle, seoDescription, seoKeywords, seoSlug, slug: requestedSlug, ogImage, canonicalUrl,
     } = req.body;
 
     const now  = new Date().toISOString();
-    const slug = normalizeArabicSlug(seoSlug || title, title || "مقالة");
+    const metadata = generateSeoMetadata({
+      kind: "post",
+      title,
+      content,
+      excerpt,
+      category,
+      targetKeyword: seoKeywords,
+      slug: requestedSlug,
+      seoSlug: seoSlug || requestedSlug,
+      seoTitle,
+      seoDescription,
+      seoKeywords,
+      ogImage,
+      coverImage,
+    });
+    const existingSlugs = (await db.select({ slug: postsTable.slug }).from(postsTable)).map((row) => row.slug);
+    const slug = uniqueSlug(metadata.seoSlug, existingSlugs);
+    metadata.seoSlug = slug;
+    metadata.canonicalUrl = `/blog/${slug}`;
     const companyName = await getSetting("company_name");
 
     const [row] = await db.insert(postsTable).values({
@@ -230,12 +249,12 @@ router.post("/admin/posts", requireAdmin, requireSectionPermission("blog"), asyn
       readTime:       readTime       ?? 3,
       isActive:       isActive       ?? true,
       order:          order          ?? 0,
-      seoTitle:       replaceLegacyCompanyName(seoTitle ?? "", companyName),
-      seoDescription: replaceLegacyCompanyName(seoDescription ?? "", companyName),
-      seoKeywords:    replaceLegacyCompanyName(seoKeywords ?? "", companyName),
+       seoTitle:       replaceLegacyCompanyName(metadata.seoTitle, companyName),
+       seoDescription: replaceLegacyCompanyName(metadata.seoDescription, companyName),
+       seoKeywords:    replaceLegacyCompanyName(metadata.seoKeywords, companyName),
       seoSlug:        slug,
-      ogImage:        replaceLegacyCompanyName(ogImage ?? "", companyName),
-      canonicalUrl:   replaceLegacyCompanyName(canonicalUrl ?? "", companyName),
+       ogImage:        replaceLegacyCompanyName(metadata.ogImage, companyName),
+       canonicalUrl:   metadata.canonicalUrl,
       createdAt:      now,
       updatedAt:      now,
     }).returning();
@@ -252,11 +271,46 @@ router.patch("/admin/posts/:id", requireAdmin, requireSectionPermission("blog"),
     const {
       title, content, excerpt, coverImage, author, category, tags, status,
       publishedAt, readTime, isActive, order,
-      seoTitle, seoDescription, seoKeywords, seoSlug, ogImage, canonicalUrl,
+      seoTitle, seoDescription, seoKeywords, seoSlug, slug: requestedSlug, ogImage, canonicalUrl,
     } = req.body;
 
     const now = new Date().toISOString();
     const companyName = await getSetting("company_name");
+    const [existing] = await db.select().from(postsTable).where(eq(postsTable.id, id));
+    if (!existing) return res.status(404).json({ error: "Not found" });
+
+    const metadata = generateSeoMetadata({
+      kind: "post",
+      id,
+      title: title ?? existing.title,
+      content: content ?? existing.content,
+      excerpt: excerpt ?? existing.excerpt,
+      category: category ?? existing.category,
+      targetKeyword: seoKeywords ?? existing.seoKeywords,
+      slug: requestedSlug !== undefined
+        ? requestedSlug
+        : (seoSlug !== undefined ? seoSlug : existing.slug),
+      seoSlug: seoSlug !== undefined
+        ? seoSlug
+        : (requestedSlug !== undefined ? requestedSlug : existing.seoSlug || existing.slug),
+      seoTitle: seoTitle !== undefined ? seoTitle : (title !== undefined ? "" : existing.seoTitle),
+      seoDescription: seoDescription !== undefined
+        ? seoDescription
+        : ((title !== undefined || content !== undefined || excerpt !== undefined) ? "" : existing.seoDescription),
+      seoKeywords: seoKeywords !== undefined ? seoKeywords : existing.seoKeywords,
+      ogImage: ogImage !== undefined ? ogImage : existing.ogImage,
+      coverImage: coverImage !== undefined ? coverImage : existing.coverImage,
+    });
+    const slugWasRequested = requestedSlug !== undefined || seoSlug !== undefined;
+    const finalSlug = slugWasRequested
+      ? uniqueSlug(
+          metadata.seoSlug,
+          (await db.select({ slug: postsTable.slug }).from(postsTable)).map((row) => row.slug),
+          existing.slug,
+        )
+      : existing.slug;
+    metadata.seoSlug = finalSlug;
+    metadata.canonicalUrl = `/blog/${finalSlug}`;
     const update: Record<string, any> = { updatedAt: now };
 
     if (title          !== undefined) update.title          = replaceLegacyCompanyName(title, companyName);
@@ -274,19 +328,15 @@ router.patch("/admin/posts/:id", requireAdmin, requireSectionPermission("blog"),
     if (readTime       !== undefined) update.readTime       = readTime;
     if (isActive       !== undefined) update.isActive       = isActive;
     if (order          !== undefined) update.order          = order;
-    if (seoTitle       !== undefined) update.seoTitle       = replaceLegacyCompanyName(seoTitle, companyName);
-    if (seoDescription !== undefined) update.seoDescription = replaceLegacyCompanyName(seoDescription, companyName);
-    if (seoKeywords    !== undefined) update.seoKeywords    = replaceLegacyCompanyName(seoKeywords, companyName);
-    if (seoSlug        !== undefined) {
-      const normalizedSlug = normalizeArabicSlug(seoSlug, title || "مقالة");
-      update.seoSlug = normalizedSlug;
-      update.slug = normalizedSlug;
-    }
-    if (ogImage        !== undefined) update.ogImage        = replaceLegacyCompanyName(ogImage, companyName);
-    if (canonicalUrl   !== undefined) update.canonicalUrl   = replaceLegacyCompanyName(canonicalUrl, companyName);
+    update.seoTitle = replaceLegacyCompanyName(metadata.seoTitle, companyName);
+    update.seoDescription = replaceLegacyCompanyName(metadata.seoDescription, companyName);
+    update.seoKeywords = replaceLegacyCompanyName(metadata.seoKeywords, companyName);
+    update.seoSlug = metadata.seoSlug;
+    update.slug = finalSlug;
+    update.ogImage = replaceLegacyCompanyName(metadata.ogImage, companyName);
+    update.canonicalUrl = metadata.canonicalUrl;
 
     const [row] = await db.update(postsTable).set(update).where(eq(postsTable.id, id)).returning();
-    if (!row) return res.status(404).json({ error: "Not found" });
     return res.json(castRow(row, companyName));
   } catch (e) {
     return res.status(500).json({ error: String(e) });

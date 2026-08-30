@@ -3,6 +3,7 @@ import { db } from "@workspace/db";
 import { containersTable } from "@workspace/db";
 import { eq, asc } from "drizzle-orm";
 import { requireAdmin, requireSectionPermission } from "../middleware/adminAuth";
+import { generateSeoMetadata } from "../lib/seoMetadata";
 
 const router = Router();
 
@@ -29,6 +30,19 @@ router.post("/containers", requireAdmin, requireSectionPermission("packages"), a
     contactPhone1, contactPhone2, pricePerDay, imageUrl, images,
     order, isActive, seoEnabled, seoTitle, seoDescription, seoKeywords, seoSlug,
   } = req.body;
+  const seo = generateSeoMetadata({
+    kind: "container",
+    name,
+    title: name,
+    description,
+    size,
+    capacity,
+    imageUrl,
+    seoTitle,
+    seoDescription,
+    seoKeywords,
+    seoSlug,
+  });
   const [container] = await db.insert(containersTable).values({
     name,
     category: category ?? "debris",
@@ -47,11 +61,13 @@ router.post("/containers", requireAdmin, requireSectionPermission("packages"), a
     images: images ?? "[]",
     order: order ?? 0,
     isActive: isActive ?? true,
-    seoEnabled: seoEnabled ?? false,
-    seoTitle: seoTitle ?? "",
-    seoDescription: seoDescription ?? "",
-    seoKeywords: seoKeywords ?? "",
-     seoSlug: normalizeArabicSlug(seoSlug),
+    // Every active container is a public SEO landing route. Keep this
+    // invariant on the server instead of relying on an editor toggle.
+    seoEnabled: true,
+    seoTitle: seo.seoTitle,
+    seoDescription: seo.seoDescription,
+    seoKeywords: seo.seoKeywords,
+    seoSlug: seo.seoSlug,
   }).returning();
   return res.status(201).json(container);
 });
@@ -64,23 +80,42 @@ router.patch("/containers/:id", requireAdmin, requireSectionPermission("packages
     contactPhone1, contactPhone2, pricePerDay, imageUrl, images,
      order, isActive, seoEnabled, seoTitle, seoDescription, seoKeywords, seoSlug,
   } = req.body;
+  const [existing] = await db.select().from(containersTable).where(eq(containersTable.id, id));
+  if (!existing) return res.status(404).json({ error: "Not found" });
+
+  const seo = generateSeoMetadata({
+    kind: "container",
+    id,
+    name: name ?? existing.name,
+    title: name ?? existing.name,
+    description: description ?? existing.description,
+    size: size ?? existing.size,
+    capacity: capacity ?? existing.capacity,
+    imageUrl: imageUrl ?? existing.imageUrl,
+    seoTitle: seoTitle !== undefined ? seoTitle : (name !== undefined ? "" : existing.seoTitle),
+    seoDescription: seoDescription !== undefined ? seoDescription : (description !== undefined ? "" : existing.seoDescription),
+    seoKeywords: seoKeywords !== undefined ? seoKeywords : existing.seoKeywords,
+    seoSlug: seoSlug !== undefined ? seoSlug : existing.seoSlug,
+  });
   const updateData: Record<string, unknown> = {
     name, category, size, capacity, description, features,
     suitableFor, priceText, priceNote, rentalPeriod,
     contactPhone1, contactPhone2, imageUrl, images,
-     order, isActive, seoEnabled, seoTitle, seoDescription, seoKeywords,
+     order, isActive, seoEnabled: true,
+     seoTitle: seo.seoTitle,
+     seoDescription: seo.seoDescription,
+     seoKeywords: seo.seoKeywords,
+     seoSlug: seo.seoSlug,
   };
   if (pricePerDay !== undefined) updateData.pricePerDay = Number(pricePerDay);
   // Strip undefined keys so partial patches work correctly
   for (const k of Object.keys(updateData)) {
     if (updateData[k] === undefined) delete updateData[k];
   }
-   if (seoSlug !== undefined) updateData.seoSlug = normalizeArabicSlug(seoSlug);
   const [container] = await db.update(containersTable)
     .set(updateData)
     .where(eq(containersTable.id, id))
     .returning();
-  if (!container) return res.status(404).json({ error: "Not found" });
   return res.json(container);
 });
 

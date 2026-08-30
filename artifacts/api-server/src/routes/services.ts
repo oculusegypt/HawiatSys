@@ -3,6 +3,7 @@ import { db } from "@workspace/db";
 import { servicesTable } from "@workspace/db";
 import { eq, asc } from "drizzle-orm";
 import { requireAdmin, requireSectionPermission } from "../middleware/adminAuth";
+import { generateSeoMetadata } from "../lib/seoMetadata";
 
 // ── DB migration: add new columns to existing DB ───────────────────────────────
 try {
@@ -59,17 +60,30 @@ router.get("/services", async (_req, res) => {
 router.post("/services", requireAdmin, requireSectionPermission("services"), async (req, res) => {
   const { title, description, icon, imageUrl, images, order, isActive,
           seoEnabled, seoTitle, seoDescription, seoKeywords, seoSlug } = req.body;
+  const seo = generateSeoMetadata({
+    kind: "service",
+    title,
+    description,
+    imageUrl,
+    seoTitle,
+    seoDescription,
+    seoKeywords,
+    seoSlug,
+  });
   const [service] = await db.insert(servicesTable).values({
     title, description, icon,
     imageUrl: imageUrl || undefined,
     images: images ?? "[]",
     order: order ?? 0,
     isActive: isActive ?? true,
-    seoEnabled: seoEnabled ?? false,
-    seoTitle: seoTitle ?? "",
-    seoDescription: seoDescription ?? "",
-    seoKeywords: seoKeywords ?? "",
-     seoSlug: normalizeArabicSlug(seoSlug),
+    // Public active services are always SEO-managed. The metadata is generated
+    // server-side so a form or API client cannot accidentally create a blank
+    // indexable route.
+    seoEnabled: true,
+    seoTitle: seo.seoTitle,
+    seoDescription: seo.seoDescription,
+    seoKeywords: seo.seoKeywords,
+    seoSlug: seo.seoSlug,
   }).returning();
   return res.status(201).json(castRow(service));
 });
@@ -78,6 +92,20 @@ router.patch("/services/:id", requireAdmin, requireSectionPermission("services")
   const id = parseInt(String(req.params.id), 10);
   const { title, description, icon, imageUrl, images, order, isActive,
           seoEnabled, seoTitle, seoDescription, seoKeywords, seoSlug } = req.body;
+  const [existing] = await db.select().from(servicesTable).where(eq(servicesTable.id, id));
+  if (!existing) return res.status(404).json({ error: "Not found" });
+
+  const seo = generateSeoMetadata({
+    kind: "service",
+    id,
+    title: title ?? existing.title,
+    description: description ?? existing.description,
+    imageUrl: imageUrl ?? existing.imageUrl,
+    seoTitle: seoTitle !== undefined ? seoTitle : (title !== undefined ? "" : existing.seoTitle),
+    seoDescription: seoDescription !== undefined ? seoDescription : (description !== undefined ? "" : existing.seoDescription),
+    seoKeywords: seoKeywords !== undefined ? seoKeywords : existing.seoKeywords,
+    seoSlug: seoSlug !== undefined ? seoSlug : existing.seoSlug,
+  });
   const updateData: Record<string, any> = {};
   if (title !== undefined) updateData.title = title;
   if (description !== undefined) updateData.description = description;
@@ -86,17 +114,16 @@ router.patch("/services/:id", requireAdmin, requireSectionPermission("services")
   if (images !== undefined) updateData.images = images;
   if (order !== undefined) updateData.order = order;
   if (isActive !== undefined) updateData.isActive = isActive;
-  if (seoEnabled !== undefined) updateData.seoEnabled = seoEnabled;
-  if (seoTitle !== undefined) updateData.seoTitle = seoTitle;
-  if (seoDescription !== undefined) updateData.seoDescription = seoDescription;
-  if (seoKeywords !== undefined) updateData.seoKeywords = seoKeywords;
-   if (seoSlug !== undefined) updateData.seoSlug = normalizeArabicSlug(seoSlug);
+  updateData.seoEnabled = true;
+  updateData.seoTitle = seo.seoTitle;
+  updateData.seoDescription = seo.seoDescription;
+  updateData.seoKeywords = seo.seoKeywords;
+  updateData.seoSlug = seo.seoSlug;
 
   const [service] = await db.update(servicesTable)
     .set(updateData)
     .where(eq(servicesTable.id, id))
     .returning();
-  if (!service) return res.status(404).json({ error: "Not found" });
   return res.json(castRow(service));
 });
 

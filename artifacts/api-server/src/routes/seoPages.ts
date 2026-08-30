@@ -5,6 +5,7 @@ import { getSetting } from "./settings";
 import { replaceLegacyCompanyName } from "../lib/companyName";
 import { requireAdmin, requireSectionPermission } from "../middleware/adminAuth";
 import { entitySlug } from "../lib/friendlySlug";
+import { generateSeoMetadata, uniqueSlug } from "../lib/seoMetadata";
 
 const router = Router();
 
@@ -102,7 +103,25 @@ router.post("/admin/seo-pages", requireAdmin, requireSectionPermission("seo_page
   try {
     const body = req.body as Record<string, any>;
     const now = new Date().toISOString();
-    const slug = normalizeSlug(body.seoSlug || body.slug || body.title, "صفحة-seo");
+    const metadata = generateSeoMetadata({
+      kind: "page",
+      title: body.title,
+      targetKeyword: body.targetKeyword,
+      content: body.content,
+      excerpt: body.excerpt,
+      category: body.category,
+      slug: body.slug,
+      seoSlug: body.seoSlug || body.slug,
+      seoTitle: body.seoTitle,
+      seoDescription: body.seoDescription,
+      seoKeywords: body.seoKeywords,
+      ogImage: body.ogImage,
+      coverImage: body.coverImage,
+    });
+    const existingSlugs = (await db.select({ slug: seoPagesTable.slug }).from(seoPagesTable)).map((row) => row.slug);
+    const slug = uniqueSlug(metadata.seoSlug, existingSlugs);
+    metadata.seoSlug = slug;
+    metadata.canonicalUrl = `/page/${slug}`;
     const companyName = await getSetting("company_name");
     const [row] = await db.insert(seoPagesTable).values({
       title: replaceLegacyCompanyName(body.title || "صفحة SEO جديدة", companyName),
@@ -118,12 +137,12 @@ router.post("/admin/seo-pages", requireAdmin, requireSectionPermission("seo_page
       viewCount: 0,
       isActive: body.isActive ?? true,
       order: Number(body.order) || 0,
-      seoTitle: replaceLegacyCompanyName(body.seoTitle ?? "", companyName),
-      seoDescription: replaceLegacyCompanyName(body.seoDescription ?? "", companyName),
-      seoKeywords: replaceLegacyCompanyName(body.seoKeywords ?? "", companyName),
+       seoTitle: replaceLegacyCompanyName(metadata.seoTitle, companyName),
+       seoDescription: replaceLegacyCompanyName(metadata.seoDescription, companyName),
+       seoKeywords: replaceLegacyCompanyName(metadata.seoKeywords, companyName),
       seoSlug: slug,
-      ogImage: replaceLegacyCompanyName(body.ogImage ?? "", companyName),
-      canonicalUrl: replaceLegacyCompanyName(body.canonicalUrl ?? "", companyName),
+       ogImage: replaceLegacyCompanyName(metadata.ogImage, companyName),
+       canonicalUrl: metadata.canonicalUrl,
       createdAt: now,
       updatedAt: now,
     }).returning();
@@ -139,6 +158,41 @@ router.patch("/admin/seo-pages/:id", requireAdmin, requireSectionPermission("seo
     const body = req.body as Record<string, any>;
     const now = new Date().toISOString();
     const companyName = await getSetting("company_name");
+    const [existing] = await db.select().from(seoPagesTable).where(eq(seoPagesTable.id, id));
+    if (!existing) return res.status(404).json({ error: "Not found" });
+
+    const metadata = generateSeoMetadata({
+      kind: "page",
+      id,
+      title: body.title ?? existing.title,
+      targetKeyword: body.targetKeyword ?? existing.targetKeyword,
+      content: body.content ?? existing.content,
+      excerpt: body.excerpt ?? existing.excerpt,
+      category: body.category ?? existing.category,
+      slug: body.slug !== undefined
+        ? body.slug
+        : (body.seoSlug !== undefined ? body.seoSlug : existing.slug),
+      seoSlug: body.seoSlug !== undefined
+        ? body.seoSlug
+        : (body.slug !== undefined ? body.slug : existing.seoSlug || existing.slug),
+      seoTitle: body.seoTitle !== undefined ? body.seoTitle : (body.title !== undefined ? "" : existing.seoTitle),
+      seoDescription: body.seoDescription !== undefined
+        ? body.seoDescription
+        : ((body.title !== undefined || body.content !== undefined || body.excerpt !== undefined) ? "" : existing.seoDescription),
+      seoKeywords: body.seoKeywords !== undefined ? body.seoKeywords : existing.seoKeywords,
+      ogImage: body.ogImage !== undefined ? body.ogImage : existing.ogImage,
+      coverImage: body.coverImage !== undefined ? body.coverImage : existing.coverImage,
+    });
+    const slugWasRequested = body.slug !== undefined || body.seoSlug !== undefined;
+    const finalSlug = slugWasRequested
+      ? uniqueSlug(
+          metadata.seoSlug,
+          (await db.select({ slug: seoPagesTable.slug }).from(seoPagesTable)).map((row) => row.slug),
+          existing.slug,
+        )
+      : existing.slug;
+    metadata.seoSlug = finalSlug;
+    metadata.canonicalUrl = `/page/${finalSlug}`;
     const update: Record<string, any> = { updatedAt: now };
 
     if (body.title !== undefined) update.title = replaceLegacyCompanyName(body.title, companyName);
@@ -155,19 +209,15 @@ router.patch("/admin/seo-pages/:id", requireAdmin, requireSectionPermission("seo
     if (body.publishedAt !== undefined) update.publishedAt = body.publishedAt;
     if (body.isActive !== undefined) update.isActive = body.isActive;
     if (body.order !== undefined) update.order = Number(body.order) || 0;
-    if (body.seoTitle !== undefined) update.seoTitle = replaceLegacyCompanyName(body.seoTitle, companyName);
-    if (body.seoDescription !== undefined) update.seoDescription = replaceLegacyCompanyName(body.seoDescription, companyName);
-    if (body.seoKeywords !== undefined) update.seoKeywords = replaceLegacyCompanyName(body.seoKeywords, companyName);
-    if (body.seoSlug !== undefined || body.slug !== undefined) {
-      const slug = normalizeSlug(body.seoSlug ?? body.slug, body.title || "صفحة-seo");
-      update.seoSlug = slug;
-      update.slug = slug;
-    }
-    if (body.ogImage !== undefined) update.ogImage = replaceLegacyCompanyName(body.ogImage, companyName);
-    if (body.canonicalUrl !== undefined) update.canonicalUrl = replaceLegacyCompanyName(body.canonicalUrl, companyName);
+    update.seoTitle = replaceLegacyCompanyName(metadata.seoTitle, companyName);
+    update.seoDescription = replaceLegacyCompanyName(metadata.seoDescription, companyName);
+    update.seoKeywords = replaceLegacyCompanyName(metadata.seoKeywords, companyName);
+    update.seoSlug = metadata.seoSlug;
+    update.slug = finalSlug;
+    update.ogImage = replaceLegacyCompanyName(metadata.ogImage, companyName);
+    update.canonicalUrl = metadata.canonicalUrl;
 
     const [row] = await db.update(seoPagesTable).set(update).where(eq(seoPagesTable.id, id)).returning();
-    if (!row) return res.status(404).json({ error: "Not found" });
     return res.json(castRow(row, companyName));
   } catch (error) {
     return res.status(500).json({ error: String(error) });
