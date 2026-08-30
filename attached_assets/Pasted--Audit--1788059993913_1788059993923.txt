@@ -1,0 +1,124 @@
+أريد منك عمل **مراجعة مستقلة صارمة جدًا على التنفيذ الأخير بالكامل**، وليس إعادة Audit عام للمشروع، وليس مجرد قراءة التقرير السابق والتصديق عليه.
+
+التقرير السابق يدّعي أن الإغلاق النهائي تم بنجاح، وأن هناك ZIP نهائيًا تم بناؤه وفحصه، وأن Node/PHP أصبحا متطابقين، وأن SEO Gate وSQLite وTypecheck والاختبارات التشغيلية كلها PASS.
+
+**مهم جدًا: لا تفترض صحة أي نتيجة في التقرير السابق. تحقق منها من المصدر والتنفيذ والأرشيف نفسه.**
+
+### المطلوب
+
+1. ابدأ بـ `git status` و`git diff` وراجع **كل التغييرات التي تمت في الإغلاق الأخير**.
+2. لا تعيد Audit شامل للمشروع ولا تعيد اختراع خطة جديدة.
+3. راجع الملفات التي تم تعديلها تحديدًا، خصوصًا:
+
+   * `scripts/build-hostinger.mjs`
+   * `scripts/api-index.php`
+   * `artifacts/api-server/src/routes/posts.ts`
+   * `artifacts/api-server/src/routes/seoPages.ts`
+   * أي ملفات تم توليدها أو تغييرها نتيجة الـbuild.
+4. تحقق أن التعديلات لا تصلح اختبارًا فقط على حساب السلوك الفعلي للتطبيق.
+5. تحقق من Node/PHP **من خلال الاستجابات الفعلية** وليس من خلال مقارنة DB rows فقط:
+
+   * `/api/services`
+   * `/api/containers`
+   * `/api/posts`
+   * `/api/pages`
+   * detail endpoints
+   * SEO aliases
+   * JSON types
+   * default pagination
+   * ordering
+   * الحقول والقيم.
+6. تحقق أن أي توحيد تم عمله لا يكسر الـfrontend أو الـAPI contract.
+7. أعد تشغيل `build-hostinger.mjs` إذا كان ذلك ضروريًا، وافحص **نفس الـZIP الناتج** وليس ملفات المصدر فقط.
+8. تحقق من:
+
+   * ZIP integrity
+   * SHA-256
+   * عدد الملفات
+   * HTML inventory
+   * sitemap
+   * canonical
+   * meta descriptions
+   * H1
+   * JSON-LD
+   * internal links
+   * robots.txt
+   * SEO media
+   * noindex/indexable classification.
+9. شغّل `seo-quality-gate` على **الأرشيف النهائي المستخرج**.
+10. تحقق من SQLite داخل المصدر وداخل الأرشيف:
+
+    * `PRAGMA integrity_check`
+    * وتأكد أن DB المضمنة هي فعلًا النسخة التي تم بناء الأرشيف منها.
+11. تحقق من PHP runtime فعليًا، وليس PHP lint فقط.
+12. تحقق من Node runtime بعد إعادة تشغيله إذا كانت التغييرات تتطلب ذلك.
+13. راجع فحص الأسماء القديمة:
+
+    * `cleanflow`
+    * `sabaik`
+    * `سبائك`
+    * `الماسة`
+
+    وصنّف كل ظهور مهم:
+
+    * هل هو legacy تجاري يجب إزالته؟
+    * أم operational identifier ضروري؟
+    * أم artifact/build metadata؟
+
+    **لا تحذف أي شيء لمجرد أنه يحمل اسمًا قديمًا قبل إثبات أنه غير مطلوب للتشغيل.**
+14. تحقق خصوصًا من ادعاء أن الصفحات العامة لا تحتوي على branding قديم.
+15. تحقق من أن `BUILD_INFO.json` يعكس الأرشيف الحالي فعلًا، ولا يحتوي أرقامًا قديمة أو counters مضللة.
+16. تحقق من أن التقرير السابق لا يحتوي claims غير مثبتة أو أرقامًا لا تطابق الـartifact الحالي.
+17. شغّل:
+
+    * `pnpm run typecheck`
+    * `git diff --check`
+    * الاختبارات التشغيلية الموجودة
+    * PHP checks
+    * ZIP checks
+    * SEO gate.
+18. إذا وجدت أي مشكلة حقيقية، **أصلحها فعليًا في المصدر ثم أعد build واختبر من جديد**.
+19. لا تكتفِ بذكر المشكلة في التقرير إذا كان إصلاحها آمنًا وواضحًا.
+20. لا تغيّر architecture أو تضف features أو تعيد تصميم المشروع. هذه مهمة **Verification + Fix only**.
+
+### معيار النجاح
+
+لا أريد عبارة عامة مثل "كل شيء يبدو جيدًا".
+
+أريد في النهاية جدولًا واضحًا:
+
+| Area              | Result    | Evidence | Issues |
+| ----------------- | --------- | -------- | ------ |
+| Source changes    | PASS/FAIL | ...      | ...    |
+| Node/PHP parity   | PASS/FAIL | ...      | ...    |
+| SEO               | PASS/FAIL | ...      | ...    |
+| Sitemap           | PASS/FAIL | ...      | ...    |
+| Canonical         | PASS/FAIL | ...      | ...    |
+| JSON-LD           | PASS/FAIL | ...      | ...    |
+| SQLite            | PASS/FAIL | ...      | ...    |
+| PHP runtime       | PASS/FAIL | ...      | ...    |
+| ZIP integrity     | PASS/FAIL | ...      | ...    |
+| Legacy branding   | PASS/FAIL | ...      | ...    |
+| Build metadata    | PASS/FAIL | ...      | ...    |
+| Typecheck         | PASS/FAIL | ...      | ...    |
+| Operational tests | PASS/FAIL | ...      | ...    |
+
+ثم أعطني حكمًا نهائيًا واحدًا فقط:
+
+**VERIFIED — READY FOR PRODUCTION**
+
+أو
+
+**NOT VERIFIED — FIXES REQUIRED**
+
+إذا اخترت `NOT VERIFIED`، اذكر **كل مشكلة تمنع الإغلاق، درجة خطورتها، سببها، وما الذي أصلحته فعليًا**.
+
+### والأهم
+
+لا تعتمد على كلام الـAgent السابق، ولا على الـcheckpoint، ولا على التقرير السابق كدليل.
+
+**الدليل الوحيد المقبول هو ما تستطيع أنت إعادة إثباته من الـsource + runtime + final artifact.**
+
+ولا تعتبر المهمة منتهية لمجرد أن الاختبارات القديمة كانت PASS؛ المطلوب التأكد أن **الحالة الحالية بعد آخر التعديلات** ما زالت PASS.
+
+ابدأ الآن مباشرة من الحالة الحالية، ولا تعيد العمل الذي لا علاقة له بهذه المراجعة.
