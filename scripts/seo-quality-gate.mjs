@@ -17,6 +17,11 @@ import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
 import { resolvePublicOrigin } from "./public-origin.mjs";
+import {
+  INDEXABILITY,
+  normalizeInventoryPath,
+  readSeoInventory,
+} from "./seo-inventory.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(join(root, "lib", "db", "package.json"));
@@ -68,10 +73,15 @@ const getCanonicalTags = (html) => (html.match(/<link\b[^>]*>/gi) ?? [])
 const getJsonLdBlocks = (html) => [...html.matchAll(
   /<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi,
 )].map((match) => match[1]);
+const expandJsonLd = (value) => {
+  if (Array.isArray(value)) return value.flatMap(expandJsonLd);
+  if (!value || typeof value !== "object") return [];
+  const graph = Array.isArray(value["@graph"]) ? value["@graph"].flatMap(expandJsonLd) : [];
+  return [value, ...graph];
+};
 const parseJsonLd = (html) => getJsonLdBlocks(html).flatMap((block) => {
   try {
-    const parsed = JSON.parse(block);
-    return Array.isArray(parsed) ? parsed : [parsed];
+    return expandJsonLd(JSON.parse(block));
   } catch {
     return [];
   }
@@ -90,6 +100,97 @@ const isInternalHtmlLink = (href) => {
     return false;
   }
 };
+
+const normalizeUrl = (value, origin = siteUrl) => {
+  try {
+    const parsed = new URL(String(value || ""), origin || undefined);
+    let pathname = decodePath(parsed.pathname);
+    pathname = pathname.replace(/\/+$/u, "") || "/";
+    return `${parsed.origin.toLowerCase()}${pathname}${parsed.search}`;
+  } catch {
+    return "";
+  }
+};
+
+const schemaHasType = (schema, expected) => hasJsonLdType(schema, expected);
+const schemaText = (value) => typeof value === "string" ? value.trim() : "";
+const schemaUrlKeys = new Set([
+  "url", "@id", "image", "logo", "contentUrl",
+  "mainEntityOfPage", "publisher", "provider", "isPartOf",
+]);
+
+const schemaUrlsAreSameOrigin = (value, origin) => {
+  if (Array.isArray(value)) return value.every((item) => schemaUrlsAreSameOrigin(item, origin));
+  if (!value || typeof value !== "object") return true;
+  for (const [key, child] of Object.entries(value)) {
+    if (key === "@context") continue;
+    if (schemaUrlKeys.has(key)) {
+      const values = Array.isArray(child) ? child : [child];
+      for (const item of values) {
+        if (typeof item === "string" && /^https?:\/\//i.test(item)) {
+          try {
+            if (new URL(item).origin !== origin) return false;
+          } catch {
+            return false;
+          }
+        }
+      }
+    }
+    if (!schemaUrlsAreSameOrigin(child, origin)) return false;
+  }
+  return true;
+};
+
+function schemaContract(pageType, schemas, canonical, html) {
+  const requiredTypes = {
+    homepage: ["LocalBusiness"],
+    about: ["AboutPage"],
+    contact: ["ContactPage"],
+    faq: ["FAQPage"],
+    service: ["Service"],
+    package: ["Product"],
+    article: ["BlogPosting"],
+    "seo-page": ["WebPage"],
+    area: ["Service", "Place"],
+    "area-list": ["CollectionPage", "WebPage"],
+    "service-list": ["CollectionPage", "WebPage"],
+    "container-list": ["CollectionPage", "WebPage"],
+    "blog-list": ["Blog", "CollectionPage", "WebPage"],
+    partners: ["WebPage"],
+    "why-us": ["WebPage"],
+    legal: ["WebPage"],
+  }[pageType] ?? ["WebPage"];
+  const candidate = schemas.find((schema) =>
+    requiredTypes.some((type) => schemaHasType(schema, type)),
+  );
+  if (!candidate || !schemaUrlsAreSameOrigin(schemas, siteUrl)) return false;
+  if (schemaText(candidate.url) && normalizeUrl(candidate.url) !== canonical) return false;
+  const needsNamedEntity = !["faq", "package"].includes(pageType);
+  if (needsNamedEntity && !schemaText(candidate.name) && !schemaText(candidate.headline)) return false;
+  if (pageType === "homepage") {
+    if (!schemaText(candidate.telephone) || !candidate.address || !schemaText(candidate.url)) return false;
+  }
+  if (pageType === "service" || pageType === "area") {
+    if (!candidate.provider || !schemaText(candidate.url)) return false;
+  }
+  if (pageType === "package") {
+    if (!candidate.offers || !schemaText(candidate.url)) return false;
+  }
+  if (pageType === "faq") {
+    if (!Array.isArray(candidate.mainEntity) || candidate.mainEntity.length === 0) return false;
+  }
+  if (pageType === "article" && !schemaText(candidate.headline)) return false;
+  const faq = schemas.find((schema) => schemaHasType(schema, "FAQPage"));
+  if (faq) {
+    if (!Array.isArray(faq.mainEntity) || faq.mainEntity.length === 0) return false;
+    for (const question of faq.mainEntity) {
+      const answer = question?.acceptedAnswer;
+      if (!schemaText(question?.name) || !schemaText(answer?.text)) return false;
+      if (!html.includes(question.name) || !html.includes(answer.text)) return false;
+    }
+  }
+  return true;
+}
 
 if (!siteUrl || !/^https:\/\//i.test(siteUrl)) fail("a valid public HTTPS origin must be configured or passed as SITE_URL");
 if (siteUrl && /localhost|replit\.dev|replit\.app/i.test(siteUrl)) fail("site_public_url points to a non-production origin");
@@ -111,7 +212,11 @@ try {
 
 if (archiveDir) {
   const archiveSitemap = join(archiveDir, "sitemap.xml");
+  const archiveInventory = join(archiveDir, "seo-inventory.json");
+  const archiveMediaManifest = join(archiveDir, "seo-media-manifest.json");
   requireFile(archiveSitemap, "archive sitemap");
+  requireFile(archiveInventory, "archive authoritative SEO inventory");
+  requireFile(archiveMediaManifest, "archive SEO media manifest");
   if ([publicSitemap, distSitemap, buildSitemap, archiveSitemap].every(existsSync)) {
     const hashes = [publicSitemap, distSitemap, buildSitemap, archiveSitemap].map(sha256);
     if (new Set(hashes).size === 1) pass(`sitemap hashes match (${hashes[0]})`);
@@ -130,6 +235,18 @@ if (archiveDir) {
   const sitemap = readFileSync(archiveSitemap, "utf8");
   const urls = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]);
   const sitemapImages = [...sitemap.matchAll(/<image:loc>([^<]+)<\/image:loc>/g)].map((match) => match[1]);
+  const inventory = readSeoInventory(archiveInventory);
+  const inventoryEntries = inventory?.entries ?? [];
+  const indexableInventory = inventoryEntries.filter(
+    (entry) => entry.indexability === INDEXABILITY.INDEXABLE && entry.sitemapEligible,
+  );
+  const expectedRoutes = new Set(indexableInventory.map((entry) =>
+    normalizeUrl(`${siteUrl}${normalizeInventoryPath(entry.canonical)}`),
+  ));
+  if (!inventory) fail("archive authoritative SEO inventory is invalid JSON");
+  else if (inventory.siteUrl !== siteUrl) fail(`inventory origin differs from configured origin (${inventory.siteUrl || "missing"})`);
+  else if (expectedRoutes.size === 0) fail("authoritative SEO inventory has no indexable routes");
+  else pass(`authoritative inventory loaded (${expectedRoutes.size} indexable routes)`);
   if (urls.length === new Set(urls).size) pass(`sitemap URLs unique (${urls.length})`);
   else fail("sitemap contains duplicate URLs");
   if (!urls.some((url) => /localhost|replit\.dev|replit\.app/i.test(url))) pass("sitemap has no preview URLs");
@@ -198,13 +315,14 @@ if (archiveDir) {
   // separate artifact with its own navigation and SEO contract. Keep it out
   // of the main site's canonical/sitemap inventory.
   const isMainSiteHtml = (file) => !file.replace(`${archiveDir}/`, "").startsWith("taqi-group-platform/");
-  const archivePages = htmlFiles
+  const archivePageRecords = htmlFiles
     .map((file) => {
       const source = readFileSync(file, "utf8");
       const canonicalTags = getCanonicalTags(source);
       const canonical = canonicalTags.length === 1 ? getAttribute(canonicalTags[0], "href") : "";
       const description = getMeta(source, "description");
       const jsonLdBlocks = getJsonLdBlocks(source);
+      const schemas = parseJsonLd(source);
       const internalLinks = [...source.matchAll(/<a\b[^>]*href=["']([^"']+)["']/gi)]
         .map((match) => match[1])
         .filter(isInternalHtmlLink);
@@ -213,45 +331,92 @@ if (archiveDir) {
         relative: file.replace(`${archiveDir}/`, ""),
         source,
         canonical,
+        canonicalCount: canonicalTags.length,
         description,
         jsonLdBlocks,
+        schemas,
         internalLinks,
         indexable: !/noindex/i.test(getMeta(source, "robots")),
+        title: (source.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i)?.[1] || "").trim(),
+        h1Count: count(source, /<h1\b/gi),
       };
     })
-    .filter((page) => page.indexable && isMainSiteHtml(page.file));
-  const archiveCanonicalSet = new Set(archivePages.map((page) => page.canonical).filter(Boolean));
-  const archiveSitemapSet = new Set(urls);
+    .filter((page) => isMainSiteHtml(page.file));
+  const archivePages = archivePageRecords.filter((page) => page.indexable);
+  const archiveCanonicalSet = new Set(archivePages.map((page) => normalizeUrl(page.canonical)).filter(Boolean));
+  const archiveSitemapSet = new Set(urls.map((url) => normalizeUrl(url)).filter(Boolean));
   const missingDescriptions = archivePages.filter((page) => !page.description);
   const lowQualityDescriptions = archivePages.filter(
     (page) => page.description.length < 120 || page.description.length > 160,
   );
-  const missingCanonicals = archivePages.filter((page) => !page.canonical);
+  const missingCanonicals = archivePages.filter((page) => !page.canonical || page.canonicalCount !== 1);
   const wrongOriginCanonicals = archivePages.filter(
-    (page) => page.canonical && !page.canonical.startsWith(`${siteUrl}/`) && page.canonical !== siteUrl,
+    (page) => {
+      if (!page.canonical) return false;
+      try {
+        return new URL(page.canonical).origin !== siteUrl;
+      } catch {
+        return true;
+      }
+    },
   );
-  const missingSchemas = archivePages.filter((page) => page.jsonLdBlocks.length === 0);
-  const missingInternalLinks = archivePages.filter((page) => page.internalLinks.length === 0);
+  const duplicateDescriptions = new Set(
+    archivePages.map((page) => page.description).filter(Boolean),
+  ).size !== archivePages.filter((page) => page.description).length;
+  const invalidTitles = archivePages.filter((page) => !page.title || page.title.length > 65);
+  const invalidH1 = archivePages.filter((page) => page.h1Count !== 1);
+  const unknownInventoryRoutes = archivePages.filter((page) =>
+    !expectedRoutes.has(normalizeUrl(page.canonical)),
+  );
+  const missingInventoryRoutes = [...expectedRoutes].filter((url) =>
+    !archiveCanonicalSet.has(url),
+  );
+  const invalidSchemas = archivePages.filter((page) => {
+    const canonical = normalizeUrl(page.canonical);
+    const entry = indexableInventory.find((item) =>
+      normalizeUrl(`${siteUrl}${normalizeInventoryPath(item.canonical)}`) === canonical,
+    );
+    return !entry || !schemaContract(entry.pageType, page.schemas, canonical, page.source);
+  });
+  const missingInternalLinks = archivePages.filter((page) => {
+    const self = normalizeUrl(page.canonical);
+    const usefulTargets = new Set(page.internalLinks
+      .map((href) => normalizeUrl(href))
+      .filter((target) => target && target !== siteUrl && target !== `${siteUrl}/` && target !== self)
+      .filter((target) => expectedRoutes.has(target)));
+    return usefulTargets.size === 0;
+  });
   const canonicalOnly = [...archiveCanonicalSet].filter((url) => !archiveSitemapSet.has(url));
   const sitemapOnly = [...archiveSitemapSet].filter((url) => !archiveCanonicalSet.has(url));
 
   if (
-    archivePages.length === urls.length &&
-    archiveCanonicalSet.size === urls.length &&
+    archiveCanonicalSet.size === expectedRoutes.size &&
+    archiveSitemapSet.size === expectedRoutes.size &&
+    archiveCanonicalSet.size === archivePages.length &&
+    archiveSitemapSet.size === urls.length &&
+    unknownInventoryRoutes.length === 0 &&
+    missingInventoryRoutes.length === 0 &&
     canonicalOnly.length === 0 &&
     sitemapOnly.length === 0
   ) {
-    pass(`all indexable HTML routes match sitemap (${archivePages.length})`);
+    pass(`authoritative routes = indexable HTML = canonical = sitemap (${expectedRoutes.size})`);
   } else {
     fail(
-      `indexable HTML/Sitemap mismatch: ${archivePages.length} pages, ${urls.length} sitemap URLs, ` +
-      `${archiveCanonicalSet.size} canonical URLs, ${canonicalOnly.length} canonical-only, ${sitemapOnly.length} sitemap-only`,
+      `route set mismatch: inventory=${expectedRoutes.size}, HTML=${archivePages.length}, sitemap=${archiveSitemapSet.size}, ` +
+      `unknown=${unknownInventoryRoutes.length}, missing=${missingInventoryRoutes.length}, ` +
+      `canonical-only=${canonicalOnly.length}, sitemap-only=${sitemapOnly.length}`,
     );
   }
   if (missingDescriptions.length === 0) pass(`all indexable pages have meta descriptions (${archivePages.length})`);
   else fail(`missing meta descriptions: ${missingDescriptions.map((page) => page.relative).join(", ")}`);
   if (lowQualityDescriptions.length === 0) pass(`all meta descriptions are 120–160 characters (${archivePages.length})`);
   else fail(`meta descriptions outside 120–160 characters: ${lowQualityDescriptions.map((page) => `${page.relative} (${page.description.length})`).join(", ")}`);
+  if (!duplicateDescriptions) pass("meta descriptions are unique");
+  else fail("duplicate meta descriptions found");
+  if (invalidTitles.length === 0) pass(`all indexable titles are present and concise (${archivePages.length})`);
+  else fail(`invalid indexable titles: ${invalidTitles.map((page) => page.relative).join(", ")}`);
+  if (invalidH1.length === 0) pass(`all indexable pages have exactly one H1 (${archivePages.length})`);
+  else fail(`invalid H1 coverage: ${invalidH1.map((page) => `${page.relative} (${page.h1Count})`).join(", ")}`);
   if (missingCanonicals.length === 0 && wrongOriginCanonicals.length === 0) {
     pass(`all indexable pages have canonical URLs on ${siteUrl}`);
   } else {
@@ -260,9 +425,9 @@ if (archiveDir) {
       `wrong-origin=${wrongOriginCanonicals.map((page) => `${page.relative} (${page.canonical})`).join(", ") || "0"}`,
     );
   }
-  if (missingSchemas.length === 0) pass(`all indexable pages have valid JSON-LD blocks (${archivePages.length})`);
-  else fail(`missing JSON-LD blocks: ${missingSchemas.map((page) => page.relative).join(", ")}`);
-  if (missingInternalLinks.length === 0) pass(`all indexable pages have internal links (${archivePages.length})`);
+  if (invalidSchemas.length === 0) pass(`all indexable pages satisfy their JSON-LD contracts (${archivePages.length})`);
+  else fail(`invalid JSON-LD contracts: ${invalidSchemas.map((page) => page.relative).join(", ")}`);
+  if (missingInternalLinks.length === 0) pass(`all indexable pages have useful internal graph edges (${archivePages.length})`);
   else fail(`pages without internal links: ${missingInternalLinks.map((page) => page.relative).join(", ")}`);
 
   const candidates = {
@@ -305,6 +470,32 @@ if (archiveDir) {
   });
   if (badHtmlImages.length === 0) pass(`HTML images resolve (${referencedImages.size})`);
   else fail(`missing HTML images: ${badHtmlImages.join(", ")}`);
+
+  let mediaManifest = null;
+  try {
+    mediaManifest = JSON.parse(readFileSync(archiveMediaManifest, "utf8"));
+  } catch {
+    fail("archive SEO media manifest is invalid JSON");
+  }
+  const mediaAssets = Array.isArray(mediaManifest?.assets) ? mediaManifest.assets : [];
+  const allArchiveText = htmlFiles
+    .map((file) => readFileSync(file, "utf8"))
+    .join("\n");
+  const missingManifestAssets = mediaAssets.filter((asset) => {
+    const localPath = decodePath(String(asset.path || "")).replace(/^\/+/, "");
+    return !localPath || !existsSync(join(archiveDir, localPath));
+  });
+  const unusedRequiredMedia = mediaAssets.filter((asset) =>
+    asset.required && !allArchiveText.includes(String(asset.path || "")) &&
+    !sitemapImages.some((image) => decodePath(image).endsWith(String(asset.path || ""))),
+  );
+  if (missingManifestAssets.length === 0 && mediaAssets.length > 0) {
+    pass(`SEO media manifest resolves (${mediaAssets.length})`);
+  } else {
+    fail(`missing SEO media manifest assets: ${missingManifestAssets.map((asset) => asset.path).join(", ") || "manifest empty"}`);
+  }
+  if (unusedRequiredMedia.length === 0) pass("all required SEO media assets are used by production output");
+  else fail(`required SEO media assets are unused: ${unusedRequiredMedia.map((asset) => asset.path).join(", ")}`);
 
   rmSync(archiveDir, { recursive: true, force: true });
 }

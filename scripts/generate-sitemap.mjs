@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 import { requirePublicOrigin } from "./public-origin.mjs";
 import { entityPath } from "./friendly-slug.mjs";
 import { ARABIC_AREA_SLUGS, assertAreaRouteParity } from "./seo-area-routes.mjs";
+import { writeSeoInventory } from "./seo-inventory.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(join(root, "lib", "db", "package.json"));
@@ -317,6 +318,7 @@ const xml = [
 
 mkdirSync(dirname(outputPath), { recursive: true });
 writeFileSync(outputPath, xml, "utf8");
+writeSeoInventory(root, db, baseUrl);
 writeFileSync(
   join(root, "artifacts", "sabaik-almasa", "public", "robots.txt"),
   [

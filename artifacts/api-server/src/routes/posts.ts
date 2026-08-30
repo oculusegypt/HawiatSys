@@ -10,38 +10,6 @@ import { generateSeoMetadata, uniqueSlug } from "../lib/seoMetadata";
 
 const router = Router();
 
-// ── DB migration: create posts table if it doesn't exist ─────────────────────
-try {
-  const client = (db as any).$client;
-  client.exec(`
-    CREATE TABLE IF NOT EXISTS posts (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      title TEXT NOT NULL,
-      slug TEXT NOT NULL UNIQUE,
-      content TEXT NOT NULL DEFAULT '',
-      excerpt TEXT NOT NULL DEFAULT '',
-      cover_image TEXT DEFAULT '',
-      author TEXT NOT NULL DEFAULT 'الشركة',
-      category TEXT DEFAULT 'عام',
-      tags TEXT NOT NULL DEFAULT '[]',
-      status TEXT NOT NULL DEFAULT 'draft',
-      published_at TEXT,
-      read_time INTEGER DEFAULT 3,
-      view_count INTEGER NOT NULL DEFAULT 0,
-      is_active INTEGER NOT NULL DEFAULT 1,
-      "order" INTEGER NOT NULL DEFAULT 0,
-      seo_title TEXT NOT NULL DEFAULT '',
-      seo_description TEXT NOT NULL DEFAULT '',
-      seo_keywords TEXT NOT NULL DEFAULT '',
-      seo_slug TEXT NOT NULL DEFAULT '',
-      og_image TEXT NOT NULL DEFAULT '',
-      canonical_url TEXT NOT NULL DEFAULT '',
-      created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-    )
-  `);
-} catch {}
-
 function castRow(row: any, companyName: string) {
   const text = (value: unknown) => replaceLegacyCompanyName(value, companyName).trim();
 

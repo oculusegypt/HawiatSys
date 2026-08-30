@@ -1,0 +1,119 @@
+{
+  "version": 1,
+  "generatedAt": "2026-08-30T02:41:41.863Z",
+  "siteUrl": "https://taqigroup.com",
+  "assets": [
+    {
+      "key": "home",
+      "path": "/images/seo/taqi-home.jpg",
+      "purpose": "SEO campaign image",
+      "pages": [
+        "/"
+      ],
+      "required": true
+    },
+    {
+      "key": "services",
+      "path": "/images/seo/taqi-services.jpg",
+      "purpose": "SEO campaign image",
+      "pages": [
+        "/services",
+        "/why-us/what-we-do"
+      ],
+      "required": true
+    },
+    {
+      "key": "containers",
+      "path": "/images/seo/taqi-containers.jpg",
+      "purpose": "SEO campaign image",
+      "pages": [
+        "/containers"
+      ],
+      "required": true
+    },
+    {
+      "key": "pricing",
+      "path": "/images/seo/taqi-pricing.jpg",
+      "purpose": "SEO campaign image",
+      "pages": [
+        "/pricing"
+      ],
+      "required": true
+    },
+    {
+      "key": "areas",
+      "path": "/images/seo/taqi-areas.jpg",
+      "purpose": "SEO campaign image",
+      "pages": [
+        "/areas"
+      ],
+      "required": true
+    },
+    {
+      "key": "blog",
+      "path": "/images/seo/taqi-blog.jpg",
+      "purpose": "SEO campaign image",
+      "pages": [
+        "/blog"
+      ],
+      "required": true
+    },
+    {
+      "key": "about",
+      "path": "/images/seo/taqi-about.jpg",
+      "purpose": "SEO campaign image",
+      "pages": [
+        "/about",
+        "/why-us/experience"
+      ],
+      "required": true
+    },
+    {
+      "key": "contact",
+      "path": "/images/seo/taqi-contact.jpg",
+      "purpose": "SEO campaign image",
+      "pages": [
+        "/contact",
+        "/why-us/commitment"
+      ],
+      "required": true
+    },
+    {
+      "key": "faq",
+      "path": "/images/seo/taqi-faq.jpg",
+      "purpose": "SEO campaign image",
+      "pages": [
+        "/faq"
+      ],
+      "required": true
+    },
+    {
+      "key": "partners",
+      "path": "/images/seo/taqi-partners.jpg",
+      "purpose": "SEO campaign image",
+      "pages": [
+        "/partners"
+      ],
+      "required": true
+    },
+    {
+      "key": "why-us",
+      "path": "/images/seo/taqi-why-us.jpg",
+      "purpose": "SEO campaign image",
+      "pages": [
+        "/why-us/leadership"
+      ],
+      "required": true
+    },
+    {
+      "key": "legal",
+      "path": "/images/seo/taqi-legal.jpg",
+      "purpose": "SEO campaign image",
+      "pages": [
+        "/privacy",
+        "/terms"
+      ],
+      "required": true
+    }
+  ]
+}

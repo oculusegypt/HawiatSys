@@ -457,74 +457,6 @@ try {
         $pdo = new PDO('sqlite:' . $dbFile);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-        // Shared hosting does not run Drizzle migrations. Keep analytics
-        // columns additive so an older SQLite database can accept new
-        // page-view and presence writes without a destructive migration.
-        foreach ([
-            'country' => "TEXT NOT NULL DEFAULT ''",
-            'city' => "TEXT NOT NULL DEFAULT ''",
-            'utm_source' => "TEXT NOT NULL DEFAULT ''",
-            'utm_medium' => "TEXT NOT NULL DEFAULT ''",
-            'utm_campaign' => "TEXT NOT NULL DEFAULT ''",
-            'gclid' => "TEXT NOT NULL DEFAULT ''",
-        ] as $column => $definition) {
-            try { $pdo->exec("ALTER TABLE page_views ADD COLUMN {$column} {$definition}"); } catch (\Throwable $ignored) {}
-        }
-        foreach ([
-            'conversation_id' => "INTEGER",
-            'client_name' => "TEXT",
-            'phone' => "TEXT",
-        ] as $column => $definition) {
-            try { $pdo->exec("ALTER TABLE active_visitors ADD COLUMN {$column} {$definition}"); } catch (\Throwable $ignored) {}
-        }
-        // Presence invitations are additive so older Hostinger databases can
-        // receive this patch without a destructive migration.
-        foreach ([
-            'invitation_message' => "TEXT",
-            'invitation_created_at' => "TEXT",
-        ] as $column => $definition) {
-            try { $pdo->exec("ALTER TABLE active_visitors ADD COLUMN {$column} {$definition}"); } catch (\Throwable $ignored) {}
-        }
-        // Keep older Hostinger SQLite databases compatible with the current
-        // admin ads form. Shared hosting does not run Drizzle migrations.
-        $pdo->exec("CREATE TABLE IF NOT EXISTS ads (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL DEFAULT '',
-            content TEXT NOT NULL DEFAULT '',
-            image_url TEXT NOT NULL DEFAULT '',
-            link_url TEXT NOT NULL DEFAULT '',
-            button_text TEXT NOT NULL DEFAULT '',
-            position TEXT NOT NULL DEFAULT 'middle',
-            type TEXT NOT NULL DEFAULT 'banner',
-            bg_color TEXT NOT NULL DEFAULT '#eff6ff',
-            is_active INTEGER NOT NULL DEFAULT 1,
-            ad_order INTEGER NOT NULL DEFAULT 0,
-            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-        )");
-        $adColumns = $pdo->query("PRAGMA table_info(ads)")->fetchAll(PDO::FETCH_ASSOC);
-        $adColumnNames = array_fill_keys(array_map(static fn(array $column): string => (string)$column['name'], $adColumns), true);
-        $adMigrations = [
-            'title' => "TEXT NOT NULL DEFAULT ''",
-            'content' => "TEXT NOT NULL DEFAULT ''",
-            'image_url' => "TEXT NOT NULL DEFAULT ''",
-            'link_url' => "TEXT NOT NULL DEFAULT ''",
-            'button_text' => "TEXT NOT NULL DEFAULT ''",
-            'position' => "TEXT NOT NULL DEFAULT 'middle'",
-            'type' => "TEXT NOT NULL DEFAULT 'banner'",
-            'bg_color' => "TEXT NOT NULL DEFAULT '#eff6ff'",
-            'is_active' => "INTEGER NOT NULL DEFAULT 1",
-            'ad_order' => "INTEGER NOT NULL DEFAULT 0",
-            // SQLite rejects ALTER TABLE ... ADD COLUMN when the new column
-            // uses a non-constant default such as CURRENT_TIMESTAMP. Use a
-            // constant for portable upgrades; new rows do not depend on this
-            // legacy column for API behavior.
-            'created_at' => "TEXT NOT NULL DEFAULT ''",
-        ];
-        foreach ($adMigrations as $column => $definition) {
-            if (!isset($adColumnNames[$column])) {
-                $pdo->exec("ALTER TABLE ads ADD COLUMN {$column} {$definition}");
-            }
-        }
     } catch (PDOException $e) {
         http_response_code(500);
         echo json_encode(['error' => 'قاعدة البيانات غير متاحة', 'status' => 'degraded'], JSON_UNESCAPED_UNICODE);
@@ -1965,12 +1897,6 @@ try {
         // Keep the PHP deployment in parity with Node: a public request also
         // creates/reuses a customer and stores the submitted address as a site.
         try {
-            $pdo->exec("CREATE TABLE IF NOT EXISTS container_system_records (
-                id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'active',
-                reference TEXT NOT NULL DEFAULT '', payload TEXT NOT NULL DEFAULT '{}',
-                created_by INTEGER, created_at TEXT NOT NULL DEFAULT '', updated_at TEXT NOT NULL DEFAULT ''
-            )");
-            try { $pdo->exec("ALTER TABLE service_requests ADD COLUMN customer_record_id INTEGER"); } catch (\Throwable $ignored) {}
             $digits = preg_replace('/\D+/', '', $phone);
             $allCustomers = $pdo->query("SELECT id, payload FROM container_system_records WHERE kind = 'customer' AND status != 'archived'")->fetchAll();
             $customerId = null;
@@ -2939,12 +2865,6 @@ try {
                 // Keep chat-confirmed orders in Container Operations too:
                 // reuse the customer by phone and add the address only once.
                 try {
-                    $pdo->exec("CREATE TABLE IF NOT EXISTS container_system_records (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'active',
-                        reference TEXT NOT NULL DEFAULT '', payload TEXT NOT NULL DEFAULT '{}',
-                        created_by INTEGER, created_at TEXT NOT NULL DEFAULT '', updated_at TEXT NOT NULL DEFAULT ''
-                    )");
-                    try { $pdo->exec("ALTER TABLE service_requests ADD COLUMN customer_record_id INTEGER"); } catch (\Throwable $ignored) {}
                     $digits = preg_replace('/\D+/', '', $phone);
                     $customerId = null;
                     $customers = $pdo->query("SELECT id, payload FROM container_system_records WHERE kind = 'customer' AND status != 'archived'")->fetchAll();

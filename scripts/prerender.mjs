@@ -252,10 +252,22 @@ function esc(s)  { return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&l
 function raw(s)  { return String(s || ""); }
 function sanitizeHtml(html) {
   return (html || "")
+    // Rich text fields occasionally contain a pasted document rather than a
+    // fragment. Keep its useful body content, but never nest a document in
+    // the prerendered page.
+    .replace(/<!doctype\b[^>]*>/gi, "")
+    .replace(/<\/?(?:html|head|body)\b[^>]*>/gi, "")
+    .replace(/<meta\b[^>]*>/gi, "")
+    .replace(/<title\b[^>]*>[\s\S]*?<\/title>/gi, "")
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, "")
     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
     .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, "")
     .replace(/\son\w+="[^"]*"/gi, "")
     .replace(/\son\w+='[^']*'/gi, "")
+    // The page template owns the single article H1. Demote pasted H1s
+    // instead of deleting their text or breaking the rest of the rich content.
+    .replace(/<h1\b([^>]*)>/gi, "<h2$1>")
+    .replace(/<\/h1>/gi, "</h2>")
     // تحويل روابط الصور النسبية إلى root-relative (تعمل مع أي دومين)
     .replace(/src="(?!https?:\/\/|\/\/)([^/""][^"]*?)"/g, (_, p) => `src="/${p.replace(/^\/+/, "")}"`);
 }
@@ -382,6 +394,65 @@ function renderPage({
   const imgAlt   = normalizedTitle.replace(/\|.*/,"").trim();
 
   const schemaTags = schemas.map((schema) => jsonLd(schema)).join("\n  ");
+  const pagePath = (() => {
+    try {
+      return new URL(canonicalUrl).pathname.replace(/\/+$/u, "") || "/";
+    } catch {
+      return "/";
+    }
+  })();
+  const relatedLinksByPath = pagePath.startsWith("/blog/")
+    ? [
+        ["مقالات ذات صلة", "/blog"],
+        ["اختيار الحاوية المناسبة", "/containers"],
+        ["خدمات نقل المخلفات", "/services"],
+      ]
+    : pagePath.startsWith("/services/")
+      ? [
+          ["الحاويات المتاحة", "/containers"],
+          ["مناطق التغطية", "/areas"],
+          ["اطلب عرضاً", "/contact"],
+        ]
+      : pagePath.startsWith("/containers/")
+        ? [
+            ["الخدمات المقدمة", "/services"],
+            ["مناطق التغطية", "/areas"],
+            ["تواصل معنا", "/contact"],
+          ]
+        : pagePath.startsWith("/areas/")
+          ? [
+              ["خدمات تأجير الحاويات", "/services"],
+              ["الحاويات المتاحة", "/containers"],
+              ["تواصل معنا", "/contact"],
+            ]
+          : pagePath.startsWith("/page/")
+            ? [
+                ["الحاويات المتاحة", "/containers"],
+                ["خدمات نقل المخلفات", "/services"],
+                ["تواصل معنا", "/contact"],
+              ]
+            : pagePath === "/about"
+              ? [["خدماتنا", "/services"], ["تواصل معنا", "/contact"]]
+              : pagePath === "/contact"
+                ? [["الخدمات", "/services"], ["الحاويات", "/containers"]]
+                : pagePath === "/pricing"
+                  ? [["مقاسات الحاويات", "/containers"], ["اطلب عرضاً", "/contact"]]
+                  : pagePath === "/faq"
+                    ? [["مقاسات الحاويات", "/containers"], ["اطلب الخدمة", "/contact"]]
+                    : pagePath === "/blog"
+                      ? [["الخدمات", "/services"], ["الحاويات", "/containers"], ["تواصل معنا", "/contact"]]
+                      : pagePath.startsWith("/why-us/")
+                        ? [["الخدمات", "/services"], ["تواصل معنا", "/contact"]]
+                        : pagePath === "/privacy" || pagePath === "/terms"
+                          ? [["الخصوصية والتواصل", "/contact"], ["الرئيسية", "/"]]
+                          : [];
+  const relatedLinks = relatedLinksByPath
+    .filter(([, href]) => `${SITE_URL}${href}` !== canonicalUrl.replace(/\/+$/u, ""))
+    .map(([label, href]) => `<a href="${esc(`${SITE_URL}${href}`)}">${esc(label)}</a>`)
+    .join(" · ");
+  const relatedLinksMarkup = relatedLinks
+    ? `<nav aria-label="روابط ذات صلة" class="seo-related-links"><span>روابط ذات صلة:</span> ${relatedLinks}</nav>`
+    : "";
   // Analytics is loaded by the hydrated app after the first meaningful paint.
   // Injecting the third-party script into every prerendered document delays
   // mobile parsing and provides no value to crawlers or no-JS visitors.
@@ -451,6 +522,7 @@ function renderPage({
     <div class="seo-static-shell">
       <nav aria-label="breadcrumb" class="seo-static-breadcrumb">${breadcrumbHtml(breadcrumbs)}</nav>
       ${stripInlineStyles(bodyContent)}
+      ${relatedLinksMarkup}
       ${goldenKeywordMarkup()}
       ${authorityTrustMarkup()}
     </div>
@@ -1784,6 +1856,17 @@ for (const page of seoPages) {
       "acceptedAnswer": { "@type": "Answer", "text": f.a },
     })),
   };
+  const seoPageSchema = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "@id": `${canonical}#webpage`,
+    "url": canonical,
+    "name": title,
+    "description": description,
+    "inLanguage": "ar",
+    "isPartOf": { "@id": `${SITE_URL}/#website` },
+    "about": { "@id": `${SITE_URL}/#organization` },
+  };
 
   const bodyContent = `
     <article>
@@ -1815,7 +1898,7 @@ for (const page of seoPages) {
     title, description, canonical, ogImage,
     ogType: "article",
     keywords: page.seo_keywords || page.target_keyword || "",
-    schemas: [seoPageFaqSchema, breadcrumbSchema(crumbs)],
+    schemas: [seoPageSchema, seoPageFaqSchema, breadcrumbSchema(crumbs)],
     breadcrumbs: crumbs,
     bodyContent
   });
@@ -2065,7 +2148,16 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
     title, description, canonical, ogImage,
     ogType: "website",
     keywords: "سياسة الخصوصية, حماية البيانات, تأجير حاويات الرياض",
-    schemas: [breadcrumbSchema(crumbs)],
+    schemas: [{
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "@id": `${canonical}#webpage`,
+      "url": canonical,
+      "name": title,
+      "description": description,
+      "inLanguage": "ar",
+      "isPartOf": { "@id": `${SITE_URL}/#website` },
+    }, breadcrumbSchema(crumbs)],
     breadcrumbs: crumbs,
     bodyContent
   });
@@ -2105,7 +2197,16 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
     title, description, canonical, ogImage,
     ogType: "website",
     keywords: "الشروط والأحكام, تأجير حاويات بالرياض, نقل الأنقاض, اتفاقية التأجير",
-    schemas: [breadcrumbSchema(crumbs)],
+    schemas: [{
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "@id": `${canonical}#webpage`,
+      "url": canonical,
+      "name": title,
+      "description": description,
+      "inLanguage": "ar",
+      "isPartOf": { "@id": `${SITE_URL}/#website` },
+    }, breadcrumbSchema(crumbs)],
     breadcrumbs: crumbs,
     bodyContent
   });

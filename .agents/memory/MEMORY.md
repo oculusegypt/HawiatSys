@@ -43,3 +43,4 @@
 - [SEO entity slug parity](seo-entity-slug-parity.md) — public Arabic SEO URLs append record IDs; Node and Hostinger PHP must resolve the same aliases.
 - [Central SEO automation](central-seo-automation.md) — generate and backfill metadata in domain writes across Node and Hostinger PHP; prerender remains a safety net.
 - [Node/PHP SEO parity](node-php-seo-parity.md) — compare full public projections across both runtimes; response-time legacy-name normalization can affect metadata parity.
+- [SEO rich content and JSON-LD](seo-rich-content-and-jsonld.md) — prerendered rich text must stay a fragment with one template H1, and validation must flatten JSON-LD @graph.

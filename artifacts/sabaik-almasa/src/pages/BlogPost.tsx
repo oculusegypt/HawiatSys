@@ -45,6 +45,17 @@ function setMeta(name: string, content: string, attr = "name") {
   el.content = content
 }
 
+function normalizeArticleContent(html: string): string {
+  return html
+    .replace(/<!doctype\b[^>]*>/gi, "")
+    .replace(/<\/?(?:html|head|body)\b[^>]*>/gi, "")
+    .replace(/<meta\b[^>]*>/gi, "")
+    .replace(/<title\b[^>]*>[\s\S]*?<\/title>/gi, "")
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, "")
+    .replace(/<h1\b([^>]*)>/gi, "<h2$1>")
+    .replace(/<\/h1>/gi, "</h2>")
+}
+
 // ─── CTA Block ─────────────────────────────────────────────────────────────────
 function ArticleCTA({ onOpen, phoneCall, phoneWhatsapp, postTitle }: { onOpen: () => void; phoneCall: string; phoneWhatsapp: string; postTitle: string }) {
   const waHref = phoneWhatsapp
@@ -229,11 +240,15 @@ export default function BlogPost() {
   const [notFound, setNotFound] = useState(false)
 
   useEffect(() => {
+    if (isLoaded && (!post || notFound)) setMeta("robots", "noindex, follow")
+  }, [isLoaded, post, notFound])
+
+  useEffect(() => {
     if (!slug) return
     setLoading(true)
     fetch(`${API_BASE}/api/posts/${encodeURIComponent(slug)}`)
       .then(r => {
-        if (!r.ok) { setNotFound(true); setLoading(false); return null }
+        if (!r.ok) { setMeta("robots", "noindex, follow"); setNotFound(true); setLoading(false); return null }
         return r.json()
       })
       .then(d => {
@@ -251,12 +266,17 @@ export default function BlogPost() {
         const resolvedTitle = normalizeCompanyText(`${title} | مدونة ${companyName || "الشركة"}`)
         const resolvedDescription = normalizeCompanyText(desc)
         const resolvedAuthor = normalizeCompanyText(d.author || companyName || "الشركة")
-        const resolvedContent = normalizeCompanyText(d.content || "")
+         const resolvedContent = normalizeArticleContent(normalizeCompanyText(d.content || ""))
         document.title = resolvedTitle
 
         setMeta("description",        resolvedDescription)
         setMeta("keywords",           mergeGoldenSeoKeywords(normalizeCompanyText(d.seoKeywords)))
-        setMeta("robots",             "index, follow")
+        setMeta(
+          "robots",
+          typeof window !== "undefined" && window.location.pathname.startsWith("/blog/")
+            ? "index, follow"
+            : "noindex, follow",
+        )
         setMeta("og:type",            "article", "property")
         setMeta("og:title",           resolvedTitle, "property")
         setMeta("og:description",     resolvedDescription, "property")
@@ -335,7 +355,7 @@ export default function BlogPost() {
         script.textContent = JSON.stringify(schemas)
         document.head.appendChild(script)
       })
-      .catch(() => { setNotFound(true); setLoading(false) })
+      .catch(() => { setMeta("robots", "noindex, follow"); setNotFound(true); setLoading(false) })
 
     return () => {
       // cleanup schema on unmount

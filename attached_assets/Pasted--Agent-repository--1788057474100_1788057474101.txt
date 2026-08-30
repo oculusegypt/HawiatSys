@@ -1,0 +1,407 @@
+استلمت العمل بعد Agent سابق، ومعك الآن **الحالة الحالية للـ repository + سجل عمله الأخير**.
+
+**لا تبدأ من الصفر. لا تعيد تحليل المشروع بالكامل. لا تعيد البحث عن architecture. لا تضيع الرصيد في Audit نظري.**
+
+الـ Agent السابق وصل إلى مرحلة تنفيذ فعلية ثم انتهى الـ quota أثناء إصلاح آخر مجموعة من الـ SEO quality-gate failures.
+
+## آخر حالة مؤكدة وصل إليها
+
+قام بالفعل بتعديل/إنشاء أجزاء في:
+
+* `scripts/seo-inventory.mjs`
+* `scripts/generate-sitemap.mjs`
+* `scripts/seo-quality-gate.mjs`
+* `artifacts/api-server/src/index.ts`
+* `artifacts/api-server/src/routes/services.ts`
+* `artifacts/api-server/src/routes/posts.ts`
+* `scripts/api-index.php`
+* `artifacts/api-server/src/routes/containers.ts`
+* `artifacts/api-server/src/routes/seoPages.ts`
+* `artifacts/api-server/src/seoMetadata.ts`
+* `artifacts/api-server/src/seoMetrics.ts`
+* `artifacts/api-server/src/seoMedia.ts`
+* `artifacts/api-server/src/sitemap.ts`
+* `artifacts/api-server/src/siteUrl.ts`
+* `artifacts/api-server/src/public-origin.mjs`
+* `artifacts/public/src/hooks/useDocumentSEO.ts`
+* `artifacts/public/src/pages/ServiceDetail.tsx`
+* `artifacts/public/src/pages/PackageDetail.tsx`
+* `artifacts/public/src/pages/BlogPost.tsx`
+* `artifacts/public/src/pages/SeoPage.tsx`
+
+كما أضاف/راجع وثائق مرتبطة بالـ SEO architecture والـ parity والـ archive certification.
+
+---
+
+# آخر نقطة تنفيذية بالضبط
+
+الـ Agent شغّل:
+
+* production build
+* Hostinger build
+* strengthened SEO quality gate
+
+والـ build نفسه اكتمل.
+
+لكن الـ quality gate اكتشف **4 failures حقيقية/contract gaps**.
+
+آخر تشخيص وصل إليه كان:
+
+1. duplicate descriptions في صفحتين من الـ published posts.
+2. duplicate H1 في إحدى الحالات.
+3. JSON-LD gate كان يتعامل بشكل مبالغ في الصرامة مع nested `@graph`.
+4. link validation/semantic contract كان يحتاج فهمًا أدق للـ existing link structures.
+
+ثم بدأ فعليًا فحص الـ emitted HTML والـ source templates.
+
+**وانتهى الرصيد هنا.**
+
+إذن:
+
+# أكمل من هنا.
+
+---
+
+# ما تم حسمه معماريًا بالفعل
+
+الهدف ليس مجرد إصلاح metadata.
+
+الهدف هو:
+
+**SEO Automation System مركزي ودائم.**
+
+أي:
+
+```text
+Create / Update content
+        ↓
+Central SEO generation
+        ↓
+Database
+        ↓
+Public runtime
+        ↓
+Prerender
+        ↓
+Sitemap
+        ↓
+Quality Gate
+        ↓
+Production artifact
+```
+
+ويجب أن يكون هذا متسقًا بين:
+
+* Node runtime
+* PHP/Hostinger runtime
+
+---
+
+# قرارات مهمة لا تعكسها للخلف
+
+## 1. SEO metadata هي Domain Invariant
+
+المحتوى الجديد لا يجب أن يعتمد على أن الـ Admin كتب:
+
+* seoTitle
+* seoDescription
+* seoSlug
+
+يدويًا.
+
+الـ backend يجب أن يولد القيم المشتقة تلقائيًا.
+
+---
+
+## 2. لا تستخدم `seoEnabled` كبديل عن metadata existence
+
+يجب الفصل بين:
+
+```text
+SEO metadata generation
+```
+
+و:
+
+```text
+index / noindex
+```
+
+ولا يجوز أن يؤدي نقص metadata legacy إلى إسقاط public content من prerender/sitemap إذا كان المفروض أن يكون indexable.
+
+---
+
+## 3. Existing public slug يجب أن يبقى مستقرًا
+
+إذا كان record لديه slug عام صالح:
+
+**لا تغيّره لمجرد تغير title.**
+
+أما record بلا slug صالح:
+
+* ولّد slug.
+* تعامل مع collision.
+* حافظ على uniqueness.
+
+---
+
+## 4. Backfill ليس الحل الأساسي للمستقبل
+
+Backfill هدفه legacy data.
+
+أما المحتوى الجديد فيجب أن يحصل على SEO عند create/update.
+
+ولا نريد runtime request scanning مكلفًا لكل request.
+
+يفضل أن يكون repair/backfill build-time/startup controlled أو guarded، وليس full-table mutation في كل طلب.
+
+---
+
+## 5. Prerender Safety Net
+
+الـ prerender يجب ألا يكون مصدر الحقيقة الأساسي لإنشاء SEO.
+
+لكنه يجب ألا يسقط public records بسبب SEO data ناقصة.
+
+---
+
+## 6. Sitemap وPrerender يجب أن يعتمدا على نفس policy
+
+تم إنشاء:
+
+`scripts/seo-inventory.mjs`
+
+بهدف إنشاء authoritative inventory مشترك.
+
+لا تعُد إلى نسخ منطق مختلفة لكل script إلا إذا وجدت defect حقيقي في التنفيذ الحالي.
+
+---
+
+# ما أريده منك الآن
+
+**نفّذ، لكن نفّذ بصرامة.**
+
+لا تعمل Audit منفصلًا من عشرات الخطوات ثم ترجع لي.
+
+بدلًا من ذلك:
+
+### Step 1
+
+افحص الـ current git diff والحالة الحالية.
+
+### Step 2
+
+اقرأ فقط الملفات المرتبطة مباشرة بآخر failures.
+
+خصوصًا:
+
+* `scripts/seo-quality-gate.mjs`
+* `scripts/seo-inventory.mjs`
+* `scripts/generate-sitemap.mjs`
+* الـ public post/template
+* sanitizer/content rendering
+* JSON-LD generation
+* أي helper مسؤول عن descriptions/H1
+
+### Step 3
+
+افهم كل failure من الـ emitted artifact.
+
+### Step 4
+
+حدد هل المشكلة:
+
+* source bug
+* generated HTML bug
+* quality-gate false positive
+* contract mismatch
+
+**لا تضعف الـ gate لمجرد تمريره.**
+
+إذا كان الـ source ينتج duplicate H1 فعلًا → أصلح source.
+
+إذا كان JSON-LD صحيحًا والـ gate لا يفهم nested `@graph` → أصلح gate semantics.
+
+إذا كانت description مكررة بسبب محتوى حقيقي → أصلح generation/template.
+
+---
+
+# أهم قاعدة
+
+## لا تجعل الـ gate أسهل فقط لكي يصبح أخضر.
+
+الـ gate يجب أن يكون:
+
+**Strict لكن Semantically Correct.**
+
+أي:
+
+```text
+real defect → FAIL
+valid structure → PASS
+unsupported assumption → لا تحوله إلى FAIL
+```
+
+---
+
+# آخر Failure تحديدًا
+
+كان الـ Agent قد وصل إلى هذه المرحلة:
+
+> "duplicate descriptions, one duplicate H1, and overly strict handling of existing JSON-LD/link structures"
+
+ثم بدأ يبحث عن:
+
+* `sanitizeHtml`
+* content rendering
+* blog summary
+* H1 sanitization
+
+**أكمل هذا المسار.**
+
+خصوصًا افحص هل post content يمكن أن يحتوي `<h1>` بينما الـ page template لديه بالفعل `<h1>`.
+
+إذا كان ذلك يسبب duplicate H1:
+
+* لا تحذف محتوى المستخدم عشوائيًا.
+* لا تكسر rich content.
+* استخدم الحل المركزي/الآمن الموجود في المشروع.
+
+---
+
+# بعد إصلاح آخر failures
+
+لا تتوقف بمجرد أن يصبح gate أخضر.
+
+أعد تشغيل:
+
+1. TypeScript/build checks
+2. production build
+3. prerender
+4. SEO inventory
+5. sitemap generation
+6. SEO quality gate
+7. Hostinger build
+8. Hostinger archive verification
+
+ثم افحص النتائج النهائية.
+
+---
+
+# تحقق أيضًا من invariants التالية
+
+## Services
+
+* create → SEO generated
+* update → SEO maintained
+* existing slug stable
+* canonical correct
+* public route correct
+
+## Packages/Containers
+
+نفس الشيء.
+
+## Posts
+
+نفس الشيء +:
+
+* title/description
+* H1 uniqueness
+* content sanitization
+* canonical
+* JSON-LD
+
+## SEO Pages
+
+نفس الشيء.
+
+---
+
+# Node/PHP parity
+
+لا تفترض أنها متطابقة.
+
+إذا وجدت فرقًا فعليًا يؤثر على SEO:
+
+* أصلحه.
+* لا تعيد بناء النظام.
+
+---
+
+# Production
+
+الـ production runtime هو Hostinger/PHP، لذلك:
+
+أي إصلاح في Node فقط لا يعتبر مكتملًا إذا كان نفس السيناريو يمكن أن يفشل في PHP.
+
+---
+
+# لا تستهلك الرصيد في الكلام
+
+أثناء التنفيذ:
+
+* لا تعطيني شرحًا طويلًا.
+* لا تعيد صياغة المطلوب.
+* لا تسألني عن شيء يمكن حسمه من الكود.
+* لا تبحث عن architecture جديدة.
+* لا تعيد كتابة أجزاء سليمة.
+* لا تبدأ مشروعًا جديدًا.
+
+**نفّذ من آخر نقطة توقف عندها الـ Agent السابق.**
+
+---
+
+# Definition of Done
+
+لا تعتبر المهمة منتهية إلا إذا أصبح لدينا:
+
+```text
+Content Create/Update
+        ↓
+Automatic SEO
+        ↓
+Stable/Fully Valid Slug
+        ↓
+Correct Canonical
+        ↓
+Correct Index/Noindex
+        ↓
+Public HTML
+        ↓
+Prerender
+        ↓
+Sitemap
+        ↓
+Authoritative SEO Inventory
+        ↓
+Strict Quality Gate
+        ↓
+Hostinger Production Artifact
+```
+
+وكل طبقة متسقة مع الأخرى.
+
+---
+
+# والأهم
+
+إذا وجدت أثناء التنفيذ مشكلة حقيقية غير التي كان الـ Agent السابق يعالجها، **لا تتجاهلها**.
+
+لكن لا توسّع النطاق بلا داعٍ.
+
+رتب الأولويات:
+
+1. correctness
+2. SEO integrity
+3. Node/PHP parity
+4. prerender/sitemap consistency
+5. build/deployment integrity
+6. performance
+7. cleanup
+
+**ابدأ الآن من آخر state موجودة في الـ repository، وبالتحديد من إصلاح الـ 4 quality-gate failures التي توقف عندها Agent السابق.**
+
+لا تعيد العمل الذي تم بالفعل.
+
+**Continue — don't restart.**

@@ -6,22 +6,6 @@ import { requireAdmin, requireSectionPermission } from "../middleware/adminAuth"
 import { generateSeoMetadata, uniqueSlug } from "../lib/seoMetadata";
 import { entitySlug } from "../lib/friendlySlug";
 
-// ── DB migration: add new columns to existing DB ───────────────────────────────
-try {
-  const client = (db as any).$client;
-  const migrations = [
-    "ALTER TABLE services ADD COLUMN images TEXT DEFAULT '[]'",
-    "ALTER TABLE services ADD COLUMN seo_enabled INTEGER DEFAULT 0",
-    "ALTER TABLE services ADD COLUMN seo_title TEXT DEFAULT ''",
-    "ALTER TABLE services ADD COLUMN seo_description TEXT DEFAULT ''",
-    "ALTER TABLE services ADD COLUMN seo_keywords TEXT DEFAULT ''",
-    "ALTER TABLE services ADD COLUMN seo_slug TEXT DEFAULT ''",
-  ];
-  for (const sql of migrations) {
-    try { client.exec(sql); } catch {}
-  }
-} catch {}
-
 const router = Router();
 
 function normalizeArabicSlug(value: unknown): string {

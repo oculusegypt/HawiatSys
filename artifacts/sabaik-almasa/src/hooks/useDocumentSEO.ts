@@ -13,6 +13,7 @@ interface SEOOptions {
   ogImage?: string
   ogImageAlt?: string
   ogType?: string
+  indexable?: boolean
 }
 
 function setMeta(attr: string, value: string, attrName = "name") {
@@ -40,6 +41,7 @@ export function useDocumentSEO({
   ogImage,
   ogImageAlt,
   ogType = "website",
+  indexable = true,
 }: SEOOptions) {
   const { companyName, isLoaded } = useSiteSettings()
 
@@ -64,12 +66,14 @@ export function useDocumentSEO({
     const prevTitle = document.title
     const prevDesc  = document.querySelector('meta[name="description"]')?.getAttribute("content") ?? ""
     const prevCanon = document.querySelector("link[rel='canonical']")?.getAttribute("href") ?? ""
+    const prevRobots = document.querySelector('meta[name="robots"]')?.getAttribute("content") ?? ""
 
     document.title = resolvedTitle
 
     // Primary
     if (resolvedDescription) setMeta("description", resolvedDescription)
     if (resolvedKeywords)    setMeta("keywords",     resolvedKeywords)
+    setMeta("robots", indexable ? "index, follow" : "noindex, follow")
 
     // Open Graph
     setMeta("og:title",       resolvedTitle, "property")
@@ -100,6 +104,7 @@ export function useDocumentSEO({
       document.title = prevTitle
       if (prevDesc)  setMeta("description", prevDesc)
       if (prevCanon) setCanonical(prevCanon)
+      if (prevRobots) setMeta("robots", prevRobots)
     }
-  }, [title, description, keywords, canonical, ogImage, ogImageAlt, ogType, companyName, isLoaded])
+  }, [title, description, keywords, canonical, ogImage, ogImageAlt, ogType, indexable, companyName, isLoaded])
 }

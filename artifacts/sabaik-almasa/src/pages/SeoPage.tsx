@@ -160,7 +160,12 @@ export default function SeoPage() {
         document.title = resolvedTitle
         setMeta("description", description)
         setMeta("keywords", mergeGoldenSeoKeywords(resolvedData.seoKeywords || resolvedData.targetKeyword))
-        setMeta("robots", "index, follow")
+        setMeta(
+          "robots",
+          typeof window !== "undefined" && window.location.pathname.startsWith("/page/")
+            ? "index, follow"
+            : "noindex, follow",
+        )
         setMeta("og:type", "website", "property")
         setMeta("og:title", title, "property")
         setMeta("og:description", description, "property")
@@ -222,6 +227,7 @@ export default function SeoPage() {
       })
       .catch(() => {
         if (cancelled) return
+        setMeta("robots", "noindex, follow")
         setPage(null)
         setNotFound(true)
         setLoading(false)

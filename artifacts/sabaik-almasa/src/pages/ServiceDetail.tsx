@@ -201,6 +201,7 @@ export default function ServiceDetail() {
     canonical,
     ogType: "website",
     ogImage: images[0] || "/images/hero-1.webp",
+    indexable: Boolean(service) && (typeof window === "undefined" || window.location.pathname.startsWith("/services/")),
   })
 
   // Schema LD+JSON
