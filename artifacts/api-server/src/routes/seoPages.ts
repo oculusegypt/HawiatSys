@@ -183,7 +183,7 @@ router.patch("/admin/seo-pages/:id", requireAdmin, requireSectionPermission("seo
       ogImage: body.ogImage !== undefined ? body.ogImage : existing.ogImage,
       coverImage: body.coverImage !== undefined ? body.coverImage : existing.coverImage,
     });
-    const slugWasRequested = body.slug !== undefined || body.seoSlug !== undefined;
+    const slugWasRequested = body.slug !== undefined || body.seoSlug !== undefined || !existing.slug;
     const finalSlug = slugWasRequested
       ? uniqueSlug(
           metadata.seoSlug,

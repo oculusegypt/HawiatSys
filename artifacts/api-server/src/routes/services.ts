@@ -3,7 +3,7 @@ import { db } from "@workspace/db";
 import { servicesTable } from "@workspace/db";
 import { eq, asc } from "drizzle-orm";
 import { requireAdmin, requireSectionPermission } from "../middleware/adminAuth";
-import { generateSeoMetadata } from "../lib/seoMetadata";
+import { generateSeoMetadata, uniqueSlug } from "../lib/seoMetadata";
 
 // ── DB migration: add new columns to existing DB ───────────────────────────────
 try {
@@ -70,6 +70,9 @@ router.post("/services", requireAdmin, requireSectionPermission("services"), asy
     seoKeywords,
     seoSlug,
   });
+  const existingSlugs = (await db.select({ seoSlug: servicesTable.seoSlug }).from(servicesTable))
+    .map((row) => row.seoSlug ?? "");
+  seo.seoSlug = uniqueSlug(seo.seoSlug, existingSlugs);
   const [service] = await db.insert(servicesTable).values({
     title, description, icon,
     imageUrl: imageUrl || undefined,
@@ -79,7 +82,7 @@ router.post("/services", requireAdmin, requireSectionPermission("services"), asy
     // Public active services are always SEO-managed. The metadata is generated
     // server-side so a form or API client cannot accidentally create a blank
     // indexable route.
-    seoEnabled: true,
+    seoEnabled: seoEnabled ?? (isActive ?? true),
     seoTitle: seo.seoTitle,
     seoDescription: seo.seoDescription,
     seoKeywords: seo.seoKeywords,
@@ -106,6 +109,14 @@ router.patch("/services/:id", requireAdmin, requireSectionPermission("services")
     seoKeywords: seoKeywords !== undefined ? seoKeywords : existing.seoKeywords,
     seoSlug: seoSlug !== undefined ? seoSlug : existing.seoSlug,
   });
+  const slugWasRequested = seoSlug !== undefined || !existing.seoSlug;
+  const finalSlug = slugWasRequested
+    ? uniqueSlug(
+        seo.seoSlug,
+        (await db.select({ seoSlug: servicesTable.seoSlug }).from(servicesTable)).map((row) => row.seoSlug ?? ""),
+        existing.seoSlug ?? "",
+      )
+    : (existing.seoSlug || seo.seoSlug);
   const updateData: Record<string, any> = {};
   if (title !== undefined) updateData.title = title;
   if (description !== undefined) updateData.description = description;
@@ -114,11 +125,13 @@ router.patch("/services/:id", requireAdmin, requireSectionPermission("services")
   if (images !== undefined) updateData.images = images;
   if (order !== undefined) updateData.order = order;
   if (isActive !== undefined) updateData.isActive = isActive;
-  updateData.seoEnabled = true;
+  updateData.seoEnabled = seoEnabled !== undefined
+    ? seoEnabled
+    : (existing.seoEnabled ?? (isActive ?? true));
   updateData.seoTitle = seo.seoTitle;
   updateData.seoDescription = seo.seoDescription;
   updateData.seoKeywords = seo.seoKeywords;
-  updateData.seoSlug = seo.seoSlug;
+  updateData.seoSlug = finalSlug;
 
   const [service] = await db.update(servicesTable)
     .set(updateData)

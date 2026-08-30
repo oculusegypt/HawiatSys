@@ -531,6 +531,10 @@ try {
         exit;
     }
 
+    // PHP has no long-running startup hook on shared hosting, so perform the
+    // same idempotent legacy repair before handling the request.
+    try { seoAutoBackfill($pdo); } catch (Throwable) {}
+
     if ($path === '/healthz' && $method === 'GET') {
         try {
             $pdo->query('SELECT 1')->fetchColumn();
@@ -949,6 +953,217 @@ try {
         return $base . ($suffix !== '' && !str_ends_with($base, $suffix) ? $suffix : '');
     }
 
+    // Keep content creation/update SEO-complete on Hostinger too. This mirrors
+    // the development API's domain-level generator without requiring Node.js.
+    function seoAutoText($value): string {
+        return is_string($value) ? trim($value) : '';
+    }
+
+    function seoAutoPlainText($value): string {
+        $value = seoAutoText($value);
+        $value = strip_tags($value);
+        $value = html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        return trim(preg_replace('/\s+/u', ' ', $value) ?? $value);
+    }
+
+    function seoAutoCap(string $value, int $max): string {
+        if (function_exists('mb_strlen') && mb_strlen($value, 'UTF-8') <= $max) return $value;
+        if (!function_exists('mb_strlen') && strlen($value) <= $max) return $value;
+        $cut = function_exists('mb_substr') ? mb_substr($value, 0, $max - 1, 'UTF-8') : substr($value, 0, $max - 1);
+        $cut = trim((preg_replace('/\s+\S*$/u', '', $cut) ?? $cut));
+        return ($cut !== '' ? $cut : $value) . '…';
+    }
+
+    function seoAutoNormalizeSlug($value, string $fallback): string {
+        $value = seoAutoPlainText($value);
+        if (class_exists('Normalizer')) {
+            $value = \Normalizer::normalize($value, \Normalizer::FORM_KC) ?: $value;
+        }
+        $value = preg_replace('/[\s_]+/u', '-', $value) ?? $value;
+        $value = preg_replace('/[^\x{0600}-\x{06FF}\x{0750}-\x{077F}a-zA-Z0-9-]/u', '', $value) ?? '';
+        $value = preg_replace('/-+/u', '-', $value) ?? $value;
+        $value = trim($value, '-');
+        if (function_exists('mb_substr')) $value = mb_substr($value, 0, 80, 'UTF-8');
+        else $value = substr($value, 0, 80);
+        return trim($value, '-') ?: $fallback;
+    }
+
+    function seoAutoDescription(array $source, string $displayName, string $keyword): string {
+        $kind = (string)($source['kind'] ?? 'page');
+        $body = seoAutoPlainText($source['description'] ?? '')
+            ?: seoAutoPlainText($source['excerpt'] ?? '')
+            ?: seoAutoPlainText($source['content'] ?? '');
+        $details = [];
+        if (seoAutoText($source['size'] ?? '') !== '') $details[] = 'المقاس ' . seoAutoText($source['size']);
+        if (seoAutoText($source['capacity'] ?? '') !== '') $details[] = 'بسعة ' . seoAutoText($source['capacity']);
+        if (seoAutoText($source['category'] ?? '') !== '') $details[] = 'ضمن خدمات ' . seoAutoText($source['category']);
+        $detailText = $details ? ' ' . implode('، ', $details) . '.' : '';
+        $prefix = match ($kind) {
+            'service' => "خدمة {$displayName} في الرياض من تقي جروب.",
+            'container' => "استأجر {$displayName} في الرياض من تقي جروب.",
+            'post' => "اقرأ {$displayName} من مدونة تقي جروب لمعرفة " . ($keyword ?: 'أفضل حلول تأجير الحاويات ونقل المخلفات') . " في الرياض.",
+            default => "{$displayName} في الرياض من تقي جروب.",
+        };
+        $suffix = match ($kind) {
+            'service' => 'تواصل معنا لتحديد الموعد وطلب الخدمة ونقل المخلفات بطريقة منظمة.',
+            'container' => 'نوفر التوصيل والسحب ونقل الأنقاض والمخلفات من موقعك في الموعد المتفق عليه.',
+            'post' => 'دليل عملي محدث يساعدك على اختيار الحل المناسب وطلب الخدمة بثقة.',
+            default => 'معلومات عملية وخطوات واضحة لاختيار الحاوية أو خدمة نقل المخلفات المناسبة.',
+        };
+        $value = trim($prefix . ' ' . $body . $detailText);
+        if ($value === '') $value = $suffix;
+        if (function_exists('mb_strlen') ? mb_strlen($value, 'UTF-8') < 120 : strlen($value) < 120) $value .= ' ' . $suffix;
+        if (function_exists('mb_strlen') ? mb_strlen($value, 'UTF-8') < 120 : strlen($value) < 120) $value .= ' خدمة موثوقة وسريعة داخل جميع أحياء الرياض.';
+        return seoAutoCap(trim($value), 160);
+    }
+
+    function seoAutoMetadata(string $kind, array $source): array {
+        $displayName = seoAutoPlainText($source['title'] ?? '') ?: seoAutoPlainText($source['name'] ?? '') ?: 'خدمات الحاويات';
+        $keyword = seoAutoPlainText($source['targetKeyword'] ?? '') ?: $displayName;
+        $slug = seoAutoNormalizeSlug($source['seoSlug'] ?? $source['slug'] ?? $displayName, $kind . '-' . ((int)($source['id'] ?? 0) ?: 'new'));
+        $title = seoAutoPlainText($source['seoTitle'] ?? '');
+        if ($title === '') {
+            $title = match ($kind) {
+                'service' => "{$displayName} بالرياض | تأجير حاويات ونقل مخلفات",
+                'container' => "تأجير {$displayName}" . (seoAutoText($source['size'] ?? '') ? ' ' . seoAutoText($source['size']) : '') . ' بالرياض | تقي جروب',
+                'post' => "{$displayName} | دليل تأجير الحاويات بالرياض",
+                default => "{$displayName} | خدمات الحاويات بالرياض",
+            };
+        }
+        $keywords = array_filter(array_map('trim', preg_split('/[,،|]/u', seoAutoText($source['seoKeywords'] ?? '')) ?: []));
+        $kindKeywords = match ($kind) {
+            'post' => ['مدونة تقي جروب', 'دليل الحاويات', 'أسعار الحاويات بالرياض'],
+            'page' => ['خدمات الحاويات', 'طلب حاوية بالرياض', 'حلول المخلفات بالرياض'],
+            'container' => ['حاويات للإيجار بالرياض', 'حاويات مخلفات البناء', 'أسعار تأجير الحاويات'],
+            default => ['خدمات تقي جروب', 'تأجير حاويات', 'خدمة نقل المخلفات'],
+        };
+        $keywords = array_values(array_unique(array_filter(array_merge(
+            [$keyword, $displayName],
+            $keywords,
+            $kindKeywords,
+            ['تأجير الحاويات بالرياض', 'نقل مخلفات البناء بالرياض', 'حاويات أنقاض بالرياض', 'نقل المخلفات بالرياض'],
+        ))));
+        $image = seoAutoText($source['ogImage'] ?? '') ?: seoAutoText($source['coverImage'] ?? '') ?: seoAutoText($source['imageUrl'] ?? '') ?: '/images/hero-1.webp';
+        $prefix = match ($kind) { 'service' => '/services', 'container' => '/containers', 'post' => '/blog', default => '/page' };
+        return [
+            'seoTitle' => seoAutoCap($title, 60),
+            'seoDescription' => seoAutoDescription($source, $displayName, $keyword),
+            'seoKeywords' => implode(', ', array_slice($keywords, 0, 12)),
+            'seoSlug' => $slug,
+            'ogImage' => $image,
+            'canonicalUrl' => $prefix . '/' . $slug,
+        ];
+    }
+
+    function seoAutoUniqueSlug(PDO $pdo, string $table, string $column, string $base, $current = null): string {
+        $allowedTables = ['services', 'packages', 'containers', 'posts', 'seo_pages'];
+        $allowedColumns = ['seo_slug', 'slug'];
+        if (!in_array($table, $allowedTables, true) || !in_array($column, $allowedColumns, true)) return $base;
+        $stmt = $pdo->query("SELECT {$column} FROM \"{$table}\"");
+        $used = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $value) {
+            $normalized = strtolower(trim((string)$value));
+            if ($normalized !== '' && $normalized !== strtolower(trim((string)$current))) $used[$normalized] = true;
+        }
+        $candidate = $base;
+        $counter = 2;
+        while (isset($used[strtolower($candidate)])) $candidate = $base . '-' . $counter++;
+        return $candidate;
+    }
+
+    function seoAutoBackfill(PDO $pdo): int {
+        $configs = [
+            ['services', 'service', 'title'],
+            ['packages', 'container', 'name'],
+            ['posts', 'post', 'title'],
+            ['seo_pages', 'page', 'title'],
+        ];
+        $updated = 0;
+        foreach ($configs as [$table, $kind, $titleColumn]) {
+            try {
+                $rows = $pdo->query("SELECT * FROM \"{$table}\" ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
+            } catch (Throwable) {
+                continue;
+            }
+            $used = [];
+            foreach ($rows as $row) {
+                $stableSlug = in_array($kind, ['post', 'page'], true)
+                    ? trim((string)($row['slug'] ?? ''))
+                    : trim((string)($row['seo_slug'] ?? ''));
+                $source = [
+                    'id' => $row['id'] ?? 0,
+                    'title' => $row['title'] ?? '',
+                    'name' => $row['name'] ?? '',
+                    'description' => $row['description'] ?? '',
+                    'excerpt' => $row['excerpt'] ?? '',
+                    'content' => $row['content'] ?? '',
+                    'targetKeyword' => $row['target_keyword'] ?? '',
+                    'category' => $row['category'] ?? '',
+                    'size' => $row['size'] ?? '',
+                    'capacity' => $row['capacity'] ?? '',
+                    'slug' => $stableSlug ?: ($row['slug'] ?? ''),
+                    'seoSlug' => $stableSlug ?: ($row['seo_slug'] ?? ''),
+                    'seoTitle' => $row['seo_title'] ?? '',
+                    'seoDescription' => $row['seo_description'] ?? '',
+                    'seoKeywords' => $row['seo_keywords'] ?? '',
+                    'ogImage' => $row['og_image'] ?? '',
+                    'coverImage' => $row['cover_image'] ?? '',
+                    'imageUrl' => $row['image_url'] ?? '',
+                ];
+                $metadata = seoAutoMetadata($kind, $source);
+                $candidate = $metadata['seoSlug'];
+                $counter = 2;
+                while (isset($used[strtolower($candidate)])) $candidate = $metadata['seoSlug'] . '-' . $counter++;
+                $used[strtolower($candidate)] = true;
+                $metadata['seoSlug'] = $candidate;
+                $prefix = $kind === 'post' ? '/blog' : ($kind === 'page' ? '/page' : '');
+                $metadata['canonicalUrl'] = $prefix !== '' ? $prefix . '/' . $candidate : '';
+                $needs = trim((string)($row['seo_title'] ?? '')) === ''
+                    || trim((string)($row['seo_description'] ?? '')) === ''
+                    || trim((string)($row['seo_keywords'] ?? '')) === ''
+                    || $stableSlug === ''
+                    || ($kind !== 'service' && $kind !== 'container' && trim((string)($row['og_image'] ?? '')) === '')
+                    || ($kind !== 'service' && $kind !== 'container' && trim((string)($row['canonical_url'] ?? '')) !== $metadata['canonicalUrl'])
+                    || ($kind === 'post' || $kind === 'page' ? $candidate !== (string)($row['slug'] ?? '') : $candidate !== (string)($row['seo_slug'] ?? ''));
+                if (!$needs) continue;
+                $fields = [
+                    'seo_title = :seo_title',
+                    'seo_description = :seo_description',
+                    'seo_keywords = :seo_keywords',
+                    'seo_slug = :seo_slug',
+                ];
+                $params = [
+                    ':seo_title' => $metadata['seoTitle'],
+                    ':seo_description' => $metadata['seoDescription'],
+                    ':seo_keywords' => $metadata['seoKeywords'],
+                    ':seo_slug' => $candidate,
+                    ':id' => (int)$row['id'],
+                ];
+                if ($kind === 'service' || $kind === 'container') {
+                    if (!array_key_exists('seo_enabled', $row)) {
+                        $fields[] = 'seo_enabled = :seo_enabled';
+                        $params[':seo_enabled'] = ($row['is_active'] ?? 1) ? 1 : 0;
+                    }
+                } else {
+                    $fields[] = 'slug = :slug';
+                    $fields[] = 'og_image = :og_image';
+                    $fields[] = 'canonical_url = :canonical_url';
+                    $params[':slug'] = $candidate;
+                    $params[':og_image'] = $metadata['ogImage'];
+                    $params[':canonical_url'] = $metadata['canonicalUrl'];
+                }
+                try {
+                    $stmt = $pdo->prepare("UPDATE \"{$table}\" SET " . implode(', ', $fields) . " WHERE id = :id");
+                    $stmt->execute($params);
+                    $updated++;
+                } catch (Throwable) {
+                    // A single legacy row must not take the public API down.
+                }
+            }
+        }
+        return $updated;
+    }
+
     function generateSitemapXml(PDO $pdo, string $baseUrl): array {
         $today = date('Y-m-d');
         $baseUrl = rtrim($baseUrl, '/');
@@ -1061,7 +1276,7 @@ try {
         }
 
         // Services
-        $servicesStmt = $pdo->query("SELECT id, seo_slug, seo_title, title, image_url, images FROM services WHERE is_active = 1 AND seo_enabled = 1 AND seo_slug IS NOT NULL AND seo_slug != ''");
+        $servicesStmt = $pdo->query("SELECT id, seo_slug, seo_title, title, image_url, images FROM services WHERE is_active = 1");
         $services = $servicesStmt->fetchAll();
         foreach ($services as $srv) {
             $slug = publicEntitySlug($srv['seo_slug'] ?? '', $srv['title'] ?? '', $srv['id'] ?? null, 'service');
@@ -1083,7 +1298,7 @@ try {
         // Packages
         $pkgCount = 0;
         try {
-            $pkgStmt = $pdo->query("SELECT id, seo_slug, name, image_url, images FROM packages WHERE is_active = 1 AND seo_enabled = 1 AND seo_slug IS NOT NULL AND seo_slug != ''");
+            $pkgStmt = $pdo->query("SELECT id, seo_slug, name, image_url, images FROM packages WHERE is_active = 1");
             $pkgs = $pkgStmt->fetchAll();
             foreach ($pkgs as $pkg) {
                 $slug = publicEntitySlug($pkg['seo_slug'] ?? '', $pkg['name'] ?? '', $pkg['id'] ?? null, 'container');
@@ -1142,7 +1357,7 @@ try {
         }
 
         // SEO Pages
-        $pagesStmt = $pdo->query("SELECT id, slug, seo_slug, title, cover_image, og_image, published_at FROM seo_pages WHERE status = 'published' AND is_active = 1 AND slug IS NOT NULL AND slug != ''");
+        $pagesStmt = $pdo->query("SELECT id, slug, seo_slug, title, cover_image, og_image, published_at FROM seo_pages WHERE status = 'published' AND is_active = 1");
         $seoPages = $pagesStmt->fetchAll();
         foreach ($seoPages as $sp) {
             $slug = publicEntitySlug($sp['slug'] ?? $sp['seo_slug'] ?? '', $sp['title'] ?? '', $sp['id'] ?? null, 'page');
@@ -3270,11 +3485,13 @@ try {
         $images = is_array($input['images'] ?? null) ? json_encode($input['images'], JSON_UNESCAPED_UNICODE) : (string)($input['images'] ?? '[]');
         $order = (int)($input['order'] ?? $input['sort_order'] ?? 0);
         $isActive = isset($input['isActive']) ? ($input['isActive'] ? 1 : 0) : 1;
-        $seoEnabled = isset($input['seoEnabled']) ? ($input['seoEnabled'] ? 1 : 0) : 0;
-        $seoTitle = $input['seoTitle'] ?? '';
-        $seoDesc = $input['seoDescription'] ?? '';
-        $seoKeywords = $input['seoKeywords'] ?? '';
-        $seoSlug = $input['seoSlug'] ?? '';
+        $seo = seoAutoMetadata('service', [
+            'title' => $title, 'description' => $desc, 'imageUrl' => $imgUrl,
+            'seoTitle' => $input['seoTitle'] ?? '', 'seoDescription' => $input['seoDescription'] ?? '',
+            'seoKeywords' => $input['seoKeywords'] ?? '', 'seoSlug' => $input['seoSlug'] ?? '',
+        ]);
+        $seo['seoSlug'] = seoAutoUniqueSlug($pdo, 'services', 'seo_slug', $seo['seoSlug']);
+        $seoEnabled = isset($input['seoEnabled']) ? ($input['seoEnabled'] ? 1 : 0) : $isActive;
 
         $stmt = $pdo->prepare("INSERT INTO services (title, description, icon, image_url, images, sort_order, is_active, seo_enabled, seo_title, seo_description, seo_keywords, seo_slug) VALUES (:t, :d, :icon, :img, :imgs, :so, :ia, :se, :st, :sd, :sk, :ss)");
         $stmt->execute([
@@ -3286,10 +3503,10 @@ try {
             ':so' => $order,
             ':ia' => $isActive,
             ':se' => $seoEnabled,
-            ':st' => $seoTitle,
-            ':sd' => $seoDesc,
-            ':sk' => $seoKeywords,
-            ':ss' => $seoSlug
+            ':st' => $seo['seoTitle'],
+            ':sd' => $seo['seoDescription'],
+            ':sk' => $seo['seoKeywords'],
+            ':ss' => $seo['seoSlug']
         ]);
         $newId = (int)$pdo->lastInsertId();
         http_response_code(201);
@@ -3303,10 +3520,10 @@ try {
             'order' => $order,
             'isActive' => (bool)$isActive,
             'seoEnabled' => (bool)$seoEnabled,
-            'seoTitle' => $seoTitle,
-            'seoDescription' => $seoDesc,
-            'seoKeywords' => $seoKeywords,
-            'seoSlug' => $seoSlug
+            'seoTitle' => $seo['seoTitle'],
+            'seoDescription' => $seo['seoDescription'],
+            'seoKeywords' => $seo['seoKeywords'],
+            'seoSlug' => $seo['seoSlug']
         ], JSON_UNESCAPED_UNICODE);
         exit;
     }
@@ -3314,6 +3531,29 @@ try {
     // 20-PATCH. Update Service: PATCH /api/services/{id}
     if (preg_match('#^/services/(\d+)$#', $path, $m) && ($method === 'PATCH' || $method === 'PUT')) {
         $id = (int)$m[1];
+        $existingStmt = $pdo->prepare("SELECT * FROM services WHERE id = :id LIMIT 1");
+        $existingStmt->execute([':id' => $id]);
+        $existing = $existingStmt->fetch();
+        if (!$existing) {
+            http_response_code(404);
+            echo json_encode(['error' => 'الخدمة غير موجودة'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        $seo = seoAutoMetadata('service', [
+            'id' => $id,
+            'title' => $input['title'] ?? $existing['title'],
+            'description' => $input['description'] ?? $existing['description'],
+            'imageUrl' => $input['imageUrl'] ?? ($existing['image_url'] ?? ''),
+            'seoTitle' => array_key_exists('seoTitle', $input) ? $input['seoTitle'] : (array_key_exists('title', $input) ? '' : ($existing['seo_title'] ?? '')),
+            'seoDescription' => array_key_exists('seoDescription', $input) ? $input['seoDescription'] : (array_key_exists('description', $input) ? '' : ($existing['seo_description'] ?? '')),
+            'seoKeywords' => $input['seoKeywords'] ?? ($existing['seo_keywords'] ?? ''),
+            'seoSlug' => $input['seoSlug'] ?? ($existing['seo_slug'] ?? ''),
+        ]);
+        $slugRequested = array_key_exists('seoSlug', $input) || trim((string)($existing['seo_slug'] ?? '')) === '';
+        $seo['seoSlug'] = $slugRequested
+            ? seoAutoUniqueSlug($pdo, 'services', 'seo_slug', $seo['seoSlug'], $existing['seo_slug'] ?? '')
+            : (string)$existing['seo_slug'];
+
         $fields = [];
         $params = [':id' => $id];
 
@@ -3323,11 +3563,7 @@ try {
             'icon' => 'icon',
             'imageUrl' => 'image_url',
             'order' => 'sort_order',
-            'sort_order' => 'sort_order',
-            'seoTitle' => 'seo_title',
-            'seoDescription' => 'seo_description',
-            'seoKeywords' => 'seo_keywords',
-            'seoSlug' => 'seo_slug'
+            'sort_order' => 'sort_order'
         ];
 
         foreach ($map as $jKey => $dbCol) {
@@ -3348,6 +3584,20 @@ try {
         if (array_key_exists('images', $input)) {
             $fields[] = "images = :imgs";
             $params[':imgs'] = is_array($input['images']) ? json_encode($input['images'], JSON_UNESCAPED_UNICODE) : (string)$input['images'];
+        }
+        // SEO is derived from the merged entity. Explicit noindex remains
+        // independent from the presence of generated metadata.
+        $fields[] = "seo_title = :seo_auto_title";
+        $fields[] = "seo_description = :seo_auto_description";
+        $fields[] = "seo_keywords = :seo_auto_keywords";
+        $fields[] = "seo_slug = :seo_auto_slug";
+        $params[':seo_auto_title'] = $seo['seoTitle'];
+        $params[':seo_auto_description'] = $seo['seoDescription'];
+        $params[':seo_auto_keywords'] = $seo['seoKeywords'];
+        $params[':seo_auto_slug'] = $seo['seoSlug'];
+        if (!array_key_exists('seoEnabled', $input) && array_key_exists('isActive', $input)) {
+            $fields[] = "seo_enabled = :se_default";
+            $params[':se_default'] = $input['isActive'] ? 1 : 0;
         }
 
         if (!empty($fields)) {
@@ -3493,11 +3743,14 @@ try {
         $images = is_array($input['images'] ?? null) ? json_encode($input['images'], JSON_UNESCAPED_UNICODE) : (string)($input['images'] ?? '[]');
         $order = (int)($input['order'] ?? $input['sort_order'] ?? 0);
         $isActive = isset($input['isActive']) ? ($input['isActive'] ? 1 : 0) : 1;
-        $seoEnabled = isset($input['seoEnabled']) ? ($input['seoEnabled'] ? 1 : 0) : 0;
-        $seoTitle = $input['seoTitle'] ?? '';
-        $seoDesc = $input['seoDescription'] ?? '';
-        $seoKeywords = $input['seoKeywords'] ?? '';
-        $seoSlug = $input['seoSlug'] ?? '';
+        $seo = seoAutoMetadata('container', [
+            'name' => $name, 'title' => $name, 'description' => $desc,
+            'size' => $size, 'capacity' => $capacity, 'imageUrl' => $imageUrl,
+            'seoTitle' => $input['seoTitle'] ?? '', 'seoDescription' => $input['seoDescription'] ?? '',
+            'seoKeywords' => $input['seoKeywords'] ?? '', 'seoSlug' => $input['seoSlug'] ?? '',
+        ]);
+        $seo['seoSlug'] = seoAutoUniqueSlug($pdo, $tbl, 'seo_slug', $seo['seoSlug']);
+        $seoEnabled = isset($input['seoEnabled']) ? ($input['seoEnabled'] ? 1 : 0) : $isActive;
 
         $stmt = $pdo->prepare("INSERT INTO \"{$tbl}\" (name, category, size, capacity, description, features, suitable_for, price_text, price_note, rental_period, contact_phone1, contact_phone2, price_per_day, image_url, images, sort_order, is_active, seo_enabled, seo_title, seo_description, seo_keywords, seo_slug) VALUES (:n, :c, :s, :cap, :d, :f, :sf, :pt, :pn, :rp, :cp1, :cp2, :ppd, :img, :imgs, :so, :ia, :se, :st, :sd, :sk, :ss)");
         $stmt->execute([
@@ -3505,8 +3758,8 @@ try {
             ':d' => $desc, ':f' => $features, ':sf' => $suitableFor, ':pt' => $priceText,
             ':pn' => $priceNote, ':rp' => $rentalPeriod, ':cp1' => $contactPhone1, ':cp2' => $contactPhone2,
             ':ppd' => $pricePerDay, ':img' => $imageUrl, ':imgs' => $images, ':so' => $order,
-            ':ia' => $isActive, ':se' => $seoEnabled, ':st' => $seoTitle, ':sd' => $seoDesc,
-            ':sk' => $seoKeywords, ':ss' => $seoSlug
+            ':ia' => $isActive, ':se' => $seoEnabled, ':st' => $seo['seoTitle'], ':sd' => $seo['seoDescription'],
+            ':sk' => $seo['seoKeywords'], ':ss' => $seo['seoSlug']
         ]);
         $newId = (int)$pdo->lastInsertId();
         http_response_code(201);
@@ -3515,8 +3768,8 @@ try {
             'description' => $desc, 'features' => $features, 'suitableFor' => $suitableFor, 'priceText' => $priceText,
             'priceNote' => $priceNote, 'rentalPeriod' => $rentalPeriod, 'contactPhone1' => $contactPhone1, 'contactPhone2' => $contactPhone2,
             'pricePerDay' => $pricePerDay, 'imageUrl' => $imageUrl, 'images' => $images, 'order' => $order,
-            'isActive' => (bool)$isActive, 'seoEnabled' => (bool)$seoEnabled, 'seoTitle' => $seoTitle,
-            'seoDescription' => $seoDesc, 'seoKeywords' => $seoKeywords, 'seoSlug' => $seoSlug
+            'isActive' => (bool)$isActive, 'seoEnabled' => (bool)$seoEnabled, 'seoTitle' => $seo['seoTitle'],
+            'seoDescription' => $seo['seoDescription'], 'seoKeywords' => $seo['seoKeywords'], 'seoSlug' => $seo['seoSlug']
         ], JSON_UNESCAPED_UNICODE);
         exit;
     }
@@ -3526,6 +3779,31 @@ try {
         $id = (int)$m[1];
         $tbl = 'packages';
         try { $pdo->query("SELECT 1 FROM packages LIMIT 1"); } catch (\Exception $e) { $tbl = 'containers'; }
+        $existingStmt = $pdo->prepare("SELECT * FROM \"{$tbl}\" WHERE id = :id LIMIT 1");
+        $existingStmt->execute([':id' => $id]);
+        $existing = $existingStmt->fetch();
+        if (!$existing) {
+            http_response_code(404);
+            echo json_encode(['error' => 'الباقة غير موجودة'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        $seo = seoAutoMetadata('container', [
+            'id' => $id,
+            'name' => $input['name'] ?? $existing['name'],
+            'title' => $input['name'] ?? $existing['name'],
+            'description' => $input['description'] ?? $existing['description'],
+            'size' => $input['size'] ?? ($existing['size'] ?? ''),
+            'capacity' => $input['capacity'] ?? ($existing['capacity'] ?? ''),
+            'imageUrl' => $input['imageUrl'] ?? ($existing['image_url'] ?? ''),
+            'seoTitle' => array_key_exists('seoTitle', $input) ? $input['seoTitle'] : (array_key_exists('name', $input) ? '' : ($existing['seo_title'] ?? '')),
+            'seoDescription' => array_key_exists('seoDescription', $input) ? $input['seoDescription'] : (array_key_exists('description', $input) ? '' : ($existing['seo_description'] ?? '')),
+            'seoKeywords' => $input['seoKeywords'] ?? ($existing['seo_keywords'] ?? ''),
+            'seoSlug' => $input['seoSlug'] ?? ($existing['seo_slug'] ?? ''),
+        ]);
+        $slugRequested = array_key_exists('seoSlug', $input) || trim((string)($existing['seo_slug'] ?? '')) === '';
+        $seo['seoSlug'] = $slugRequested
+            ? seoAutoUniqueSlug($pdo, $tbl, 'seo_slug', $seo['seoSlug'], $existing['seo_slug'] ?? '')
+            : (string)$existing['seo_slug'];
 
         $fields = [];
         $params = [':id' => $id];
@@ -3535,8 +3813,7 @@ try {
             'description' => 'description', 'suitableFor' => 'suitable_for', 'priceText' => 'price_text',
             'priceNote' => 'price_note', 'rentalPeriod' => 'rental_period', 'contactPhone1' => 'contact_phone1',
             'contactPhone2' => 'contact_phone2', 'imageUrl' => 'image_url', 'order' => 'sort_order',
-            'sort_order' => 'sort_order', 'seoTitle' => 'seo_title', 'seoDescription' => 'seo_description',
-            'seoKeywords' => 'seo_keywords', 'seoSlug' => 'seo_slug'
+            'sort_order' => 'sort_order'
         ];
 
         foreach ($map as $jKey => $dbCol) {
@@ -3564,6 +3841,18 @@ try {
         if (array_key_exists('images', $input)) {
             $fields[] = "images = :imgs";
             $params[':imgs'] = is_array($input['images']) ? json_encode($input['images'], JSON_UNESCAPED_UNICODE) : (string)$input['images'];
+        }
+        $fields[] = "seo_title = :seo_auto_title";
+        $fields[] = "seo_description = :seo_auto_description";
+        $fields[] = "seo_keywords = :seo_auto_keywords";
+        $fields[] = "seo_slug = :seo_auto_slug";
+        $params[':seo_auto_title'] = $seo['seoTitle'];
+        $params[':seo_auto_description'] = $seo['seoDescription'];
+        $params[':seo_auto_keywords'] = $seo['seoKeywords'];
+        $params[':seo_auto_slug'] = $seo['seoSlug'];
+        if (!array_key_exists('seoEnabled', $input) && array_key_exists('isActive', $input)) {
+            $fields[] = "seo_enabled = :se_default";
+            $params[':se_default'] = $input['isActive'] ? 1 : 0;
         }
 
         if (!empty($fields)) {
@@ -4580,7 +4869,23 @@ try {
         try {
             $now = date('c');
             $title = $input['title'] ?? 'مقالة جديدة';
-            $slug = $input['seoSlug'] ?? $input['slug'] ?? ('post-' . time());
+            $postSeo = seoAutoMetadata('post', [
+                'title' => $title,
+                'content' => $input['content'] ?? '',
+                'excerpt' => $input['excerpt'] ?? '',
+                'category' => $input['category'] ?? 'عام',
+                'targetKeyword' => $input['seoKeywords'] ?? '',
+                'slug' => $input['slug'] ?? '',
+                'seoSlug' => $input['seoSlug'] ?? ($input['slug'] ?? ''),
+                'seoTitle' => $input['seoTitle'] ?? '',
+                'seoDescription' => $input['seoDescription'] ?? '',
+                'seoKeywords' => $input['seoKeywords'] ?? '',
+                'ogImage' => $input['ogImage'] ?? '',
+                'coverImage' => $input['coverImage'] ?? '',
+            ]);
+            $slug = seoAutoUniqueSlug($pdo, 'posts', 'slug', $postSeo['seoSlug']);
+            $postSeo['seoSlug'] = $slug;
+            $postSeo['canonicalUrl'] = '/blog/' . $slug;
             $stmt = $pdo->prepare("INSERT INTO posts (title, slug, content, excerpt, cover_image, author, category, tags, status, published_at, read_time, is_active, seo_title, seo_description, seo_keywords, seo_slug, og_image, canonical_url, created_at, updated_at) VALUES (:title, :slug, :content, :excerpt, :cover_image, :author, :category, :tags, :status, :published_at, :read_time, :is_active, :seo_title, :seo_description, :seo_keywords, :seo_slug, :og_image, :canonical_url, :now, :now)");
             $stmt->execute([
                 ':title' => $title,
@@ -4595,17 +4900,17 @@ try {
                 ':published_at' => ($input['status'] ?? '') === 'published' ? ($input['publishedAt'] ?? $now) : ($input['publishedAt'] ?? null),
                 ':read_time' => (int)($input['readTime'] ?? 3),
                 ':is_active' => isset($input['isActive']) ? ($input['isActive'] ? 1 : 0) : 1,
-                ':seo_title' => $input['seoTitle'] ?? '',
-                ':seo_description' => $input['seoDescription'] ?? '',
-                ':seo_keywords' => $input['seoKeywords'] ?? '',
+                 ':seo_title' => $postSeo['seoTitle'],
+                 ':seo_description' => $postSeo['seoDescription'],
+                 ':seo_keywords' => $postSeo['seoKeywords'],
                 ':seo_slug' => $slug,
-                ':og_image' => $input['ogImage'] ?? '',
-                ':canonical_url' => $input['canonicalUrl'] ?? '',
+                 ':og_image' => $postSeo['ogImage'],
+                 ':canonical_url' => $postSeo['canonicalUrl'],
                 ':now' => $now
             ]);
             $newId = (int)$pdo->lastInsertId();
             http_response_code(201);
-            echo json_encode(['id' => $newId, 'slug' => $slug, 'title' => $title, 'success' => true]);
+            echo json_encode(['id' => $newId, 'slug' => $slug, 'title' => $title, 'seoTitle' => $postSeo['seoTitle'], 'seoDescription' => $postSeo['seoDescription'], 'seoKeywords' => $postSeo['seoKeywords'], 'seoSlug' => $slug, 'ogImage' => $postSeo['ogImage'], 'canonicalUrl' => $postSeo['canonicalUrl'], 'success' => true], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
             http_response_code(500);
             echo json_encode(['error' => $e->getMessage()]);
@@ -4615,43 +4920,71 @@ try {
 
     if (preg_match('#^/admin/posts/(\d+)$#', $path, $m) && ($method === 'PATCH' || $method === 'PUT')) {
         $id = (int)$m[1];
+        $existingStmt = $pdo->prepare("SELECT * FROM posts WHERE id = :id LIMIT 1");
+        $existingStmt->execute([':id' => $id]);
+        $existing = $existingStmt->fetch();
+        if (!$existing) {
+            http_response_code(404);
+            echo json_encode(['error' => 'المقالة غير موجودة'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        $contentChanged = array_key_exists('title', $input) || array_key_exists('content', $input) || array_key_exists('excerpt', $input);
+        $postSeo = seoAutoMetadata('post', [
+            'id' => $id,
+            'title' => $input['title'] ?? $existing['title'],
+            'content' => $input['content'] ?? ($existing['content'] ?? ''),
+            'excerpt' => $input['excerpt'] ?? ($existing['excerpt'] ?? ''),
+            'category' => $input['category'] ?? ($existing['category'] ?? 'عام'),
+            'targetKeyword' => $input['seoKeywords'] ?? ($existing['seo_keywords'] ?? ''),
+            'slug' => $input['slug'] ?? ($existing['slug'] ?? ''),
+            'seoSlug' => $input['seoSlug'] ?? ($input['slug'] ?? ($existing['seo_slug'] ?? $existing['slug'] ?? '')),
+            'seoTitle' => array_key_exists('seoTitle', $input) ? $input['seoTitle'] : ($contentChanged ? '' : ($existing['seo_title'] ?? '')),
+            'seoDescription' => array_key_exists('seoDescription', $input) ? $input['seoDescription'] : ($contentChanged ? '' : ($existing['seo_description'] ?? '')),
+            'seoKeywords' => $input['seoKeywords'] ?? ($existing['seo_keywords'] ?? ''),
+            'ogImage' => $input['ogImage'] ?? ($existing['og_image'] ?? ''),
+            'coverImage' => $input['coverImage'] ?? ($input['coverImage'] ?? ($existing['cover_image'] ?? '')),
+        ]);
+        $slugRequested = array_key_exists('slug', $input) || array_key_exists('seoSlug', $input) || trim((string)($existing['slug'] ?? '')) === '';
+        $finalSlug = $slugRequested
+            ? seoAutoUniqueSlug($pdo, 'posts', 'slug', $postSeo['seoSlug'], $existing['slug'] ?? '')
+            : (string)$existing['slug'];
+        $postSeo['seoSlug'] = $finalSlug;
+        $postSeo['canonicalUrl'] = '/blog/' . $finalSlug;
         $fields = [];
         $params = [':id' => $id, ':now' => date('c')];
         $map = [
-            'title' => 'title',
-            'slug' => 'slug',
-            'content' => 'content',
-            'excerpt' => 'excerpt',
-            'coverImage' => 'cover_image',
-            'author' => 'author',
-            'category' => 'category',
-            'status' => 'status',
-            'publishedAt' => 'published_at',
-            'readTime' => 'read_time',
-            'isActive' => 'is_active',
-            'seoTitle' => 'seo_title',
-            'seoDescription' => 'seo_description',
-            'seoKeywords' => 'seo_keywords',
-            'seoSlug' => 'seo_slug',
-            'ogImage' => 'og_image',
-            'canonicalUrl' => 'canonical_url'
+            'title' => 'title', 'content' => 'content', 'excerpt' => 'excerpt',
+            'coverImage' => 'cover_image', 'author' => 'author', 'category' => 'category',
+            'status' => 'status', 'publishedAt' => 'published_at', 'readTime' => 'read_time',
+            'isActive' => 'is_active', 'tags' => 'tags',
         ];
         foreach ($map as $jKey => $dbCol) {
             if (array_key_exists($jKey, $input)) {
                 $fields[] = "{$dbCol} = :{$jKey}";
-                $params[":{$jKey}"] = ($jKey === 'isActive') ? ($input[$jKey] ? 1 : 0) : $input[$jKey];
+                $value = $input[$jKey];
+                if ($jKey === 'isActive') $value = $value ? 1 : 0;
+                if ($jKey === 'tags' && is_array($value)) $value = json_encode($value, JSON_UNESCAPED_UNICODE);
+                $params[":{$jKey}"] = $value;
             }
         }
-        if (array_key_exists('tags', $input)) {
-            $fields[] = "tags = :tags";
-            $params[':tags'] = is_array($input['tags']) ? json_encode($input['tags'], JSON_UNESCAPED_UNICODE) : (string)$input['tags'];
-        }
-        if (!empty($fields)) {
-            $fields[] = "updated_at = :now";
-            $stmt = $pdo->prepare("UPDATE posts SET " . implode(', ', $fields) . " WHERE id = :id");
-            $stmt->execute($params);
-        }
-        echo json_encode(['id' => $id, 'success' => true]);
+        $fields[] = "slug = :seo_slug";
+        $fields[] = "seo_title = :seo_title";
+        $fields[] = "seo_description = :seo_description";
+        $fields[] = "seo_keywords = :seo_keywords";
+        $fields[] = "seo_slug = :seo_slug_value";
+        $fields[] = "og_image = :og_image";
+        $fields[] = "canonical_url = :canonical_url";
+        $fields[] = "updated_at = :now";
+        $params[':seo_slug'] = $finalSlug;
+        $params[':seo_title'] = $postSeo['seoTitle'];
+        $params[':seo_description'] = $postSeo['seoDescription'];
+        $params[':seo_keywords'] = $postSeo['seoKeywords'];
+        $params[':seo_slug_value'] = $finalSlug;
+        $params[':og_image'] = $postSeo['ogImage'];
+        $params[':canonical_url'] = $postSeo['canonicalUrl'];
+        $stmt = $pdo->prepare("UPDATE posts SET " . implode(', ', $fields) . " WHERE id = :id");
+        $stmt->execute($params);
+        echo json_encode(['id' => $id, 'slug' => $finalSlug, 'seoTitle' => $postSeo['seoTitle'], 'seoDescription' => $postSeo['seoDescription'], 'seoKeywords' => $postSeo['seoKeywords'], 'seoSlug' => $finalSlug, 'ogImage' => $postSeo['ogImage'], 'canonicalUrl' => $postSeo['canonicalUrl'], 'success' => true], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
@@ -4822,7 +5155,23 @@ try {
         try {
             $now = date('c');
             $title = $input['title'] ?? 'صفحة SEO جديدة';
-            $slug = $input['seoSlug'] ?? $input['slug'] ?? ('page-' . time());
+            $pageSeo = seoAutoMetadata('page', [
+                'title' => $title,
+                'targetKeyword' => $input['targetKeyword'] ?? '',
+                'content' => $input['content'] ?? '',
+                'excerpt' => $input['excerpt'] ?? '',
+                'category' => $input['category'] ?? 'خدمات التنظيف',
+                'slug' => $input['slug'] ?? '',
+                'seoSlug' => $input['seoSlug'] ?? ($input['slug'] ?? ''),
+                'seoTitle' => $input['seoTitle'] ?? '',
+                'seoDescription' => $input['seoDescription'] ?? '',
+                'seoKeywords' => $input['seoKeywords'] ?? '',
+                'ogImage' => $input['ogImage'] ?? '',
+                'coverImage' => $input['coverImage'] ?? '',
+            ]);
+            $slug = seoAutoUniqueSlug($pdo, 'seo_pages', 'slug', $pageSeo['seoSlug']);
+            $pageSeo['seoSlug'] = $slug;
+            $pageSeo['canonicalUrl'] = '/page/' . $slug;
             $stmt = $pdo->prepare("INSERT INTO seo_pages (title, slug, target_keyword, content, excerpt, cover_image, category, tags, status, published_at, is_active, seo_title, seo_description, seo_keywords, seo_slug, og_image, canonical_url, created_at, updated_at) VALUES (:title, :slug, :target_keyword, :content, :excerpt, :cover_image, :category, :tags, :status, :published_at, :is_active, :seo_title, :seo_description, :seo_keywords, :seo_slug, :og_image, :canonical_url, :now, :now)");
             $stmt->execute([
                 ':title' => $title,
@@ -4836,17 +5185,17 @@ try {
                 ':status' => $input['status'] ?? 'draft',
                 ':published_at' => ($input['status'] ?? '') === 'published' ? ($input['publishedAt'] ?? $now) : ($input['publishedAt'] ?? null),
                 ':is_active' => isset($input['isActive']) ? ($input['isActive'] ? 1 : 0) : 1,
-                ':seo_title' => $input['seoTitle'] ?? '',
-                ':seo_description' => $input['seoDescription'] ?? '',
-                ':seo_keywords' => $input['seoKeywords'] ?? '',
+                 ':seo_title' => $pageSeo['seoTitle'],
+                 ':seo_description' => $pageSeo['seoDescription'],
+                 ':seo_keywords' => $pageSeo['seoKeywords'],
                 ':seo_slug' => $slug,
-                ':og_image' => $input['ogImage'] ?? '',
-                ':canonical_url' => $input['canonicalUrl'] ?? '',
+                 ':og_image' => $pageSeo['ogImage'],
+                 ':canonical_url' => $pageSeo['canonicalUrl'],
                 ':now' => $now
             ]);
             $newId = (int)$pdo->lastInsertId();
             http_response_code(201);
-            echo json_encode(['id' => $newId, 'slug' => $slug, 'title' => $title, 'success' => true]);
+            echo json_encode(['id' => $newId, 'slug' => $slug, 'title' => $title, 'seoTitle' => $pageSeo['seoTitle'], 'seoDescription' => $pageSeo['seoDescription'], 'seoKeywords' => $pageSeo['seoKeywords'], 'seoSlug' => $slug, 'ogImage' => $pageSeo['ogImage'], 'canonicalUrl' => $pageSeo['canonicalUrl'], 'success' => true], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
             http_response_code(500);
             echo json_encode(['error' => $e->getMessage()]);
@@ -4856,11 +5205,40 @@ try {
 
     if (preg_match('#^/admin/seo-pages/(\d+)$#', $path, $m) && ($method === 'PATCH' || $method === 'PUT')) {
         $id = (int)$m[1];
+        $existingStmt = $pdo->prepare("SELECT * FROM seo_pages WHERE id = :id LIMIT 1");
+        $existingStmt->execute([':id' => $id]);
+        $existing = $existingStmt->fetch();
+        if (!$existing) {
+            http_response_code(404);
+            echo json_encode(['error' => 'صفحة SEO غير موجودة'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        $contentChanged = array_key_exists('title', $input) || array_key_exists('content', $input) || array_key_exists('excerpt', $input);
+        $pageSeo = seoAutoMetadata('page', [
+            'id' => $id,
+            'title' => $input['title'] ?? $existing['title'],
+            'targetKeyword' => $input['targetKeyword'] ?? ($existing['target_keyword'] ?? ''),
+            'content' => $input['content'] ?? ($existing['content'] ?? ''),
+            'excerpt' => $input['excerpt'] ?? ($existing['excerpt'] ?? ''),
+            'category' => $input['category'] ?? ($existing['category'] ?? 'خدمات التنظيف'),
+            'slug' => $input['slug'] ?? ($existing['slug'] ?? ''),
+            'seoSlug' => $input['seoSlug'] ?? ($input['slug'] ?? ($existing['seo_slug'] ?? $existing['slug'] ?? '')),
+            'seoTitle' => array_key_exists('seoTitle', $input) ? $input['seoTitle'] : ($contentChanged ? '' : ($existing['seo_title'] ?? '')),
+            'seoDescription' => array_key_exists('seoDescription', $input) ? $input['seoDescription'] : ($contentChanged ? '' : ($existing['seo_description'] ?? '')),
+            'seoKeywords' => $input['seoKeywords'] ?? ($existing['seo_keywords'] ?? ''),
+            'ogImage' => $input['ogImage'] ?? ($existing['og_image'] ?? ''),
+            'coverImage' => $input['coverImage'] ?? ($input['coverImage'] ?? ($existing['cover_image'] ?? '')),
+        ]);
+        $slugRequested = array_key_exists('slug', $input) || array_key_exists('seoSlug', $input) || trim((string)($existing['slug'] ?? '')) === '';
+        $finalSlug = $slugRequested
+            ? seoAutoUniqueSlug($pdo, 'seo_pages', 'slug', $pageSeo['seoSlug'], $existing['slug'] ?? '')
+            : (string)$existing['slug'];
+        $pageSeo['seoSlug'] = $finalSlug;
+        $pageSeo['canonicalUrl'] = '/page/' . $finalSlug;
         $fields = [];
         $params = [':id' => $id, ':now' => date('c')];
         $map = [
             'title' => 'title',
-            'slug' => 'slug',
             'targetKeyword' => 'target_keyword',
             'content' => 'content',
             'excerpt' => 'excerpt',
@@ -4869,12 +5247,6 @@ try {
             'status' => 'status',
             'publishedAt' => 'published_at',
             'isActive' => 'is_active',
-            'seoTitle' => 'seo_title',
-            'seoDescription' => 'seo_description',
-            'seoKeywords' => 'seo_keywords',
-            'seoSlug' => 'seo_slug',
-            'ogImage' => 'og_image',
-            'canonicalUrl' => 'canonical_url'
         ];
         foreach ($map as $jKey => $dbCol) {
             if (array_key_exists($jKey, $input)) {
@@ -4886,12 +5258,24 @@ try {
             $fields[] = "tags = :tags";
             $params[':tags'] = is_array($input['tags']) ? json_encode($input['tags'], JSON_UNESCAPED_UNICODE) : (string)$input['tags'];
         }
-        if (!empty($fields)) {
-            $fields[] = "updated_at = :now";
-            $stmt = $pdo->prepare("UPDATE seo_pages SET " . implode(', ', $fields) . " WHERE id = :id");
-            $stmt->execute($params);
-        }
-        echo json_encode(['id' => $id, 'success' => true]);
+        $fields[] = "slug = :seo_slug";
+        $fields[] = "seo_title = :seo_title";
+        $fields[] = "seo_description = :seo_description";
+        $fields[] = "seo_keywords = :seo_keywords";
+        $fields[] = "seo_slug = :seo_slug_value";
+        $fields[] = "og_image = :og_image";
+        $fields[] = "canonical_url = :canonical_url";
+        $fields[] = "updated_at = :now";
+        $params[':seo_slug'] = $finalSlug;
+        $params[':seo_title'] = $pageSeo['seoTitle'];
+        $params[':seo_description'] = $pageSeo['seoDescription'];
+        $params[':seo_keywords'] = $pageSeo['seoKeywords'];
+        $params[':seo_slug_value'] = $finalSlug;
+        $params[':og_image'] = $pageSeo['ogImage'];
+        $params[':canonical_url'] = $pageSeo['canonicalUrl'];
+        $stmt = $pdo->prepare("UPDATE seo_pages SET " . implode(', ', $fields) . " WHERE id = :id");
+        $stmt->execute($params);
+        echo json_encode(['id' => $id, 'slug' => $finalSlug, 'seoTitle' => $pageSeo['seoTitle'], 'seoDescription' => $pageSeo['seoDescription'], 'seoKeywords' => $pageSeo['seoKeywords'], 'seoSlug' => $finalSlug, 'ogImage' => $pageSeo['ogImage'], 'canonicalUrl' => $pageSeo['canonicalUrl'], 'success' => true], JSON_UNESCAPED_UNICODE);
         exit;
     }
 

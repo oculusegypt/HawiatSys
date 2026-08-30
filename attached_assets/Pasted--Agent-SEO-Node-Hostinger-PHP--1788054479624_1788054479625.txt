@@ -1,0 +1,903 @@
+استلمت المشروع بعد Agent سابق ادعى أنه نفّذ نظامًا مركزيًا لأتمتة SEO عبر Node + Hostinger PHP، وأضاف backfill وprerender/sitemap safety وslug stability وغيرها.
+
+**مهم جدًا: لا تبدأ التنفيذ الآن. لا تعدّل أي ملف. لا تعمل patch. لا تصلح أي شيء.**
+
+أنت الآن في مرحلة:
+
+# STRICT FULL SYSTEM AUDIT — READ ONLY
+
+مهمتك الوحيدة في هذه المرحلة هي **التحقق ميدانيًا مما هو موجود فعليًا في الـ repository الحالي** ومقارنته بما ادعاه Agent السابق.
+
+لا تثق في سجل الـ Agent السابق كحقيقة تنفيذية.
+ولا تفترض أن أي شيء "تم" لمجرد أنه قال إنه تم.
+
+السجل السابق مجرد Evidence يجب التحقق منه مقابل الكود والـ database والـ build artifacts والـ runtime configuration.
+
+---
+
+# قاعدة صارمة
+
+قبل أي تعديل واحد:
+
+**أريد منك تقريرًا كاملًا وشاملًا عن الحالة الفعلية الحالية.**
+
+لا أريد تقريرًا عامًا.
+لا أريد "يبدو أن النظام جيد".
+لا أريد ملخصًا سريعًا.
+لا أريد إعادة شرح المتطلبات.
+
+أريد **Forensic Engineering Audit** يحدد بدقة:
+
+> ما تم تنفيذه فعلًا؟
+> ما الموجود حاليًا في الكود؟
+> ما الذي يعمل؟
+> ما الذي تم اختباره؟
+> ما الذي لم يتم اختباره؟
+> ما الذي ادعاه Agent السابق ولم تجده؟
+> ما الذي وجدته مختلفًا عن ادعائه؟
+> ما المخاطر والثغرات المتبقية؟
+> وما الذي يجب إصلاحه بعد انتهاء الـ audit؟
+
+---
+
+# 1. أولًا: افحص الحالة الحالية كما هي
+
+ابدأ من الـ repository الحالي.
+
+افحص:
+
+* git status
+* git diff
+* git diff --stat
+* الملفات التي تغيرت
+* الملفات الجديدة
+* أي generated artifacts
+* package/workspace structure
+* Node API
+* PHP/Hostinger API
+* database layer
+* frontend public routes
+* admin/content creation routes
+* prerender
+* sitemap
+* SEO utilities
+* build scripts
+* deployment scripts
+* memory/documentation التي أضافها Agent السابق
+
+**لا تعدّل شيئًا.**
+
+---
+
+# 2. طابق كل ادعاء للـ Agent السابق مع الواقع
+
+Agent السابق ادعى أنه أنجز على الأقل:
+
+### Central SEO
+
+* `seoMetadata.ts`
+* central SEO generation
+* normalization
+* automatic metadata generation
+
+### Node
+
+* services create/update
+* containers/packages create/update
+* posts create/update
+* SEO pages create/update
+
+### Backfill
+
+* automatic legacy SEO backfill
+* idempotency
+* unique slug handling
+* startup safety
+
+### Slugs
+
+* stable existing public slugs
+* generated slugs
+* collision handling
+* post/page slug preservation
+
+### Prerender
+
+* no longer incorrectly filtering records because SEO fields are missing
+* safety-net behavior
+* 141 generated pages according to the previous agent
+
+### Sitemap
+
+* consistency with prerender
+* inclusion of public/active records despite legacy SEO gaps
+
+### PHP / Hostinger
+
+* PHP SEO generator parity
+* create/update parity
+* slug handling
+* backfill
+* noindex preservation
+
+### Validation
+
+The previous agent claimed:
+
+* TypeScript passed
+* prerender passed
+* 141 pages generated
+* PHP syntax passed
+* Hostinger build passed
+* Hostinger verify script passed
+* no duplicate slugs
+* no missing SEO in current records
+* API restarted successfully
+* health endpoint worked
+* final artifact was presented
+
+**تحقق من كل ادعاء واحدًا واحدًا.**
+
+لا تقل "passed" إلا إذا استطعت إثباته من الحالة الحالية أو بإعادة تشغيل verification read-only commands التي لا تعدّل الكود أو البيانات.
+
+---
+
+# 3. افحص Central SEO Generator بعمق
+
+افتح `seoMetadata.ts` والـ modules المرتبطة به.
+
+أريد منك تحديد:
+
+### Inputs
+
+ما هي البيانات التي يعتمد عليها generator؟
+
+### Outputs
+
+ما الذي يولده بالضبط؟
+
+تحقق من كل عنصر:
+
+* title
+* SEO title
+* meta description
+* keywords
+* slug
+* canonical
+* OG image
+* excerpt
+* target keyword
+* أي structured metadata أخرى
+
+### Normalization
+
+تحقق من:
+
+* title length
+* description length
+* Arabic text handling
+* HTML stripping
+* whitespace normalization
+* punctuation
+* empty values
+* Unicode/multibyte behavior
+* truncation
+* fallback behavior
+
+### Idempotency
+
+إذا شغلت generator مرتين على نفس input:
+
+هل ينتج نفس النتيجة؟
+
+إذا لم يكن كذلك، لماذا؟
+
+### Stability
+
+إذا تغير title:
+
+هل يتغير slug؟
+
+إذا تغير content فقط:
+
+ما الذي يتغير؟
+
+إذا كان هناك existing SEO customization:
+
+هل يتم احترامه؟
+
+---
+
+# 4. افحص Slug Architecture كموضوع مستقل
+
+لا تكتفِ بقراءة generator.
+
+تتبع slug من البداية للنهاية:
+
+```text
+Create request
+→ validation
+→ generator
+→ DB write
+→ public routing
+→ prerender
+→ sitemap
+→ canonical
+```
+
+ولكل Entity:
+
+* Service
+* Package/Container
+* Post
+* SEO Page
+
+أريد معرفة:
+
+1. ما هو الـ authoritative slug؟
+2. هل يوجد `slug`؟
+3. هل يوجد `seo_slug` / `seoSlug`؟
+4. أي واحد يستخدمه public routing؟
+5. أي واحد يستخدمه canonical؟
+6. أي واحد يستخدمه sitemap؟
+7. أي واحد يستخدمه prerender؟
+8. هل يمكن أن يختلف الاثنان؟
+9. ماذا يحدث عند legacy record؟
+10. ماذا يحدث عند empty slug؟
+11. ماذا يحدث عند collision؟
+12. ماذا يحدث عند تغيير title؟
+13. هل ID appended للـ Arabic SEO URLs؟
+14. هل Node وPHP يستخدمان نفس الـ alias resolution؟
+
+**أريد trace فعلي، وليس استنتاجًا.**
+
+---
+
+# 5. افحص SEO Enabled / Noindex بشكل صارم
+
+هذه نقطة حساسة جدًا.
+
+تحقق هل النظام يخلط بين:
+
+```text
+SEO metadata existence
+```
+
+و
+
+```text
+indexability / noindex
+```
+
+يجب أن تحدد فعليًا:
+
+* ما الذي يجعل record يحصل على metadata؟
+* ما الذي يجعله يظهر في sitemap؟
+* ما الذي يجعله prerender؟
+* ما الذي يجعله indexable؟
+* ما الذي يجعله noindex؟
+* هل inactive = noindex؟
+* هل `seoEnabled=false` يمنع metadata generation؟
+* هل explicit noindex يتم الحفاظ عليه؟
+* هل backfill يمكن أن يمحو noindex intention؟
+* هل PHP وNode متطابقان؟
+
+إذا كان هناك ambiguity، اذكرها بوضوح.
+
+---
+
+# 6. افحص Create وUpdate workflows فعليًا
+
+لا تكتفِ بأن generator موجود.
+
+تتبع كل endpoint.
+
+## Services
+
+تحقق من:
+
+* create
+* update
+
+## Packages / Containers
+
+تحقق من:
+
+* create
+* update
+
+## Posts
+
+تحقق من:
+
+* create
+* update
+
+## SEO Pages
+
+تحقق من:
+
+* create
+* update
+
+لكل endpoint حدد:
+
+```text
+Request
+→ validation
+→ source fields
+→ SEO generator
+→ slug generation
+→ DB write
+→ returned object
+```
+
+ثم حدد هل SEO generation:
+
+* mandatory
+* optional
+* fallback
+* UI-dependent
+* backend-enforced
+
+---
+
+# 7. افحص Frontend/Admin
+
+أريد أن أعرف هل النظام ما زال يعتمد على الـ UI لإدخال SEO يدويًا.
+
+افحص:
+
+* admin forms
+* service forms
+* package forms
+* post forms
+* SEO page forms
+
+حدد:
+
+* هل المستخدم ما زال يستطيع/يجب أن يدخل SEO؟
+* هل الحقول optional؟
+* هل frontend يرسل empty strings؟
+* هل empty strings قد تمسح generated values؟
+* هل backend يستطيع العمل بشكل كامل بدون SEO fields من frontend؟
+
+**المطلوب النهائي أن يكون backend هو مصدر الحقيقة.**
+
+---
+
+# 8. افحص Public Pages
+
+افحص:
+
+* ServiceDetail
+* PackageDetail
+* BlogPost
+* SEO pages
+* أي dynamic public route
+
+وتحقق من:
+
+* `<title>`
+* description
+* canonical
+* OG
+* Twitter metadata إن وجدت
+* structured data إن وجدت
+* URL
+* slug
+* noindex
+* fallback metadata
+
+خصوصًا `useDocumentSEO.ts`.
+
+أريد معرفة هل public frontend يقرأ:
+
+* generated SEO
+* generic title
+* fallback title
+* stale values
+
+وهل يوجد اختلاف بين browser runtime وprerender output.
+
+---
+
+# 9. افحص Prerender بالكامل
+
+ليس فقط أنه "ولد 141 صفحة".
+
+افحص المنطق نفسه.
+
+حدد:
+
+### Source of truth
+
+من أين يأخذ records؟
+
+### Filters
+
+ما الذي يستبعده؟
+
+### SEO fallback
+
+ماذا يفعل إذا:
+
+* seo title فارغ
+* description فارغ
+* slug فارغ
+* seo_enabled false
+* record inactive
+* legacy record
+
+### URL generation
+
+هل URL النهائي مطابق للـ public router؟
+
+### Canonical
+
+هل absolute URL؟
+
+### Failure handling
+
+هل سجل واحد سيئ يمنع باقي الصفحات؟
+
+### Count
+
+تحقق من العدد الحالي، لكن لا تعتبر الرقم 141 invariant ثابتًا.
+
+---
+
+# 10. افحص Sitemap بالكامل
+
+تتبع sitemap generation.
+
+قارنها مع prerender.
+
+أريد إثباتًا أن:
+
+```text
+Public URL set
+=
+Prerender URL set
+=
+Sitemap URL set
+```
+
+قدر الإمكان، مع الاستثناءات المقصودة فقط.
+
+حدد أي اختلاف.
+
+تحقق من:
+
+* active records
+* inactive records
+* noindex
+* missing SEO
+* duplicate URLs
+* duplicate slugs
+* canonical mismatch
+
+---
+
+# 11. افحص Backfill معماريًا وأدائيًا
+
+هذه من أهم نقاط الـ audit.
+
+حدد بالضبط:
+
+### أين يعمل backfill؟
+
+* Node startup؟
+* request؟
+* route؟
+* script؟
+* PHP request؟
+* build؟
+
+### كم مرة يعمل؟
+
+### هل يفحص كل الصفوف في كل request؟
+
+### هل يوجد guard؟
+
+### هل هو idempotent؟
+
+### هل يفشل بالكامل بسبب row واحدة؟
+
+### هل يعالج duplicate slug؟
+
+### هل يغير existing stable slug؟
+
+### هل يحافظ على custom SEO؟
+
+### هل يحافظ على noindex؟
+
+### هل يكتب DB unnecessarily؟
+
+### هل هناك race condition عند concurrent requests؟
+
+### هل يمكن أن يولد نفس slug لطلبين في نفس الوقت؟
+
+### هل توجد DB-level uniqueness constraints؟
+
+إذا لم توجد، اذكر ذلك كخطر.
+
+---
+
+# 12. افحص PHP/Hostinger باعتباره Production Runtime مستقل
+
+لا تفترض أن PHP مجرد نسخة من Node.
+
+قارن implementation فعليًا.
+
+لكل Entity:
+
+```text
+Node create
+vs
+PHP create
+
+Node update
+vs
+PHP update
+```
+
+وقارن:
+
+* metadata
+* slug
+* canonical
+* noindex
+* backfill
+* collision handling
+* empty values
+* custom SEO
+* existing slug preservation
+
+أريد **Parity Matrix**.
+
+أي فرق حتى لو كان صغيرًا يجب أن يظهر في التقرير.
+
+---
+
+# 13. افحص Database Schema
+
+تحقق من:
+
+* slug columns
+* seo_slug columns
+* SEO fields
+* indexes
+* UNIQUE constraints
+* nullable behavior
+* defaults
+* migrations
+* legacy columns
+
+خصوصًا:
+
+هل uniqueness enforced في DB أم فقط application-level؟
+
+وهل يوجد خطر race condition؟
+
+---
+
+# 14. افحص Build وDeployment
+
+تحقق من:
+
+* `scripts/build-hostinger.mjs`
+* `scripts/verify-build-output.mjs`
+* package scripts
+* generated Hostinger artifact
+* PHP artifact
+* Node artifact
+* static output
+
+لا تعتمد على قول Agent السابق إن build نجح.
+
+تحقق من الوضع الحالي.
+
+---
+
+# 15. افحص Memory/Documentation
+
+Agent السابق أضاف:
+
+`central-seo-automation.md`
+
+وافترض أن القرار المعماري:
+
+> SEO metadata is a domain invariant...
+
+اقرأه وقارنه بالكود.
+
+إذا documentation تقول شيئًا والكود يفعل شيئًا آخر:
+
+**الكود هو الواقع.**
+
+سجل discrepancy صراحة.
+
+---
+
+# 16. افحص الـ Runtime فعليًا بدون تعديل
+
+إذا كان بالإمكان:
+
+* health check
+* API read endpoints
+* public URLs
+* generated output
+* logs
+
+افحصها.
+
+لكن:
+
+**لا تنشئ بيانات production/test جديدة ولا تعدل database.**
+
+المرحلة الحالية READ ONLY.
+
+---
+
+# 17. لا تعتبر "Build Passed" دليلًا كافيًا
+
+أريد التمييز بين:
+
+### Static correctness
+
+* TypeScript
+* PHP syntax
+* build
+
+### Structural correctness
+
+* routes
+* generators
+* DB schema
+* filters
+
+### Behavioral correctness
+
+* create
+* update
+* slug collision
+* slug stability
+* noindex
+* backfill
+* canonical
+
+### Deployment correctness
+
+* Hostinger artifact
+* PHP runtime
+* static/prerender output
+
+حدد في التقرير أي مستوى تم إثباته وأي مستوى لم يتم إثباته.
+
+---
+
+# 18. التقرير النهائي المطلوب
+
+بعد انتهاء الـ audit، **توقف. لا تنفذ أي إصلاح.**
+
+قدّم لي تقريرًا واحدًا شاملًا بالهيكل التالي:
+
+# EXECUTIVE VERDICT
+
+حكم مختصر:
+
+* هل النظام بالفعل كما ادعى Agent السابق؟
+* نسبة تقريبية لما تم إنجازه فعليًا.
+* هل architecture صحيحة؟
+* هل Production-ready؟
+* هل توجد blockers؟
+
+---
+
+# A. CLAIM vs REALITY MATRIX
+
+جدول:
+
+| Agent Claim           | Evidence Found | Actual Status        | Confidence   |
+| --------------------- | -------------- | -------------------- | ------------ |
+| Central SEO generator | ...            | DONE/PARTIAL/MISSING | HIGH/MED/LOW |
+| Node create/update    | ...            | ...                  | ...          |
+| PHP parity            | ...            | ...                  | ...          |
+| Backfill              | ...            | ...                  | ...          |
+| Prerender             | ...            | ...                  | ...          |
+| Sitemap               | ...            | ...                  | ...          |
+| Slug stability        | ...            | ...                  | ...          |
+| Noindex               | ...            | ...                  | ...          |
+| Hostinger build       | ...            | ...                  | ...          |
+
+لا تستخدم DONE إلا إذا كان مثبتًا.
+
+---
+
+# B. CURRENT ARCHITECTURE
+
+ارسم لي architecture flow حقيقي بناءً على الكود الحالي.
+
+---
+
+# C. ENTITY-BY-ENTITY AUDIT
+
+## Services
+
+## Packages/Containers
+
+## Posts
+
+## SEO Pages
+
+لكل واحدة:
+
+* create
+* update
+* SEO
+* slug
+* canonical
+* noindex
+* prerender
+* sitemap
+* Node
+* PHP
+
+---
+
+# D. SLUG AUDIT
+
+أريد التفاصيل الكاملة.
+
+---
+
+# E. SEO METADATA AUDIT
+
+كل field وكيف يتم توليده وحفظه واستهلاكه.
+
+---
+
+# F. BACKFILL AUDIT
+
+خصوصًا:
+
+* execution frequency
+* performance
+* idempotency
+* concurrency
+* failure handling
+* collision handling
+
+---
+
+# G. NODE vs PHP PARITY MATRIX
+
+أي اختلاف يجب إظهاره.
+
+---
+
+# H. PRERENDER + SITEMAP AUDIT
+
+وضح URL-set consistency.
+
+---
+
+# I. DATABASE AUDIT
+
+الحقول والـ indexes والـ constraints والمخاطر.
+
+---
+
+# J. TEST EVIDENCE
+
+قسم الاختبارات إلى:
+
+* Passed
+* Failed
+* Not Tested
+* Cannot Be Verified
+
+ولا تخلط بينها.
+
+---
+
+# K. SECURITY / DATA INTEGRITY / PERFORMANCE RISKS
+
+أي مشكلة حقيقية أو محتملة.
+
+---
+
+# L. REMAINING GAPS
+
+رتبها:
+
+### P0 — blocker
+
+### P1 — critical
+
+### P2 — important
+
+### P3 — improvement
+
+---
+
+# M. EXACT NEXT ACTIONS
+
+في النهاية فقط، أعطني قائمة دقيقة بما يجب فعله بعد الـ audit.
+
+لا تنفذها الآن.
+
+مثال:
+
+```text
+1. Fix X in file Y
+2. Add test Z
+3. Verify PHP parity
+4. Optimize backfill guard
+5. Re-run build
+```
+
+---
+
+# N. FINAL VERDICT
+
+أريد إجابة واضحة جدًا:
+
+**هل نستطيع الآن أن نقول إن النظام حقق الهدف الأصلي؟**
+
+أجب:
+
+* YES
+* PARTIALLY
+* NO
+
+ثم لماذا، بالأدلة.
+
+---
+
+## قيود صارمة أخيرة
+
+### ممنوع الآن:
+
+* تعديل الكود
+* patch
+* refactor
+* migration
+* DB writes
+* إنشاء test records
+* إعادة بناء architecture
+* إضافة features
+* حذف شيء
+* "تحسين" شيء
+
+### مسموح:
+
+* قراءة الملفات
+* git diff/status
+* البحث
+* تحليل الكود
+* تشغيل typecheck/build/lint فقط إذا كانت read-only بالنسبة للمصدر والبيانات
+* تشغيل prerender إذا كان لا يكتب على source/database، وإلا سجّل أنه غير قابل للتشغيل في وضع audit
+* قراءة logs
+* قراءة generated artifacts
+* مقارنة Node/PHP
+* فحص database read-only
+
+---
+
+## الأهم
+
+**لا تختصر التقرير بحجة توفير الرصيد.**
+
+أنا أريد هذا الـ audit تحديدًا حتى لا يبدأ Agent آخر بإعادة نفس العمل، وحتى لا نكتشف بعد النشر أن "Done" كان مجرد نجاح build.
+
+خذ الوقت اللازم في القراءة والتحقق، لكن:
+
+**لا تبدأ التنفيذ قبل التقرير.**
+
+عندما تنتهي، توقف تمامًا وانتظر التعليمات التالية.
+
+لا تصلح أي شيء بنفسك حتى لو وجدت bug واضحًا.
+
+**AUDIT FIRST. EXECUTION LATER.**

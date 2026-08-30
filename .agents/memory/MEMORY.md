@@ -41,3 +41,4 @@
 - [SQLite archive replacement safety](sqlite-archive-replacement-safety.md) — replace restored SQLite snapshots only while API writers are stopped, then remove stale WAL sidecars and verify integrity.
 - [Vite canonical root URLs](vite-canonical-root.md) — let prerender emit absolute canonicals; root-relative canonical hrefs can make Vite read the project directory as an asset.
 - [SEO entity slug parity](seo-entity-slug-parity.md) — public Arabic SEO URLs append record IDs; Node and Hostinger PHP must resolve the same aliases.
+- [Central SEO automation](central-seo-automation.md) — generate and backfill metadata in domain writes across Node and Hostinger PHP; prerender remains a safety net.

@@ -301,7 +301,7 @@ router.patch("/admin/posts/:id", requireAdmin, requireSectionPermission("blog"),
       ogImage: ogImage !== undefined ? ogImage : existing.ogImage,
       coverImage: coverImage !== undefined ? coverImage : existing.coverImage,
     });
-    const slugWasRequested = requestedSlug !== undefined || seoSlug !== undefined;
+    const slugWasRequested = requestedSlug !== undefined || seoSlug !== undefined || !existing.slug;
     const finalSlug = slugWasRequested
       ? uniqueSlug(
           metadata.seoSlug,

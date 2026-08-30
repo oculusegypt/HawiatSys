@@ -196,51 +196,84 @@ export async function backfillSeoMetadata(): Promise<{ updated: number }> {
     table: typeof servicesTable | typeof packagesTable | typeof postsTable | typeof seoPagesTable,
     kind: SeoEntityKind,
   ) => {
-    const rows = await db.select().from(table as never) as Array<Record<string, unknown>>;
+    let rows: Array<Record<string, unknown>>;
+    try {
+      rows = await db.select().from(table as never) as Array<Record<string, unknown>>;
+    } catch {
+      return;
+    }
+    // Rebuild the occupied set as we walk the rows. This preserves the first
+    // stable slug and deterministically repairs duplicate legacy slugs.
+    const usedSlugs = new Set<string>();
     for (const row of rows) {
-      const source: SeoSource = {
-        kind,
-        id: Number(row.id),
-        title: row.title,
-        name: row.name,
-        description: row.description,
-        excerpt: row.excerpt,
-        content: row.content,
-        targetKeyword: row.targetKeyword ?? row.target_keyword,
-        category: row.category,
-        size: row.size,
-        capacity: row.capacity,
-        slug: row.slug,
-        seoSlug: row.seoSlug ?? row.seo_slug,
-        seoTitle: row.seoTitle ?? row.seo_title,
-        seoDescription: row.seoDescription ?? row.seo_description,
-        seoKeywords: row.seoKeywords ?? row.seo_keywords,
-        ogImage: row.ogImage ?? row.og_image,
-        coverImage: row.coverImage ?? row.cover_image,
-        imageUrl: row.imageUrl ?? row.image_url,
-      };
-      const metadata = generateSeoMetadata(source);
-      const needsUpdate = !text(source.seoTitle)
-        || !text(source.seoDescription)
-        || !text(source.seoKeywords)
-        || !text(source.seoSlug)
-        || ((kind === "post" || kind === "page") && !text(row.canonicalUrl ?? row.canonical_url))
-        || ((kind === "post" || kind === "page") && !text(source.ogImage));
-      if (!needsUpdate) continue;
+      try {
+        const stableSlug = kind === "post" || kind === "page"
+          ? text(row.slug)
+          : text(row.seoSlug ?? row.seo_slug);
+        const source: SeoSource = {
+          kind,
+          id: Number(row.id),
+          title: row.title,
+          name: row.name,
+          description: row.description,
+          excerpt: row.excerpt,
+          content: row.content,
+          targetKeyword: row.targetKeyword ?? row.target_keyword,
+          category: row.category,
+          size: row.size,
+          capacity: row.capacity,
+          slug: row.slug,
+          seoSlug: stableSlug || (row.seoSlug ?? row.seo_slug),
+          seoTitle: row.seoTitle ?? row.seo_title,
+          seoDescription: row.seoDescription ?? row.seo_description,
+          seoKeywords: row.seoKeywords ?? row.seo_keywords,
+          ogImage: row.ogImage ?? row.og_image,
+          coverImage: row.coverImage ?? row.cover_image,
+          imageUrl: row.imageUrl ?? row.image_url,
+        };
+        const currentSlug = stableSlug;
+        const metadata = generateSeoMetadata(source);
+        const finalSlug = uniqueSlug(
+          metadata.seoSlug,
+          usedSlugs,
+        );
+        metadata.seoSlug = finalSlug;
+        metadata.canonicalUrl = `${ROUTE_PREFIXES[kind]}/${finalSlug}`;
+        const needsUpdate = !text(source.seoTitle)
+          || !text(source.seoDescription)
+          || !text(source.seoKeywords)
+          || !currentSlug
+          || finalSlug !== currentSlug
+          || ((kind === "post" || kind === "page") && text(row.canonicalUrl ?? row.canonical_url) !== metadata.canonicalUrl)
+          || ((kind === "post" || kind === "page") && !text(source.ogImage));
+        if (!needsUpdate) continue;
 
-      const patch: Record<string, unknown> = {
-        seoTitle: metadata.seoTitle,
-        seoDescription: metadata.seoDescription,
-        seoKeywords: metadata.seoKeywords,
-        seoSlug: metadata.seoSlug,
-      };
-      if (kind === "service" || kind === "container") patch.seoEnabled = true;
-      if (kind === "post" || kind === "page") {
-        patch.ogImage = metadata.ogImage;
-        patch.canonicalUrl = metadata.canonicalUrl;
+        const patch: Record<string, unknown> = {
+          seoTitle: metadata.seoTitle,
+          seoDescription: metadata.seoDescription,
+          seoKeywords: metadata.seoKeywords,
+          seoSlug: metadata.seoSlug,
+        };
+        if (kind === "service" || kind === "container") {
+          // Metadata is always generated, but an explicit noindex choice is
+          // preserved rather than silently enabling an existing record.
+          if (row.seoEnabled === undefined && row.seo_enabled === undefined) {
+            patch.seoEnabled = row.isActive ?? row.is_active ?? true;
+          }
+        }
+        if (kind === "post" || kind === "page") {
+          patch.ogImage = metadata.ogImage;
+          patch.canonicalUrl = metadata.canonicalUrl;
+          if (kind === "post") patch.slug = metadata.seoSlug;
+          if (kind === "page") patch.slug = metadata.seoSlug;
+        }
+        await db.update(table as never).set(patch as never).where(eq((table as typeof servicesTable).id, Number(row.id)));
+        usedSlugs.add(metadata.seoSlug.toLowerCase());
+        updated += 1;
+      } catch {
+        // One malformed legacy row must not prevent the rest from being
+        // repaired or block the API from starting.
       }
-      await db.update(table as never).set(patch as never).where(eq((table as typeof servicesTable).id, Number(row.id)));
-      updated += 1;
     }
   };
 

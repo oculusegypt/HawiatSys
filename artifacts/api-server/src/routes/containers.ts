@@ -3,7 +3,7 @@ import { db } from "@workspace/db";
 import { containersTable } from "@workspace/db";
 import { eq, asc } from "drizzle-orm";
 import { requireAdmin, requireSectionPermission } from "../middleware/adminAuth";
-import { generateSeoMetadata } from "../lib/seoMetadata";
+import { generateSeoMetadata, uniqueSlug } from "../lib/seoMetadata";
 
 const router = Router();
 
@@ -43,6 +43,9 @@ router.post("/containers", requireAdmin, requireSectionPermission("packages"), a
     seoKeywords,
     seoSlug,
   });
+  const existingSlugs = (await db.select({ seoSlug: containersTable.seoSlug }).from(containersTable))
+    .map((row) => row.seoSlug ?? "");
+  seo.seoSlug = uniqueSlug(seo.seoSlug, existingSlugs);
   const [container] = await db.insert(containersTable).values({
     name,
     category: category ?? "debris",
@@ -63,7 +66,7 @@ router.post("/containers", requireAdmin, requireSectionPermission("packages"), a
     isActive: isActive ?? true,
     // Every active container is a public SEO landing route. Keep this
     // invariant on the server instead of relying on an editor toggle.
-    seoEnabled: true,
+    seoEnabled: seoEnabled ?? (isActive ?? true),
     seoTitle: seo.seoTitle,
     seoDescription: seo.seoDescription,
     seoKeywords: seo.seoKeywords,
@@ -97,15 +100,26 @@ router.patch("/containers/:id", requireAdmin, requireSectionPermission("packages
     seoKeywords: seoKeywords !== undefined ? seoKeywords : existing.seoKeywords,
     seoSlug: seoSlug !== undefined ? seoSlug : existing.seoSlug,
   });
+  const slugWasRequested = seoSlug !== undefined || !existing.seoSlug;
+  const finalSlug = slugWasRequested
+    ? uniqueSlug(
+        seo.seoSlug,
+        (await db.select({ seoSlug: containersTable.seoSlug }).from(containersTable)).map((row) => row.seoSlug ?? ""),
+        existing.seoSlug ?? "",
+      )
+    : (existing.seoSlug || seo.seoSlug);
   const updateData: Record<string, unknown> = {
     name, category, size, capacity, description, features,
     suitableFor, priceText, priceNote, rentalPeriod,
     contactPhone1, contactPhone2, imageUrl, images,
-     order, isActive, seoEnabled: true,
+     order, isActive,
+     seoEnabled: seoEnabled !== undefined
+       ? seoEnabled
+       : (existing.seoEnabled ?? (isActive ?? true)),
      seoTitle: seo.seoTitle,
      seoDescription: seo.seoDescription,
      seoKeywords: seo.seoKeywords,
-     seoSlug: seo.seoSlug,
+     seoSlug: finalSlug,
   };
   if (pricePerDay !== undefined) updateData.pricePerDay = Number(pricePerDay);
   // Strip undefined keys so partial patches work correctly
