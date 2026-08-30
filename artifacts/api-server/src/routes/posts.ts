@@ -43,7 +43,7 @@ try {
 } catch {}
 
 function castRow(row: any, companyName: string) {
-  const text = (value: unknown) => replaceLegacyCompanyName(value, companyName);
+  const text = (value: unknown) => replaceLegacyCompanyName(value, companyName).trim();
 
   return {
     id:             row.id,

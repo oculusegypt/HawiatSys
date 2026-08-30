@@ -531,10 +531,6 @@ try {
         exit;
     }
 
-    // PHP has no long-running startup hook on shared hosting, so perform the
-    // same idempotent legacy repair before handling the request.
-    try { seoAutoBackfill($pdo); } catch (Throwable) {}
-
     if ($path === '/healthz' && $method === 'GET') {
         try {
             $pdo->query('SELECT 1')->fetchColumn();
@@ -959,6 +955,19 @@ try {
         return is_string($value) ? trim($value) : '';
     }
 
+    function seoAutoCompanyName(PDO $pdo): string {
+        try {
+            $row = $pdo->query("SELECT value FROM site_settings WHERE key = 'company_name' LIMIT 1")->fetch(PDO::FETCH_ASSOC);
+            $name = trim((string)($row['value'] ?? ''));
+            if ($name !== '') return $name;
+        } catch (Throwable) {}
+        return 'مؤسسة تقي جروب';
+    }
+
+    function seoAutoCompanyText($value, string $companyName): string {
+        return str_replace('منصة حاويات', $companyName, seoAutoText($value));
+    }
+
     function seoAutoPlainText($value): string {
         $value = seoAutoText($value);
         $value = strip_tags($value);
@@ -1199,7 +1208,6 @@ try {
             ['path' => '/why-us/commitment', 'priority' => '0.8', 'freq' => 'monthly'],
             ['path' => '/why-us/experience', 'priority' => '0.8', 'freq' => 'monthly'],
             ['path' => '/blog', 'priority' => '0.9', 'freq' => 'daily'],
-            ['path' => '/taqi-group-platform', 'priority' => '0.9', 'freq' => 'monthly'],
         ];
 
         $lines = [
@@ -1276,7 +1284,7 @@ try {
         }
 
         // Services
-        $servicesStmt = $pdo->query("SELECT id, seo_slug, seo_title, title, image_url, images FROM services WHERE is_active = 1");
+        $servicesStmt = $pdo->query("SELECT id, seo_slug, seo_title, title, image_url, images FROM services WHERE is_active = 1 AND seo_enabled = 1");
         $services = $servicesStmt->fetchAll();
         foreach ($services as $srv) {
             $slug = publicEntitySlug($srv['seo_slug'] ?? '', $srv['title'] ?? '', $srv['id'] ?? null, 'service');
@@ -1298,7 +1306,7 @@ try {
         // Packages
         $pkgCount = 0;
         try {
-            $pkgStmt = $pdo->query("SELECT id, seo_slug, name, image_url, images FROM packages WHERE is_active = 1");
+            $pkgStmt = $pdo->query("SELECT id, seo_slug, name, image_url, images FROM packages WHERE is_active = 1 AND seo_enabled = 1");
             $pkgs = $pkgStmt->fetchAll();
             foreach ($pkgs as $pkg) {
                 $slug = publicEntitySlug($pkg['seo_slug'] ?? '', $pkg['name'] ?? '', $pkg['id'] ?? null, 'container');
@@ -3233,12 +3241,6 @@ try {
             }
         }
 
-        if (!$p) {
-            $stmt = $pdo->prepare("SELECT * FROM seo_pages WHERE (slug LIKE :like OR seo_slug LIKE :like) AND status = 'published' AND is_active = 1 LIMIT 1");
-            $stmt->execute([':like' => '%' . $slugClean . '%']);
-            $p = $stmt->fetch();
-        }
-
         if ($p) {
             echo json_encode([
                 'id' => (int)$p['id'],
@@ -3646,14 +3648,21 @@ try {
         $slug = urldecode($rawSlug);
         $slugClean = trim($slug, '/');
 
-        $stmt = $pdo->prepare("SELECT * FROM services WHERE (seo_slug = :s OR seo_slug = :raw OR id = :raw) AND is_active = 1 LIMIT 1");
-        $stmt->execute([':s' => $slugClean, ':raw' => $rawSlug]);
-        $s = $stmt->fetch();
-
-        if (!$s) {
-            $stmt = $pdo->prepare("SELECT * FROM services WHERE (seo_slug LIKE :like OR title LIKE :like) AND is_active = 1 LIMIT 1");
-            $stmt->execute([':like' => '%' . $slugClean . '%']);
-            $s = $stmt->fetch();
+        $s = null;
+        $stmt = $pdo->query("SELECT * FROM services WHERE is_active = 1 AND seo_enabled = 1 ORDER BY id ASC");
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $candidate) {
+            $candidateSlug = (string)($candidate['seo_slug'] ?? '');
+            $candidateAliases = array_unique(array_filter([
+                $candidateSlug,
+                publicEntitySlug($candidateSlug, (string)($candidate['title'] ?? ''), $candidate['id'] ?? null, 'service'),
+                (string)($candidate['id'] ?? ''),
+            ], static fn(string $value): bool => trim($value) !== ''));
+            foreach ($candidateAliases as $candidateAlias) {
+                if ($candidateAlias === $slugClean || $candidateAlias === $rawSlug || strcasecmp($candidateAlias, $slugClean) === 0) {
+                    $s = $candidate;
+                    break 2;
+                }
+            }
         }
 
         if ($s) {
@@ -3901,14 +3910,29 @@ try {
         $slug = urldecode($rawSlug);
         $slugClean = trim($slug, '/');
 
+        $pkg = null;
+        $table = 'packages';
         try {
-            $stmt = $pdo->prepare("SELECT * FROM packages WHERE (seo_slug = :s OR seo_slug = :raw OR id = :raw) AND is_active = 1 LIMIT 1");
-            $stmt->execute([':s' => $slugClean, ':raw' => $rawSlug]);
-            $pkg = $stmt->fetch();
+            $stmt = $pdo->query("SELECT * FROM packages WHERE is_active = 1 AND seo_enabled = 1 ORDER BY id ASC");
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
-            $stmt = $pdo->prepare("SELECT * FROM containers WHERE (seo_slug = :s OR seo_slug = :raw OR id = :raw) AND is_active = 1 LIMIT 1");
-            $stmt->execute([':s' => $slugClean, ':raw' => $rawSlug]);
-            $pkg = $stmt->fetch();
+            $table = 'containers';
+            $stmt = $pdo->query("SELECT * FROM containers WHERE is_active = 1 AND seo_enabled = 1 ORDER BY id ASC");
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+        foreach ($rows as $candidate) {
+            $candidateSlug = (string)($candidate['seo_slug'] ?? '');
+            $candidateAliases = array_unique(array_filter([
+                $candidateSlug,
+                publicEntitySlug($candidateSlug, (string)($candidate['name'] ?? ''), $candidate['id'] ?? null, 'container'),
+                (string)($candidate['id'] ?? ''),
+            ], static fn(string $value): bool => trim($value) !== ''));
+            foreach ($candidateAliases as $candidateAlias) {
+                if ($candidateAlias === $slugClean || $candidateAlias === $rawSlug || strcasecmp($candidateAlias, $slugClean) === 0) {
+                    $pkg = $candidate;
+                    break 2;
+                }
+            }
         }
 
         if ($pkg) {
@@ -4196,26 +4220,29 @@ try {
             $stmt = $pdo->prepare("SELECT * FROM posts WHERE {$whereSql} ORDER BY published_at DESC, id DESC LIMIT {$limit} OFFSET {$offset}");
             $stmt->execute($params);
             $posts = $stmt->fetchAll();
+            $companyName = seoAutoCompanyName($pdo);
 
-            $formatted = array_map(function($p) {
+            $formatted = array_map(function($p) use ($companyName) {
                 return [
                     'id' => (int)$p['id'],
-                    'title' => $p['title'] ?? '',
+                    'title' => seoAutoCompanyText($p['title'] ?? '', $companyName),
                     'slug' => $p['slug'] ?? '',
-                    'content' => $p['content'] ?? '',
-                    'excerpt' => $p['excerpt'] ?? '',
-                    'coverImage' => $p['cover_image'] ?? '',
-                    'author' => $p['author'] ?? 'مؤسسة تقي جروب',
-                    'category' => $p['category'] ?? 'حاويات الأنقاض',
+                    'content' => seoAutoCompanyText($p['content'] ?? '', $companyName),
+                    'excerpt' => seoAutoCompanyText($p['excerpt'] ?? '', $companyName),
+                    'coverImage' => seoAutoCompanyText($p['cover_image'] ?? '', $companyName),
+                    'author' => seoAutoCompanyText($p['author'] ?? 'مؤسسة تقي جروب', $companyName),
+                    'category' => seoAutoCompanyText($p['category'] ?? 'حاويات الأنقاض', $companyName),
                     'tags' => $p['tags'] ?? '[]',
                     'status' => $p['status'] ?? 'published',
                     'publishedAt' => $p['published_at'],
                     'readTime' => is_numeric($p['read_time'] ?? null) ? (int)$p['read_time'] : 5,
                     'viewCount' => (int)($p['view_count'] ?? 0),
                     'isActive' => (bool)($p['is_active'] ?? true),
-                    'seoTitle' => $p['seo_title'] ?? '',
-                    'seoDescription' => $p['seo_description'] ?? '',
-                    'seoKeywords' => $p['seo_keywords'] ?? ''
+                    'seoTitle' => seoAutoCompanyText($p['seo_title'] ?? '', $companyName),
+                    'seoDescription' => seoAutoCompanyText($p['seo_description'] ?? '', $companyName),
+                    'seoKeywords' => seoAutoCompanyText($p['seo_keywords'] ?? '', $companyName),
+                    'ogImage' => seoAutoCompanyText($p['og_image'] ?? '', $companyName),
+                    'canonicalUrl' => $p['canonical_url'] ?? ''
                 ];
             }, $posts);
 
@@ -4230,7 +4257,7 @@ try {
                 'posts' => [],
                 'total' => 0,
                 'page' => 1,
-                'limit' => 9
+                'limit' => 12
             ], JSON_UNESCAPED_UNICODE);
         }
         exit;
@@ -4272,12 +4299,6 @@ try {
                     break 2;
                 }
             }
-        }
-
-        if (!$p) {
-            $stmt = $pdo->prepare("SELECT * FROM posts WHERE (slug LIKE :like OR seo_slug LIKE :like OR title LIKE :like) AND status = 'published' AND is_active = 1 LIMIT 1");
-            $stmt->execute([':like' => '%' . $slugClean . '%']);
-            $p = $stmt->fetch();
         }
 
         if ($p) {

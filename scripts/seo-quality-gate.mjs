@@ -194,6 +194,10 @@ if (archiveDir) {
     }
   };
   walk(archiveDir);
+  // The operational platform is shipped beside the public site but is a
+  // separate artifact with its own navigation and SEO contract. Keep it out
+  // of the main site's canonical/sitemap inventory.
+  const isMainSiteHtml = (file) => !file.replace(`${archiveDir}/`, "").startsWith("taqi-group-platform/");
   const archivePages = htmlFiles
     .map((file) => {
       const source = readFileSync(file, "utf8");
@@ -215,7 +219,7 @@ if (archiveDir) {
         indexable: !/noindex/i.test(getMeta(source, "robots")),
       };
     })
-    .filter((page) => page.indexable);
+    .filter((page) => page.indexable && isMainSiteHtml(page.file));
   const archiveCanonicalSet = new Set(archivePages.map((page) => page.canonical).filter(Boolean));
   const archiveSitemapSet = new Set(urls);
   const missingDescriptions = archivePages.filter((page) => !page.description);
@@ -262,9 +266,9 @@ if (archiveDir) {
   else fail(`pages without internal links: ${missingInternalLinks.map((page) => page.relative).join(", ")}`);
 
   const candidates = {
-    service: htmlFiles.find((file) => /\/services\/[^/]+\/index\.html$/.test(file)),
-    area: htmlFiles.find((file) => /\/areas\/[^/]+\/index\.html$/.test(file)),
-    article: htmlFiles.find((file) => /\/blog\/[^/]+\/index\.html$/.test(file)),
+    service: htmlFiles.find((file) => isMainSiteHtml(file) && /\/services\/[^/]+\/index\.html$/.test(file)),
+    area: htmlFiles.find((file) => isMainSiteHtml(file) && /\/areas\/[^/]+\/index\.html$/.test(file)),
+    article: htmlFiles.find((file) => isMainSiteHtml(file) && /\/blog\/[^/]+\/index\.html$/.test(file)),
   };
   for (const [label, file] of Object.entries(candidates)) {
     if (!file) {

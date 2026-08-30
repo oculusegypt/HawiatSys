@@ -74,27 +74,26 @@ const staticPages = [
   ["/why-us/commitment", "0.8", "monthly"],
   ["/why-us/experience", "0.8", "monthly"],
   ["/blog", "0.9", "daily"],
-  ["/taqi-group-platform", "0.9", "monthly"],
 ];
 
 const services = db.prepare(`
   SELECT id, title, seo_slug AS slug, images, image_url
   FROM services
-  WHERE is_active = 1 AND seo_enabled = 1 AND seo_slug IS NOT NULL AND seo_slug != ''
+  WHERE is_active = 1 AND seo_enabled = 1
   ORDER BY "order" ASC
 `).all();
 
 const packageRows = tableExists("packages") ? db.prepare(`
   SELECT id, name AS title, seo_slug AS slug, images, image_url
   FROM packages
-  WHERE is_active = 1 AND seo_enabled = 1 AND seo_slug IS NOT NULL AND seo_slug != ''
+  WHERE is_active = 1 AND seo_enabled = 1
   ORDER BY "order" ASC
 `).all() : [];
 
 const legacyContainerRows = tableExists("containers") ? db.prepare(`
   SELECT id, name AS title, seo_slug AS slug, images, image_url
   FROM containers
-  WHERE is_active = 1 AND seo_enabled = 1 AND seo_slug IS NOT NULL AND seo_slug != ''
+  WHERE is_active = 1 AND seo_enabled = 1
   ORDER BY "order" ASC
 `).all() : [];
 const containers = packageRows.length ? packageRows : legacyContainerRows;
@@ -147,8 +146,6 @@ for (const [path, priority, changefreq] of staticPages) {
     ? ["/images/hero-1.webp", "/images/logo.png", "/images/seo/taqi-home.jpg"]
     : path === "/services"
       ? ["/images/seo/taqi-services.jpg"]
-      : path === "/taqi-group-platform"
-      ? []
       : [];
   addEntry({ path, priority, changefreq, title: siteName, images: staticImages });
 }

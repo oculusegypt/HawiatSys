@@ -204,7 +204,7 @@ const coordinates = {
 };
 const dynamicServices = db.prepare(`
   SELECT title, description FROM services
-  WHERE is_active = 1
+  WHERE is_active = 1 AND seo_enabled = 1
   ORDER BY "order" ASC
   LIMIT 20
 `).all();
@@ -1286,7 +1286,7 @@ const services = db.prepare(`
   SELECT id, title, description, icon, image_url, images,
          seo_slug, seo_title, seo_description, seo_keywords
   FROM services
-  WHERE is_active = 1
+  WHERE is_active = 1 AND seo_enabled = 1
   ORDER BY "order" ASC
 `).all();
 
@@ -1540,7 +1540,7 @@ try {
            suitable_for, price_text, price_per_day, image_url, images,
            seo_slug, seo_title, seo_description, seo_keywords
     FROM packages
-    WHERE is_active = 1
+    WHERE is_active = 1 AND seo_enabled = 1
     ORDER BY "order" ASC
   `).all();
   if (packageRows.length > 0) {
@@ -1551,7 +1551,7 @@ try {
              suitable_for, price_text, price_per_day, image_url, images,
              seo_slug, seo_title, seo_description, seo_keywords
       FROM containers
-      WHERE is_active = 1
+      WHERE is_active = 1 AND seo_enabled = 1
       ORDER BY "order" ASC
     `).all();
   }
@@ -1561,7 +1561,7 @@ try {
            suitable_for, price_text, price_per_day, image_url, images,
            seo_slug, seo_title, seo_description, seo_keywords
     FROM containers
-    WHERE is_active = 1
+    WHERE is_active = 1 AND seo_enabled = 1
     ORDER BY "order" ASC
   `).all();
 }

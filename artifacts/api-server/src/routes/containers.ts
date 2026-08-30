@@ -4,6 +4,7 @@ import { containersTable } from "@workspace/db";
 import { eq, asc } from "drizzle-orm";
 import { requireAdmin, requireSectionPermission } from "../middleware/adminAuth";
 import { generateSeoMetadata, uniqueSlug } from "../lib/seoMetadata";
+import { entitySlug } from "../lib/friendlySlug";
 
 const router = Router();
 
@@ -21,6 +22,21 @@ function normalizeArabicSlug(value: unknown): string {
 router.get(["/containers", "/packages", "/cleaning-packages"], async (_req, res) => {
   const containers = await db.select().from(containersTable).orderBy(asc(containersTable.order));
   return res.json(containers);
+});
+
+router.get(["/containers/:slug", "/packages/:slug", "/cleaning-packages/:slug"], async (req, res) => {
+  const rawParam = req.params.slug;
+  const requested = decodeURIComponent(Array.isArray(rawParam) ? rawParam[0] : rawParam).trim().toLowerCase();
+  const rows = await db.select().from(containersTable)
+    .where(eq(containersTable.isActive, true))
+    .orderBy(asc(containersTable.id));
+  const container = rows.find(row => {
+    const stored = String(row.seoSlug ?? "").trim().toLowerCase();
+    const publicSlug = entitySlug({ slug: row.seoSlug, title: row.name, id: row.id, fallback: "container" }).toLowerCase();
+    return requested === stored || requested === publicSlug || requested === String(row.id);
+  });
+  if (!container) return res.status(404).json({ error: "Not found" });
+  return res.json(container);
 });
 
 router.post("/containers", requireAdmin, requireSectionPermission("packages"), async (req, res) => {

@@ -128,7 +128,6 @@ function getStaticPages(base: string, siteName: string) {
     { path: "/why-us/commitment",              priority: "0.8",  freq: "monthly", images: [] },
     { path: "/why-us/experience",              priority: "0.8",  freq: "monthly", images: [] },
     { path: "/blog",                           priority: "0.9",  freq: "daily",   images: [] },
-    { path: "/taqi-group-platform",            priority: "0.9",  freq: "monthly", images: [] },
   ];
 }
 
@@ -151,7 +150,7 @@ async function buildXml(baseUrl: string): Promise<{ xml: string; totalUrls: numb
   try {
     const rows = await db.select().from(servicesTable).orderBy(asc(servicesTable.order));
     seoServices = (rows as any[])
-      .filter(r => (r.seo_enabled || r.seoEnabled) && (r.is_active ?? r.isActive ?? true))
+      .filter(r => Boolean(r.seo_enabled ?? r.seoEnabled) && Boolean(r.is_active ?? r.isActive ?? true))
       .map(r => ({
         id:        r.id,
         seoSlug:  r.seo_slug  || r.seoSlug  || "",
@@ -159,7 +158,7 @@ async function buildXml(baseUrl: string): Promise<{ xml: string; totalUrls: numb
         images:   r.images ?? "[]",
         title:    r.title || "",
       }))
-      .filter(r => r.seoSlug);
+      ;
   } catch {}
 
   // Fetch published blog posts
@@ -258,7 +257,7 @@ async function buildXml(baseUrl: string): Promise<{ xml: string; totalUrls: numb
   try {
     const crows = await db.select().from(containersTable).orderBy(asc(containersTable.order));
     seoContainers = (crows as any[])
-      .filter(r => r.seo_enabled || r.seoEnabled)
+      .filter(r => Boolean(r.seo_enabled ?? r.seoEnabled) && Boolean(r.is_active ?? r.isActive ?? true))
       .map(r => ({
         id:        r.id,
         seoSlug:  r.seo_slug  || r.seoSlug  || "",
@@ -266,7 +265,7 @@ async function buildXml(baseUrl: string): Promise<{ xml: string; totalUrls: numb
         images:   r.images ?? "[]",
         title:    r.title || "",
       }))
-      .filter(r => r.seoSlug);
+      ;
   } catch {}
 
   // Dynamic service pages

@@ -4,6 +4,7 @@ import { servicesTable } from "@workspace/db";
 import { eq, asc } from "drizzle-orm";
 import { requireAdmin, requireSectionPermission } from "../middleware/adminAuth";
 import { generateSeoMetadata, uniqueSlug } from "../lib/seoMetadata";
+import { entitySlug } from "../lib/friendlySlug";
 
 // ── DB migration: add new columns to existing DB ───────────────────────────────
 try {
@@ -55,6 +56,21 @@ function castRow(row: any) {
 router.get("/services", async (_req, res) => {
   const rows = await db.select().from(servicesTable).orderBy(asc(servicesTable.order));
   return res.json(rows.map(castRow));
+});
+
+router.get("/services/:slug", async (req, res) => {
+  const rawParam = req.params.slug;
+  const requested = decodeURIComponent(Array.isArray(rawParam) ? rawParam[0] : rawParam).trim().toLowerCase();
+  const rows = await db.select().from(servicesTable)
+    .where(eq(servicesTable.isActive, true))
+    .orderBy(asc(servicesTable.id));
+  const service = rows.find(row => {
+    const stored = String(row.seoSlug ?? "").trim().toLowerCase();
+    const publicSlug = entitySlug({ slug: row.seoSlug, title: row.title, id: row.id, fallback: "service" }).toLowerCase();
+    return requested === stored || requested === publicSlug || requested === String(row.id);
+  });
+  if (!service) return res.status(404).json({ error: "Not found" });
+  return res.json(castRow(service));
 });
 
 router.post("/services", requireAdmin, requireSectionPermission("services"), async (req, res) => {

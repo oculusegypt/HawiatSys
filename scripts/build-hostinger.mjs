@@ -187,6 +187,16 @@ run(
   {},
 );
 
+// ── 0. إصلاح metadata وslugs مرة واحدة قبل أخذ ناتج البناء ───────────────────
+step("تحديث بيانات SEO قبل البناء (migration صريحة)");
+run(
+  "node node_modules/.pnpm/tsx@4.23.0/node_modules/tsx/dist/cli.mjs scripts/backfill-seo.mts",
+  "إكمال metadata وslugs الناقصة/المكررة",
+  {},
+);
+
+// Snapshot only after the explicit data migration so the archive, sitemap,
+// prerender and PHP API all consume the same database state.
 prepareArchiveSourceDatabase();
 
 // ── 1. توليد الخريطة قبل Vite حتى تدخل النسخة الحالية إلى dist ───────────────
@@ -492,6 +502,28 @@ copyFileSync(ARCHIVE_SOURCE_DB, DEST_DB);
         "INSERT INTO site_settings (key, value, updated_at) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
       ).run("site_public_url", publicOrigin, new Date().toISOString());
       console.log(`  ✅ تم حفظ رابط الموقع العام داخل الإعدادات: ${publicOrigin}`);
+    }
+
+    // Make the archive enforce the same public identity rule as the Node
+    // database. Existing duplicate legacy slugs are repaired by id order in
+    // the archive copy only; the source database is never rewritten here.
+    for (const table of ["services", "packages"]) {
+      const rows = db.prepare(
+        `SELECT id, seo_slug FROM ${table} WHERE seo_slug IS NOT NULL AND trim(seo_slug) <> '' ORDER BY id ASC`,
+      ).all();
+      const used = new Set();
+      const updateSlug = db.prepare(`UPDATE ${table} SET seo_slug = ? WHERE id = ?`);
+      for (const row of rows) {
+        const original = String(row.seo_slug).trim();
+        let candidate = original;
+        let suffix = 2;
+        while (used.has(candidate.toLowerCase())) candidate = `${original}-${suffix++}`;
+        if (candidate !== row.seo_slug) updateSlug.run(candidate, row.id);
+        used.add(candidate.toLowerCase());
+      }
+      db.exec(
+        `CREATE UNIQUE INDEX IF NOT EXISTS idx_${table}_seo_slug_unique ON ${table}(seo_slug) WHERE seo_slug IS NOT NULL AND trim(seo_slug) <> ''`,
+      );
     }
 
     // Resolve all legacy editorial mentions to the administrator-configured

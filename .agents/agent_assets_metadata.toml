@@ -27,14 +27,14 @@ content_type = "application/octet-stream"
 id = "e7Hwi4c_9VUpSkVoGq2Ul"
 uri = "file://cleanflow-services-hostinger.zip"
 type = "unspecified"
-title = "حزمة Hostinger النهائية — تقي جروب"
-description = "أرشيف الإنتاج الكامل المبني من المصدر الحالي، ويحتوي على الواجهة الثابتة، API PHP، قاعدة SQLite، الصور، منصة التشغيل، وملفات التوجيه. يُستخرج مباشرة داخل public_html."
+title = "CleanFlow Services — Hostinger ZIP"
+description = "Final certified Hostinger archive for the SEO-primary CleanFlow Services site."
 logical_id = "c612380d-19d8-4641-8c29-e5ac4a484245"
-content_hash = "sha256:187ba800a0ea9ce124e2b633565c99f21cc6392998af087da54041e9245bcebb"
-size = 38954153
-mtime_ms = 1788049719404
-storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:95fd9b0b-cfa5-4216-b49d-a1046872d1f1/c612380d-19d8-4641-8c29-e5ac4a484245/f57f7baf-2750-4947-92c7-65696f54e6c5"
-storage_version_token = "1788049784013893"
+content_hash = "sha256:4bd9f4de2b7fdf13af7ba311906959adb8eebcb7cbfe65508beb93d997ee8846"
+size = 38976756
+mtime_ms = 1788056212775
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:0ffcec72-6c85-4229-8f9b-0f82facaba6e/c612380d-19d8-4641-8c29-e5ac4a484245/752d6878-f690-4f40-bc2e-4cbe0ad9723e"
+storage_version_token = "1788056309078195"
 content_type = "application/octet-stream"
 
 [[outputs]]
@@ -125,14 +125,14 @@ content_type = "text/markdown"
 id = "vardMRmaVE2zxKTFKnDnX"
 uri = "file://taqi-group-hostinger.zip"
 type = "unspecified"
-title = "حزمة Hostinger المصححة — إصلاح 404"
-description = "أرشيف كامل يتضمن إصلاح مطابقة روابط صفحات SEO الرقمية في PHP، وقاعدة SQLite وواجهة PHP والأصول كاملة. استخرج المحتويات مباشرة داخل public_html."
+title = "Taqi Group — Hostinger compatibility ZIP"
+description = "Byte-identical compatibility copy of the certified Hostinger archive."
 logical_id = "9bf9def0-a387-4ee1-a74b-659381cde139"
-content_hash = "sha256:938b6c1599614474f3a3532cf5444abacb8c84127b4dbb705e529fc67b6d72a4"
-size = 38351967
-mtime_ms = 1788040405398
-storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:a31aac72-05c5-4479-b437-63a04e2ae220/9bf9def0-a387-4ee1-a74b-659381cde139/e4717dcb-7174-4b89-824e-c160478c11e6"
-storage_version_token = "1788040474524183"
+content_hash = "sha256:4bd9f4de2b7fdf13af7ba311906959adb8eebcb7cbfe65508beb93d997ee8846"
+size = 38976756
+mtime_ms = 1788056212965
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:0ffcec72-6c85-4229-8f9b-0f82facaba6e/9bf9def0-a387-4ee1-a74b-659381cde139/29c340f9-79d3-4160-a164-2779604cde7b"
+storage_version_token = "1788056310035033"
 content_type = "application/octet-stream"
 
 [[outputs]]

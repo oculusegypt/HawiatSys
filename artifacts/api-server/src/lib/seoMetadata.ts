@@ -139,6 +139,19 @@ function generatedDescription(source: SeoSource, displayName: string, keyword: s
   }
 }
 
+function descriptionSuffix(kind: SeoEntityKind): string {
+  switch (kind) {
+    case "service":
+      return "تواصل معنا لتحديد الموعد وطلب الخدمة ونقل المخلفات بطريقة منظمة.";
+    case "container":
+      return "نوفر التوصيل والسحب ونقل الأنقاض والمخلفات من موقعك في الموعد المتفق عليه.";
+    case "post":
+      return "دليل عملي محدث يساعدك على اختيار الحل المناسب وطلب الخدمة بثقة.";
+    case "page":
+      return "معلومات عملية وخطوات واضحة لاختيار الحاوية أو خدمة نقل المخلفات المناسبة.";
+  }
+}
+
 function generatedKeywords(source: SeoSource, displayName: string, keyword: string): string {
   const supplied = text(source.seoKeywords)
     .split(/[,،|]/g)
@@ -164,10 +177,10 @@ export function generateSeoMetadata(source: SeoSource): SeoMetadata {
     `${source.kind}-${source.id ?? "new"}`,
   );
   const title = cap(plainText(source.seoTitle) || generatedTitle(source, displayName, keyword), 60);
-  const description = fitDescription(
-    plainText(source.seoDescription),
-    generatedDescription(source, displayName, keyword),
-  );
+  const customDescription = plainText(source.seoDescription);
+  const description = customDescription
+    ? fitDescription(customDescription, descriptionSuffix(source.kind))
+    : generatedDescription(source, displayName, keyword);
   const image = text(source.ogImage) || text(source.coverImage) || text(source.imageUrl) || FALLBACK_IMAGES[source.kind];
   const canonicalUrl = `${ROUTE_PREFIXES[source.kind]}/${slug}`;
 

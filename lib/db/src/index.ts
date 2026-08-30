@@ -154,6 +154,28 @@ sqlite.exec(`
   )
 `);
 
+// SEO slugs are public identities. Repair only duplicate legacy values in
+// deterministic id order, then enforce uniqueness for all non-empty slugs.
+// Empty values remain available to explicit noindex/draft records.
+for (const table of ["services", "packages"] as const) {
+  const rows = sqlite
+    .prepare(`SELECT id, seo_slug FROM ${table} WHERE seo_slug IS NOT NULL AND trim(seo_slug) <> '' ORDER BY id ASC`)
+    .all() as Array<{ id: number; seo_slug: string }>;
+  const used = new Set<string>();
+  const updateSlug = sqlite.prepare(`UPDATE ${table} SET seo_slug = ? WHERE id = ?`);
+  for (const row of rows) {
+    const original = String(row.seo_slug).trim();
+    let candidate = original;
+    let suffix = 2;
+    while (used.has(candidate.toLowerCase())) candidate = `${original}-${suffix++}`;
+    if (candidate !== row.seo_slug) updateSlug.run(candidate, row.id);
+    used.add(candidate.toLowerCase());
+  }
+  sqlite.exec(
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_${table}_seo_slug_unique ON ${table}(seo_slug) WHERE seo_slug IS NOT NULL AND trim(seo_slug) <> ''`,
+  );
+}
+
 // Defensive SQLite constraints for portable databases. Triggers are used here
 // because older installations cannot add CHECK constraints without rebuilding
 // tables; they protect new writes without rewriting existing records.
