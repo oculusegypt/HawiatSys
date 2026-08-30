@@ -29,6 +29,7 @@ export const STATIC_SEO_ROUTES = Object.freeze([
   ["/why-us/commitment", "why-us"],
   ["/why-us/experience", "why-us"],
   ["/blog", "blog-list"],
+  ["/pages", "seo-page-index"],
 ]);
 
 export const SEO_MEDIA_MANIFEST = Object.freeze([

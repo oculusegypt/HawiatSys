@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-30T06:58:43.684Z",
+  "generatedAt": "2026-08-30T07:04:27.108Z",
   "siteUrl": "https://taqigroup.com",
   "entries": [
     {
@@ -142,6 +142,15 @@
       "path": "/blog",
       "canonical": "/blog",
       "pageType": "blog-list",
+      "indexability": "INDEXABLE",
+      "prerenderRequired": true,
+      "sitemapEligible": true,
+      "artifact": "sabaik-almasa"
+    },
+    {
+      "path": "/pages",
+      "canonical": "/pages",
+      "pageType": "seo-page-index",
       "indexability": "INDEXABLE",
       "prerenderRequired": true,
       "sitemapEligible": true,
@@ -1780,6 +1789,7 @@
     "https://taqigroup.com/page/عدد-حاويات-مخلفات-البناء-للمشروع-89",
     "https://taqigroup.com/page/مناطق-تغطية-تأجير-الحاويات-بالرياض-وضواحيها-6",
     "https://taqigroup.com/page/نقل-الأنقاض-ومخلفات-البناء-بالرياض-8",
+    "https://taqigroup.com/pages",
     "https://taqigroup.com/partners",
     "https://taqigroup.com/pricing",
     "https://taqigroup.com/privacy",

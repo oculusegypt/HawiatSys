@@ -1179,6 +1179,7 @@ try {
             ['path' => '/why-us/commitment', 'priority' => '0.8', 'freq' => 'monthly'],
             ['path' => '/why-us/experience', 'priority' => '0.8', 'freq' => 'monthly'],
             ['path' => '/blog', 'priority' => '0.9', 'freq' => 'daily'],
+            ['path' => '/pages', 'priority' => '0.85', 'freq' => 'weekly'],
         ];
 
         $lines = [

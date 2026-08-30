@@ -75,6 +75,7 @@ const staticPages = [
   ["/why-us/commitment", "0.8", "monthly"],
   ["/why-us/experience", "0.8", "monthly"],
   ["/blog", "0.9", "daily"],
+  ["/pages", "0.85", "weekly"],
 ];
 
 const services = db.prepare(`

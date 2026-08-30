@@ -27,14 +27,14 @@ content_type = "application/octet-stream"
 id = "e7Hwi4c_9VUpSkVoGq2Ul"
 uri = "file://cleanflow-services-hostinger.zip"
 type = "unspecified"
-title = "CleanFlow Services — Hostinger ZIP"
-description = "Final certified Hostinger archive for the SEO-primary CleanFlow Services site."
+title = "CleanFlow Services Hostinger package"
+description = "Final Hostinger ZIP for the CleanFlow Services artifact with the same validated SEO and /pages updates."
 logical_id = "c612380d-19d8-4641-8c29-e5ac4a484245"
-content_hash = "sha256:4bd9f4de2b7fdf13af7ba311906959adb8eebcb7cbfe65508beb93d997ee8846"
-size = 38976756
-mtime_ms = 1788056212775
-storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:0ffcec72-6c85-4229-8f9b-0f82facaba6e/c612380d-19d8-4641-8c29-e5ac4a484245/752d6878-f690-4f40-bc2e-4cbe0ad9723e"
-storage_version_token = "1788056309078195"
+content_hash = "sha256:683ac4ce39ffc4c5d7077ac327f39a8b89b41b70f636e04180da159181a2458e"
+size = 39489566
+mtime_ms = 1788073484233
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:23bedf58-79ba-4793-9244-c084f4330f80/c612380d-19d8-4641-8c29-e5ac4a484245/eeb89dfe-4167-4773-a538-e5e3d6dd887e"
+storage_version_token = "1788073500605286"
 content_type = "application/octet-stream"
 
 [[outputs]]
@@ -125,14 +125,14 @@ content_type = "text/markdown"
 id = "vardMRmaVE2zxKTFKnDnX"
 uri = "file://taqi-group-hostinger.zip"
 type = "unspecified"
-title = "Taqi Group — Hostinger compatibility ZIP"
-description = "Byte-identical compatibility copy of the certified Hostinger archive."
+title = "Taqi Group Hostinger package"
+description = "Final Hostinger ZIP including the /pages index, centered homepage update, prerendered SEO pages, API, database, assets, and validated sitemap."
 logical_id = "9bf9def0-a387-4ee1-a74b-659381cde139"
-content_hash = "sha256:4bd9f4de2b7fdf13af7ba311906959adb8eebcb7cbfe65508beb93d997ee8846"
-size = 38976756
-mtime_ms = 1788056212965
-storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:0ffcec72-6c85-4229-8f9b-0f82facaba6e/9bf9def0-a387-4ee1-a74b-659381cde139/29c340f9-79d3-4160-a164-2779604cde7b"
-storage_version_token = "1788056310035033"
+content_hash = "sha256:683ac4ce39ffc4c5d7077ac327f39a8b89b41b70f636e04180da159181a2458e"
+size = 39489566
+mtime_ms = 1788073484347
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:23bedf58-79ba-4793-9244-c084f4330f80/9bf9def0-a387-4ee1-a74b-659381cde139/475faa9c-23f4-4c78-92d7-a1a6b9b7b8fe"
+storage_version_token = "1788073499362006"
 content_type = "application/octet-stream"
 
 [[outputs]]

@@ -156,6 +156,7 @@ function schemaContract(pageType, schemas, canonical, html) {
     "service-list": ["CollectionPage", "WebPage"],
     "container-list": ["CollectionPage", "WebPage"],
     "blog-list": ["Blog", "CollectionPage", "WebPage"],
+    "seo-page-index": ["WebPage"],
     partners: ["WebPage"],
     "why-us": ["WebPage"],
     legal: ["WebPage"],

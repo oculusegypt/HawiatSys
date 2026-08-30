@@ -1879,6 +1879,30 @@ for (const page of seoPages) {
 }
 console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /pages/)`);
 
+// Public directory for the published SEO pages. Keep this separate from the
+// compatibility aliases above so /pages remains a real index route.
+{
+  const directoryCards = seoPages.map((page) => {
+    const href = `${SITE_URL}/page/${entityPath({ slug: page.slug, title: page.title, id: page.id, fallback: "page" })}`;
+    return `<a href="${esc(href)}" style="display:block;border:1px solid #e2e8f0;border-radius:18px;background:#fff;padding:20px;color:#12384b;text-decoration:none"><strong style="display:block;font-size:17px;line-height:1.8">${esc(page.title)}</strong><span style="display:block;margin-top:10px;color:#607d8b;font-size:14px">قراءة الدليل ←</span></a>`;
+  }).join("");
+  saveSimplePage({
+    relPath: "pages",
+    title: `فهرس الأدلة والصفحات | ${siteCompanyName}`,
+    description: "فهرس الأدلة التخصصية من مؤسسة تقي جروب لاختيار الحاوية المناسبة وتنظيم رفع ونقل مخلفات البناء والأنقاض من المنازل والمشاريع داخل مدينة الرياض.",
+    canonicalPath: "/pages",
+    ogImage: "/images/seo/taqi-containers.jpg",
+    keywords: "أدلة تأجير الحاويات بالرياض, نقل مخلفات البناء, حاويات الأنقاض",
+    breadcrumbs: [{ name: "فهرس الأدلة", path: "/pages" }],
+    bodyContent: `
+      <section style="font-family:'Cairo',Arial,sans-serif;direction:rtl;max-width:1120px;margin:0 auto;padding:36px 16px;line-height:1.8;text-align:center">
+        <h1 style="margin:0;color:#12384b;font-size:32px;font-weight:900">أدلة تأجير الحاويات ونقل المخلفات</h1>
+        <p style="max-width:680px;margin:14px auto 28px;color:#52707c;font-size:17px">تصفح الصفحات التخصصية التي تساعدك على اختيار الحاوية وتنظيم نقل المخلفات لمشروعك في الرياض.</p>
+        <nav aria-label="فهرس الأدلة المنشورة" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;text-align:right">${directoryCards}</nav>
+      </section>`,
+  });
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
 // 5. صفحة الأسعار /pricing/index.html
 // ══════════════════════════════════════════════════════════════════════════════

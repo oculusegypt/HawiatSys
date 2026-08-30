@@ -429,7 +429,7 @@ export default function Home() {
     <div className="min-h-screen bg-background font-sans" dir="rtl">
       <Navbar />
 
-      <main>
+      <main className="home-main text-center">
         {(sectionsOrder.length ? sectionsOrder : ["hero", "stats", "packages", "services", "about", "ceo", "how_it_works", "why_choose_us", "areas", "values", "testimonials", "partners", "blog", "service_request", "contact"])
           .filter(id => !hiddenSections.includes(id))
           .map(id => (

@@ -23,6 +23,7 @@ const PrivacyPage = lazy(() => import("@/pages/PrivacyPage"))
 const TermsPage = lazy(() => import("@/pages/TermsPage"))
 const Chat = lazy(() => import("@/pages/Chat"))
 const SeoPage = lazy(() => import("@/pages/SeoPage"))
+const SeoPagesIndexPage = lazy(() => import("@/pages/SeoPagesIndexPage"))
 const NotFound = lazy(() => import("@/pages/not-found"))
 
 export function PublicRoutes() {
@@ -102,6 +103,8 @@ export function PublicRoutes() {
 
         <Route path="/page/:slug" component={SeoPage} />
         <Route path="/page/:slug/" component={SeoPage} />
+        <Route path="/pages" component={SeoPagesIndexPage} />
+        <Route path="/pages/" component={SeoPagesIndexPage} />
         <Route path="/pages/:slug" component={SeoPage} />
         <Route path="/pages/:slug/" component={SeoPage} />
         <Route path="/صفحة/:slug" component={SeoPage} />
