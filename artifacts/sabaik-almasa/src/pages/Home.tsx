@@ -158,6 +158,7 @@ function injectLocalBusinessSchema({
 }
 
 import { HeroSlider } from "@/components/home/HeroSlider"
+import { HomeSeoIntro } from "@/components/home/HomeSeoIntro"
 
 type HomeSectionLoader = () => Promise<{ default: ComponentType<any> }>
 
@@ -270,6 +271,7 @@ function SectionBlock({
       return (
         <>
           <HeroSlider />
+          <HomeSeoIntro />
           <DeferredHomeSection load={loadAdsSection} props={{ position: "after_hero" }} minHeight="min-h-0" />
         </>
       )
@@ -347,7 +349,6 @@ export default function Home() {
   const siteSettings = useSiteSettings()
   const {
     companyName,
-    description,
     logoUrl,
     phones,
     phoneCall,
@@ -370,11 +371,14 @@ export default function Home() {
     isLoaded,
   } = siteSettings
 
+  const homeTitle = companyName
+    ? `تأجير الحاويات بالرياض ونقل مخلفات البناء | ${companyName}`
+    : "تأجير الحاويات بالرياض ونقل مخلفات البناء"
+  const homeDescription = "تأجير الحاويات بالرياض ونقل مخلفات البناء والهدم للمطاعم والمنشآت. اختر حاوية نفايات أو أنقاض، وحدد المقاس والموعد واطلب عرضاً واضحاً من تقي جروب."
+
   useDocumentSEO({
-    title: companyName
-      ? `${companyName} | تأجير حاويات الأنقاض والنفايات بالرياض`
-      : "تأجير حاويات الأنقاض والنفايات بالرياض | توصيل وسحب فوري",
-    description: description || "تأجير حاويات الأنقاض والنفايات والمكابس ونقل مخلفات البناء والهدم وعقود النظافة الإلكترونية في الرياض.",
+    title: homeTitle,
+    description: homeDescription,
     canonical: getSiteUrl() ? `${getSiteUrl()}/` : undefined,
     ogImage: "/images/seo/taqi-home.jpg",
     ogImageAlt: "تأجير حاويات الأنقاض والنفايات بالرياض مع التوصيل والسحب",
@@ -386,12 +390,10 @@ export default function Home() {
 
   useEffect(() => {
     if (!isLoaded) return
-    document.title = companyName
-      ? `${companyName} | تأجير حاويات الأنقاض والنفايات بالرياض`
-      : "تأجير حاويات مخلفات الأنقاض والنفايات بالرياض | توصيل وسحب فوري 24/7"
+    document.title = homeTitle
     injectLocalBusinessSchema({
       companyName,
-      description,
+      description: homeDescription,
       logoUrl,
       phones,
       address,
@@ -408,7 +410,6 @@ export default function Home() {
     return () => { document.getElementById("local-business-schema")?.remove() }
   }, [
     companyName,
-    description,
     logoUrl,
     phones,
     address,
@@ -423,6 +424,8 @@ export default function Home() {
     socialLinks,
     publicUrl,
     isLoaded,
+    homeDescription,
+    homeTitle,
   ])
 
   return (

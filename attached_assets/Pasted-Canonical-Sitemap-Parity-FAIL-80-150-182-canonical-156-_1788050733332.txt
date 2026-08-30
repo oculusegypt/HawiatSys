@@ -1,0 +1,61 @@
+Canonical ↔ Sitemap Parity
+
+FAIL 80%
+
+150 رابطًا متطابقًا من 182 canonical و156 رابط Sitemap
+
+بعد توليد خريطة الموقع الجديده
+
+وايضا Content FreshnessNew Your page shows recency signals, though it could indicate freshness more strongly. تقدم الصفحة إشارة حداثة عبر حقوق النشر لعام 2026، لكنها تفتقر إلى تاريخ نشر أو تحديث محدد. Generative engines favour content that appears current. Visible recency signals such as dates and recent information make your page more likely to be surfaced and cited.
+
+Show publish or "last updated" dates, reference the current year and recent information, and keep details such as prices and events up to date.
+
+و Answer AlignmentNew Your page includes little question-and-answer style content. تتضمن الصفحة روابط وقسماً للأسئلة الشائعة، لكن الإجابات الفعلية بصيغة سؤال وجواب محدودة الظهور. Content in explicit question-and-answer format (such as an FAQ) maps directly to the queries people ask LLMs, making it easier for your content to be surfaced and cited.
+
+Add an FAQ section, or structure relevant content as clear questions with concise, self-contained answers beneath them.
+
+و Rendered Content (LLM Readability) Your page has a high level of rendering (changes to the HTML). Rendering Percentage: 416% Dynamically rendering a lot of page content risks some important information being missed by LLMs that generally do not read this content. LLMs and AI Crawlers predominantly read the raw HTML of a website instead of the completed, dynamically rendered HTML produced in a web-browser, that may have been updated by Javascript. This stems from LLMs being naturally optimized to parse static content like documents and files as well as the fact that rendering website Javascript at scale is expensive, slow, and can be less consistent.
+
+You should ensure that important site content is always present in the raw HTML of your site and minimize the usage of plugins and Javascript components known to add content dynamically. This requires a moderate technical understanding to achieve and test.
+
+و Amount of Content Your page has a low volume of text content which search engines can interpret as 'thin content'. Word Count: 858 It has been well researched that higher text content volumes are related to better ranking ability in general. Numerous studies have shown that there is a relationship between the amount of content on a page (typically measured in word count) and it's ranking potential - generally longer content will rank higher. Obviously content also needs to be topically relevant, keyword rich and highly readable for the visitor. Note, in our assessment, we look at all selectable text on the page at load time, not hidden content.
+
+As a general guideline, it is recommended to have atleast 500 words of content on a page to give it some ranking potential. However this should be considered on a case by case basis. It may not be relevant for particular pages like 'contact us' pages for example.
+
+Learn more in our guide
+
+حل هذا المشاكل بالكامل وبدون تهاون وابدأ بالاهم والاصعب والاهم بالنسبه لترتيبي في تائج البحث الاولي
+
+Free
+2 minutes ago
+Improving homepage SEO
+
+Improving homepage SEO
+سأتعامل مع التقرير كفحص إنتاجي لا كملاحظة شكلية. سأبدأ بأعلى تأثير على الفهرسة: تحديد مصدر الـ26 canonical الزائدة، ثم أصلح التطابق من المصدر المشترك بين الواجهة وـSitemap، وبعدها أقوّي HTML الأولي للصفحة الرئيسية بتاريخ تحديث واضح، أسئلة وأجوبة فعلية، ومحتوى عربي كافٍ قبل JavaScript. ثم سأعيد بناء الأرشيف وأعيد قياس كل بند من التقرير.
+
+
+
+Show less
+
+Checked git status
+
+Found files
+
+Processed text
+
+Processed text
+
+Ran a Node.js script
+Calculating canonical counts
+
+Calculating canonical counts
+Calculating canonical counts
+
+I'm looking into some analyzer reports that suggest there are 182 canonical tags, but I'm puzzled about the potential non-indexable aliases included in that count. It seems that our savePage function is using the same canonical for the primary page, which might complicate things. So, I need to verify if there are perhaps 26 extra canonical duplicates for noindex aliases. It looks like I should calculate the total HTML elements too and ensure the unique canonicals are accounted for!
+
+Calculating canonical parity
+
+Calculating canonical parity
+Calculating canonical parity
+
+I need to fix the canonical parity based on external tool counts, which indicates 182 unique canonical tags versus 156 in the sitemap. I realize that if alias pages have canonical tags pointing to the primary URLs, the unique count should be 156. However, the 182 could be due to dynamic routes with canonical tags. I'll calculate the current build with a total HTML of 326, where 156 are indexable. Time to use a script!

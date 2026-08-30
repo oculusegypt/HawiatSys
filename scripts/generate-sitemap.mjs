@@ -9,6 +9,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { requirePublicOrigin } from "./public-origin.mjs";
 import { entityPath } from "./friendly-slug.mjs";
+import { ARABIC_AREA_SLUGS, assertAreaRouteParity } from "./seo-area-routes.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(join(root, "lib", "db", "package.json"));
@@ -99,10 +100,11 @@ const legacyContainerRows = tableExists("containers") ? db.prepare(`
 const containers = packageRows.length ? packageRows : legacyContainerRows;
 
 const posts = db.prepare(`
-   SELECT id, title, slug, cover_image AS coverImage, og_image AS ogImage,
+   SELECT id, title, slug, seo_slug AS seoSlug, cover_image AS coverImage, og_image AS ogImage,
          published_at AS publishedAt, updated_at AS updatedAt
   FROM posts
-  WHERE status = 'published' AND is_active = 1 AND slug IS NOT NULL AND slug != ''
+   WHERE status = 'published' AND is_active = 1
+     AND ((slug IS NOT NULL AND slug != '') OR (seo_slug IS NOT NULL AND seo_slug != ''))
   ORDER BY published_at DESC
 `).all();
 
@@ -208,7 +210,7 @@ for (const container of containers) {
 
 for (const post of posts) {
   addEntry({
-    path: `/blog/${entityPath({ slug: post.slug, title: post.title, id: post.id, fallback: "post" })}`,
+    path: `/blog/${entityPath({ slug: post.slug || post.seoSlug, title: post.title, id: post.id, fallback: "post" })}`,
     priority: "0.85",
     changefreq: "weekly",
     title: post.title,
@@ -289,15 +291,19 @@ const ALL_NEIGHBORHOODS = [
 ];
 
 for (const area of ALL_NEIGHBORHOODS) {
+  if (!ARABIC_AREA_SLUGS[area.slug]) {
+    throw new Error(`Missing canonical Arabic slug for area: ${area.slug}`);
+  }
   const title = `تأجير حاويات ونقل مخلفات في ${area.name}`;
   addEntry({
-    path: `/areas/${area.arabic}`,
+    path: `/areas/${ARABIC_AREA_SLUGS[area.slug]}`,
     priority: "0.85",
     changefreq: "weekly",
     title,
     images: ["/images/hero-1.webp"],
   });
 }
+assertAreaRouteParity("generate-sitemap.mjs", ALL_NEIGHBORHOODS.map((area) => area.slug));
 
 const xml = [
   '<?xml version="1.0" encoding="UTF-8"?>',

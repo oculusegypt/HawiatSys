@@ -846,4 +846,8 @@ if (existsSync(zipPath)) {
   console.log(`✅ الأرشيف الرسمي جاهز: cleanflow-services-hostinger.zip (${sizeKb} KB)`);
   console.log("✅ نسخة توافقية مطابقة: taqi-group-hostinger.zip");
   console.log(`${"═".repeat(60)}\n`);
+  run(
+    "pnpm --filter @workspace/scripts run seo-quality-gate",
+    "تشغيل بوابة SEO على الأرشيف النهائي",
+  );
 }
