@@ -853,7 +853,7 @@ try {
         }
         $source = preg_replace('/[\x{064B}-\x{065F}\x{0670}\x{0640}]/u', '', $source) ?? $source;
         $source = str_replace('&', ' و ', $source);
-        $source = preg_replace('/[\'’`"]/', '', $source) ?? $source;
+        $source = preg_replace('/[\'’`"]/u', '', $source) ?? $source;
         $source = preg_replace('/[^\x{0600}-\x{06FF}\x{0750}-\x{077F}0-9a-zA-Z-]+/u', '-', $source) ?? '';
         $source = trim(preg_replace('/-+/', '-', $source) ?? '', '-');
         if ($source === '') return $fallback;
@@ -878,7 +878,16 @@ try {
                 : ($hasArabic($rawTitle) ? $rawTitle : ($rawSlug !== '' ? $rawSlug : $rawTitle)));
         $suffix = $id === null || $id === '' ? '' : '-' . preg_replace('/[^0-9]/', '', (string)$id);
         $base = publicFriendlySlug($value, $fallback . $suffix);
-        return $base . ($suffix !== '' && !str_ends_with($base, $suffix) ? $suffix : '');
+        if ($suffix !== '' && str_ends_with($base, $suffix)) {
+            $base = rtrim(substr($base, 0, -strlen($suffix)), '-');
+        }
+        $baseLimit = $suffix !== '' ? max(12, 56 - strlen($suffix) - 1) : 56;
+        $characters = preg_split('//u', $base, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        if (count($characters) > $baseLimit) {
+            $prefix = implode('', array_slice($characters, 0, $baseLimit));
+            $base = trim(preg_replace('/-[^-]*$/u', '', $prefix) ?? $prefix, '-');
+        }
+        return $base . $suffix;
     }
 
     // Keep content creation/update SEO-complete on Hostinger too. This mirrors
@@ -3588,18 +3597,16 @@ try {
                 'id' => (int)$s['id'],
                 'title' => $s['title'],
                 'description' => $s['description'],
-                'price' => $s['price'] ?? null,
-                'priceText' => $s['price_text'] ?? null,
+                'icon' => $s['icon'] ?? null,
                 'imageUrl' => $s['image_url'] ?? null,
                 'images' => $s['images'] ?? '[]',
-                'category' => $s['category'] ?? null,
-                'features' => $s['features'] ?? '[]',
-                'seoTitle' => $s['seo_title'] ?? null,
-                'seoDescription' => $s['seo_description'] ?? null,
-                'seoKeywords' => $s['seo_keywords'] ?? null,
-                'seoSlug' => $s['seo_slug'] ?? null,
                 'order' => (int)($s['sort_order'] ?? 0),
-                'isActive' => (bool)$s['is_active']
+                'isActive' => (bool)($s['is_active'] ?? true),
+                'seoEnabled' => (bool)($s['seo_enabled'] ?? false),
+                'seoTitle' => $s['seo_title'] ?? '',
+                'seoDescription' => $s['seo_description'] ?? '',
+                'seoKeywords' => $s['seo_keywords'] ?? '',
+                'seoSlug' => $s['seo_slug'] ?? ''
             ], JSON_UNESCAPED_UNICODE);
             exit;
         } else {
@@ -3859,6 +3866,11 @@ try {
         }
 
         if ($pkg) {
+            $features = $pkg['features'] ?? [];
+            if (is_string($features)) {
+                $decodedFeatures = json_decode($features, true);
+                $features = is_array($decodedFeatures) ? $decodedFeatures : [];
+            }
             echo json_encode([
                 'id' => (int)$pkg['id'],
                 'name' => $pkg['name'],
@@ -3866,7 +3878,7 @@ try {
                 'size' => $pkg['size'] ?? '',
                 'capacity' => $pkg['capacity'] ?? '',
                 'description' => $pkg['description'],
-                'features' => $pkg['features'] ?? '[]',
+                'features' => $features,
                 'suitableFor' => $pkg['suitable_for'] ?? '',
                 'priceText' => $pkg['price_text'] ?? '',
                 'priceNote' => $pkg['price_note'] ?? '',
@@ -4128,20 +4140,9 @@ try {
             $limit = min(50, max(1, (int)($_GET['limit'] ?? 12)));
             $offset = ($page - 1) * $limit;
             $category = trim((string)($_GET['category'] ?? ''));
+            $tag = trim((string)($_GET['tag'] ?? ''));
 
-            $whereSql = "status = 'published' AND is_active = 1";
-            $params = [];
-            if (!empty($category)) {
-                $whereSql .= " AND category = :cat";
-                $params[':cat'] = $category;
-            }
-
-            $countStmt = $pdo->prepare("SELECT COUNT(*) FROM posts WHERE {$whereSql}");
-            $countStmt->execute($params);
-            $total = (int)$countStmt->fetchColumn();
-
-            $stmt = $pdo->prepare("SELECT * FROM posts WHERE {$whereSql} ORDER BY published_at DESC, id DESC LIMIT {$limit} OFFSET {$offset}");
-            $stmt->execute($params);
+            $stmt = $pdo->query("SELECT * FROM posts WHERE status = 'published' AND is_active = 1 ORDER BY published_at DESC, id DESC");
             $posts = $stmt->fetchAll();
             $companyName = seoAutoCompanyName($pdo);
 
@@ -4153,12 +4154,12 @@ try {
                     'content' => seoAutoCompanyText($p['content'] ?? '', $companyName),
                     'excerpt' => seoAutoCompanyText($p['excerpt'] ?? '', $companyName),
                     'coverImage' => seoAutoCompanyText($p['cover_image'] ?? '', $companyName),
-                    'author' => seoAutoCompanyText($p['author'] ?? 'مؤسسة تقي جروب', $companyName),
-                    'category' => seoAutoCompanyText($p['category'] ?? 'حاويات الأنقاض', $companyName),
+                    'author' => seoAutoCompanyText($p['author'] ?? 'الشركة', $companyName),
+                    'category' => seoAutoCompanyText($p['category'] ?? 'عام', $companyName),
                     'tags' => $p['tags'] ?? '[]',
                     'status' => $p['status'] ?? 'published',
                     'publishedAt' => $p['published_at'],
-                    'readTime' => is_numeric($p['read_time'] ?? null) ? (int)$p['read_time'] : 5,
+                    'readTime' => is_numeric($p['read_time'] ?? null) ? (int)$p['read_time'] : 3,
                     'viewCount' => (int)($p['view_count'] ?? 0),
                     'isActive' => (bool)($p['is_active'] ?? true),
                     'order' => (int)($p['order'] ?? 0),
@@ -4172,6 +4173,14 @@ try {
                     'updatedAt' => $p['updated_at'] ?? null
                 ];
             }, $posts);
+            $formatted = array_values(array_filter($formatted, static function(array $post) use ($category, $tag): bool {
+                if ($category !== '' && ($post['category'] ?? '') !== $category) return false;
+                if ($tag === '') return true;
+                $tags = json_decode((string)($post['tags'] ?? '[]'), true);
+                return is_array($tags) && in_array($tag, $tags, true);
+            }));
+            $total = count($formatted);
+            $formatted = array_slice($formatted, $offset, $limit);
 
             echo json_encode([
                 'posts' => $formatted,

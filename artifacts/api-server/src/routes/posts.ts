@@ -94,31 +94,24 @@ router.get("/posts", async (req, res) => {
     const page  = Math.max(1, parseInt(req.query.page as string) || 1);
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string) || 12));
     const offset = (page - 1) * limit;
+    const category = req.query.category as string | undefined;
+    const tag      = req.query.tag      as string | undefined;
 
     const rows = await db
       .select()
       .from(postsTable)
       .where(and(eq(postsTable.status, "published"), eq(postsTable.isActive, true)))
       .orderBy(desc(postsTable.publishedAt), desc(postsTable.id))
-      .limit(limit)
-      .offset(offset);
-
-    const all = await db
-      .select({ id: postsTable.id })
-      .from(postsTable)
-      .where(and(eq(postsTable.status, "published"), eq(postsTable.isActive, true)));
-
-    const category = req.query.category as string | undefined;
-    const tag      = req.query.tag      as string | undefined;
-
     const companyName = await getSetting("company_name");
-    let filtered = rows.map(row => castRow(row, companyName));
-    if (category) filtered = filtered.filter(p => p.category === category);
-    if (tag)      filtered = filtered.filter(p => {
-      try { return (JSON.parse(p.tags) as string[]).includes(tag); } catch { return false; }
-    });
+    const publicPosts = rows
+      .map(row => castRow(row, companyName))
+      .filter(post => {
+        if (category && post.category !== category) return false;
+        if (!tag) return true;
+        try { return (JSON.parse(post.tags) as string[]).includes(tag); } catch { return false; }
+      });
 
-    return res.json({ posts: filtered, total: all.length, page, limit });
+    return res.json({ posts: publicPosts.slice(offset, offset + limit), total: publicPosts.length, page, limit });
   } catch (e) {
     return res.json({ posts: [], total: 0, page: 1, limit: 12 });
   }

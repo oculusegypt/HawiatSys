@@ -1,0 +1,140 @@
+كمّل من **آخر نقطة توقفت عندها حرفيًا** ولا تبدأ Audit جديد ولا تعيد قراءة المشروع من الصفر.
+
+آخر حالة مؤكدة قبل توقفك كانت:
+
+* تم إصلاح `publicEntitySlug` / Unicode truncation في PHP.
+* تم إصلاح regex بإضافة `u` لمعالجة النصوص UTF-8.
+* تم بناء الـHostinger ZIP مرة أخيرة بعد الإصلاح.
+* `SEO quality gate` مرّ PASS.
+* تم إيقاف الـAPI واستعادة قاعدة البيانات ثم إعادة تشغيله قبل آخر Build.
+* آخر خطوة فعلية بدأت بها كانت اختبار aliases، ثم توقف التنفيذ بسبب quota.
+* بقي **التحقق النهائي فقط**، وليس إعادة تحليل المشروع.
+
+أكمل تحديدًا من هنا:
+
+### 1. أكمل اختبار الـ aliases
+
+لا تكتفِ بعينة الـ50.
+
+اختبر **جميع المقالات الـ65**، وقارن:
+
+* Node `entitySlug`
+* PHP `publicEntitySlug`
+* PHP detail endpoint
+* Node detail endpoint
+
+الهدف:
+**65/65 aliases PASS**.
+
+إذا بقي أي failure:
+
+* لا تفترض السبب.
+* اطبع الـID + title + alias المتوقع + alias PHP + alias Node.
+* حدّد الفرق الفعلي.
+* أصلح المصدر فقط.
+* لا تعمل workaround خاص بسجل معين.
+
+### 2. لا تلمس DB بالاختبارات بدون خطة
+
+اختبارات detail قد تزيد `viewCount`، لذلك:
+
+* نفّذ اختبارات القوائم والفلاتر أولًا.
+* ثم اختبارات التفاصيل.
+* بعد انتهاء probes أوقف الـAPI بأمان.
+* استعد نسخة DB النظيفة المطلوبة.
+* أعد تشغيل الـAPI.
+* لا تترك DB متأثرة بعدادات الاختبار.
+
+### 3. أثبت API parity النهائي
+
+تحقق فعليًا من Node وPHP في:
+
+* services list
+* service detail
+* packages list/detail
+* posts list
+* post detail
+* containers list/detail إذا كان endpoint ما زال ضمن العقد
+* pagination
+* category filter
+* tag filter
+* aliases
+* response field types
+* fallback values
+
+خصوصًا الأشياء التي سبق اكتشافها وإصلاحها:
+
+* PHP `readTime`
+* PHP `features`
+* post `category/tag`
+* pagination قبل/بعد filtering
+* service detail contract
+* post alias الطويل بالعربية/Unicode.
+
+لا تعتبر أي نقطة PASS من مجرد قراءة الكود؛ المطلوب runtime evidence.
+
+### 4. تحقق من الـZIP النهائي
+
+بعد اكتمال الإصلاحات:
+
+* أعد `scripts/build-hostinger.mjs` فقط إذا كان المصدر تغير.
+* شغّل SEO quality gate على النسخة النهائية.
+* تحقق من ZIP integrity.
+* تحقق من SHA/hash.
+* تحقق أن الـDB الموجودة داخل ZIP هي نفس DB النظيفة المقصودة.
+* تحقق أن ملفات PHP المعدلة موجودة فعلًا داخل الأرشيف، وليست فقط في source tree.
+
+### 5. شغّل فحوص التسليم النهائية
+
+استخدم الاختبارات الموجودة فعليًا في المشروع، ولا تخترع npm/pnpm script غير موجود.
+
+تحقق من:
+
+* PHP lint
+* operational invariants
+* SEO gate
+* API parity
+* SQLite integrity
+* ZIP integrity
+
+### 6. مهم جدًا
+
+لا توسّع نطاق المهمة.
+
+لا:
+
+* تعيد Audit شامل.
+* تعيد تصميم architecture.
+* تضيف تحسينات SEO جديدة غير مطلوبة.
+* تغيّر DB schema.
+* تغيّر محتوى تجاري.
+* تغيّر routing بدون دليل.
+* تضف refactor لمجرد تحسين الكود.
+
+**المطلوب الآن Closure Verification فقط.**
+
+إذا وجدت failure حقيقي:
+
+1. أثبته.
+2. حدّد السبب.
+3. أصلحه بأضيق patch.
+4. أعد الاختبار.
+5. لا تنتقل للحكم النهائي إلا بعد أن تثبت الإصلاح.
+
+وفي النهاية أعطني تقريرًا مختصرًا بالأرقام، بهذا الشكل:
+
+* Aliases: X/65 PASS
+* Node/PHP API parity: PASS/FAIL + التفاصيل
+* Pagination/filter parity: PASS/FAIL
+* Detail contracts: PASS/FAIL
+* PHP lint: PASS/FAIL
+* Operational invariants: X/X
+* SEO gate: PASS/FAIL
+* SQLite integrity: PASS/FAIL
+* ZIP integrity: PASS/FAIL
+* Final DB state: CLEAN / MUTATED
+* Final ZIP built from verified source: YES/NO
+
+ثم اذكر **فقط المشاكل المتبقية إن وجدت**.
+
+لا تقل "تم الإغلاق" أو "PASS" اعتمادًا على تقرير سابق؛ الحكم النهائي يجب أن يكون مبنيًا على الاختبارات التي ستنفذها الآن.
