@@ -66,6 +66,37 @@ const FAQS: FAQItem[] = [
   }
 ]
 
+function normalizeArabicSearch(value: string): string {
+  return value
+    .normalize("NFKC")
+    .replace(/[\u064B-\u065F\u0670\u0640]/g, "")
+    .replace(/[إأآٱ]/g, "ا")
+    .replace(/ة/g, "ه")
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((token) => {
+      const withoutArticle = token.replace(/^ال/, "")
+      if (/^(?:حاويه|حاويه|حاويات|حاويه)$/.test(withoutArticle) || withoutArticle === "حاويه") return "حاويه"
+      if (/^(?:اختار|اختيار|اختيارات|اختيارا)$/.test(withoutArticle)) return "اختيار"
+      if (/^(?:مقاس|مقاسات)$/.test(withoutArticle)) return "مقاس"
+      return withoutArticle
+    })
+    .join(" ")
+}
+
+function matchesArabicSearch(item: FAQItem, query: string): boolean {
+  const normalizedQuery = normalizeArabicSearch(query)
+  if (!normalizedQuery) return true
+  const searchableText = normalizeArabicSearch(`${item.q} ${item.a} ${item.category}`)
+  const queryTokens = normalizedQuery.split(" ").filter(Boolean)
+  const matchedTokens = queryTokens.filter((token) => searchableText.includes(token))
+  // Natural Arabic questions often vary word order and inflection. Require the
+  // meaningful terms to overlap rather than relying on a literal full-string match.
+  return matchedTokens.length >= Math.min(2, queryTokens.length)
+}
+
 export default function FaqPage() {
   const siteSettings = useSiteSettings()
   const [activeCategory, setActiveCategory] = useState("الكل")
@@ -76,9 +107,7 @@ export default function FaqPage() {
 
   const filteredFaqs = FAQS.filter(item => {
     const matchCat = activeCategory === "الكل" || item.category === activeCategory
-    const matchQuery = !searchQuery.trim() ||
-      item.q.includes(searchQuery.trim()) ||
-      item.a.includes(searchQuery.trim())
+    const matchQuery = matchesArabicSearch(item, searchQuery)
     return matchCat && matchQuery
   })
 

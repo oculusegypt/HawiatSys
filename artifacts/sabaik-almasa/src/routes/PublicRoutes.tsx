@@ -53,10 +53,14 @@ export function PublicRoutes() {
 
         <Route path="/privacy" component={PrivacyPage} />
         <Route path="/privacy/" component={PrivacyPage} />
+        <Route path="/privacy-policy"><Redirect to="/privacy" /></Route>
+        <Route path="/privacy-policy/"><Redirect to="/privacy" /></Route>
         <Route path="/سياسة-الخصوصية" component={PrivacyPage} />
 
         <Route path="/terms" component={TermsPage} />
         <Route path="/terms/" component={TermsPage} />
+        <Route path="/terms-and-conditions"><Redirect to="/terms" /></Route>
+        <Route path="/terms-and-conditions/"><Redirect to="/terms" /></Route>
         <Route path="/الشروط-والأحكام" component={TermsPage} />
 
         <Route path="/partners" component={PartnersPage} />

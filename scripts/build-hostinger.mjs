@@ -437,11 +437,19 @@ const platformTarget = join(ROOT, "build_php/taqi-group-platform");
 rmSync(platformTarget, { recursive: true, force: true });
 mkdirSync(platformTarget, { recursive: true });
 cpSync(platformDist, platformTarget, { recursive: true });
+// The artifact is previewed under /cleanflow-platform/ while older public
+// links and the production SEO inventory use /taqi-group-platform/. Ship both
+// directories so either established URL remains reachable on static hosting.
+const platformCompatibilityTarget = join(ROOT, "build_php/cleanflow-platform");
+rmSync(platformCompatibilityTarget, { recursive: true, force: true });
+mkdirSync(platformCompatibilityTarget, { recursive: true });
+cpSync(platformDist, platformCompatibilityTarget, { recursive: true });
 const publicOriginForPlatform = archivePublicOrigin();
 if (!publicOriginForPlatform) {
   throw new Error("لم يمكن تحديد نطاق HTTPS عام لإعادة ضبط SEO الخاصة بمنصة CleanFlow");
 }
 rewritePlatformOrigin(platformTarget, publicOriginForPlatform);
+rewritePlatformOrigin(platformCompatibilityTarget, publicOriginForPlatform);
 console.log("  ✅ صفحة المنصة + الشعار + الأصول نُسخت");
 
 // ── 3. WAL checkpoint ─────────────────────────────────────────────────────────

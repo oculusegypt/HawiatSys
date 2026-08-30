@@ -24,7 +24,7 @@ export default function ContactPage() {
     title: companyName ? `تواصل معنا — ${companyName} لتأجير الحاويات | الرياض` : "تواصل معنا — تأجير الحاويات بالرياض",
     description: `تواصل لحجز وتأجير حاويات الأنقاض والنفايات وعقود النظافة الإلكترونية بالرياض. اتصل بنا على ${phoneWhatsapp || phoneCall} أو عبر واتساب.`,
     keywords: "تواصل تأجير الحاويات, رقم تأجير حاويات بالرياض, هاتف حاويات أنقاض بالرياض",
-    canonical: siteUrl("/contact/"),
+    canonical: siteUrl("/contact"),
   })
 
   return (

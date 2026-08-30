@@ -25,6 +25,27 @@ function getTodayString() {
   return `${year}-${month}-${day}`
 }
 
+function getTomorrowString() {
+  const tomorrow = new Date()
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  const year = tomorrow.getFullYear()
+  const month = String(tomorrow.getMonth() + 1).padStart(2, "0")
+  const day = String(tomorrow.getDate()).padStart(2, "0")
+  return `${year}-${month}-${day}`
+}
+
+function formatScheduledAppointment(date: string, time: string) {
+  if (!date) return ""
+  try {
+    return new Intl.DateTimeFormat("ar-SA", {
+      dateStyle: "full",
+      timeStyle: "short",
+    }).format(new Date(`${date}T${time || "10:00"}:00`))
+  } catch {
+    return `${date} ${time || "10:00"}`
+  }
+}
+
 function normalizePhone(value: string) {
   const arabicDigits = "٠١٢٣٤٥٦٧٨٩"
   return value
@@ -129,6 +150,8 @@ export function ServiceRequestModal() {
       setServiceType(initService)
       setContainerSize(initContainer)
       setAppointmentType("immediate")
+      setScheduledDate(getTomorrowString())
+      setScheduledTime("10:00")
       setLocation("")
       setClientName(preselect?.clientName || "")
       setPhone(preselect?.phone || "")
@@ -520,6 +543,22 @@ export function ServiceRequestModal() {
                 <p className="text-xs text-gray-600 max-w-xs mx-auto leading-relaxed">
                   شكراً لاختيارك {companyName || "خدماتنا"}. سيقوم مندوبنا بالتواصل معك هاتفياً أو عبر واتساب لتأكيد وصول الحاوية.
                 </p>
+
+                 <div className="mx-auto w-full max-w-sm rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4 text-right text-xs text-gray-700 space-y-2" data-testid="order-confirmation-summary">
+                   <p className="font-bold text-emerald-900">ملخص البيانات المرسلة</p>
+                   <p><span className="font-bold">الخدمة:</span> {serviceType || "حاويات الأنقاض"}{containerSize ? ` — ${containerSize}` : ""}</p>
+                   {clientName && <p><span className="font-bold">الاسم:</span> {clientName}</p>}
+                   {phone && <p><span className="font-bold">الجوال:</span> {phone}</p>}
+                   {location && <p><span className="font-bold">الموقع:</span> {location}</p>}
+                   <p>
+                     <span className="font-bold">الموعد:</span>{" "}
+                     {appointmentType === "scheduled"
+                       ? formatScheduledAppointment(scheduledDate, scheduledTime)
+                       : "فوري خلال ساعتين"}
+                   </p>
+                   {duration && <p><span className="font-bold">المدة:</span> {duration}</p>}
+                   {notes && <p><span className="font-bold">الملاحظات:</span> {notes}</p>}
+                 </div>
 
                 <div className="pt-4 flex flex-col gap-2">
                   {orderTrackingEnabled ? (

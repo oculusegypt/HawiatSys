@@ -17,8 +17,9 @@ import { Navbar } from "@/components/layout/Navbar"
 import { Footer } from "@/components/layout/Footer"
 import { useServiceRequest } from "@/context/ServiceRequestContext"
 import { normalizeCompanyText, useSiteSettings } from "@/context/SiteSettingsContext"
-import { getSiteUrl } from "@/lib/siteUrl"
+import { siteUrl } from "@/lib/siteUrl"
 import { normalizeSeoDescription } from "@/lib/seoText"
+import { useDocumentSEO } from "@/hooks/useDocumentSEO"
 
 export interface AreaData {
   name: string
@@ -220,8 +221,9 @@ export function resolveArea(rawSlug: string) {
 }
 
 export default function NeighborhoodPage() {
-  const [, params] = useRoute("/areas/:slug")
-  const rawSlug = params?.slug ?? ""
+  const [, latinParams] = useRoute("/areas/:slug")
+  const [, arabicParams] = useRoute("/الأحياء/:slug")
+  const rawSlug = latinParams?.slug ?? arabicParams?.slug ?? ""
   const resolved = resolveArea(rawSlug)
   const area = resolved?.area
   const activeSlug = resolved?.slug || rawSlug
@@ -242,17 +244,20 @@ export default function NeighborhoodPage() {
   const areaDescription = area
     ? normalizeSeoDescription(normalizeCompanyText(area.description), area.name)
     : ""
+  const canonical = area ? siteUrl(`/areas/${encodeURIComponent(activeSlug)}`) : siteUrl("/areas")
+
+  useDocumentSEO({
+    title: areaTitle || "أحياء الرياض وخدمات تأجير الحاويات",
+    description: areaDescription || "تعرف على خدمات تأجير الحاويات ونقل مخلفات البناء في أحياء الرياض.",
+    keywords: area?.keywords.join("، "),
+    canonical,
+    ogImage: "/images/seo/taqi-areas.jpg",
+    ogImageAlt: area ? `تأجير الحاويات ونقل المخلفات في ${area.name}` : "خدمات تأجير الحاويات في أحياء الرياض",
+    indexable: Boolean(area),
+  })
 
   useEffect(() => {
     if (!area) return
-
-    const origin = getSiteUrl()
-    document.title = areaTitle
-    document.querySelector("meta[name='description']")?.setAttribute("content", areaDescription)
-    document.querySelector("link[rel='canonical']")?.setAttribute(
-      "href",
-      `${origin}/areas/${encodeURIComponent(activeSlug)}`,
-    )
 
     const schemaId = "neighborhood-schema"
     document.getElementById(schemaId)?.remove()
@@ -263,11 +268,11 @@ export default function NeighborhoodPage() {
       {
         "@context": "https://schema.org",
         "@type": "LocalBusiness",
-        "@id": `${origin}/#local-business`,
+        "@id": `${siteUrl("/") }#local-business`,
         name: `${currentCompany} — ${area.name}`,
         description: areaDescription,
-        url: `${origin}/areas/${encodeURIComponent(activeSlug)}`,
-        image: logoUrl || `${origin}/images/logo.png`,
+        url: canonical,
+        image: logoUrl || siteUrl("/images/logo.png"),
         priceRange: priceRange || "$$",
         ...(phoneCall ? { telephone: `+966${phoneCall.replace(/^0/, "")}` } : {}),
         address: {
@@ -292,9 +297,9 @@ export default function NeighborhoodPage() {
         "@context": "https://schema.org",
         "@type": "BreadcrumbList",
         itemListElement: [
-          { "@type": "ListItem", position: 1, name: "الرئيسية", item: `${origin}/` },
-          { "@type": "ListItem", position: 2, name: "أحياء الرياض", item: `${origin}/areas` },
-          { "@type": "ListItem", position: 3, name: area.name, item: `${origin}/areas/${encodeURIComponent(activeSlug)}` },
+          { "@type": "ListItem", position: 1, name: "الرئيسية", item: siteUrl("/") },
+          { "@type": "ListItem", position: 2, name: "أحياء الرياض", item: siteUrl("/areas") },
+          { "@type": "ListItem", position: 3, name: area.name, item: canonical },
         ],
       },
     ])

@@ -31,12 +31,36 @@ const formSchema = z.object({
   scheduledAt: z.string().optional(),
 })
 
+type SubmittedRequestSummary = {
+  orderId: number | null
+  clientName: string
+  phone: string
+  serviceType: string
+  containerSize?: string
+  location: string
+  duration?: string
+  notes?: string
+  appointmentType: "immediate" | "scheduled"
+  scheduledAt?: string
+}
+
+function formatScheduledAppointment(value?: string) {
+  if (!value) return ""
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return new Intl.DateTimeFormat("ar-SA", {
+    dateStyle: "full",
+    timeStyle: "short",
+  }).format(date)
+}
+
 export function ServiceRequestForm() {
   const { companyName, phoneCall, phoneWhatsapp } = useSiteSettings()
   const { toast } = useToast()
   const { mutate: submitRequest, isPending } = useSubmitServiceRequest()
   const { data: apiContainers, isLoading: containersLoading } = useGetContainers()
   const [isSuccess, setIsSuccess] = useState(false)
+  const [submittedSummary, setSubmittedSummary] = useState<SubmittedRequestSummary | null>(null)
   const [isLocked, setIsLocked] = useState(false)
   const [lockedMessage, setLockedMessage] = useState("")
   const [appointmentType, setAppointmentType] = useState<"immediate" | "scheduled">("immediate")
@@ -81,9 +105,19 @@ export function ServiceRequestForm() {
   const availablePackages = getActiveContainers(apiContainers)
 
   // Tomorrow as minimum date for scheduling
+  function getLocalDateTimeValue(date: Date) {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, "0")
+    const day = String(date.getDate()).padStart(2, "0")
+    const hours = String(date.getHours()).padStart(2, "0")
+    const minutes = String(date.getMinutes()).padStart(2, "0")
+    return `${year}-${month}-${day}T${hours}:${minutes}`
+  }
+
   const minDate = new Date()
   minDate.setDate(minDate.getDate() + 1)
-  const minDateStr = minDate.toISOString().slice(0, 16)
+  minDate.setHours(0, 0, 0, 0)
+  const minDateStr = getLocalDateTimeValue(minDate)
   async function handleQuoteSubmit() {
     const errs: { name?: string; phone?: string } = {}
     if (!quoteForm.name.trim()) errs.name = "الاسم مطلوب"
@@ -144,9 +178,22 @@ export function ServiceRequestForm() {
     }
 
     submitRequest({ data: payload as any }, {
-      onSuccess: () => {
+       onSuccess: (response) => {
+         setSubmittedSummary({
+           orderId: response?.id ?? null,
+           clientName: values.clientName,
+           phone: values.phone,
+           serviceType: values.serviceType,
+           containerSize: values.containerSize,
+           location: values.location,
+           duration: values.duration,
+           notes: values.notes,
+           appointmentType,
+           scheduledAt: payload.scheduledAt,
+         })
         setIsSuccess(true)
         form.reset()
+         setAppointmentType("immediate")
         toast({
           title: "تم استلام طلبك بنجاح",
           description: companyName ? `سيتواصل معك فريق ${companyName} لتأكيد التفاصيل وموعد التوصيل.` : "سيتواصل معك فريق العمل لتأكيد التفاصيل وموعد التوصيل.",
@@ -339,8 +386,42 @@ export function ServiceRequestForm() {
               <p className="text-gray-600 mb-8 max-w-md mx-auto">
                 شكراً لاختيارك {companyName || "خدماتنا"}. سيقوم مندوبنا بالتواصل معك لتأكيد وصول الحاوية.
               </p>
-              <Button
-                onClick={() => setIsSuccess(false)}
+               {submittedSummary && (
+                 <div
+                   className="mb-8 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4 text-right text-sm text-gray-700 space-y-2"
+                   data-testid="service-request-form-confirmation"
+                 >
+                   <p className="font-bold text-emerald-900">ملخص البيانات المرسلة</p>
+                   {submittedSummary.orderId !== null && (
+                     <p><span className="font-bold">رقم الطلب:</span> #{submittedSummary.orderId}</p>
+                   )}
+                   <p>
+                     <span className="font-bold">الخدمة:</span>{" "}
+                     {submittedSummary.serviceType}
+                     {submittedSummary.containerSize ? ` — ${submittedSummary.containerSize}` : ""}
+                   </p>
+                   <p><span className="font-bold">الاسم:</span> {submittedSummary.clientName}</p>
+                   <p><span className="font-bold">الجوال:</span> {submittedSummary.phone}</p>
+                   <p><span className="font-bold">الموقع:</span> {submittedSummary.location}</p>
+                   <p>
+                     <span className="font-bold">الموعد:</span>{" "}
+                     {submittedSummary.appointmentType === "scheduled"
+                       ? formatScheduledAppointment(submittedSummary.scheduledAt)
+                       : "فوري خلال ساعتين"}
+                   </p>
+                   {submittedSummary.duration && (
+                     <p><span className="font-bold">المدة:</span> {submittedSummary.duration}</p>
+                   )}
+                   {submittedSummary.notes && (
+                     <p><span className="font-bold">الملاحظات:</span> {submittedSummary.notes}</p>
+                   )}
+                 </div>
+               )}
+               <Button
+                 onClick={() => {
+                   setIsSuccess(false)
+                   setSubmittedSummary(null)
+                 }}
                 variant="outline"
                 className="rounded-xl px-8 border-primary text-primary hover:bg-primary/5 font-bold"
               >

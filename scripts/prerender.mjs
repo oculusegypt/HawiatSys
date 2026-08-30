@@ -2161,7 +2161,11 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
     breadcrumbs: crumbs,
     bodyContent
   });
-  savePage("privacy", html);
+   savePage("privacy", html);
+   // Keep the legacy footer destinations available for existing links and
+   // bookmarks. The canonical remains /privacy so search engines consolidate
+   // both paths.
+   savePage("privacy-policy", html, { noindex: true });
   savePage("سياسة-الخصوصية", html, { noindex: true });
   console.log(`   ✅ صفحة سياسة الخصوصية /privacy`);
 }
@@ -2210,7 +2214,8 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
     breadcrumbs: crumbs,
     bodyContent
   });
-  savePage("terms", html);
+   savePage("terms", html);
+   savePage("terms-and-conditions", html, { noindex: true });
   savePage("الشروط-والأحكام", html, { noindex: true });
   console.log(`   ✅ صفحة الشروط والأحكام /terms`);
 }
