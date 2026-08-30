@@ -1,0 +1,141 @@
+كمّل التنفيذ من آخر نقطة توقفت عندها، ولا تعمل Audit جديد ولا تعيد تحليل المشروع من البداية.
+
+المطلوب الآن واضح جدًا:
+
+**أغلق كل المشاكل التي ظهرت في التقرير الحالي فعليًا داخل الكود والـproduction build، ثم اعمل build وverification.**
+
+آخر نقطة وصلت إليها كانت:
+
+* فحص `seoSchema.ts`
+* فحص `PackageDetail.tsx`
+* فحص `prerender.mjs`
+* فحص `index.html`
+* فحص `seo.md`
+* اكتشاف مشاكل Merchant Product Schema
+* اكتشاف أن `category` قد تكون سبب الخطأ
+* مراجعة Google Search documentation
+* اكتشاف مشكلة FAQ / Answer Alignment
+* البدء في إضافة FAQ للـHomepage
+* ثم توقف التنفيذ بسبب quota.
+
+**لا تعيد هذه الخطوات. أكمل مباشرة.**
+
+### أصلح مشاكل Google Search Console الثلاثة:
+
+1. `hasMerchantReturnPolicy` غير موجود داخل `offers`
+2. `category` قيمة غير صالحة
+3. `shippingDetails` غير موجود داخل `offers`
+
+طبّق الإصلاح في **المصدر المركزي للـSchema** وليس patch منفصل لكل صفحة.
+
+إذا كان `category` غير مطلوب أو يسبب validation problem، أزله بدل اختراع قيمة غير مؤكدة.
+
+أما `hasMerchantReturnPolicy` و`shippingDetails` فأضفهما فقط بالشكل المتوافق فعليًا مع Google Merchant Listing structured data وببيانات حقيقية، وليس بيانات وهمية.
+
+ثم تأكد أن نفس الإصلاح ينعكس في:
+
+* Runtime React
+* Prerender HTML
+* Production build
+
+ولا يوجد Product/Offer Schema قديم مكرر يعيد المشكلة.
+
+### أصلح LocalBusiness Schema
+
+التقرير ما زال يقول:
+
+`No Local Business Schema identified on the page.`
+
+أريد LocalBusiness Schema فعليًا ومترابطًا مع Entity Graph الموجود، بدون تكرار أو بيانات وهمية.
+
+اربطه منطقيًا مع:
+
+* Organization
+* WebSite
+* WebPage
+* ContactPoint
+* AreaServed
+
+وتأكد من الاسم والهاتف والعنوان والـURL من البيانات الحقيقية الموجودة في المشروع.
+
+### أصلح PageSpeed
+
+التقرير الحالي يعطي:
+
+* FCP: 4s
+* Speed Index: 7.7s
+* LCP: 6.8s
+* TTI: 6.8s
+* TBT: 0.01s
+* CLS: 0.00
+
+ركّز على السبب الحقيقي للـLCP/FCP وليس تحسينات شكلية.
+
+افحص:
+
+* Hero image
+* preload
+* image dimensions
+* WebP/AVIF
+* srcset
+* lazy loading للصور غير الحرجة
+* render-blocking CSS
+* JavaScript الذي يمنع ظهور المحتوى
+* تحميل الصور غير المستخدمة.
+
+**لا تكسر التصميم ولا تحذف الصور المهمة.**
+
+وبما أن TBT وCLS جيدان، لا تضيع الوقت في إصلاح مشكلة غير موجودة.
+
+### أصلح Answer Alignment
+
+التقرير يقول:
+
+`Your page includes little question-and-answer style content.`
+
+أكمل الـFAQ الذي بدأت تنفيذه.
+
+استخدم الـFAQ الموجود إن كان موجودًا بدل إنشاء نظام مكرر.
+
+يجب أن يظهر FAQ الحقيقي في HTML النهائي للصفحة الرئيسية، مع أسئلة وأجوبة مفيدة مرتبطة بخدمات تقي، وليس Keyword Stuffing.
+
+اجعل الإجابات مباشرة ومفيدة لـGoogle وAI Search.
+
+### مهم جدًا
+
+لا تنتظر مني موافقة على كل خطوة.
+
+نفّذ الإصلاحات الآن.
+
+لا ترسل لي خطة جديدة.
+
+لا ترسل لي شرحًا طويلًا.
+
+لا تعيد قراءة آلاف الأسطر التي قرأها الـAgent السابق.
+
+استخدم الـfiles التي تم فحصها بالفعل، وعدّل فقط ما يلزم.
+
+بعد التعديلات:
+
+1. Build production.
+2. Typecheck.
+3. Validate JSON-LD.
+4. Validate sitemap.
+5. Validate generated HTML.
+6. Validate Merchant Product structured data.
+7. Validate LocalBusiness.
+8. تحقق من FAQ داخل HTML.
+9. تحقق من LCP-critical assets.
+10. ابحث عن أي Schema قديم مكرر يعيد الأخطاء.
+
+ثم أعطني نتيجة مختصرة:
+
+`FIXED`
+أو
+`REMAINING`
+
+مع ذكر **فقط** ما بقي فعلًا.
+
+ولا تعتبر المشكلة محلولة لمجرد أن الكود تم تعديله؛ يجب أن تنجح مرحلة verification.
+
+**نفّذ الآن ولا تبدأ Audit جديد.**

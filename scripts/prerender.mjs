@@ -209,12 +209,6 @@ const coordinates = {
   latitude: Number(settingMap.company_latitude),
   longitude: Number(settingMap.company_longitude),
 };
-const dynamicServices = db.prepare(`
-  SELECT title, description FROM services
-  WHERE is_active = 1 AND seo_enabled = 1
-  ORDER BY "order" ASC
-  LIMIT 20
-`).all();
 const heroLcpImage = String(
   db.prepare(`
     SELECT image_url
@@ -326,6 +320,43 @@ function jsonLd(obj) {
   return `<script type="application/ld+json">\n${JSON.stringify(obj, null, 2)}\n</script>`;
 }
 
+function schemaNodes(values) {
+  const result = [];
+  const visit = (value) => {
+    if (Array.isArray(value)) {
+      value.forEach(visit);
+      return;
+    }
+    if (!value || typeof value !== "object") return;
+    if (Array.isArray(value["@graph"])) {
+      value["@graph"].forEach(visit);
+      return;
+    }
+    const node = { ...value };
+    delete node["@context"];
+    result.push(node);
+  };
+  values.forEach(visit);
+  return result;
+}
+
+function centralizedJsonLd(values) {
+  const graph = [];
+  const seen = new Set();
+  for (const node of schemaNodes(values)) {
+    if (!node["@type"]) continue;
+    const key = typeof node["@id"] === "string" && node["@id"]
+      ? node["@id"]
+      : `${node["@type"]}:${JSON.stringify(node)}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    graph.push(node);
+  }
+  return graph.length
+    ? jsonLd({ "@context": "https://schema.org", "@graph": graph })
+    : "";
+}
+
 function breadcrumbSchema(items) {
   const base = SITE_URL;
   return {
@@ -399,7 +430,7 @@ function renderPage({
   const resolvedKeywords = mergeGoldenKeywords(keywords);
   const imgAlt   = normalizedTitle.replace(/\|.*/,"").trim();
 
-  const schemaTags = schemas.map((schema) => jsonLd(schema)).join("\n  ");
+  const schemaTags = centralizedJsonLd(schemas);
   const pagePath = (() => {
     try {
       return new URL(canonicalUrl).pathname.replace(/\/+$/u, "") || "/";
@@ -585,20 +616,6 @@ function dynamicHomeSchema() {
     ...(settingMap.company_google_business_profile?.trim()
       ? { hasMap: settingMap.company_google_business_profile.trim() }
       : {}),
-    ...(dynamicServices.length ? {
-      hasOfferCatalog: {
-        "@type": "OfferCatalog",
-        name: siteCompanyName,
-        itemListElement: dynamicServices.map(service => ({
-          "@type": "Offer",
-          itemOffered: {
-            "@type": "Service",
-            name: service.title,
-            ...(service.description ? { description: service.description } : {}),
-          },
-        })),
-      },
-    } : {}),
     ...(sameAs.length ? { sameAs: [...new Set(sameAs)] } : {}),
   };
   return [
@@ -642,37 +659,38 @@ function dynamicHomeSchema() {
     {
       "@context": "https://schema.org",
       "@type": "FAQPage",
+        "@id": `${publicUrl("/")}#FAQPage`,
       "mainEntity": [
         {
           "@type": "Question",
-          "name": `ما هي خدمات الحاويات التي تقدمها ${siteCompanyName} بالرياض؟`,
+            "name": "ما المقاس المناسب لحاوية مخلفات البناء في الرياض؟",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "نوفر حاويات بمقاسات متعددة للمنازل والمشاريع والمنشآت، مع توصيل الحاوية وسحبها ونقل الأنقاض ومخلفات البناء بطريقة منظمة داخل الرياض."
+              "text": "يعتمد المقاس على كمية المخلفات ومساحة المشروع ونوع العمل. نساعدك في اختيار الحاوية المناسبة لأعمال الترميم أو البناء أو الهدم قبل التوصيل."
           }
         },
         {
           "@type": "Question",
-          "name": `كيف تُحدد أسعار تأجير الحاويات في الرياض لدى ${siteCompanyName}؟`,
+            "name": "كيف يتم تحديد سعر تأجير الحاوية بالرياض؟",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "يُحدد السعر حسب حجم الحاوية ونوع المخلفات وموقع المشروع ومدة التأجير، ونقدم عرضاً واضحاً بعد معرفة تفاصيل الموقع والاحتياج."
+              "text": "يتحدد العرض حسب حجم الحاوية ونوع المخلفات وموقع المشروع ومدة التأجير، مع توضيح تكلفة التوصيل والسحب أو التبديل قبل تأكيد الطلب."
           }
         },
         {
           "@type": "Question",
-          "name": "هل توفرون التوصيل والسحب ونقل المخلفات؟",
+            "name": "هل تشمل الخدمة توصيل الحاوية وسحبها؟",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "نعم، تشمل الخدمة تنسيق موعد توصيل الحاوية وسحبها أو تبديلها ونقل محتواها وفق نوع المخلفات وتعليمات الموقع."
+              "text": "نعم، ننسق موعد توصيل الحاوية إلى موقعك ثم سحبها أو تبديلها عند الامتلاء أو انتهاء مدة التأجير حسب احتياج المشروع."
           }
         },
         {
           "@type": "Question",
-          "name": "هل تغطون جميع أحياء شمال وشرق وغرب وجنوب ووسط الرياض؟",
+            "name": "هل توفرون حاويات أنقاض ونفايات لجميع أحياء الرياض؟",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "نعم، تغطي فرقنا الميدانية أكثر من 50 حياً بالرياض مع سرعة وصول تتراوح بين 30 إلى 45 دقيقة."
+              "text": "نخدم شمال وشرق وغرب وجنوب ووسط الرياض، ونؤكد التغطية والموعد بعد استلام العنوان ونوع المخلفات والمقاس المطلوب."
           }
         }
       ]
@@ -1089,17 +1107,7 @@ function updateIndexSeo(html) {
     /<script\b(?=[^>]*\btype=["']application\/ld\+json["'])[^>]*>[\s\S]*?<\/script>\s*/gi,
     "",
   );
-  const schemaIds = [
-    "home-organization-schema",
-    "home-local-business-schema",
-    "home-website-schema",
-    "home-webpage-schema",
-    "home-faq-schema",
-    "home-breadcrumbs-schema",
-  ];
-  const schemas = dynamicHomeSchema().map((schema, index) =>
-    `<script id="${schemaIds[index] || `home-schema-${index}`}" type="application/ld+json">\n${JSON.stringify(schema, null, 2)}\n</script>`,
-  ).join("\n");
+  const schemas = centralizedJsonLd(dynamicHomeSchema());
   const withSchemas = next.replace(/<\/head>/i, `${schemas}\n</head>`);
   
   // Keep the data-backed snapshot outside React's mount point. It remains
@@ -1631,24 +1639,21 @@ for (const c of containers) {
 
   const containerSchema = {
     "@context": "https://schema.org",
-    "@type": "Product",
+    "@type": "Service",
+    "@id": `${canonical}#service`,
     "name": c.name,
     "description": desc,
     "image": absoluteImg(ogImage),
     "url": canonical,
     "inLanguage": "ar",
-    "category": catArabic,
-    ...(Number(c.price_per_day) > 0 ? { "offers": {
-      "@type": "Offer",
-      "price": String(c.price_per_day),
-      "priceCurrency": "SAR",
-      "availability": "https://schema.org/InStock",
-      "description": "السعر اليومي حسب المقاس ونوع المخلفات ومدة التأجير"
-    } } : {}),
-    "brand": {
-      "@type": "Brand",
-      "name": siteCompanyName
-    }
+    "serviceType": catArabic,
+    "provider": {
+      "@type": "LocalBusiness",
+      "@id": `${SITE_URL}/#local-business`,
+      "name": siteCompanyName,
+      "url": SITE_URL,
+    },
+    "areaServed": { "@type": "City", "name": address.city || "الرياض" },
   };
 
   const containerFaqs = [
@@ -2548,10 +2553,6 @@ for (const area of NEIGHBORHOODS) {
       "url": SITE_URL,
     },
     "areaServed": { "@type": "Place", "name": `${location}، المملكة العربية السعودية` },
-    "offers": [
-      { "@type": "Offer", "name": "حاويات الأنقاض", "description": "عرض سعر حسب حجم الحاوية ونوع مخلفات البناء وموقع المشروع." },
-      { "@type": "Offer", "name": "حاويات النفايات والمكابس", "description": "حلول تفريغ دورية للمنشآت والمطاعم والمجمعات حسب حجم التشغيل." },
-    ],
   };
 
   const crumbs = [

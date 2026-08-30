@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react"
+import { useMemo } from "react"
 import { Link } from "wouter"
 import { AlertCircle, ArrowLeft, CheckCircle2, ChevronLeft, Clock3, MapPin, MessageCircle, Phone, RefreshCw, Ruler, Scale, Truck } from "lucide-react"
 import { useGetContainers } from "@workspace/api-client-react"
@@ -7,6 +7,7 @@ import { Footer } from "@/components/layout/Footer"
 import { useServiceRequest } from "@/context/ServiceRequestContext"
 import { useSiteSettings } from "@/context/SiteSettingsContext"
 import { useDocumentSEO } from "@/hooks/useDocumentSEO"
+import { useDocumentSchema } from "@/hooks/useDocumentSchema"
 import { getContainerImage, ARABIC_CATEGORY_NAMES } from "@/components/home/packages/PackageCard"
 import { siteUrl } from "@/lib/siteUrl"
 import { entityPath } from "@/lib/friendlySlug"
@@ -67,31 +68,20 @@ export default function PricingPage() {
     ogImageAlt: "أسعار ومقاسات حاويات الأنقاض والنفايات بالرياض",
   })
 
-  useEffect(() => {
-    const schemaId = "pricing-containers-schema"
-    document.getElementById(schemaId)?.remove()
-    const schema = {
+  useDocumentSchema("pricing-containers-schema", {
       "@context": "https://schema.org",
-      "@type": "OfferCatalog",
+      "@type": "ItemList",
       name: "مقاسات وأسعار الحاويات",
       url: siteUrl("/pricing"),
       description,
       itemListElement: containers.map((container, index) => ({
-        "@type": "Offer",
+        "@type": "ListItem",
         position: index + 1,
         name: container.name,
         description: [container.description, container.priceNote].filter(Boolean).join(" "),
-        priceSpecification: container.priceText ? { "@type": "PriceSpecification", description: container.priceText } : undefined,
-        itemOffered: { "@type": "Service", name: `تأجير ${container.name}` },
+        item: { "@type": "Service", name: `تأجير ${container.name}` },
       })),
-    }
-    const script = document.createElement("script")
-    script.id = schemaId
-    script.type = "application/ld+json"
-    script.textContent = JSON.stringify(schema)
-    document.head.appendChild(script)
-    return () => document.getElementById(schemaId)?.remove()
-  }, [containers, description])
+    }, Boolean(containers.length || description))
 
   return (
     <div className="field-page min-h-[100dvh] flex flex-col" dir="rtl">

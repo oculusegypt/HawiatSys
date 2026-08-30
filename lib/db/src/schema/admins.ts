@@ -8,7 +8,7 @@ export type AdminRole = typeof ADMIN_ROLES[number];
 export const ALL_SECTIONS = [
   "dashboard", "analytics", "requests", "conversations", "whatsapp",
   "notifications", "blog", "slides", "ads", "testimonials", "reviews",
-  "services", "packages", "containers", "partners", "settings", "seo", "seo_pages", "employees", "database",
+  "services", "packages", "containers", "partners", "settings", "seo", "seo_pages", "structured_content", "employees", "database",
   "work_orders", "container_system",
   "container_system_customer", "container_system_container", "container_system_container_type",
   "container_system_container_asset", "container_system_driver", "container_system_ledger_entry",

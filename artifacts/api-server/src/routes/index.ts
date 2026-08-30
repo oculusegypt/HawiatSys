@@ -28,6 +28,7 @@ import reviewsRouter from "./reviews";
 import containerSystemRouter from "./containerSystem";
 import hostingerDeployRouter from "./hostingerDeploy";
 import seoMetricsRouter from "./seoMetrics";
+import structuredContentRouter from "./structuredContent";
 
 const router: IRouter = Router();
 
@@ -60,5 +61,6 @@ router.use(reviewsRouter);
 router.use(containerSystemRouter);
 router.use(hostingerDeployRouter);
 router.use(seoMetricsRouter);
+router.use(structuredContentRouter);
 
 export default router;

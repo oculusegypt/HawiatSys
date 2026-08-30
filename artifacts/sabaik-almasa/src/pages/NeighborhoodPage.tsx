@@ -1,4 +1,3 @@
-import { useEffect } from "react"
 import { Link, useRoute } from "wouter"
 import {
   ArrowLeft,
@@ -20,6 +19,7 @@ import { normalizeCompanyText, useSiteSettings } from "@/context/SiteSettingsCon
 import { siteUrl } from "@/lib/siteUrl"
 import { normalizeSeoDescription } from "@/lib/seoText"
 import { useDocumentSEO } from "@/hooks/useDocumentSEO"
+import { useDocumentSchema } from "@/hooks/useDocumentSchema"
 
 export interface AreaData {
   name: string
@@ -256,15 +256,7 @@ export default function NeighborhoodPage() {
     indexable: Boolean(area),
   })
 
-  useEffect(() => {
-    if (!area) return
-
-    const schemaId = "neighborhood-schema"
-    document.getElementById(schemaId)?.remove()
-    const schema = document.createElement("script")
-    schema.id = schemaId
-    schema.type = "application/ld+json"
-    schema.textContent = JSON.stringify([
+  useDocumentSchema("neighborhood-schema", area ? [
       {
         "@context": "https://schema.org",
         "@type": "LocalBusiness",
@@ -302,10 +294,7 @@ export default function NeighborhoodPage() {
           { "@type": "ListItem", position: 3, name: area.name, item: canonical },
         ],
       },
-    ])
-    document.head.appendChild(schema)
-    return () => document.getElementById(schemaId)?.remove()
-  }, [activeSlug, area, areaTitle, areaDescription, currentCompany, phoneCall, logoUrl, priceRange, address, city, region, country])
+    ] : null, Boolean(area))
 
   if (!area) {
     return (

@@ -43,6 +43,7 @@
 - [Vite canonical root URLs](vite-canonical-root.md) — let prerender emit absolute canonicals; root-relative canonical hrefs can make Vite read the project directory as an asset.
 - [SEO entity slug parity](seo-entity-slug-parity.md) — public Arabic SEO URLs append record IDs; Node and Hostinger PHP must resolve the same aliases.
 - [Central SEO automation](central-seo-automation.md) — generate and backfill metadata in domain writes across Node and Hostinger PHP; prerender remains a safety net.
+- [Rental service schema boundary](rental-service-schema-boundary.md) — container rentals are local services; do not emit Product/Offer merchant fields without real policies.
 - [Node/PHP SEO parity](node-php-seo-parity.md) — compare full public projections across both runtimes; response-time legacy-name normalization can affect metadata parity.
 - [SEO rich content and JSON-LD](seo-rich-content-and-jsonld.md) — prerendered rich text must stay a fragment with one template H1, and validation must flatten JSON-LD @graph.
 - [PHP CLI query probes](php-cli-query-probes.md) — query-string parity checks must use HTTP because php -r does not populate $_GET from REQUEST_URI.

@@ -11,6 +11,25 @@ export type SchemaImage = {
   caption?: string
 }
 
+export const HOME_FAQS = [
+  {
+    q: "ما المقاس المناسب لحاوية مخلفات البناء في الرياض؟",
+    a: "يعتمد المقاس على كمية المخلفات ومساحة المشروع ونوع العمل. نساعدك في اختيار الحاوية المناسبة لأعمال الترميم أو البناء أو الهدم قبل التوصيل.",
+  },
+  {
+    q: "كيف يتم تحديد سعر تأجير الحاوية بالرياض؟",
+    a: "يتحدد العرض حسب حجم الحاوية ونوع المخلفات وموقع المشروع ومدة التأجير، مع توضيح تكلفة التوصيل والسحب أو التبديل قبل تأكيد الطلب.",
+  },
+  {
+    q: "هل تشمل الخدمة توصيل الحاوية وسحبها؟",
+    a: "نعم، ننسق موعد توصيل الحاوية إلى موقعك ثم سحبها أو تبديلها عند الامتلاء أو انتهاء مدة التأجير حسب احتياج المشروع.",
+  },
+  {
+    q: "هل توفرون حاويات أنقاض ونفايات لجميع أحياء الرياض؟",
+    a: "نخدم شمال وشرق وغرب وجنوب ووسط الرياض، ونؤكد التغطية والموعد بعد استلام العنوان ونوع المخلفات والمقاس المطلوب.",
+  },
+] as const
+
 function absoluteUrl(value: string): string {
   if (!value) return ""
   return /^https?:\/\//i.test(value) ? value : siteUrl(value.startsWith("/") ? value : `/${value}`)
@@ -115,6 +134,135 @@ export function localBusinessSchema({
   }
 }
 
+export function homepageSchema({
+  companyName,
+  description,
+  logo,
+  image,
+  phoneNumbers = [],
+  address,
+  city,
+  region,
+  country,
+  postalCode,
+  latitude,
+  longitude,
+  priceRange,
+  paymentMethods,
+  socialLinks,
+}: {
+  companyName: string
+  description: string
+  logo?: string
+  image?: string
+  phoneNumbers?: string[]
+  address?: string
+  city?: string
+  region?: string
+  country?: string
+  postalCode?: string
+  latitude?: string
+  longitude?: string
+  priceRange?: string
+  paymentMethods?: string
+  socialLinks?: unknown
+}): Record<string, unknown> {
+  const baseUrl = absoluteUrl("/")
+  const organizationId = `${baseUrl}#organization`
+  const localBusinessId = `${baseUrl}#local-business`
+  const websiteId = `${baseUrl}#website`
+  const phoneValues = [...new Set(phoneNumbers.map((phone) => {
+    const digits = String(phone || "").replace(/\D/g, "")
+    if (digits.startsWith("00")) return `+${digits.slice(2)}`
+    if (digits.startsWith("0")) return `+966${digits.slice(1)}`
+    if (digits.startsWith("966")) return `+${digits}`
+    return digits ? `+${digits}` : ""
+  }).filter(Boolean))]
+  const addressValue = {
+    "@type": "PostalAddress",
+    ...(address ? { streetAddress: address } : {}),
+    ...(city ? { addressLocality: city } : {}),
+    ...(region ? { addressRegion: region } : {}),
+    ...(country ? { addressCountry: country } : {}),
+    ...(postalCode ? { postalCode } : {}),
+  }
+  const sameAs = socialLinks && typeof socialLinks === "object"
+    ? [...new Set(Object.values(socialLinks as Record<string, unknown>)
+      .filter((value): value is string => typeof value === "string" && /^https?:\/\//i.test(value)))]
+    : []
+  const contactPoint = phoneValues.length ? {
+    "@type": "ContactPoint",
+    telephone: phoneValues.length === 1 ? phoneValues[0] : phoneValues,
+    contactType: "customer service",
+    areaServed: country || "SA",
+    availableLanguage: ["ar"],
+  } : undefined
+  const localBusiness = {
+    "@type": "LocalBusiness",
+    "@id": localBusinessId,
+    name: companyName,
+    description,
+    url: baseUrl,
+    parentOrganization: { "@id": organizationId },
+    ...(logo ? { logo: imageSchema(logo) } : {}),
+    ...(image ? { image: imageSchema(image) } : {}),
+    ...(phoneValues.length ? { telephone: phoneValues.length === 1 ? phoneValues[0] : phoneValues } : {}),
+    ...(priceRange ? { priceRange } : {}),
+    ...(paymentMethods ? { paymentAccepted: paymentMethods } : {}),
+    ...(Object.keys(addressValue).length > 1 ? { address: addressValue } : {}),
+    ...(latitude && longitude ? {
+      geo: { "@type": "GeoCoordinates", latitude, longitude },
+    } : {}),
+    ...(city ? { areaServed: { "@type": "City", name: city } } : {}),
+    ...(contactPoint ? { contactPoint } : {}),
+    ...(sameAs.length ? { sameAs } : {}),
+  }
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": organizationId,
+        name: companyName,
+        url: baseUrl,
+        ...(logo ? { logo: imageSchema(logo) } : {}),
+        ...(description ? { description } : {}),
+        ...(sameAs.length ? { sameAs } : {}),
+        ...(contactPoint ? { contactPoint } : {}),
+      },
+      localBusiness,
+      {
+        "@type": "WebSite",
+        "@id": websiteId,
+        url: baseUrl,
+        name: companyName,
+        inLanguage: "ar",
+        publisher: { "@id": organizationId },
+      },
+      {
+        "@type": "WebPage",
+        "@id": `${baseUrl}#webpage`,
+        url: baseUrl,
+        name: companyName,
+        description,
+        isPartOf: { "@id": websiteId },
+        about: { "@id": localBusinessId },
+        publisher: { "@id": organizationId },
+        inLanguage: "ar",
+      },
+      {
+        "@type": "FAQPage",
+        "@id": `${baseUrl}#FAQPage`,
+        mainEntity: HOME_FAQS.map((faq) => ({
+          "@type": "Question",
+          name: faq.q,
+          acceptedAnswer: { "@type": "Answer", text: faq.a },
+        })),
+      },
+    ],
+  }
+}
+
 export function serviceSchema({
   service,
   description,
@@ -170,29 +318,26 @@ export function containerSchema({
   priceText?: string
   pricePerDay?: number
 }): Record<string, unknown> {
-  const parsedTextPrice = String(priceText || "").match(/\d+(?:\.\d+)?/)?.[0]
-  const numericPrice = typeof pricePerDay === "number" && pricePerDay > 0
-    ? pricePerDay
-    : Number(parsedTextPrice || 0)
-  const hasPrice = numericPrice > 0
+  void priceText
+  void pricePerDay
   return {
-    "@type": "Product",
+    // A container rental is a locally delivered service, not a shippable
+    // ecommerce product. Do not emit an Offer unless verified shipping and
+    // return policies exist in the business data.
+    "@type": "Service",
     "@id": `${absoluteUrl(url)}#product`,
     "name": name,
     "description": description,
     "url": absoluteUrl(url),
     "image": imageSchema(image),
-    "category": category || "تأجير الحاويات ونقل المخلفات",
-    "brand": { "@type": "Brand", "name": companyName },
-    ...(hasPrice ? {
-      "offers": {
-        "@type": "Offer",
-        "priceCurrency": "SAR",
-        "price": String(numericPrice),
-        "availability": "https://schema.org/InStock",
-        ...(priceText ? { "description": priceText } : {}),
-      },
-    } : {}),
+    "serviceType": category || "تأجير الحاويات ونقل المخلفات",
+    "provider": {
+      "@type": "LocalBusiness",
+      "@id": `${absoluteUrl("/")}#local-business`,
+      "name": companyName,
+      "url": absoluteUrl("/"),
+    },
+    "areaServed": { "@type": "City", "name": "الرياض" },
     "inLanguage": "ar",
   }
 }

@@ -32,6 +32,7 @@ const ALL_SECTIONS: { key: string; label: string; group: string }[] = [
   { key: "partners",     label: "الشركاء",         group: "محتوى" },
   { key: "settings",     label: "إعدادات الموقع",  group: "إعدادات" },
   { key: "seo",          label: "SEO",             group: "إعدادات" },
+  { key: "structured_content", label: "Structured Content", group: "إعدادات" },
   { key: "whatsapp",     label: "واتساب",          group: "إعدادات" },
   { key: "employees",    label: "إدارة الموظفين",  group: "إعدادات" },
   { key: "work_orders",  label: "أوامر العمل",     group: "التشغيل" },

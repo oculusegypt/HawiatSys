@@ -1,19 +1,16 @@
-import { useEffect } from "react"
 import { Link } from "wouter"
 import { MapPin, ArrowLeft, Phone, MessageCircle, Box } from "lucide-react"
 import { Navbar } from "@/components/layout/Navbar"
 import { Footer } from "@/components/layout/Footer"
-import { getSiteUrl } from "@/lib/siteUrl"
 import { AREAS, RIYADH_AREA_GROUPS, ARABIC_AREA_SLUGS } from "@/pages/NeighborhoodPage"
 import { useSiteSettings } from "@/context/SiteSettingsContext"
 import { useDocumentSEO } from "@/hooks/useDocumentSEO"
+import { useDocumentSchema } from "@/hooks/useDocumentSchema"
 import { siteUrl } from "@/lib/siteUrl"
 import { normalizeSeoDescription } from "@/lib/seoText"
 
 export default function AreasIndexPage() {
   const { companyName, phoneCall, phoneWhatsapp, isLoaded } = useSiteSettings()
-  const resolvedCompany = companyName || "خدمات تأجير الحاويات"
-
   const description = normalizeSeoDescription(companyName
     ? `تعرف على مناطق وأحياء خدمة ${companyName} لتأجير حاويات الأنقاض والنفايات ونقل المخلفات في شمال وجنوب وشرق وغرب الرياض.`
     : "تعرف على مناطق وأحياء خدمة تأجير حاويات الأنقاض والنفايات ونقل المخلفات في شمال وجنوب وشرق وغرب الرياض.",
@@ -29,21 +26,12 @@ export default function AreasIndexPage() {
     ogImageAlt: "مناطق خدمة تأجير الحاويات في جميع أحياء الرياض",
   })
 
-  useEffect(() => {
-    if (!isLoaded) return
-    const site = getSiteUrl()
-
-    const schemaId = "areas-index-schema"
-    document.getElementById(schemaId)?.remove()
-    const schema = document.createElement("script")
-    schema.id = schemaId
-    schema.type = "application/ld+json"
-    schema.textContent = JSON.stringify({
+  useDocumentSchema("areas-index-schema", {
       "@context": "https://schema.org",
       "@type": "CollectionPage",
       "name": "مناطق خدمة وتأجير الحاويات في الرياض",
       "description": description,
-      "url": `${site}/areas`,
+      "url": siteUrl("/areas"),
       "inLanguage": "ar",
       "about": { "@type": "Service", "name": "خدمات تأجير الحاويات ونقل الأنقاض بالرياض" },
       "mainEntity": {
@@ -54,14 +42,11 @@ export default function AreasIndexPage() {
             "@type": "ListItem",
             "position": index + 1,
             "name": area.name,
-            "url": `${site}/areas/${arSlug}`,
+            "url": siteUrl(`/areas/${arSlug}`),
           }
         }),
       },
-    })
-    document.head.appendChild(schema)
-    return () => document.getElementById(schemaId)?.remove()
-  }, [resolvedCompany, isLoaded])
+    }, isLoaded)
 
   return (
     <div className="min-h-screen bg-background font-sans" dir="rtl">

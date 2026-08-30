@@ -30,6 +30,7 @@ import {
   KeyRound,
   Volume2,
   VolumeX,
+  Code2,
 } from "lucide-react";
 import {
   NotificationBell,
@@ -140,6 +141,13 @@ const ALL_NAV = [
     label: "SEO",
     group: "analytics",
     section: "seo",
+  },
+  {
+    href: "/admin/structured-content",
+    icon: Code2,
+    label: "Structured Content",
+    group: "analytics",
+    section: "structured_content",
   },
   {
     href: "/admin/reviews",

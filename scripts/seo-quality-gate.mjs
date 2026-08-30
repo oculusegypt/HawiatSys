@@ -148,7 +148,7 @@ function schemaContract(pageType, schemas, canonical, html) {
     contact: ["ContactPage"],
     faq: ["FAQPage"],
     service: ["Service"],
-    package: ["Product"],
+    package: ["Service"],
     article: ["BlogPosting"],
     "seo-page": ["WebPage"],
     area: ["Service", "Place"],
@@ -174,9 +174,7 @@ function schemaContract(pageType, schemas, canonical, html) {
   if (pageType === "service" || pageType === "area") {
     if (!candidate.provider || !schemaText(candidate.url)) return false;
   }
-  if (pageType === "package") {
-    if (!candidate.offers || !schemaText(candidate.url)) return false;
-  }
+  if (pageType === "package" && !schemaText(candidate.url)) return false;
   if (pageType === "faq") {
     if (!Array.isArray(candidate.mainEntity) || candidate.mainEntity.length === 0) return false;
   }

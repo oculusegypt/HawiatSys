@@ -3,159 +3,13 @@ import { Navbar } from "@/components/layout/Navbar"
 import { Footer } from "@/components/layout/Footer"
 import { getSiteUrl } from "@/lib/siteUrl"
 import { useSiteSettings } from "@/context/SiteSettingsContext"
-import type { SocialLinks } from "@/context/SiteSettingsContext"
 import { useDocumentSEO } from "@/hooks/useDocumentSEO"
+import { useDocumentSchema } from "@/hooks/useDocumentSchema"
+import { homepageSchema } from "@/lib/seoSchema"
 
 const SEO_DEFAULTS = {
   image: "/images/seo/taqi-home.jpg",
 } as const
-
-function injectLocalBusinessSchema({
-  companyName,
-  description,
-  logoUrl,
-  phones,
-  address,
-  city,
-  region,
-  country,
-  postalCode,
-  latitude,
-  longitude,
-  priceRange,
-  paymentMethods,
-  socialLinks,
-}: {
-  companyName: string
-  description: string
-  logoUrl: string
-  phones: string[]
-  address: string
-  city: string
-  region: string
-  country: string
-  postalCode: string
-  latitude: string
-  longitude: string
-  priceRange: string
-  paymentMethods: string
-  socialLinks: SocialLinks
-}) {
-  if (typeof document === "undefined") return
-  let script = document.getElementById("local-business-schema") as HTMLScriptElement | null
-  if (!script) {
-    script = document.createElement("script")
-    script.id = "local-business-schema"
-    script.type = "application/ld+json"
-    document.head.appendChild(script)
-  }
-  const SITE_URL = getSiteUrl().replace(/\/$/, "")
-  const toAbsolute = (url?: string) => {
-    if (!url) return `${SITE_URL}/images/logo.png`
-    if (url.startsWith("http://") || url.startsWith("https://")) return url
-    return `${SITE_URL}${url.startsWith("/") ? url : `/${url}`}`
-  }
-  const toInternational = (p: string) => {
-    const d = p.replace(/\D/g, "")
-    if (d.startsWith("00")) return `+${d.slice(2)}`
-    if (d.startsWith("0")) return `+966${d.slice(1)}`
-    if (d.startsWith("966")) return `+${d}`
-    return d ? `+${d}` : ""
-  }
-  const sameAs: string[] = []
-  try {
-    if (socialLinks) {
-      Object.values(socialLinks).forEach((link) => {
-        if (typeof link === "string" && link.startsWith("http")) sameAs.push(link)
-      })
-    }
-  } catch {}
-  const schemaPhones = phones?.filter((phone) => phone.trim().length > 0) ?? []
-  const addressData = {
-    "@type": "PostalAddress",
-    ...(address ? { streetAddress: address } : {}),
-    ...(city ? { addressLocality: city } : {}),
-    ...(region ? { addressRegion: region } : {}),
-    ...(country ? { addressCountry: country } : {}),
-    ...(postalCode ? { postalCode } : {}),
-  }
-  const resolvedCompanyName = companyName || "مؤسسة تقي جروب"
-  const resolvedDesc = description || "تأجير حاويات الأنقاض والنفايات ونقل مخلفات البناء والهدم داخل الرياض."
-  const schemaPhoneValues = schemaPhones.map(toInternational).filter(Boolean)
-  const contactPoint = schemaPhoneValues.length > 0 ? {
-    "@type": "ContactPoint",
-    "telephone": schemaPhoneValues.length === 1 ? schemaPhoneValues[0] : schemaPhoneValues,
-    "contactType": "customer service",
-    "areaServed": "SA",
-    "availableLanguage": ["ar"],
-  } : undefined
-  const localBusiness = {
-    "@type": ["LocalBusiness", "WasteManagementService"],
-    "@id": `${SITE_URL}/#local-business`,
-    "name": resolvedCompanyName,
-    "description": resolvedDesc,
-    "url": `${SITE_URL}/`,
-    "parentOrganization": { "@id": `${SITE_URL}/#organization` },
-    "logo": {
-      "@type": "ImageObject",
-      "url": toAbsolute(logoUrl || "/images/logo.png"),
-    },
-    "image": {
-      "@type": "ImageObject",
-      "url": toAbsolute(SEO_DEFAULTS.image),
-    },
-    ...(schemaPhoneValues.length ? { "telephone": schemaPhoneValues.length === 1 ? schemaPhoneValues[0] : schemaPhoneValues } : {}),
-    ...(priceRange ? { "priceRange": priceRange } : {}),
-    ...(paymentMethods ? { "paymentAccepted": paymentMethods } : {}),
-    ...(Object.keys(addressData).length > 1 ? { "address": addressData } : {}),
-    ...(latitude && longitude ? {
-      "geo": { "@type": "GeoCoordinates", "latitude": latitude, "longitude": longitude },
-    } : {}),
-    ...(city ? { "areaServed": { "@type": "City", "name": city } } : {}),
-    ...(contactPoint ? { "contactPoint": contactPoint } : {}),
-    ...(sameAs.length ? { "sameAs": [...new Set(sameAs)] } : {}),
-  }
-
-  script.textContent = JSON.stringify({
-    "@context": "https://schema.org",
-    "@graph": [
-      {
-        "@type": "Organization",
-        "@id": `${SITE_URL}/#organization`,
-        "name": resolvedCompanyName,
-        "url": `${SITE_URL}/`,
-        "logo": { "@type": "ImageObject", "url": toAbsolute(logoUrl || "/images/logo.png") },
-        ...(description ? { "description": description } : {}),
-        ...(sameAs.length ? { "sameAs": [...new Set(sameAs)] } : {}),
-      },
-      localBusiness,
-      {
-        "@type": "WebSite",
-        "@id": `${SITE_URL}/#website`,
-        "url": `${SITE_URL}/`,
-        "name": resolvedCompanyName,
-        "inLanguage": "ar",
-        "publisher": { "@id": `${SITE_URL}/#organization` },
-        "potentialAction": {
-          "@type": "SearchAction",
-          "target": `${SITE_URL}/blog?q={search_term_string}`,
-          "query-input": "required name=search_term_string"
-        }
-      },
-      {
-        "@type": "WebPage",
-        "@id": `${SITE_URL}/#webpage`,
-        "url": `${SITE_URL}/`,
-        "name": resolvedCompanyName,
-        "description": resolvedDesc,
-        "isPartOf": { "@id": `${SITE_URL}/#website` },
-        "about": { "@id": `${SITE_URL}/#local-business` },
-        "publisher": { "@id": `${SITE_URL}/#organization` },
-        "inLanguage": "ar",
-      },
-    ]
-  })
-}
 
 import { HeroSlider } from "@/components/home/HeroSlider"
 
@@ -380,35 +234,12 @@ export default function Home() {
     ogImage: "/images/seo/taqi-home.jpg",
     ogImageAlt: "تأجير حاويات الأنقاض والنفايات بالرياض مع التوصيل والسحب",
   })
-
-  useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: "instant" })
-  }, [])
-
-  useEffect(() => {
-    if (!isLoaded) return
-    document.title = homeTitle
-    injectLocalBusinessSchema({
-      companyName,
-      description: homeDescription,
-      logoUrl,
-      phones,
-      address,
-      city,
-      region,
-      country,
-      postalCode,
-      latitude,
-      longitude,
-      priceRange,
-      paymentMethods,
-      socialLinks,
-    })
-    return () => { document.getElementById("local-business-schema")?.remove() }
-  }, [
-    companyName,
-    logoUrl,
-    phones,
+  const homeSchema = homepageSchema({
+    companyName: companyName || "مؤسسة تقي جروب",
+    description: homeDescription,
+    logo: logoUrl || "/images/logo.png",
+    image: SEO_DEFAULTS.image,
+    phoneNumbers: [phoneCall, phoneWhatsapp, ...phones],
     address,
     city,
     region,
@@ -419,11 +250,17 @@ export default function Home() {
     priceRange,
     paymentMethods,
     socialLinks,
-    publicUrl,
-    isLoaded,
-    homeDescription,
-    homeTitle,
-  ])
+  })
+  useDocumentSchema("home-schema", homeSchema, isLoaded)
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" })
+  }, [])
+
+  useEffect(() => {
+    if (!isLoaded) return
+    document.title = homeTitle
+  }, [isLoaded, homeTitle])
 
   return (
     <div className="min-h-screen bg-background font-sans" dir="rtl">

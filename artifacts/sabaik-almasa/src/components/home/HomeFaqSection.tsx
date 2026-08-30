@@ -1,38 +1,27 @@
 import { ChevronDown, HelpCircle } from "lucide-react"
-import { useSiteSettings } from "@/context/SiteSettingsContext"
-
-const FAQS = [
-  {
-    q: "ما المقاس المناسب لحاوية مخلفات البناء في الرياض؟",
-    a: "يعتمد المقاس على كمية المخلفات ومساحة المشروع ونوع العمل. نساعدك في اختيار الحاوية المناسبة لأعمال الترميم أو البناء أو الهدم قبل التوصيل.",
-  },
-  {
-    q: "كيف يتم تحديد سعر تأجير الحاوية بالرياض؟",
-    a: "يتحدد العرض حسب حجم الحاوية ونوع المخلفات وموقع المشروع ومدة التأجير، مع توضيح تكلفة التوصيل والسحب أو التبديل قبل تأكيد الطلب.",
-  },
-  {
-    q: "هل تشمل الخدمة توصيل الحاوية وسحبها؟",
-    a: "نعم، ننسق موعد توصيل الحاوية إلى موقعك ثم سحبها أو تبديلها عند الامتلاء أو انتهاء مدة التأجير حسب احتياج المشروع.",
-  },
-  {
-    q: "هل توفرون حاويات أنقاض ونفايات لجميع أحياء الرياض؟",
-    a: "نخدم شمال وشرق وغرب وجنوب ووسط الرياض، ونؤكد التغطية والموعد بعد استلام العنوان ونوع المخلفات والمقاس المطلوب.",
-  },
-]
+import { useEffect, useState } from "react"
+import { HOME_FAQS } from "@/lib/seoSchema"
 
 export function HomeFaqSection() {
-  const { companyName } = useSiteSettings()
-  const resolvedCompany = companyName || "مؤسسة تقي جروب"
-  const schemaItems = FAQS.map((faq, index) => ({
-    "@type": "Question",
-    name: index === 0
-      ? `${faq.q} لدى ${resolvedCompany}`
-      : faq.q,
-    acceptedAnswer: {
-      "@type": "Answer",
-      text: faq.a,
-    },
-  }))
+  const [faqs, setFaqs] = useState<Array<{ q: string; a: string }>>([...HOME_FAQS])
+
+  useEffect(() => {
+    const base = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
+    fetch(`${base}/api/structured-content?path=/`)
+      .then((response) => response.ok ? response.json() : [])
+      .then((records) => {
+        const items = Array.isArray(records) ? records.flatMap((record) =>
+          Array.isArray(record?.payload?.items)
+            ? record.payload.items.filter((item: any) => item?.enabled !== false)
+            : [],
+        ) : []
+        const normalized = items
+          .filter((item: any) => item && String(item.question ?? item.q ?? "").trim() && String(item.answer ?? item.a ?? "").trim())
+          .map((item: any) => ({ q: String(item.question ?? item.q).trim(), a: String(item.answer ?? item.a).trim() }))
+        if (normalized.length) setFaqs(normalized)
+      })
+      .catch(() => {})
+  }, [])
 
   return (
     <section
@@ -55,7 +44,7 @@ export function HomeFaqSection() {
         </div>
 
         <div className="space-y-3">
-          {FAQS.map((faq) => (
+          {faqs.map((faq) => (
             <details
               key={faq.q}
               open
@@ -76,17 +65,6 @@ export function HomeFaqSection() {
           ))}
         </div>
 
-        <script
-          id="home-visible-faq-schema"
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "FAQPage",
-              mainEntity: schemaItems,
-            }),
-          }}
-        />
       </div>
     </section>
   )

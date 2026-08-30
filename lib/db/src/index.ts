@@ -154,6 +154,27 @@ sqlite.exec(`
   )
 `);
 
+// First-party Structured Content / JSON-LD management. The JSON payload is
+// intentionally flexible so adding a supported schema.org type never requires
+// changing the database shape.
+sqlite.exec(`
+  CREATE TABLE IF NOT EXISTS structured_content (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    scope_path TEXT NOT NULL DEFAULT '/',
+    schema_type TEXT NOT NULL,
+    title TEXT NOT NULL DEFAULT '',
+    description TEXT NOT NULL DEFAULT '',
+    payload TEXT NOT NULL DEFAULT '{}',
+    is_active INTEGER NOT NULL DEFAULT 1,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(scope_path, schema_type)
+  );
+  CREATE INDEX IF NOT EXISTS idx_structured_content_scope
+    ON structured_content(scope_path, is_active, sort_order);
+`);
+
 // SEO slugs are public identities. Repair only duplicate legacy values in
 // deterministic id order, then enforce uniqueness for all non-empty slugs.
 // Empty values remain available to explicit noindex/draft records.

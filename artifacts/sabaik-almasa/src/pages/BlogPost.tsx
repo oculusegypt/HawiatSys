@@ -15,12 +15,13 @@ import { useGetContainers } from "@workspace/api-client-react"
 import type { Container } from "@workspace/api-client-react"
 import { entityPath, entitySlug } from "@/lib/friendlySlug"
 import { mergeGoldenSeoKeywords } from "@/lib/seoKeywords"
+import { useDocumentSchema } from "@/hooks/useDocumentSchema"
 
 const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
 interface Post {
   id: number; title: string; slug: string; content: string; excerpt: string
   coverImage: string; author: string; category: string; tags: string
-  publishedAt: string | null; readTime: number; viewCount: number
+  publishedAt: string | null; updatedAt: string | null; readTime: number; viewCount: number
   seoTitle: string; seoDescription: string; seoKeywords: string
   ogImage: string; canonicalUrl: string
 }
@@ -53,6 +54,21 @@ function normalizeArticleContent(html: string): string {
     .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, "")
     .replace(/<h1\b([^>]*)>/gi, "<h2$1>")
     .replace(/<\/h1>/gi, "</h2>")
+}
+
+function extractArticleFaqItems(html: string) {
+  if (typeof document === "undefined") return []
+  const tmpDiv = document.createElement("div")
+  tmpDiv.innerHTML = html
+  return Array.from(tmpDiv.querySelectorAll("h3")).map((h3) => {
+    const nextEl = h3.nextElementSibling
+    const answer = nextEl?.tagName === "P" ? nextEl.textContent?.trim() || "" : ""
+    return {
+      "@type": "Question",
+      name: h3.textContent?.trim() || "",
+      acceptedAnswer: { "@type": "Answer", text: answer },
+    }
+  }).filter((item) => item.name && item.acceptedAnswer.text)
 }
 
 // ─── CTA Block ─────────────────────────────────────────────────────────────────
@@ -237,6 +253,63 @@ export default function BlogPost() {
   const [post, setPost]     = useState<Post | null>(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
+  const blogSchema = post && isLoaded ? (() => {
+    const canonical = siteUrl(`/blog/${entityPath({ slug: post.slug, title: post.title, id: post.id, fallback: "post" })}`)
+    const ogImg = siteUrl(sitePath(post.ogImage || post.coverImage || "/logo.webp"))
+    const title = post.seoTitle || post.title
+    const description = post.seoDescription || post.excerpt
+    const resolvedTitle = normalizeCompanyText(title)
+    const resolvedDescription = normalizeCompanyText(description)
+    const resolvedAuthor = normalizeCompanyText(post.author || companyName || "الشركة")
+    const resolvedContent = normalizeArticleContent(normalizeCompanyText(post.content || ""))
+    const faqItems = extractArticleFaqItems(resolvedContent)
+    const schemas: object[] = [
+      {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "@id": `${canonical}#article`,
+        "headline": resolvedTitle,
+        "description": resolvedDescription,
+        "image": ogImg,
+        "datePublished": post.publishedAt,
+        "dateModified": post.updatedAt || post.publishedAt,
+        "author": { "@type": "Organization", "name": resolvedAuthor, "url": getSiteUrl() },
+        "publisher": {
+          "@type": "Organization",
+          "name": companyName,
+          "logo": { "@type": "ImageObject", "url": siteUrl("/logo.webp") },
+          "telephone": phoneCall ? `+966${phoneCall.replace(/^0/, "")}` : undefined,
+          "areaServed": "الرياض",
+        },
+        "mainEntityOfPage": { "@type": "WebPage", "@id": canonical },
+        "url": canonical,
+        "articleSection": post.category,
+        "keywords": getTags(post.tags).join(", "),
+        "wordCount": resolvedContent.replace(/<[^>]*>/g, "").split(/\s+/).length,
+        "inLanguage": "ar",
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "الرئيسية", "item": getSiteUrl() },
+          { "@type": "ListItem", "position": 2, "name": "المدونة", "item": siteUrl("/blog") },
+          { "@type": "ListItem", "position": 3, "name": post.title, "item": canonical },
+        ],
+      },
+    ]
+    if (faqItems.length > 0) {
+      schemas.push({
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "@id": `${canonical}#FAQPage`,
+        "mainEntity": faqItems,
+      })
+    }
+    return schemas
+  })() : null
+
+  useDocumentSchema("blog-post-schema", blogSchema, Boolean(post && isLoaded && !notFound))
 
   useEffect(() => {
     if (isLoaded && (!post || notFound)) setMeta("robots", "noindex, follow")
@@ -265,7 +338,6 @@ export default function BlogPost() {
         const resolvedTitle = normalizeCompanyText(`${title} | مدونة ${companyName || "الشركة"}`)
         const resolvedDescription = normalizeCompanyText(desc)
         const resolvedAuthor = normalizeCompanyText(d.author || companyName || "الشركة")
-         const resolvedContent = normalizeArticleContent(normalizeCompanyText(d.content || ""))
         document.title = resolvedTitle
 
         setMeta("description",        resolvedDescription)
@@ -299,68 +371,9 @@ export default function BlogPost() {
         const existing = document.getElementById("blog-post-schema")
         if (existing) existing.remove()
 
-        // Extract FAQ pairs from h3+p in article content
-        const tmpDiv = document.createElement("div")
-        tmpDiv.innerHTML = resolvedContent
-        const h3s = Array.from(tmpDiv.querySelectorAll("h3"))
-        const faqItems = h3s.map(h3 => {
-          const nextEl = h3.nextElementSibling
-          const answer = nextEl?.tagName === "P" ? nextEl.textContent?.trim() || "" : ""
-          return { "@type": "Question", "name": h3.textContent?.trim() || "", "acceptedAnswer": { "@type": "Answer", "text": answer } }
-        }).filter(q => q.name && q["acceptedAnswer"].text)
-
-        const schemas: object[] = [
-          {
-            "@context": "https://schema.org",
-            "@type": "Article",
-            "headline": resolvedTitle,
-            "description": resolvedDescription,
-            "image": ogImg,
-            "datePublished": d.publishedAt,
-            "dateModified": d.updatedAt || d.publishedAt,
-            "author": { "@type": "Organization", "name": resolvedAuthor, "url": getSiteUrl() },
-            "publisher": {
-              "@type": "Organization",
-              "name": companyName,
-              "logo": { "@type": "ImageObject", "url": siteUrl("/logo.webp") },
-              "telephone": phoneCall ? `+966${phoneCall.replace(/^0/, "")}` : undefined,
-              "areaServed": "الرياض",
-            },
-            "mainEntityOfPage": { "@type": "WebPage", "@id": canonical },
-            "url": canonical,
-            "articleSection": d.category,
-            "keywords": getTags(d.tags).join(", "),
-            "wordCount": resolvedContent.replace(/<[^>]*>/g, "").split(/\s+/).length,
-            "inLanguage": "ar",
-          },
-          {
-            "@context": "https://schema.org",
-            "@type": "BreadcrumbList",
-            "itemListElement": [
-              { "@type": "ListItem", "position": 1, "name": "الرئيسية", "item": getSiteUrl() },
-              { "@type": "ListItem", "position": 2, "name": "المدونة", "item": siteUrl("/blog") },
-              { "@type": "ListItem", "position": 3, "name": title, "item": canonical },
-            ],
-          },
-        ]
-
-        if (faqItems.length > 0) {
-          schemas.push({ "@context": "https://schema.org", "@type": "FAQPage", "mainEntity": faqItems })
-        }
-
-        const script = document.createElement("script")
-        script.id = "blog-post-schema"
-        script.type = "application/ld+json"
-        script.textContent = JSON.stringify(schemas)
-        document.head.appendChild(script)
       })
       .catch(() => { setMeta("robots", "noindex, follow"); setNotFound(true); setLoading(false) })
 
-    return () => {
-      // cleanup schema on unmount
-      const el = document.getElementById("blog-post-schema")
-      if (el) el.remove()
-    }
   }, [slug, companyName, isLoaded])
 
   function copyLink() {

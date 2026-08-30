@@ -28,6 +28,7 @@ const DatabaseManager = lazy(() => import("@/pages/admin/DatabaseManager"))
 const WhatsAppAdmin = lazy(() => import("@/pages/admin/WhatsApp"))
 const AdminSeoPages = lazy(() => import("@/pages/admin/SeoPages"))
 const AdminReviews = lazy(() => import("@/pages/admin/Reviews"))
+const AdminStructuredContent = lazy(() => import("@/pages/admin/StructuredContent"))
 
 export function AdminRoutes() {
   return (
@@ -60,6 +61,7 @@ export function AdminRoutes() {
           <Route path="/admin/seo-pages" component={AdminSeoPages} />
           <Route path="/admin/settings" component={AdminSiteSettings} />
           <Route path="/admin/seo" component={AdminSEOPanel} />
+          <Route path="/admin/structured-content" component={AdminStructuredContent} />
           <Route path="/admin/employees" component={AdminEmployees} />
           <Route path="/admin/roles-permissions" component={AdminRoles} />
           <Route path="/admin/profile" component={AdminProfile} />
