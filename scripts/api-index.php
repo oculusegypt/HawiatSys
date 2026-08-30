@@ -197,7 +197,14 @@ function seoProductionFiles(string $root): array {
         foreach ($iterator as $file) {
             if (!$file->isFile()) continue;
             $path = str_replace('\\', '/', $file->getPathname());
-            if (str_contains($path, '/assets/') || str_contains($path, '/cleanflow-platform/')) continue;
+            // The platform artifact is shipped alongside the public site but
+            // has its own robots/canonical boundary and is not part of the
+            // main site's SEO inventory.
+            if (
+                str_contains($path, '/assets/')
+                || str_contains($path, '/cleanflow-platform/')
+                || str_contains($path, '/taqi-group-platform/')
+            ) continue;
             $files[] = $path;
         }
     } catch (Throwable $e) {
@@ -315,7 +322,15 @@ function seoMetricsSnapshot(PDO $pdo): array {
     foreach ($files as $file) {
         if (str_contains(str_replace('\\', '/', $file), '/api/')) continue;
         if (!preg_match('/\.(html?|css|js|json|xml|txt|php|webmanifest)$/i', $file)) continue;
-        if (in_array(basename($file), ['BUILD_INFO.json', 'UPLOAD_INSTRUCTIONS.txt'], true)) continue;
+        // These are machine-readable release manifests, not public copy.
+        // Their internal artifact identifiers must not trigger a branding
+        // warning for rendered pages.
+        if (in_array(basename($file), [
+            'BUILD_INFO.json',
+            'UPLOAD_INSTRUCTIONS.txt',
+            'seo-inventory.json',
+            'seo-media-manifest.json',
+        ], true)) continue;
         $text = (string)@file_get_contents($file);
         if (preg_match('/sabaik|سبائك|الماسة/iu', $text)) $legacyFiles[] = $file;
     }
