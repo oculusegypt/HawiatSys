@@ -4,7 +4,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { getSetting } from "./settings";
 import { replaceLegacyCompanyName } from "../lib/companyName";
 import { requireAdmin, requireSectionPermission } from "../middleware/adminAuth";
-import { entitySlug } from "../lib/friendlySlug";
+import { entitySlug, legacyEntitySlug } from "../lib/friendlySlug";
 import { generateSeoMetadata, uniqueSlug } from "../lib/seoMetadata";
 
 const router = Router();
@@ -73,7 +73,10 @@ router.get("/pages/:slug", async (req, res) => {
     const requestedSlug = decodeURIComponent(req.params.slug).trim().toLowerCase();
     const row = rows.find(candidate =>
       candidate.slug.toLowerCase() === requestedSlug
+      || candidate.seoSlug?.toLowerCase() === requestedSlug
       || entitySlug({ slug: candidate.slug, title: candidate.title, id: candidate.id, fallback: "page" }) === requestedSlug
+      || legacyEntitySlug({ slug: candidate.slug, title: candidate.title, id: candidate.id, fallback: "page" }) === requestedSlug
+      || legacyEntitySlug({ slug: candidate.seoSlug, title: candidate.title, id: candidate.id, fallback: "page" }) === requestedSlug
     );
     if (!row) return res.status(404).json({ error: "Not found" });
 

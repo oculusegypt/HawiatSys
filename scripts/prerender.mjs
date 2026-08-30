@@ -104,15 +104,28 @@ function mergeGoldenKeywords(value = "") {
     .split(/[،,]/)
     .map((keyword) => keyword.trim())
     .filter(Boolean);
-  return [...new Set([...current, ...GOLDEN_SEO_KEYWORDS])].join("، ");
+  // Keep keyword metadata page-specific. The previous global append made
+  // every document target the same terms and encouraged visible repetition.
+  return [...new Set(current)].join("، ");
 }
 
-function goldenKeywordMarkup() {
-  return `
-    <section class="seo-golden-keywords" aria-labelledby="golden-keywords-title">
-      <h2 id="golden-keywords-title">الكلمات الأساسية لخدمات الحاويات بالرياض</h2>
-      <p>${GOLDEN_SEO_KEYWORDS.map((keyword) => `<strong>${esc(keyword)}</strong>`).join("، ")}</p>
-    </section>`;
+function pageSpecificKeywords({ keywords = "", targetKeyword = "", title = "" } = {}) {
+  const current = `${targetKeyword},${keywords}`
+    .split(/[،,]/)
+    .map((keyword) => keyword.trim())
+    .filter((keyword) => keyword && !GOLDEN_SEO_KEYWORDS.includes(keyword));
+  const fallback = String(title || "").trim();
+  return [...new Set(current.filter(Boolean))]
+    .slice(0, 8)
+    .join("، ") || fallback;
+}
+
+function readableSeoExcerpt(value = "") {
+  const text = String(value || "").replace(/\s+/g, " ").trim();
+  if (!text) return "";
+  const parts = text.split(/[،,]/).map((part) => part.trim()).filter(Boolean);
+  const keywordParts = parts.slice(2).filter((part) => /حاوي|مخلف|تأجير|نقل|نفايات|أنقاض/u.test(part));
+  return parts.length >= 4 && keywordParts.length >= 2 ? parts.slice(0, 2).join("، ") : text;
 }
 
 function authorityTrustMarkup() {
@@ -351,15 +364,14 @@ function homeSeoLinksNoscript() {
   if (!pages.length) return "";
 
   const links = pages.map((page) => {
-    const keyword = page.target_keyword || String(page.seo_keywords || "").split(/[，,]/)[0]?.trim() || "تأجير الحاويات بالرياض";
     const href = `${SITE_URL}/page/${entityPath({ slug: page.slug, title: page.title, id: page.id, fallback: "page" })}`;
-    return `<a href="${esc(href)}" style="display:inline-block;margin:4px 6px;padding:7px 12px;border:1px solid #bee3f8;border-radius:8px;color:#1e3a5f;text-decoration:none;font-size:13px">${esc(page.title)} — ${esc(keyword)}</a>`;
+    return `<a href="${esc(href)}" style="display:inline-block;margin:4px 6px;padding:7px 12px;border:1px solid #bee3f8;border-radius:8px;color:#1e3a5f;text-decoration:none;font-size:13px">${esc(page.title)}</a>`;
   }).join("");
 
   return `
     <noscript>
-      <section aria-label="صفحات تأجير الحاويات والكلمات الرئيسية" style="font-family:'Cairo',Arial,sans-serif;direction:rtl;max-width:1100px;margin:0 auto;padding:28px 16px;line-height:1.8">
-        <h2 style="font-size:22px;color:#1e3a5f;margin:0 0 8px">صفحات تأجير الحاويات والكلمات الرئيسية</h2>
+      <section aria-label="أدلة تأجير الحاويات" style="font-family:'Cairo',Arial,sans-serif;direction:rtl;max-width:1100px;margin:0 auto;padding:28px 16px;line-height:1.8">
+        <h2 style="font-size:22px;color:#1e3a5f;margin:0 0 8px">أدلة تأجير الحاويات</h2>
         <p style="font-size:15px;color:#4a5568;margin:0 0 14px">أدلة منشورة عن تأجير الحاويات ونقل الأنقاض ومخلفات البناء في الرياض والمناطق القريبة.</p>
         <nav aria-label="روابط صفحات SEO">${links}</nav>
       </section>
@@ -517,7 +529,6 @@ function renderPage({
       <nav aria-label="breadcrumb" class="seo-static-breadcrumb">${breadcrumbHtml(breadcrumbs)}</nav>
       ${stripInlineStyles(bodyContent)}
       ${relatedLinksMarkup}
-      ${goldenKeywordMarkup()}
       ${authorityTrustMarkup()}
     </div>
   </div>
@@ -982,12 +993,9 @@ function generateHomepageStaticContent() {
           ${internalLinks.map(([href, label]) => `<a href="${href}" style="display:inline-block;border:1px solid #d2e2e6;border-radius:10px;padding:9px 13px;color:#246b70;text-decoration:none;font-weight:700;font-size:14px">${esc(label)}</a>`).join("")}
         </div>
       </section>
-      <section id="golden-keyword-services" style="border-top:1px solid #e5eef1;margin-top:32px;padding-top:30px">
-        <h2 style="margin:0 0 10px;color:#12384b;font-size:26px;font-weight:900">حلولنا الأساسية للمطاعم والمنشآت والمشاريع</h2>
-        <p style="margin:0 0 16px;color:#52707c;font-size:16px">نغطي احتياجات تأجير الحاويات ونقل المخلفات من الطلب الأول حتى التوصيل والسحب. تشمل حلولنا حاويات نفايات للمطاعم، حاويات مخلفات المنشآت، حاويات أنقاض، ونقل مخلفات البناء والهدم.</p>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          ${GOLDEN_SEO_KEYWORDS.map((keyword) => `<span style="display:inline-block;padding:7px 11px;border-radius:999px;background:#fff8dc;border:1px solid #e8c65a;color:#9a6b00;font-size:13px;font-weight:800">${esc(keyword)}</span>`).join("")}
-        </div>
+      <section id="service-solutions" style="border-top:1px solid #e5eef1;margin-top:32px;padding-top:30px">
+        <h2 style="margin:0 0 10px;color:#12384b;font-size:26px;font-weight:900">حلول عملية للمطاعم والمنشآت والمشاريع</h2>
+        <p style="margin:0 0 16px;color:#52707c;font-size:16px">نغطي احتياجات الموقع من اختيار الحاوية المناسبة إلى التوصيل والسحب ونقل المخلفات. تشمل الحلول حاويات نفايات للمطاعم والمنشآت، وحاويات أنقاض لمشاريع البناء والهدم.</p>
         <h3 style="margin:22px 0 8px;color:#12384b;font-size:19px;font-weight:800">طريقة الطلب</h3>
         <p style="margin:0;color:#52707c;font-size:15px">أرسل نوع المخلفات، المقاس المتوقع، عنوان الموقع، ومدة الاحتياج. نراجع التفاصيل ونقترح الحاوية المناسبة ثم ننسق موعد التوصيل والسحب بوضوح.</p>
       </section>
@@ -1136,6 +1144,7 @@ function saveSimplePage({ relPath, title, description, canonicalPath, keywords =
       "url": canonical,
       "name": title,
       "description": description,
+      "image": { "@type": "ImageObject", "url": publicUrl(ogImage), "name": title },
       "inLanguage": "ar",
       "isPartOf": { "@id": `${publicUrl("/")}#website` },
       "about": { "@id": `${publicUrl("/")}#organization` },
@@ -1228,7 +1237,7 @@ for (const post of posts) {
   const html = renderPage({
     title, description, canonical, ogImage,
     ogType: "article",
-    keywords: post.seo_keywords || "",
+    keywords: pageSpecificKeywords({ keywords: post.seo_keywords, title: post.title, targetKeyword: post.title }),
     schemas: [articleSchema, breadcrumbSchema(crumbs)],
     breadcrumbs: crumbs,
     bodyContent
@@ -1328,6 +1337,7 @@ for (const svc of services) {
 
   let ogImage = svc.image_url || "";
   try { const imgs = JSON.parse(svc.images || "[]"); ogImage = imgs[0] || ogImage; } catch {}
+  ogImage = resolveLocalImage(ogImage, "/images/seo/taqi-services.jpg");
 
   const serviceSchema = {
     "@context": "https://schema.org",
@@ -1335,6 +1345,7 @@ for (const svc of services) {
     "@id": `${canonical}#service`,
     "name": svc.title,
     "description": desc,
+    "image": absoluteImg(ogImage),
     "url": canonical,
     "inLanguage": "ar",
     "provider": {
@@ -1459,7 +1470,7 @@ for (const svc of services) {
   const html = renderPage({
     title, description: desc, canonical, ogImage,
     ogType: "website",
-    keywords: svc.seo_keywords || "",
+    keywords: pageSpecificKeywords({ keywords: svc.seo_keywords, title: svc.title, targetKeyword: svc.title }),
     schemas: [serviceSchema, serviceFaqSchema, breadcrumbSchema(crumbs)],
     breadcrumbs: crumbs,
     bodyContent
@@ -1601,7 +1612,9 @@ for (const c of containers) {
    const canonical = `${SITE_URL}/containers/${urlSlug}`;
   const title     = c.seo_title || `${c.name} بالرياض | ${siteCompanyName}`;
   const desc      = normalizeMetaDescription(c.seo_description || c.description, c.name);
-  const ogImage   = resolveLocalImage(c.image_url, "/images/hero-1.webp");
+  let containerImage = c.image_url || "";
+  try { const imgs = JSON.parse(c.images || "[]"); containerImage = imgs[0] || containerImage; } catch {}
+  const ogImage   = resolveLocalImage(containerImage, "/images/hero-1.webp");
 
   let featuresList = [];
   try {
@@ -1625,13 +1638,13 @@ for (const c of containers) {
     "url": canonical,
     "inLanguage": "ar",
     "category": catArabic,
-    "offers": {
+    ...(Number(c.price_per_day) > 0 ? { "offers": {
       "@type": "Offer",
-      "price": "0",
+      "price": String(c.price_per_day),
       "priceCurrency": "SAR",
       "availability": "https://schema.org/InStock",
-      "description": "طلب عرض سعر واضح حسب نوع المخلفات وحجم الحاوية وموقع المشروع ومدة التأجير"
-    },
+      "description": "السعر اليومي حسب المقاس ونوع المخلفات ومدة التأجير"
+    } } : {}),
     "brand": {
       "@type": "Brand",
       "name": siteCompanyName
@@ -1707,7 +1720,7 @@ for (const c of containers) {
   const html = renderPage({
     title, description: desc, canonical, ogImage,
     ogType: "product",
-    keywords: c.seo_keywords || "",
+    keywords: pageSpecificKeywords({ keywords: c.seo_keywords, title: c.name, targetKeyword: c.name }),
     schemas: [containerSchema, containerFaqSchema, breadcrumbSchema(crumbs)],
     breadcrumbs: crumbs,
     bodyContent
@@ -1818,6 +1831,7 @@ for (const page of seoPages) {
     "url": canonical,
     "name": title,
     "description": description,
+    "image": { "@type": "ImageObject", "url": ogImage, "name": page.title },
     "inLanguage": "ar",
     "isPartOf": { "@id": `${SITE_URL}/#website` },
     "about": { "@id": `${SITE_URL}/#organization` },
@@ -1852,7 +1866,7 @@ for (const page of seoPages) {
   const html = renderPage({
     title, description, canonical, ogImage,
     ogType: "article",
-    keywords: page.seo_keywords || page.target_keyword || "",
+    keywords: pageSpecificKeywords({ keywords: page.seo_keywords, targetKeyword: page.target_keyword, title: page.title }),
     schemas: [seoPageSchema, seoPageFaqSchema, breadcrumbSchema(crumbs)],
     breadcrumbs: crumbs,
     bodyContent

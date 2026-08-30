@@ -9,8 +9,11 @@ import { normalizeCompanyText, useSiteSettings } from "@/context/SiteSettingsCon
 import { entityPath } from "@/lib/friendlySlug"
 import { seoImageAlt, seoImageForPath } from "@/lib/seoMedia"
 import { getSiteUrl, sitePath, siteUrl } from "@/lib/siteUrl"
-import { mergeGoldenSeoKeywords } from "@/lib/seoKeywords"
 import { AREAS, ARABIC_AREA_SLUGS } from "@/pages/NeighborhoodPage"
+import { breadcrumbSchema, pageSchema } from "@/lib/seoSchema"
+import { pageSpecificSeoKeywords } from "@/lib/seoKeywords"
+import { useDocumentSchema } from "@/hooks/useDocumentSchema"
+import { readableSeoExcerpt } from "@/lib/seoText"
 import {
   ArrowRight,
   CheckCircle2,
@@ -20,7 +23,6 @@ import {
   MessageCircle,
   MapPin,
   Phone,
-  Search,
   ShieldCheck,
   Sparkles,
 } from "lucide-react"
@@ -61,19 +63,6 @@ function toAbsoluteAsset(value: string): string {
   if (!value) return ""
   if (/^https?:\/\//i.test(value)) return value
   return siteUrl(sitePath(value))
-}
-
-function pageKeywords(value: string): string[] {
-  return [...new Set(
-    value
-      .split(/[,،]/)
-      .map(keyword => keyword.trim())
-      .filter(Boolean),
-  )]
-}
-
-function removeSeoArtifacts() {
-  document.getElementById("seo-page-schema")?.remove()
 }
 
 function PublicCta({
@@ -174,7 +163,11 @@ export default function SeoPage() {
         const resolvedTitle = normalizeCompanyText(`${title} | ${companyName || "الشركة"}`)
         document.title = resolvedTitle
         setMeta("description", description)
-        setMeta("keywords", mergeGoldenSeoKeywords(resolvedData.seoKeywords || resolvedData.targetKeyword))
+         setMeta("keywords", pageSpecificSeoKeywords({
+           keywords: resolvedData.seoKeywords,
+           targetKeyword: resolvedData.targetKeyword,
+           title: resolvedData.title,
+         }))
         setMeta(
           "robots",
           typeof window !== "undefined" && window.location.pathname.startsWith("/page/")
@@ -209,36 +202,6 @@ export default function SeoPage() {
         canonicalLink.id = "seo-page-canonical"
         document.head.appendChild(canonicalLink)
 
-        removeSeoArtifacts()
-        const schema = [
-          {
-            "@context": "https://schema.org",
-            "@type": "WebPage",
-            name: title,
-            description,
-            url: canonical,
-            headline: title,
-            inLanguage: "ar",
-            isPartOf: { "@type": "WebSite", name: companyName || "الشركة", url: getSiteUrl() },
-            about: { "@type": "Thing", name: resolvedData.targetKeyword || title },
-            ...(image ? { image } : {}),
-            datePublished: data.publishedAt || undefined,
-            dateModified: data.updatedAt || data.publishedAt || undefined,
-          },
-          {
-            "@context": "https://schema.org",
-            "@type": "BreadcrumbList",
-            itemListElement: [
-              { "@type": "ListItem", position: 1, name: "الرئيسية", item: getSiteUrl() },
-              { "@type": "ListItem", position: 2, name: title, item: canonical },
-            ],
-          },
-        ]
-        const script = document.createElement("script")
-        script.id = "seo-page-schema"
-        script.type = "application/ld+json"
-        script.textContent = JSON.stringify(schema)
-        document.head.appendChild(script)
       })
       .catch(() => {
         if (cancelled) return
@@ -250,10 +213,34 @@ export default function SeoPage() {
 
     return () => {
       cancelled = true
-      removeSeoArtifacts()
       document.getElementById("seo-page-canonical")?.remove()
     }
   }, [slug, companyName, isLoaded])
+
+  const pageCanonical = page
+    ? siteUrl(`/page/${entityPath({ slug: page.slug, title: page.title, id: page.id, fallback: "page" })}`)
+    : ""
+  const pageImage = page
+    ? toAbsoluteAsset(page.ogImage || page.coverImage) || siteUrl(seoImageForPath(`/page/${page.slug}`))
+    : ""
+  useDocumentSchema("seo-page-schema", page ? {
+    "@graph": [
+      pageSchema({
+        id: "webpage",
+        type: "WebPage",
+        name: page.title,
+        description: page.seoDescription || page.excerpt,
+        url: pageCanonical,
+        image: pageImage,
+        companyName: companyName || "مؤسسة تقي جروب",
+        about: page.targetKeyword || page.title,
+      }),
+      breadcrumbSchema([
+        { name: "الرئيسية", url: getSiteUrl() },
+        { name: page.title, url: pageCanonical },
+      ]),
+    ],
+  } : null, Boolean(page))
 
   if (loading) {
     return (
@@ -294,12 +281,11 @@ export default function SeoPage() {
   }
 
   const image = toAbsoluteAsset(page.ogImage || page.coverImage) || siteUrl(seoImageForPath(`/page/${page.slug}`))
-  const keywords = pageKeywords(page.seoKeywords || page.targetKeyword)
+  const readableExcerpt = readableSeoExcerpt(page.excerpt)
   const activeServices = (services as Service[]).filter(service => service.isActive)
   const whatsappHref = phoneWhatsapp
     ? `https://wa.me/966${phoneWhatsapp.replace(/^0/, "")}?text=${encodeURIComponent(`مرحباً، أود الاستفسار عن ${page.title}`)}`
     : ""
-
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-sans" dir="rtl">
       <Navbar />
@@ -318,20 +304,13 @@ export default function SeoPage() {
             <div className="max-w-4xl">
               <div className="mb-3 flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-secondary/30 bg-secondary/20 px-3 py-1 text-xs font-bold text-secondary">
-                  <Search size={13} />
-                  دليل خدمة في الرياض
+                  دليل عملي للموقع في الرياض
                 </span>
-                {page.targetKeyword && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-bold text-white/80">
-                    <MapPin size={13} />
-                    {page.targetKeyword}
-                  </span>
-                )}
               </div>
               <h1 className="mb-4 text-3xl font-black leading-tight text-white md:text-5xl" data-testid="heading-seo-page">{page.title}</h1>
-              {page.excerpt && (
+              {readableExcerpt && (
                 <p className="mb-6 max-w-3xl text-base leading-relaxed text-slate-200 md:text-lg" data-testid="text-seo-page-excerpt">
-                  {page.excerpt}
+                  {readableExcerpt}
                 </p>
               )}
               <div className="flex flex-wrap gap-3">
@@ -364,23 +343,8 @@ export default function SeoPage() {
 
                 <article className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-sm" data-testid="article-seo-page">
                   <header className="border-b border-slate-100 p-8 md:p-10">
-                    <h2 className="text-2xl font-bold text-slate-900">دليل {page.title}</h2>
-                    <p className="mt-2 text-sm leading-7 text-slate-500">معلومات عملية تساعدك على فهم الخدمة واختيار الحل المناسب لمشروعك في الرياض.</p>
-                    {keywords.length > 0 && (
-                      <div className="mt-6 rounded-2xl border border-secondary/20 bg-secondary/5 p-4" data-testid="seo-page-keywords">
-                        <div className="mb-3 flex items-center gap-2 text-xs font-black text-secondary">
-                          <Search size={14} />
-                          الكلمات الرئيسية
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {keywords.map(keyword => (
-                            <span key={keyword} className="inline-flex rounded-full border border-secondary/20 bg-white px-3 py-1.5 text-xs font-bold leading-5 text-slate-700">
-                              {keyword}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                    <h2 className="text-2xl font-bold text-slate-900">المعلومات العملية</h2>
+                    <p className="mt-2 text-sm leading-7 text-slate-500">تفاصيل مختصرة تساعدك على اختيار الحل المناسب لمشروعك في الرياض.</p>
                   </header>
                   <div
                     className="seo-page-content p-8 prose prose-lg max-w-none prose-headings:font-black prose-headings:text-gray-900 prose-p:leading-8 prose-p:text-gray-700 prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-strong:text-gray-900 prose-li:text-gray-700 prose-blockquote:rounded-xl prose-blockquote:border-secondary prose-blockquote:bg-secondary/5 md:p-10"
@@ -437,10 +401,10 @@ export default function SeoPage() {
                     بيانات الصفحة
                   </h2>
                   <dl className="space-y-3 text-xs leading-6">
-                    <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
-                      <dt className="text-slate-500">الكلمة المستهدفة</dt>
-                      <dd className="text-left font-bold text-primary">{page.targetKeyword || "خدمات الحاويات"}</dd>
-                    </div>
+                     <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
+                       <dt className="text-slate-500">نوع الدليل</dt>
+                       <dd className="text-left font-bold text-primary">خدمة محلية</dd>
+                     </div>
                     {page.publishedAt && (
                       <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
                         <dt className="text-slate-500">تاريخ النشر</dt>

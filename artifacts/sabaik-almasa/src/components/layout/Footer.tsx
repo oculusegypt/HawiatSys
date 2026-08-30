@@ -2,7 +2,6 @@ import * as React from "react"
 import { Link } from "wouter"
 import { Phone, Mail, MapPin, Map, Facebook, Instagram, Youtube, Twitter, Music2, Ghost, Linkedin, ExternalLink } from "lucide-react"
 import { getSafeMapEmbedUrl, useSiteSettings } from "@/context/SiteSettingsContext"
-import { GOLDEN_SEO_KEYWORDS } from "@/lib/seoKeywords"
 
 export function Footer() {
   const siteSettings = useSiteSettings()
@@ -196,25 +195,6 @@ export function Footer() {
             ))}
           </div>
         </div>
-
-        <section className="mb-10 rounded-2xl border border-secondary/25 bg-white/5 px-5 py-5" aria-labelledby="golden-keywords-heading">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-            <h3 id="golden-keywords-heading" className="text-base font-black text-secondary">
-            كلماتنا الأساسية لخدمات الحاويات
-            </h3>
-            <span className="text-[11px] text-gray-400">موضوعات وخدمات نغطيها</span>
-          </div>
-          <div className="flex max-w-6xl flex-wrap gap-2" aria-label="الكلمات الأساسية لخدمات الحاويات">
-            {GOLDEN_SEO_KEYWORDS.map((keyword) => (
-              <span
-                key={keyword}
-                className="inline-flex items-center rounded-full border border-white/15 bg-white/10 px-3 py-2 text-xs font-bold leading-5 text-gray-200 transition-colors hover:border-secondary/60 hover:bg-secondary/15 hover:text-white"
-              >
-                {keyword}
-              </span>
-            ))}
-          </div>
-        </section>
 
         <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-gray-400 text-sm">

@@ -25,3 +25,14 @@ export function normalizeSeoDescription(value: string | null | undefined, contex
 
   return text
 }
+
+export function readableSeoExcerpt(value: string | null | undefined): string {
+  const text = String(value || "").replace(/\s+/g, " ").trim()
+  if (!text) return ""
+  const parts = text.split(/[،,]/).map((part) => part.trim()).filter(Boolean)
+  const keywordParts = parts.slice(2).filter((part) => /حاوي|مخلف|تأجير|نقل|نفايات|أنقاض/u.test(part))
+  if (parts.length >= 4 && keywordParts.length >= 2) {
+    return parts.slice(0, 2).join("، ")
+  }
+  return text
+}

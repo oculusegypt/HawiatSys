@@ -12,6 +12,8 @@ import { resolveServiceTypeFromContainer, getContainerImage, ARABIC_CATEGORY_NAM
 import { siteUrl } from "@/lib/siteUrl"
 import { resolveContactNumbers, useSiteSettings } from "@/context/SiteSettingsContext"
 import { entityPath, entitySlug, legacyEntitySlug } from "@/lib/friendlySlug"
+import { breadcrumbSchema, containerSchema, pageSchema } from "@/lib/seoSchema"
+import { useDocumentSchema } from "@/hooks/useDocumentSchema"
 
 /** Convert container name+size to a URL slug (mirrors the old site's pattern) */
 function toSlug(text: string): string {
@@ -51,7 +53,7 @@ export default function PackageDetail() {
   const { data: apiContainers, isLoading, isError, refetch } = useGetContainers()
   const [container, setContainer] = useState<Container | null>(null)
   const { openModal } = useServiceRequest()
-  const { phoneCall, phoneWhatsapp, phones } = useSiteSettings()
+  const { phoneCall, phoneWhatsapp, phones, companyName } = useSiteSettings()
 
   useEffect(() => {
     if (!apiContainers?.length) return
@@ -74,6 +76,44 @@ export default function PackageDetail() {
     ogImageAlt: container ? `${container.name} لتأجير الحاويات بالرياض` : "حاويات للإيجار بالرياض",
     indexable: Boolean(container) && (typeof window === "undefined" || window.location.pathname.startsWith("/containers/")),
   })
+
+  const containerUrl = siteUrl(`/containers/${entityPath({ slug: container?.seoSlug, title: container?.name, id: container?.id, fallback: "container" })}`)
+  const containerDescription = container?.seoDescription || container?.description || "تفاصيل الحاوية المناسبة لمخلفات المشروع داخل الرياض."
+  const categoryName: Record<string, string> = {
+    debris: "حاويات الأنقاض ومخلفات البناء",
+    waste: "حاويات النفايات للمنشآت",
+    contract: "عقود النظافة الإلكترونية",
+  }
+  const containerSchemaValue = container ? {
+    "@graph": [
+      pageSchema({
+        id: "webpage",
+        type: "WebPage",
+        name: container.name,
+        description: containerDescription,
+        url: containerUrl,
+        image: getContainerImage(container),
+        companyName: companyName || "مؤسسة تقي جروب",
+        about: categoryName[container.category || ""] || "تأجير الحاويات ونقل المخلفات",
+      }),
+      containerSchema({
+        name: `${container.name}${container.size ? ` — ${container.size}` : ""}`,
+        description: containerDescription,
+        url: containerUrl,
+        image: getContainerImage(container),
+        category: categoryName[container.category || ""] || container.category,
+        companyName: "مؤسسة تقي جروب",
+        priceText: container.priceText,
+        pricePerDay: container.pricePerDay,
+      }),
+      breadcrumbSchema([
+        { name: "الرئيسية", url: siteUrl("/") },
+        { name: "الحاويات", url: siteUrl("/containers") },
+        { name: container.name, url: containerUrl },
+      ]),
+    ],
+  } : null
+  useDocumentSchema("container-detail-schema", containerSchemaValue, Boolean(container))
 
   if (isLoading) {
     return (

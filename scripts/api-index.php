@@ -890,6 +890,36 @@ try {
         return $base . $suffix;
     }
 
+    function legacyFriendlySlug(string $value, string $fallback = 'page'): string {
+        $source = trim($value);
+        if ($source === '') return $fallback;
+        $pairs = [
+            'لا'=>'la','لأ'=>'la','لإ'=>'la','لآ'=>'la','ث'=>'th','ذ'=>'dh','ش'=>'sh','خ'=>'kh','غ'=>'gh',
+            'ض'=>'d','ظ'=>'z','ع'=>'a','ء'=>'a','أ'=>'a','إ'=>'i','آ'=>'a','ؤ'=>'w','ئ'=>'y',
+            'ا'=>'a','ب'=>'b','ت'=>'t','ج'=>'j','ح'=>'h','د'=>'d','ر'=>'r','ز'=>'z','س'=>'s','ص'=>'s',
+            'ط'=>'t','ف'=>'f','ق'=>'q','ك'=>'k','ل'=>'l','م'=>'m','ن'=>'n','ه'=>'h','و'=>'w','ى'=>'a','ي'=>'y','ة'=>'h',
+        ];
+        $source = preg_replace('/[\x{064B}-\x{065F}\x{0670}\x{0640}]/u', '', $source) ?? $source;
+        $source = mb_strtolower($source, 'UTF-8');
+        foreach ($pairs as $character => $replacement) $source = str_replace($character, $replacement, $source);
+        $source = str_replace('&', ' and ', $source);
+        $source = preg_replace('/[\'’`"]/u', '', $source) ?? $source;
+        $source = preg_replace('/[^a-z0-9]+/', '-', $source) ?? '';
+        $source = trim(preg_replace('/-+/', '-', $source) ?? '', '-');
+        if ($source === '') return $fallback;
+        return strlen($source) <= 64 ? $source : rtrim(substr($source, 0, 64), '-');
+    }
+
+    function legacyEntitySlug(?string $slug, ?string $title, $id, string $fallback): string {
+        $rawSlug = trim((string)($slug ?? ''));
+        $rawTitle = trim((string)($title ?? ''));
+        $isGeneratedNumericSlug = preg_match('/^(?:مقالة|post)[-_]?\d+$/iu', $rawSlug);
+        $source = $isGeneratedNumericSlug && $rawTitle !== '' ? $rawTitle : ($rawSlug !== '' ? $rawSlug : $rawTitle);
+        $suffix = $id === null || $id === '' ? '' : '-' . preg_replace('/[^0-9]/', '', (string)$id);
+        $base = legacyFriendlySlug($source, $fallback . $suffix);
+        return $base . ($suffix !== '' && !str_ends_with($base, $suffix) ? $suffix : '');
+    }
+
     // Keep content creation/update SEO-complete on Hostinger too. This mirrors
     // the development API's domain-level generator without requiring Node.js.
     function seoAutoText($value): string {
@@ -3156,6 +3186,12 @@ try {
             foreach ($candidateSlugs as $candidateSlug) {
                 $candidateAliases[] = $candidateSlug;
                 $candidateAliases[] = publicEntitySlug(
+                    $candidateSlug,
+                    (string)($candidate['title'] ?? ''),
+                    $candidate['id'] ?? null,
+                    'page',
+                );
+                $candidateAliases[] = legacyEntitySlug(
                     $candidateSlug,
                     (string)($candidate['title'] ?? ''),
                     $candidate['id'] ?? null,

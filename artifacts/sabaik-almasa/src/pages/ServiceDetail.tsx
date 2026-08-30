@@ -32,6 +32,8 @@ import { RIYADH_AREA_GROUPS, AREAS, ARABIC_AREA_SLUGS } from "@/pages/Neighborho
 import { ServiceReviewsSection } from "@/components/reviews/ServiceReviewsSection"
 import { normalizeSeoDescription } from "@/lib/seoText"
 import { entityPath, entitySlug, legacyEntitySlug } from "@/lib/friendlySlug"
+import { breadcrumbSchema, pageSchema, serviceSchema } from "@/lib/seoSchema"
+import { useDocumentSchema } from "@/hooks/useDocumentSchema"
 
 function normalizeSlug(value: string): string {
   return decodeURIComponent(value).trim().toLowerCase()
@@ -203,74 +205,47 @@ export default function ServiceDetail() {
     indexable: Boolean(service) && (typeof window === "undefined" || window.location.pathname.startsWith("/services/")),
   })
 
-  // Schema LD+JSON
-  useEffect(() => {
-    if (!service) return
-    const toInternational = (phone: string) => {
-      const digits = phone.replace(/\D/g, "")
-      if (digits.startsWith("00")) return `+${digits.slice(2)}`
-      if (digits.startsWith("0")) return `+966${digits.slice(1)}`
-      if (digits.startsWith("966")) return `+${digits}`
-      return digits ? `+${digits}` : ""
-    }
-    const schemaPhones = [...new Set([phoneCall, phoneWhatsapp, ...phones]
-      .map((phone) => phone.trim())
-      .filter(Boolean)
-      .map(toInternational)
-      .filter(Boolean))]
-    const addressData = {
-      "@type": "PostalAddress",
-      ...(address ? { streetAddress: address } : {}),
-      ...(city ? { addressLocality: city } : {}),
-      ...(region ? { addressRegion: region } : {}),
-      ...(country ? { addressCountry: country } : {}),
-    }
-    const provider = {
-      "@type": "LocalBusiness",
-      "@id": `${siteUrl("/")}#local-business`,
-      "name": resolvedCompany,
-      ...(schemaPhones.length ? { "telephone": schemaPhones } : {}),
-      ...(Object.keys(addressData).length > 1 ? { "address": addressData } : {}),
-      "url": siteUrl("/"),
-    }
-    const schemaObj = {
-      "@context": "https://schema.org",
-      "@graph": [
-        {
-          "@type": "Service",
-          "@id": `${canonical}#service`,
-          "name": service.title,
-          "description": metaText,
-          "provider": provider,
-          "areaServed": {
-            "@type": "City",
-            "name": "الرياض"
-          }
-        },
-        {
-          "@type": "FAQPage",
-          "mainEntity": activeIntel.faqs.map(faq => ({
-            "@type": "Question",
-            "name": faq.q,
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": faq.a
-            }
-          }))
-        }
-      ]
-    }
-
-    const script = document.createElement("script")
-    script.id = `service-schema-${service.id}`
-    script.type = "application/ld+json"
-    script.textContent = JSON.stringify(schemaObj)
-    document.head.appendChild(script)
-
-    return () => {
-      document.getElementById(`service-schema-${service.id}`)?.remove()
-    }
-  }, [service, metaText, resolvedCompany, activeIntel])
+  const serviceSchemaValue = service ? {
+    "@graph": [
+      pageSchema({
+        id: "webpage",
+        type: "WebPage",
+        name: service.title,
+        description: metaText,
+        url: canonical,
+        image: images[0] || "/images/seo/taqi-services.jpg",
+        companyName: resolvedCompany || "مؤسسة تقي جروب",
+        about: service.title,
+      }),
+      serviceSchema({
+        service: service.title,
+        description: metaText,
+        url: canonical,
+        image: images[0] || "/images/seo/taqi-services.jpg",
+        companyName: resolvedCompany || "مؤسسة تقي جروب",
+        phoneNumbers: [phoneCall, phoneWhatsapp, ...phones],
+        address,
+        city,
+        region,
+        country,
+      }),
+      {
+        "@type": "FAQPage",
+        "@id": `${canonical}#faq`,
+        "mainEntity": activeIntel.faqs.map(faq => ({
+          "@type": "Question",
+          "name": faq.q,
+          "acceptedAnswer": { "@type": "Answer", "text": faq.a },
+        })),
+      },
+      breadcrumbSchema([
+        { name: "الرئيسية", url: siteUrl("/") },
+        { name: "الخدمات", url: siteUrl("/services") },
+        { name: service.title, url: canonical },
+      ]),
+    ],
+  } : null
+  useDocumentSchema("service-detail-schema", serviceSchemaValue, Boolean(service))
 
   const waHref = whatsapp
     ? `https://wa.me/966${whatsapp.replace(/^0/, "")}?text=${encodeURIComponent(`مرحباً، أود الاستفسار عن خدمة ${service?.title || "الحاويات"}`)}`
@@ -324,10 +299,6 @@ export default function ServiceDetail() {
             <h1 className="text-3xl md:text-5xl font-black leading-tight text-white mb-4">
               {service.title}
             </h1>
-            <p className="text-slate-200 text-base md:text-lg leading-relaxed mb-6">
-              {service.description}
-            </p>
-
             <div className="flex flex-wrap gap-4">
               {call && (
                 <a
