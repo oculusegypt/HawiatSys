@@ -39,6 +39,7 @@
 - [SEO dashboard parity](seo-dashboard-node-php-parity.md) — Node and Hostinger PHP SEO diagnostics must share URL-set and reference-scanning semantics.
 - [Static analytics tag ordering](static-analytics-tag-ordering.md) — stable IDs and complete-block ordering prevent duplicate runtime tags and crawler-visible head regressions.
 - [SQLite archive replacement safety](sqlite-archive-replacement-safety.md) — replace restored SQLite snapshots only while API writers are stopped, then remove stale WAL sidecars and verify integrity.
+- [SQLite archive logical parity](sqlite-archive-logical-parity.md) — after SQLite vacuuming, physical hashes may differ; certify archive/source equivalence by table schemas and row content too.
 - [Vite canonical root URLs](vite-canonical-root.md) — let prerender emit absolute canonicals; root-relative canonical hrefs can make Vite read the project directory as an asset.
 - [SEO entity slug parity](seo-entity-slug-parity.md) — public Arabic SEO URLs append record IDs; Node and Hostinger PHP must resolve the same aliases.
 - [Central SEO automation](central-seo-automation.md) — generate and backfill metadata in domain writes across Node and Hostinger PHP; prerender remains a safety net.
