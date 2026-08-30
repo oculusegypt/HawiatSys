@@ -3657,8 +3657,12 @@ try {
         $stmt = $pdo->query("SELECT * FROM services WHERE is_active = 1 AND seo_enabled = 1 ORDER BY id ASC");
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $candidate) {
             $candidateSlug = (string)($candidate['seo_slug'] ?? '');
+            $candidateSlugWithId = trim($candidateSlug) !== '' && ($candidate['id'] ?? '') !== ''
+                ? $candidateSlug . '-' . (string)$candidate['id']
+                : '';
             $candidateAliases = array_unique(array_filter([
                 $candidateSlug,
+                $candidateSlugWithId,
                 publicEntitySlug($candidateSlug, (string)($candidate['title'] ?? ''), $candidate['id'] ?? null, 'service'),
                 legacyEntitySlug($candidateSlug, (string)($candidate['title'] ?? ''), $candidate['id'] ?? null, 'service'),
                 (string)($candidate['id'] ?? ''),

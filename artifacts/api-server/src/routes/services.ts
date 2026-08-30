@@ -58,9 +58,14 @@ router.get("/services/:slug", async (req, res) => {
     .orderBy(asc(servicesTable.id));
   const service = rows.find(row => {
     const stored = String(row.seoSlug ?? "").trim().toLowerCase();
+    const storedWithId = row.id == null ? "" : `${stored}-${row.id}`;
     const publicSlug = entitySlug({ slug: row.seoSlug, title: row.title, id: row.id, fallback: "service" }).toLowerCase();
     const legacySlug = legacyEntitySlug({ slug: row.seoSlug, title: row.title, id: row.id, fallback: "service" }).toLowerCase();
-    return requested === stored || requested === publicSlug || requested === legacySlug || requested === String(row.id);
+    return requested === stored
+      || requested === storedWithId
+      || requested === publicSlug
+      || requested === legacySlug
+      || requested === String(row.id);
   });
   if (!service) return res.status(404).json({ error: "Not found" });
   return res.json(castRow(service));
