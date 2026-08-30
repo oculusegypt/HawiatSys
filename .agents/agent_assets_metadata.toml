@@ -162,3 +162,17 @@ mtime_ms = 1788059085892
 storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:ca0c5c7b-9ebd-4ff4-a97e-553d6accde79/dec5dce7-8a08-4997-a326-57b9048892e3/24cd26c3-4a0e-47f2-bd0b-46b49427efdd"
 storage_version_token = "1788059097908320"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "h0B9Ldf-3OKu5XyeEi1dg"
+uri = "file://TESTSPRITE_LIVE_QA_PRD.md"
+type = "text"
+title = "TestSprite Live QA PRD"
+description = "مواصفة مستقلة وشاملة لاختبار المنصة حيًا بواسطة TestSprite، تشمل 10 سيناريوهات و156 اختبارًا ذريًا مع ضوابط read-only وأدلة مطلوبة."
+logical_id = "ebd1f26c-7ed7-4518-b5cc-d4b14275c225"
+content_hash = "sha256:8df827493322b854b709124b3b7b2847ec265fd8e0f75a95082fb28eb194700e"
+size = 44798
+mtime_ms = 1788063424136
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:c98426b8-467f-4101-bd92-1793e2663ecf/ebd1f26c-7ed7-4518-b5cc-d4b14275c225/3a373bfc-0f98-415b-9a4e-ddf1dd205d67"
+storage_version_token = "1788063437052298"
+content_type = "text/markdown"

@@ -1,0 +1,609 @@
+مطلوب منك الآن **عدم إجراء Audit جديد، وعدم إعادة تنفيذ الإصلاحات التي تم إغلاقها**.
+
+أريد منك إعداد **ملف PRD / Live QA & TestSprite Test Specification مستقل وشامل** ليتم تسليمه إلى **TestSprite** لتنفيذ اختبار حقيقي وواقعي ومباشر للمنصة.
+
+الهدف من الملف ليس أن يثبت أن الاختبارات الداخلية PASS، بل أن يجعل TestSprite يتعامل مع النظام كـ **مستخدم حقيقي + QA مستقل** ويكتشف أي مشكلة فعلية ما زالت موجودة.
+
+## المطلوب في ملف PRD
+
+أنشئ ملفًا واضحًا مثل:
+
+`TESTSPRITE_LIVE_QA_PRD.md`
+
+ويجب أن يحتوي على الأقسام التالية:
+
+### 1. Test Objective
+
+وضح أن الهدف هو التحقق المستقل من جاهزية المنصة للإنتاج، وليس إعادة استخدام نتائج الاختبارات الداخلية أو افتراض صحتها.
+
+TestSprite يجب ألا يثق في:
+
+* PASS السابق
+* تقارير الـAgents
+* SEO gate
+* API parity scripts
+* build verification
+
+بل يعيد التحقق من السلوك الفعلي من منظور مستخدم حقيقي.
+
+---
+
+### 2. Live Environment
+
+حدد:
+
+* Production URL
+* Public frontend
+* Public API إن كان مكشوفًا
+* Hostinger production environment
+* أي مسارات staging/test إن وجدت
+
+ولا تضع أي credentials أو أسرار داخل الـPRD.
+
+---
+
+### 3. Real User Journeys
+
+اختبر المنصة كسيناريوهات كاملة، وليس endpoint-by-endpoint فقط.
+
+يجب أن تشمل على الأقل:
+
+#### Visitor Journey
+
+* فتح الصفحة الرئيسية
+* التنقل بين الخدمات
+* فتح تفاصيل خدمة
+* فتح باقة
+* فتح مقال
+* فتح صفحة منطقة
+* استخدام روابط CTA
+* الرجوع والتنقل بين الصفحات
+* اختبار mobile viewport
+* اختبار desktop viewport
+
+#### Content Journey
+
+* services list
+* service detail
+* packages
+* package detail
+* articles
+* article detail
+* categories
+* tags
+* SEO/location pages
+
+#### Error Journey
+
+اختبر:
+
+* URL غير موجود
+* slug غير موجود
+* alias عربي
+* slug طويل
+* trailing slash
+* query parameters
+* refresh مباشر على deep URL
+* فتح URL مباشرة بدل التنقل من الصفحة الرئيسية
+
+---
+
+### 4. Node ↔ PHP / Hostinger Parity
+
+يجب ألا يكتفي TestSprite باختبار الواجهة.
+
+إذا كانت endpoints متاحة، اختبر production behavior بين:
+
+* Node API
+* PHP/Hostinger API
+
+مع التركيز على:
+
+* response status
+* response schema
+* field types
+* null handling
+* pagination
+* category filters
+* tag filters
+* combined filters
+* detail endpoints
+* aliases
+* Arabic URLs
+
+أي اختلاف يجب تسجيله كـBUG حتى لو كان أحد المسارين يعتبره صحيحًا.
+
+---
+
+### 5. SEO Live Testing
+
+اختبر الصفحات الحقيقية بعد تحميلها، وليس الملفات المصدرية فقط.
+
+لكل نوع صفحة تحقق من:
+
+* HTTP status
+* `<title>`
+* meta description
+* canonical
+* robots
+* H1
+* visible main content
+* Open Graph
+* Twitter metadata
+* JSON-LD
+* internal links
+* image alt
+* indexability
+* canonical consistency
+* canonical ↔ actual URL
+* sitemap inclusion
+
+والأهم:
+
+**تحقق من HTML الذي يصل فعليًا إلى crawler/browser قبل hydration، وليس DOM الناتج بعد تشغيل JavaScript فقط.**
+
+---
+
+### 6. Prerender / SSR Reality Check
+
+اختبر deep links مباشرة.
+
+مثال:
+
+فتح URL المقال أو الخدمة في browser جديد مباشرة.
+
+ثم:
+
+* disable JavaScript إن أمكن
+* inspect raw HTML
+* تحقق من وجود title
+* description
+* canonical
+* H1
+* main content
+* FAQ/GEO content إن كان مطلوبًا
+
+لا تعتبر الصفحة PASS لمجرد أن React أضاف المحتوى بعد hydration.
+
+---
+
+### 7. Arabic / RTL Testing
+
+اختبار حقيقي للواجهة العربية:
+
+* RTL
+* النصوص العربية
+* Arabic slugs
+* Arabic titles
+* mixed Arabic/English URLs
+* punctuation
+* long Arabic titles
+* Unicode characters
+* mobile navigation
+* text overflow
+* buttons
+* cards
+* breadcrumbs
+
+ويجب اعتبار أي:
+
+* broken layout
+* clipped text
+* wrong direction
+* broken URL
+* encoding issue
+
+BUG حقيقي.
+
+---
+
+### 8. Routing & Canonical Testing
+
+اختبر variants مثل:
+
+* `/page`
+* `/page/`
+* direct deep URL
+* encoded Arabic URL
+* uppercase/lowercase حيث ينطبق
+* invalid slug
+* old/legacy routes
+* redirected routes
+
+حدد:
+
+* هل يجب 200؟
+* هل يجب 301؟
+* هل يجب 404؟
+* هل canonical صحيح؟
+
+ولا تفترض السلوك؛ استنتجه من التطبيق الحالي والـSEO contract.
+
+---
+
+### 9. Legacy Data / Branding Regression
+
+ابحث live في:
+
+* rendered HTML
+* API responses
+* metadata
+* JSON-LD
+* sitemap
+* robots
+* page source
+* images/alt text
+
+عن أي legacy:
+
+* brand names
+* old phone numbers
+* old container business identity
+* old package terminology
+* obsolete URLs
+
+أي ظهور غير مقصود يسجل BUG.
+
+---
+
+### 10. Contact / CTA Reality
+
+اختبر كل CTA المهمة:
+
+* WhatsApp
+* phone
+* contact
+* booking/request
+* service inquiry
+
+وتحقق أن:
+
+* الرابط صحيح
+* الرقم صحيح
+* لا يوجد رقم قديم
+* لا يوجد dead link
+* لا يوجد malformed URL
+* لا يوجد CTA يشير إلى route قديم
+
+---
+
+### 11. Forms
+
+إذا توجد forms:
+
+اختبر:
+
+* valid submission
+* required fields
+* invalid input
+* empty submission
+* Arabic input
+* long input
+* duplicate submission
+* loading state
+* success state
+* error state
+
+وتحقق من عدم ظهور:
+
+* raw JSON
+* `[object Object]`
+* stack traces
+* internal errors
+
+---
+
+### 12. API Behavioral Testing
+
+لا تختبر فقط 200.
+
+اختبر:
+
+* 200
+* 400
+* 404
+* invalid parameters
+* missing parameters
+* malformed slug
+* pagination boundaries
+* empty result
+* filters producing zero results
+
+وتحقق أن response:
+
+* JSON صحيح
+* schema ثابت
+* types صحيحة
+* errors مفهومة
+* لا تحتوي بيانات داخلية
+
+---
+
+### 13. Performance / UX
+
+اختبر live:
+
+* initial load
+* navigation
+* mobile load
+* desktop load
+* image loading
+* layout shifts
+* slow network
+* repeated navigation
+
+سجل أي:
+
+* blank screen
+* layout jump
+* broken image
+* infinite spinner
+* hydration mismatch
+* console error
+* failed network request
+
+---
+
+### 14. Security / Exposure Smoke Tests
+
+اختبارات non-destructive فقط:
+
+* لا تظهر stack traces
+* لا تظهر DB errors
+* لا تظهر filesystem paths
+* لا تظهر secrets
+* لا تظهر internal API details
+* protected admin routes لا تصبح public
+* malformed requests لا تكشف معلومات داخلية
+
+**ممنوع تنفيذ destructive/security attacks.**
+
+---
+
+### 15. Database / Data Integrity Smoke Tests
+
+من منظور read-only فقط:
+
+تحقق أن البيانات المعروضة في production:
+
+* ليست ناقصة
+* ليست duplicated
+* لا تحتوي records تالفة
+* لا تعرض legacy records بشكل غير مقصود
+* لا يوجد mismatch بين القائمة والتفاصيل
+
+لا تقم بأي INSERT/UPDATE/DELETE أثناء الاختبار.
+
+---
+
+### 16. Cross-Browser / Responsive
+
+على الأقل:
+
+* Desktop Chromium
+* Mobile viewport
+* tablet viewport إن أمكن
+
+واختبر:
+
+* navigation
+* cards
+* hero
+* images
+* buttons
+* forms
+* typography
+* RTL
+
+---
+
+### 17. Console & Network Health
+
+أثناء الـjourneys الحقيقية راقب:
+
+* console errors
+* uncaught exceptions
+* failed requests
+* 404 assets
+* 500 API responses
+* CORS errors
+* mixed-content errors
+* failed fonts/images/scripts
+
+أي error حقيقي يسجل.
+
+---
+
+### 18. Sitemap / Robots / Public Discovery
+
+Live verify:
+
+* `/robots.txt`
+* `/sitemap.xml`
+
+ثم:
+
+* fetch sitemap
+* validate URLs
+* sample URLs
+* check HTTP status
+* check canonical
+* check indexability
+
+لا تكتفِ بوجود الملف.
+
+---
+
+### 19. Test Data Safety
+
+الاختبار يجب أن يكون:
+
+**READ-ONLY / NON-DESTRUCTIVE**
+
+لا تقم بـ:
+
+* حذف بيانات
+* تعديل بيانات
+* تغيير إعدادات
+* تغيير counters
+* إرسال real customer requests
+* إنشاء real financial transactions
+
+إذا كان اختبار form ضروريًا، استخدم test-safe data فقط إذا كانت البيئة تسمح بذلك.
+
+---
+
+### 20. Bug Classification
+
+كل مشكلة يتم اكتشافها تصنف:
+
+#### P0 — Critical
+
+الموقع أو production flow مكسور بالكامل.
+
+#### P1 — High
+
+وظيفة أساسية مكسورة أو بيانات خاطئة أو routing/SEO critical issue.
+
+#### P2 — Medium
+
+وظيفة مهمة بها خلل لكن يوجد workaround.
+
+#### P3 — Low
+
+UI/UX أو minor inconsistency.
+
+#### Observation
+
+ليس BUG مؤكدًا، لكن يستحق المراجعة.
+
+---
+
+### 21. Evidence Requirements
+
+**ممنوع كتابة PASS بدون دليل.**
+
+لكل test يجب تسجيل:
+
+* Test ID
+* URL
+* exact action
+* expected result
+* actual result
+* status
+* screenshot عند الحاجة
+* network evidence عند الحاجة
+* console evidence عند الحاجة
+* reproduction steps للـBUG
+* severity
+
+---
+
+### 22. Anti-False-PASS Rules
+
+هذه النقطة مهمة جدًا.
+
+TestSprite يجب ألا يقول:
+
+> PASS لأن الكود يبدو صحيحًا.
+
+ولا:
+
+> PASS لأن الاختبار الداخلي قال PASS.
+
+ولا:
+
+> PASS لأن endpoint يعيد 200.
+
+بل يجب التحقق من **السلوك النهائي الفعلي**.
+
+خصوصًا:
+
+`HTTP 200 != Functional PASS`
+
+و
+
+`SEO JSON-LD exists != SEO PASS`
+
+و
+
+`API schema matches != User Journey PASS`
+
+و
+
+`Build succeeds != Production PASS`
+
+---
+
+### 23. Final Report
+
+في النهاية يجب أن ينتج TestSprite تقريرًا يحتوي:
+
+#### Executive Verdict
+
+واحد فقط:
+
+* PRODUCTION READY
+* PRODUCTION READY WITH WARNINGS
+* NOT PRODUCTION READY
+
+#### Test Summary
+
+* total tests
+* passed
+* failed
+* blocked
+* observations
+
+#### Critical Bugs
+
+مرتبة حسب severity.
+
+#### Evidence
+
+Screenshots / URLs / logs / network evidence.
+
+#### Regression Findings
+
+ما إذا كان هناك أي شيء من الإصلاحات السابقة عاد للظهور.
+
+#### Independent Conclusion
+
+الحكم يجب أن يكون مستقلًا عن تقارير الـAgents السابقة.
+
+---
+
+## أهم شرط
+
+لا تجعل TestSprite يعيد نفس الاختبارات الداخلية حرفيًا فقط.
+
+أريده أن **يتصرف كمختبر خارجي مستقل**:
+
+يفتح الموقع الحقيقي،
+يتنقل فعليًا،
+يفتح deep links،
+يجرب Arabic URLs،
+يراقب network وconsole،
+يفحص raw HTML،
+يتحقق من SEO،
+ويختبر الـAPI behavior،
+ثم يبحث عن حالات edge التي لم نفكر فيها.
+
+إذا وجد أي اختلاف بين Node وPHP أو بين source/build/production، يسجله كـBUG ولا يحاول تبريره.
+
+### المطلوب منك الآن
+
+1. أنشئ `TESTSPRITE_LIVE_QA_PRD.md`.
+2. اجعله مستقلًا وقابلًا للتنفيذ مباشرة بواسطة TestSprite.
+3. لا تبدأ TestSprite بنفسك.
+4. لا تعدّل كود التطبيق أثناء إنشاء الـPRD.
+5. لا تعلن أن النظام Production Ready.
+6. بعد إنشاء الملف، اعرض لي:
+
+   * مسار الملف
+   * عدد السيناريوهات
+   * عدد الاختبارات المقترحة
+   * الـP0/P1 التي يجب أن يبحث عنها أولًا
+   * أي معلومات ناقصة تحتاج مني قبل تسليمه إلى TestSprite.
+
+والأهم: **لا تختصر الـPRD إلى checklist سطحية؛ أريده Test Specification عمليًا يجعل TestSprite قادرًا على اكتشاف مشاكل حقيقية لم تكشفها اختبارات الـAgent الداخلية.**
