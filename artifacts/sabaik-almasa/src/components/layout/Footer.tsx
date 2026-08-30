@@ -3,7 +3,6 @@ import { Link } from "wouter"
 import { Phone, Mail, MapPin, Map, Facebook, Instagram, Youtube, Twitter, Music2, Ghost, Linkedin, ExternalLink } from "lucide-react"
 import { getSafeMapEmbedUrl, useSiteSettings } from "@/context/SiteSettingsContext"
 import { GOLDEN_SEO_KEYWORDS } from "@/lib/seoKeywords"
-import { AuthorityTrustSignals } from "@/components/seo/AuthorityTrustSignals"
 
 export function Footer() {
   const siteSettings = useSiteSettings()
@@ -33,7 +32,6 @@ export function Footer() {
   return (
     <footer className="bg-primary text-white pt-16 pb-8">
       <div className="container mx-auto px-4 md:px-6">
-        <AuthorityTrustSignals compact />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
 
           <div className="space-y-4">
@@ -200,17 +198,22 @@ export function Footer() {
         </div>
 
         <section className="mb-10 rounded-2xl border border-secondary/25 bg-white/5 px-5 py-5" aria-labelledby="golden-keywords-heading">
-          <h3 id="golden-keywords-heading" className="mb-3 text-base font-black text-secondary">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <h3 id="golden-keywords-heading" className="text-base font-black text-secondary">
             كلماتنا الأساسية لخدمات الحاويات
-          </h3>
-          <p className="max-w-5xl text-xs leading-7 text-gray-300">
-            {GOLDEN_SEO_KEYWORDS.map((keyword, index) => (
-              <span key={keyword} className="inline">
-                <span className="font-bold text-secondary">{keyword}</span>
-                {index < GOLDEN_SEO_KEYWORDS.length - 1 ? "، " : ""}
+            </h3>
+            <span className="text-[11px] text-gray-400">موضوعات وخدمات نغطيها</span>
+          </div>
+          <div className="flex max-w-6xl flex-wrap gap-2" aria-label="الكلمات الأساسية لخدمات الحاويات">
+            {GOLDEN_SEO_KEYWORDS.map((keyword) => (
+              <span
+                key={keyword}
+                className="inline-flex items-center rounded-full border border-white/15 bg-white/10 px-3 py-2 text-xs font-bold leading-5 text-gray-200 transition-colors hover:border-secondary/60 hover:bg-secondary/15 hover:text-white"
+              >
+                {keyword}
               </span>
             ))}
-          </p>
+          </div>
         </section>
 
         <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">

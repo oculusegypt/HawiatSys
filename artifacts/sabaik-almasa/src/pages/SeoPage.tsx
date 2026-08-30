@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react"
 import { Link, useRoute } from "wouter"
+import { useGetServices } from "@workspace/api-client-react"
+import type { Service } from "@workspace/api-client-react"
 import { Navbar } from "@/components/layout/Navbar"
 import { Footer } from "@/components/layout/Footer"
 import { useServiceRequest } from "@/context/ServiceRequestContext"
@@ -8,15 +10,18 @@ import { entityPath } from "@/lib/friendlySlug"
 import { seoImageAlt, seoImageForPath } from "@/lib/seoMedia"
 import { getSiteUrl, sitePath, siteUrl } from "@/lib/siteUrl"
 import { mergeGoldenSeoKeywords } from "@/lib/seoKeywords"
-import { AuthorityTrustSignals } from "@/components/seo/AuthorityTrustSignals"
+import { AREAS, ARABIC_AREA_SLUGS } from "@/pages/NeighborhoodPage"
 import {
   ArrowRight,
   CheckCircle2,
+  ChevronLeft,
   FileSearch,
-  Loader2,
+  Clock3,
+  MessageCircle,
   MapPin,
   Phone,
   Search,
+  ShieldCheck,
   Sparkles,
 } from "lucide-react"
 
@@ -56,6 +61,15 @@ function toAbsoluteAsset(value: string): string {
   if (!value) return ""
   if (/^https?:\/\//i.test(value)) return value
   return siteUrl(sitePath(value))
+}
+
+function pageKeywords(value: string): string[] {
+  return [...new Set(
+    value
+      .split(/[,،]/)
+      .map(keyword => keyword.trim())
+      .filter(Boolean),
+  )]
 }
 
 function removeSeoArtifacts() {
@@ -118,6 +132,7 @@ export default function SeoPage() {
   const slug = decodeURIComponent(rawSlug)
   const { openModal } = useServiceRequest()
   const { companyName, phoneCall, phoneWhatsapp, isLoaded } = useSiteSettings()
+  const { data: services = [] } = useGetServices()
   const [page, setPage] = useState<SeoPageData | null>(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
@@ -279,60 +294,206 @@ export default function SeoPage() {
   }
 
   const image = toAbsoluteAsset(page.ogImage || page.coverImage) || siteUrl(seoImageForPath(`/page/${page.slug}`))
+  const keywords = pageKeywords(page.seoKeywords || page.targetKeyword)
+  const activeServices = (services as Service[]).filter(service => service.isActive)
+  const whatsappHref = phoneWhatsapp
+    ? `https://wa.me/966${phoneWhatsapp.replace(/^0/, "")}?text=${encodeURIComponent(`مرحباً، أود الاستفسار عن ${page.title}`)}`
+    : ""
+
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-[#f2f8f8]" dir="rtl">
+    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-sans" dir="rtl">
       <Navbar />
-      <main className="flex-1 pt-20">
-        <div className="border-b border-primary/10 bg-white">
-          <div className="container mx-auto px-4 py-4 md:px-6">
-            <div className="flex items-center gap-2 text-xs text-gray-400" data-testid="breadcrumb-seo-page">
-              <Link href="/" className="transition-colors hover:text-primary">الرئيسية</Link>
-              <span>/</span>
-              <span className="truncate font-semibold text-gray-700">{page.title}</span>
+
+      <main className="flex-1">
+        <section className="bg-gradient-to-l from-slate-950 via-primary to-slate-900 pb-16 pt-28 text-white">
+          <div className="container mx-auto px-4 md:px-6">
+            <div className="mb-5 flex items-center gap-2 text-sm text-white/70" data-testid="breadcrumb-seo-page">
+              <Link href="/" className="transition-colors hover:text-white">الرئيسية</Link>
+              <ChevronLeft size={14} />
+              <Link href="/pages" className="transition-colors hover:text-white">الصفحات</Link>
+              <ChevronLeft size={14} />
+              <span className="truncate font-semibold text-secondary">{page.title}</span>
+            </div>
+
+            <div className="max-w-4xl">
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-secondary/30 bg-secondary/20 px-3 py-1 text-xs font-bold text-secondary">
+                  <Search size={13} />
+                  دليل خدمة في الرياض
+                </span>
+                {page.targetKeyword && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-bold text-white/80">
+                    <MapPin size={13} />
+                    {page.targetKeyword}
+                  </span>
+                )}
+              </div>
+              <h1 className="mb-4 text-3xl font-black leading-tight text-white md:text-5xl" data-testid="heading-seo-page">{page.title}</h1>
+              {page.excerpt && (
+                <p className="mb-6 max-w-3xl text-base leading-relaxed text-slate-200 md:text-lg" data-testid="text-seo-page-excerpt">
+                  {page.excerpt}
+                </p>
+              )}
+              <div className="flex flex-wrap gap-3">
+                {phoneCall && (
+                  <a href={`tel:${phoneCall}`} className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-bold text-slate-950 shadow-lg transition hover:bg-secondary hover:text-white">
+                    <Phone size={16} />
+                    اتصل بالعمليات
+                  </a>
+                )}
+                {phoneWhatsapp && (
+                  <a href={whatsappHref} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-6 py-3 text-sm font-bold text-white shadow-lg transition hover:bg-emerald-600">
+                    <MessageCircle size={16} />
+                    واتساب فوري
+                  </a>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        </section>
 
-        {image && (
-          <div className="flex min-h-64 max-h-[36rem] w-full items-center justify-center overflow-hidden bg-slate-100 px-2 md:px-6">
-            <img src={image} alt={page.title} className="block h-auto max-h-[36rem] max-w-full object-contain" width="1200" height="675" data-testid="img-seo-page-cover" />
-          </div>
-        )}
+        <section className="py-12">
+          <div className="container mx-auto px-4 md:px-6">
+            <div className="grid grid-cols-1 gap-10 lg:grid-cols-3">
+              <div className="space-y-10 lg:col-span-2">
+                {image && (
+                  <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl">
+                    <img src={image} alt={page.title} className="h-80 w-full object-cover md:h-96" width="1280" height="720" data-testid="img-seo-page-cover" />
+                  </div>
+                )}
 
-        <div className="container mx-auto max-w-5xl px-4 py-8 md:px-6 md:py-12">
-          <article className="overflow-hidden rounded-3xl border border-primary/10 bg-white shadow-sm" data-testid="article-seo-page">
-            <header className="border-b border-gray-100 px-6 py-8 md:px-12 md:py-11">
-              <div className="mb-4 flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary/10 px-3 py-1.5 text-xs font-black text-secondary">
-                  <Search size={12} />
-                  دليل {page.targetKeyword || "خدمات التنظيف"}
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/5 px-3 py-1.5 text-xs font-bold text-primary">
-                  <MapPin size={12} />
-                  الرياض
-                </span>
+                <article className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-sm" data-testid="article-seo-page">
+                  <header className="border-b border-slate-100 p-8 md:p-10">
+                    <h2 className="text-2xl font-bold text-slate-900">دليل {page.title}</h2>
+                    <p className="mt-2 text-sm leading-7 text-slate-500">معلومات عملية تساعدك على فهم الخدمة واختيار الحل المناسب لمشروعك في الرياض.</p>
+                    {keywords.length > 0 && (
+                      <div className="mt-6 rounded-2xl border border-secondary/20 bg-secondary/5 p-4" data-testid="seo-page-keywords">
+                        <div className="mb-3 flex items-center gap-2 text-xs font-black text-secondary">
+                          <Search size={14} />
+                          الكلمات الرئيسية
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {keywords.map(keyword => (
+                            <span key={keyword} className="inline-flex rounded-full border border-secondary/20 bg-white px-3 py-1.5 text-xs font-bold leading-5 text-slate-700">
+                              {keyword}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </header>
+                  <div
+                    className="seo-page-content p-8 prose prose-lg max-w-none prose-headings:font-black prose-headings:text-gray-900 prose-p:leading-8 prose-p:text-gray-700 prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-strong:text-gray-900 prose-li:text-gray-700 prose-blockquote:rounded-xl prose-blockquote:border-secondary prose-blockquote:bg-secondary/5 md:p-10"
+                    dir="rtl"
+                    data-testid="content-seo-page"
+                    dangerouslySetInnerHTML={{ __html: page.content || "<p>لا يوجد محتوى لهذه الصفحة بعد.</p>" }}
+                  />
+                </article>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <ShieldCheck className="shrink-0 text-primary" size={24} />
+                    <span className="text-xs font-bold text-slate-800">معلومات واضحة حول الخدمة واحتياج المشروع</span>
+                  </div>
+                  <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <Clock3 className="shrink-0 text-secondary" size={24} />
+                    <span className="text-xs font-bold text-slate-800">تنسيق التوصيل والسحب حسب موقعك</span>
+                  </div>
+                </div>
+
+                <PublicCta onOpen={() => openModal({ serviceType: page.targetKeyword || page.title })} phoneCall={phoneCall} phoneWhatsapp={phoneWhatsapp} />
+
+                <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 pb-8 text-xs text-gray-400" data-testid="seo-page-trust-row">
+                  <span className="inline-flex items-center gap-1.5"><CheckCircle2 size={14} className="text-secondary" /> فريق متخصص في تأجير الحاويات</span>
+                  <span className="inline-flex items-center gap-1.5"><MapPin size={14} className="text-secondary" /> نخدم أحياء الرياض</span>
+                </div>
               </div>
-              <h1 className="max-w-4xl text-3xl font-black leading-[1.35] tracking-tight text-gray-900 md:text-5xl" data-testid="heading-seo-page">{page.title}</h1>
-              {page.excerpt && <p className="mt-5 max-w-3xl text-base leading-8 text-gray-500 md:text-lg" data-testid="text-seo-page-excerpt">{page.excerpt}</p>}
-               {(page.targetKeyword || page.seoKeywords) && (
-                 <div className="mt-5 rounded-2xl border border-secondary/20 bg-secondary/5 px-4 py-3" data-testid="seo-page-keywords">
-                   <div className="text-xs font-black text-secondary">الكلمات الرئيسية</div>
-                   <div className="mt-1 text-sm leading-7 text-gray-700">{page.seoKeywords || page.targetKeyword}</div>
-                 </div>
-               )}
-            </header>
-            <div className="seo-page-content px-6 py-8 md:px-12 md:py-11 prose prose-lg max-w-none prose-headings:font-black prose-headings:text-gray-900 prose-p:leading-8 prose-p:text-gray-700 prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-strong:text-gray-900 prose-li:text-gray-700 prose-blockquote:rounded-xl prose-blockquote:border-secondary prose-blockquote:bg-secondary/5" dir="rtl" data-testid="content-seo-page" dangerouslySetInnerHTML={{ __html: page.content || "<p>لا يوجد محتوى لهذه الصفحة بعد.</p>" }} />
-          </article>
 
-          <PublicCta onOpen={() => openModal({ serviceType: page.targetKeyword || page.title })} phoneCall={phoneCall} phoneWhatsapp={phoneWhatsapp} />
+              <aside className="space-y-6">
+                <div className="space-y-4 rounded-3xl bg-gradient-to-br from-primary to-slate-900 p-6 text-white shadow-xl">
+                  <h2 className="text-xl font-bold text-white">اطلب الخدمة فوراً</h2>
+                  <p className="text-xs leading-relaxed text-slate-300">شاركنا نوع المخلفات وموقع المشروع لنساعدك في اختيار الحاوية المناسبة.</p>
+                  <button onClick={() => openModal({ serviceType: page.targetKeyword || page.title })} className="flex w-full items-center justify-center gap-2 rounded-xl bg-secondary py-3 text-xs font-bold text-white shadow transition hover:bg-secondary/90" data-testid="button-seo-request-sidebar">
+                    <Sparkles size={14} />
+                    اطلب الحاوية
+                  </button>
+                  {phoneCall && (
+                    <a href={`tel:${phoneCall}`} className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 py-3 text-xs font-bold text-white transition hover:border-white/40">
+                      <Phone size={14} />
+                      {phoneCall}
+                    </a>
+                  )}
+                  {phoneWhatsapp && (
+                    <a href={whatsappHref} target="_blank" rel="noopener noreferrer" className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-xs font-bold text-white transition hover:bg-emerald-700">
+                      <MessageCircle size={14} />
+                      تواصل عبر واتساب
+                    </a>
+                  )}
+                </div>
 
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 pb-8 text-xs text-gray-400" data-testid="seo-page-trust-row">
-              <span className="inline-flex items-center gap-1.5"><CheckCircle2 size={14} className="text-secondary" /> فريق متخصص في تأجير الحاويات</span>
-            <span className="inline-flex items-center gap-1.5"><MapPin size={14} className="text-secondary" /> نخدم أحياء الرياض</span>
+                <div className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <h2 className="flex items-center gap-2 text-base font-bold text-slate-900">
+                    <FileSearch size={17} className="text-primary" />
+                    بيانات الصفحة
+                  </h2>
+                  <dl className="space-y-3 text-xs leading-6">
+                    <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
+                      <dt className="text-slate-500">الكلمة المستهدفة</dt>
+                      <dd className="text-left font-bold text-primary">{page.targetKeyword || "خدمات الحاويات"}</dd>
+                    </div>
+                    {page.publishedAt && (
+                      <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
+                        <dt className="text-slate-500">تاريخ النشر</dt>
+                        <dd className="font-bold text-slate-700">{new Date(page.publishedAt).toLocaleDateString("ar-SA")}</dd>
+                      </div>
+                    )}
+                    {page.updatedAt && (
+                      <div className="flex items-start justify-between gap-3">
+                        <dt className="text-slate-500">آخر تحديث</dt>
+                        <dd className="font-bold text-slate-700">{new Date(page.updatedAt).toLocaleDateString("ar-SA")}</dd>
+                      </div>
+                    )}
+                  </dl>
+                </div>
+
+                {activeServices.length > 0 && (
+                  <div className="space-y-3 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <h2 className="text-base font-bold text-slate-900">خدمات وحاويات أخرى</h2>
+                    <div className="space-y-2">
+                      {activeServices.slice(0, 5).map(service => (
+                        <Link
+                          key={service.id}
+                          href={`/services/${entityPath({ slug: service.seoSlug, title: service.title, id: service.id, fallback: "service" })}`}
+                          className="group flex items-center justify-between rounded-xl border border-slate-100 p-3 transition hover:bg-slate-50"
+                        >
+                          <span className="text-xs font-bold text-slate-800 transition-colors group-hover:text-primary">{service.title}</span>
+                          <ChevronLeft size={14} className="text-slate-400 transition-colors group-hover:text-primary" />
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-3 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <h2 className="text-base font-bold text-slate-900">تغطية أحياء الرياض</h2>
+                  <div className="flex flex-wrap gap-1.5">
+                    {Object.entries(AREAS).slice(0, 12).map(([areaSlug, area]) => (
+                      <Link
+                        key={areaSlug}
+                        href={`/areas/${ARABIC_AREA_SLUGS[areaSlug] || areaSlug}`}
+                        className="rounded-lg bg-slate-100 px-2.5 py-1.5 text-[11px] text-slate-700 transition hover:bg-primary hover:text-white"
+                      >
+                        {area.name}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </aside>
+            </div>
           </div>
-          <AuthorityTrustSignals />
-        </div>
+        </section>
       </main>
+
       <Footer />
     </div>
   )

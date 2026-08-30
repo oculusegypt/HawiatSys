@@ -363,7 +363,6 @@ export default function Home() {
     longitude,
     priceRange,
     paymentMethods,
-    googleBusinessProfile,
     socialLinks,
     publicUrl,
     sectionsOrder,
@@ -445,40 +444,6 @@ export default function Home() {
             />
           ))}
         <DeferredHomeSection load={loadHomeFaqSection} />
-        {(address || city || region || googleBusinessProfile) && (
-          <section
-            id="local-business"
-            className="border-t border-slate-200 bg-slate-50 py-14"
-            aria-labelledby="local-business-heading"
-          >
-            <div className="container mx-auto max-w-5xl px-4 md:px-6">
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
-                <h2 id="local-business-heading" className="text-2xl font-black text-primary">
-                  موقع وخدمة {companyName || "مؤسسة تقي جروب"} في الرياض
-                </h2>
-                <p className="mt-3 leading-8 text-slate-600">
-                  نخدم مشاريع المنازل والمقاولين والمنشآت في أحياء الرياض، مع تنسيق التوصيل والسحب حسب العنوان وموعد المشروع.
-                </p>
-                <address className="mt-5 not-italic leading-8 text-slate-700">
-                  {address && <div><strong>العنوان:</strong> {address}</div>}
-                  {(city || region || country) && (
-                    <div><strong>نطاق الخدمة:</strong> {[city, region, country].filter(Boolean).join("، ")}</div>
-                  )}
-                </address>
-                {googleBusinessProfile && (
-                  <a
-                    href={googleBusinessProfile}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-5 inline-flex rounded-xl bg-primary px-5 py-3 font-bold text-white transition-opacity hover:opacity-90"
-                  >
-                    عرض ملفنا على Google Business Profile
-                  </a>
-                )}
-              </div>
-            </div>
-          </section>
-        )}
         <DeferredHomeSection load={loadSeoPagesLinksSection} />
       </main>
 

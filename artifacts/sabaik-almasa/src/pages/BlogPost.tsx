@@ -15,7 +15,6 @@ import { useGetContainers } from "@workspace/api-client-react"
 import type { Container } from "@workspace/api-client-react"
 import { entityPath, entitySlug } from "@/lib/friendlySlug"
 import { mergeGoldenSeoKeywords } from "@/lib/seoKeywords"
-import { AuthorityTrustSignals } from "@/components/seo/AuthorityTrustSignals"
 
 const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
 interface Post {
@@ -512,8 +511,6 @@ export default function BlogPost() {
 
           {/* ── Containers at end of article ── */}
           <ArticleContainers onOpen={(size) => openModal(size ? { containerSize: size } : undefined)} />
-
-          <AuthorityTrustSignals authorName={resolvedPost.author || undefined} />
 
           {/* Footer of article */}
           <div className="p-6 md:p-10 bg-gray-50 border-t border-gray-100">
