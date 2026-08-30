@@ -73,7 +73,7 @@ https://taqigroup.com/api/healthz
 
 ## معلومات الأرشيف
 
-- الحجم: `39,530,900` بايت
+- الحجم: `39,531,139` بايت
 - SHA-256:
-  `12f88db86f68dc9eccaf65adc3b0075f58dbd25624f0dbf0d9fc54fb216cd90d`
+  `ceb208d94c282131705e9a21d1854c405154e0e71319a8adaa70123f8aa88d10`
 - التشغيل في الإنتاج: PHP 8.x + PDO SQLite فقط، دون Node.js.

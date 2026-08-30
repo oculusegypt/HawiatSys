@@ -966,7 +966,7 @@ try {
                 'dashboard', 'requests', 'work_orders', 'conversations', 'whatsapp',
                 'notifications', 'analytics', 'ads', 'blog', 'seo_pages', 'services',
                 'reviews', 'packages', 'settings', 'seo', 'employees', 'database',
-                'slides', 'testimonials', 'partners', 'container_system'
+                'slides', 'testimonials', 'partners', 'container_system', 'structured_content'
             ];
         } else {
             try {
