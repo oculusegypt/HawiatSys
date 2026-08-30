@@ -1,0 +1,1133 @@
+اسمعني جيدًا قبل أن تلمس أي ملف.
+
+**لا تعتبر أي نتيجة سابقة “إغلاقًا نهائيًا”.**
+النتيجة الحالية تثبت أن هناك خللًا حقيقيًا في منظومة SEO والـprerender والـmetrics، والأهم أن بعض المؤشرات نفسها أصبحت تقيس inventory غير موحّد.
+
+أريد منك أن **تكمل من الحالة الحالية**، لا تبدأ Audit من الصفر، ولا تعيد اختراع النظام، ولا تغيّر الأرقام يدويًا، ولا تخفض سقف المؤشرات لكي تظهر PASS.
+
+الهدف النهائي ليس تجميل Dashboard.
+
+الهدف هو:
+
+> **كل صفحة عامة قابلة للفهرسة يجب أن تكون صفحة حقيقية، لها metadata صحيحة، canonical صحيح، structured data صالح، روابط داخلية حقيقية، محتوى SEO/GEO مناسب، وتظهر في Sitemap إذا كانت indexable — والعكس صحيح.**
+
+ولا أريد منك إعلان الانتهاء حتى تكون كل المشاكل أدناه مغلقة من المصدر ومثبتة من آخر Hostinger archive.
+
+---
+
+# 1 — أولًا: افهم المشكلة الحالية
+
+آخر نتيجة هي:
+
+* SEO HTML / Prerender: PASS — 315 HTML / 183 canonical
+* Indexable HTML: PASS — 315 / 166 routes
+* Meta Description Coverage: WARNING — 314/315
+* Meta Description Quality: WARNING — 302/315
+* Canonical Coverage: WARNING — 314/315
+* Canonical ↔ Sitemap: WARNING — 166/183
+* Structured Data: WARNING — 287/315
+* FAQ/GEO: PASS — 157/157
+* Internal Linking: WARNING — 287/315
+* SEO Media: WARNING — 12/24
+* Legacy Branding: FAIL — 27 files
+* Site URL: WARNING — https://taqigroup.com
+
+هذه ليست مجموعة أرقام منفصلة.
+
+هي تكشف أن **مصادر inventory نفسها غير متفقة**.
+
+عندك:
+
+**315 HTML**
+مقابل
+**183 canonical**
+مقابل
+**166 sitemap**
+
+إذن عندنا على الأقل ثلاث طبقات مختلفة للصفحات:
+
+1. الملفات الموجودة فعليًا.
+2. الصفحات التي يعتبرها النظام canonical.
+3. الصفحات التي يعتبرها sitemap indexable.
+
+يجب ألا ننهي المهمة حتى نعرف بالضبط لماذا كل طبقة موجودة، وما تصنيف كل صفحة فيها.
+
+---
+
+# 2 — لا تصلح الـMetrics بإخفاء المشكلة
+
+ممنوع تمامًا أن تفعل أيًا من الآتي:
+
+* تخفيض denominator.
+* استثناء الملفات التي تفشل بدون سبب معماري واضح.
+* اعتبار صفحات ناقصة “غير مؤهلة” فقط لكي تصبح PASS.
+* حذف صفحات من القياس بدل إصلاحها.
+* إضافة FAQ عامة مكررة لكل الصفحات.
+* إضافة JSON-LD وهمي فقط لرفع العدد.
+* إضافة روابط داخلية وهمية.
+* اعتبار أي `<a href="/">` إصلاحًا لمشكلة internal linking.
+* تغيير PASS/WARNING/FAIL logic لإخفاء العيوب.
+* hardcode للأرقام الحالية.
+* اعتبار archive السابق مرجعًا نهائيًا.
+
+**الـmetrics يجب أن تقيس الواقع، لا أن تصنع واقعًا مريحًا.**
+
+---
+
+# 3 — Canonical Coverage: أغلق 314/315 → 315/315
+
+حدد الصفحة الوحيدة التي ليس لديها canonical.
+
+لا أريد منك فقط معرفة الملف.
+
+أريد معرفة:
+
+* ما URL الصفحة؟
+* لماذا تم توليدها؟
+* هل هي indexable أم noindex؟
+* لماذا وصلت إلى inventory أصلًا؟
+* هل هي صفحة public حقيقية؟
+* هل يجب أن يكون لها canonical؟
+* أم يجب ألا تكون indexable من الأساس؟
+
+ثم أصلح **المصدر**.
+
+بعدها يجب أن يصبح:
+
+**315/315** إذا كانت الـ315 كلها indexable.
+
+أو إذا كان جزء منها يجب أن يكون noindex، فيجب أن يكون التصنيف واضحًا في inventory ولا يظهر ضمن indexable denominator.
+
+المهم:
+
+**لا تترك صفحة indexable بدون canonical.**
+
+---
+
+# 4 — Canonical ↔ Sitemap: هذه أهم مشكلة حاليًا
+
+النتيجة:
+
+**166/183**
+
+هذا يعني أن عندك 17 canonical URLs لا تطابق Sitemap.
+
+لا تعتبر ذلك طبيعيًا.
+
+أنشئ inventory صريحًا مثل:
+
+canonical URL
+→ source page
+→ HTML file
+→ indexability
+→ sitemap presence
+→ canonical target
+→ route
+→ reason for exclusion إن وجد
+
+ثم صنّف الـ17:
+
+### A
+
+Canonical indexable page ويجب أن تكون في Sitemap
+→ أضفها للـSitemap.
+
+### B
+
+Legacy alias
+→ يجب أن يكون `noindex, follow` + canonical إلى الصفحة الأصلية، ولا يدخل Sitemap.
+
+### C
+
+Interactive/admin/error/not-found page
+→ لا يجب أن تكون indexable أصلًا.
+
+### D
+
+Artifact/standalone application
+مثل `taqi-group-platform`
+→ لا تدخلها في Main SEO inventory إلا إذا كانت فعليًا جزءًا من public SEO site وتملك route/canonical/structured data/Sitemap متكاملين.
+
+لا تتخذ القرار بناءً على اسم الملف فقط.
+
+**ابنِ التصنيف من route + HTML + robots + canonical + sitemap.**
+
+الهدف النهائي:
+
+**Canonical indexable inventory = Sitemap inventory**
+
+بنسبة:
+
+**100% / 100%**
+
+---
+
+# 5 — انتبه جدًا لـ prerender / Sitemap divergence
+
+الـforensic audit السابق أثبت مشكلة مهمة جدًا:
+
+الـsitemap كان يستخدم شروطًا مثل:
+
+* active
+* seo_enabled
+* published
+* slug
+
+بينما بعض استعلامات prerender كانت تعتمد على active فقط.
+
+وهذا يسمح بأن يتم توليد HTML لصفحة لا يسمح لها Sitemap بالفهرسة أصلًا.
+
+هذا يجب إغلاقه من المصدر.
+
+خصوصًا:
+
+* Services
+* Packages / Cleaning Packages
+* Containers
+* Blog
+* SEO Pages
+* Areas
+
+يجب أن يكون هناك **تعريف مركزي واحد للـindexability**.
+
+لا أريد:
+
+```text
+Sitemap logic ≠ Prerender logic ≠ Runtime logic
+```
+
+بل:
+
+```text
+Indexability policy
+        ↓
+Sitemap
+Prerender
+Runtime metadata
+Structured Data
+SEO Metrics
+```
+
+كلهم يعتمدون على نفس الحقيقة.
+
+---
+
+# 6 — Meta Description: لا تكتفِ بأن تكون موجودة
+
+النتيجة:
+
+**314/315 coverage**
+
+و:
+
+**302/315 quality**
+
+إذن عندك تقريبًا 13 وصفًا خارج معيار الجودة، بالإضافة إلى صفحة بلا وصف.
+
+افحص كل صفحة indexable.
+
+المطلوب:
+
+* description موجود.
+* ليس فارغًا.
+* ليس placeholder.
+* ليس مكررًا بطريقة غير طبيعية.
+* ليس keyword stuffing.
+* ليس مجرد title مع تغيير بسيط.
+* ضمن القاعدة المعتمدة للنظام، ويفضل 120–160 حرفًا حيث ينطبق ذلك.
+* الصفحة الرئيسية لها وصف مناسب.
+* الخدمات لها descriptions حقيقية.
+* صفحات المناطق لها descriptions مرتبطة بالمنطقة.
+* صفحات المقالات مرتبطة بالمقال.
+* صفحات SEO مرتبطة بالـintent الحقيقي.
+
+**لا تحشو نصًا عامًا للوصول إلى 120 حرفًا.**
+
+لو description مخصص جيدًا لكنه أقل قليلًا، لا تفسده فقط من أجل رقم.
+
+اعمل normalization ذكيًا يحافظ على custom description ويضمن الجودة.
+
+والـruntime يجب أن يتفق مع prerender.
+
+الـaudit السابق أثبت أن prerender وruntime كانا قادرين على إنتاج metadata مختلفة، كما أن runtime hook لا يطبّق نفس title normalization بالكامل.
+
+---
+
+# 7 — Structured Data: 287/315 ليست مشكلة رقمية فقط
+
+أريدك أن تحدد الـ28 صفحة بالضبط.
+
+لكل صفحة:
+
+* URL
+* page type
+* لماذا لا يوجد JSON-LD؟
+* ما الـschema الصحيح لها؟
+* هل schema موجود لكن invalid؟
+* هل البيانات متوافقة مع الصفحة؟
+* هل هناك entity mismatch؟
+* هل canonical/URL داخل schema صحيح؟
+
+ثم طبّق schema حسب نوع الصفحة.
+
+مثال:
+
+Homepage:
+
+* Organization
+* LocalBusiness
+* WebSite
+* ContactPoint
+
+Service:
+
+* Service
+* Organization/LocalBusiness
+* BreadcrumbList
+
+Service detail:
+
+* Service
+* BreadcrumbList
+* relevant Offer إذا كانت الصفحة تحتوي عرضًا فعليًا
+
+Blog:
+
+* Blog
+* BlogPosting
+* BreadcrumbList
+
+SEO page:
+
+* WebPage
+* BreadcrumbList
+* Service/Place عند انطباقه
+
+Area:
+
+* WebPage
+* Place
+* BreadcrumbList
+* LocalBusiness عند انطباقه
+
+FAQ:
+
+* FAQPage فقط عندما يوجد FAQ حقيقي فعليًا.
+
+Legal:
+
+* WebPage / ContactPage حسب الصفحة.
+* لا تضف Product أو Offer أو FAQ بشكل مصطنع.
+
+**لا تستخدم schema لمجرد ملء المؤشر.**
+
+والأهم:
+
+لا يوجد JSON-LD يقول شيئًا مختلفًا عن المحتوى الظاهر.
+
+---
+
+# 8 — FAQ / GEO: النتيجة الحالية PASS جيدة، لكن لا تفسدها
+
+النتيجة:
+
+**157/157 eligible**
+
+وهذا ممتاز.
+
+لا تلمس هذا المنطق بهدف زيادة العدد.
+
+الـaudit السابق كان واضحًا أن FAQ يجب أن تكون مرتبطة بالصفحات التجارية/الخدمية المناسبة، وليس مجرد FAQ عامة مكررة.
+
+أريد منك فقط التأكد أن:
+
+* كل eligible commercial/service page لها FAQ حقيقية.
+* FAQ موجودة فعلًا في HTML أو JSON-LD.
+* السؤال مرتبط بالصفحة.
+* الإجابات ليست نسخة واحدة على عشرات الصفحات.
+* الصفحات القانونية مستثناة منطقيًا.
+* المقالات مستثناة إذا لم تكن صفحة FAQ.
+* الصفحات التفاعلية مستثناة.
+* noindex/aliases مستثناة.
+
+**157/157 يجب أن تظل PASS بعد الإصلاحات.**
+
+---
+
+# 9 — Internal Linking: 287/315 غير مقبول
+
+لا تصلحه بإضافة رابط عشوائي.
+
+حدد الـ28 صفحة.
+
+لكل صفحة:
+
+* ما الصفحة؟
+* لماذا لا يوجد internal link؟
+* هل هي orphan؟
+* هل هي standalone artifact؟
+* هل هي legacy alias؟
+* هل هي page generated incorrectly؟
+* هل الروابط موجودة لكن analyzer لا يكتشفها؟
+* هل الروابط تأتي فقط بعد hydration؟
+
+المطلوب أن يكون HTML الأولي نفسه يحتوي روابط داخلية حقيقية.
+
+خصوصًا الصفحات التجارية:
+
+Service
+→ related services / packages / contact / areas
+
+Area
+→ relevant services / service detail / contact
+
+Blog
+→ related service/area/article
+
+SEO page
+→ relevant service / area / contact
+
+Static pages
+→ logical navigation/related pages
+
+ولا تضف 20 رابطًا بلا معنى.
+
+**الجودة أهم من العدد.**
+
+---
+
+# 10 — SEO Media: 12/24 يجب فهمها وليس تزويرها
+
+هناك 24 ملفًا يعتبرها الـmetrics SEO media بينما 12 فقط مستخدمة.
+
+أريد inventory كامل:
+
+```text
+SEO asset
+→ where referenced
+→ whether actually needed
+→ whether used in HTML
+→ whether used in OG
+→ whether used in JSON-LD
+→ whether it is obsolete
+```
+
+ثم:
+
+### إذا كانت الأصول الـ12 غير المستخدمة قديمة أو غير لازمة:
+
+احذفها من **SEO media manifest/source**.
+
+### إذا كانت مطلوبة:
+
+اربطها فعليًا بالصفحات التي تحتاجها.
+
+لكن لا تجعل metric تقول 12/12 لمجرد أنك حذفت نصف inventory بدون فهم.
+
+الهدف:
+
+**كل SEO media asset موجود في manifest له استخدام حقيقي.**
+
+و:
+
+**كل صفحة تحتاج OG/image لديها asset صالح.**
+
+---
+
+# 11 — Legacy Branding: FAIL 27 files
+
+هذه نقطة خطيرة جدًا.
+
+لا تعمل:
+
+```bash
+replace-all
+```
+
+ولا تمسح كلمات عمياء.
+
+اعمل report بالـ27 ملف:
+
+```text
+file
+match
+line/context
+type
+public/private/generated
+intentional/unintentional
+```
+
+ثم صنف:
+
+### Legacy leakage
+
+مثل:
+
+* CleanFlow القديم إذا لم يعد مقصودًا في ذلك السياق.
+* Sabaik
+* سبائك
+* الالماسة
+* أسماء تجارية قديمة
+* أرقام هواتف قديمة
+* paths قديمة
+* metadata قديمة
+* comments/build artifacts تكشف identity قديمة
+
+### Intentional/current
+
+أي اسم حالي ومقصود لا يتم حذفه.
+
+### Internal technical
+
+إذا كان مجرد internal identifier لا يظهر للمستخدم، لا تكسره بدون سبب.
+
+### Generated artifact
+
+يجب إصلاح **generator** وليس الملف الناتج فقط.
+
+خصوصًا:
+
+* BUILD_INFO
+* UPLOAD_INSTRUCTIONS
+* sw.js
+* build metadata
+* platform artifact
+* generated HTML
+* JSON
+* PHP output
+
+الـforensic report السابق أثبت أن الـHostinger build نفسه يولّد ويعدل ملفات كثيرة، ولذلك إصلاح output فقط لن يكون كافيًا؛ يجب إصلاح المصدر الذي يعيد توليدها.
+
+وأيضًا انتبه إلى أن الأرشيف السابق كان يحتوي `data/sabaik.db` ومجلدات compatibility قديمة؛ لا تفترض أن وجودها مقبول فقط لأن البناء السابق نجح. يجب اتخاذ قرار معماري واضح حول ما يجب أن يظهر في public archive.
+
+---
+
+# 12 — Site URL: لا أريد Warning
+
+يجب أن يكون:
+
+**https://taqigroup.com**
+
+هو production origin الوحيد.
+
+افحص:
+
+* canonical
+* og:url
+* sitemap
+* JSON-LD URLs
+* Organization URL
+* WebSite URL
+* WebPage URL
+* Breadcrumb URLs
+* images
+* API-generated metadata
+* prerender
+* PHP
+* Node
+* archive metadata
+
+لا تعتمد على:
+
+* localhost
+* preview domain
+* development origin
+* filesystem path
+* Vite project path
+
+والـaudit السابق تحديدًا حذر من canonical roots والفرق بين absolute وrelative canonical URLs.
+
+الهدف:
+
+**Site URL = PASS**
+
+ويجب أن يستطيع checker إثبات وجود production origin واحد، وليس مجرد قراءة environment variable.
+
+---
+
+# 13 — Node / PHP parity
+
+هذا جزء لا أريد التهاون فيه.
+
+لدينا Node development runtime وHostinger PHP runtime.
+
+لا يكفي أن:
+
+```text
+Node returns 200
+PHP returns 200
+```
+
+أريد مقارنة projection الحقيقي.
+
+لكل public entity:
+
+* id
+* title
+* description
+* seoTitle
+* seoDescription
+* seoKeywords
+* seoSlug
+* canonicalUrl
+* image
+* indexability
+* status/publication
+* aliases
+
+قارن Node ↔ PHP.
+
+الـforensic work السابق أثبت بالفعل أن نفس البيانات المخزنة يمكن أن تنتج metadata مختلفة بسبب normalization في Node وعدم تطبيقها بنفس الشكل في PHP.
+
+لذلك:
+
+**نفس DB ≠ parity**
+
+إذا كان runtime projection مختلفًا، فهذا bug.
+
+اختبر:
+
+* services
+* packages
+* containers
+* posts
+* SEO pages
+* aliases
+* slug resolution
+* Arabic slugs
+* long slugs
+* canonical URLs
+
+ولا تترك `LIKE ... LIMIT 1` غامضًا في slug resolution.
+
+---
+
+# 14 — Runtime SEO bugs التي لا يجوز تجاهلها
+
+الـforensic audit السابق كشف مشاكل أعمق من الـDashboard:
+
+`useDocumentSEO` يعمل client-side بعد hydration، ولا يضبط robots بشكل مركزي، وهناك صفحات detail يمكن أن تولد metadata generic حتى عندما تكون entity غير موجودة.
+
+أريد إصلاحًا حقيقيًا:
+
+إذا entity غير موجودة:
+
+* لا تجعلها صفحة indexable بmetadata وهمية.
+* لا تجعل canonical يشير إلى صفحة nonexistent.
+* يجب أن تكون noindex أو not-found صحيحة حسب architecture.
+
+إذا entity inactive أو seoEnabled=false:
+
+* لا تدخل indexable inventory.
+* لا تدخل sitemap.
+* لا تحصل على canonical indexable.
+* لا تحصل على prerender indexable.
+
+إذا alias:
+
+* noindex, follow
+* canonical → canonical page
+* خارج sitemap.
+
+---
+
+# 15 — Inventory واحد فقط
+
+أريد منك بناء مفهوم واضح:
+
+## SEO Page Inventory
+
+كل HTML file يجب أن يحصل على classification:
+
+```text
+public-indexable
+public-noindex
+legacy-alias
+interactive
+admin
+artifact
+not-found
+```
+
+ثم:
+
+### public-indexable
+
+يجب أن يكون لديه:
+
+* canonical
+* title
+* description
+* valid schema
+* internal links
+* proper content
+* sitemap entry
+
+### public-noindex
+
+يجب أن يكون:
+
+* robots noindex, follow
+* canonical مناسب عند الحاجة
+* خارج sitemap
+
+### legacy alias
+
+* noindex, follow
+* canonical → target
+* خارج sitemap
+
+### interactive
+
+* لا يدخل SEO inventory
+
+### admin
+
+* لا يدخل SEO inventory
+
+### artifact
+
+* لا يدخل main public SEO inventory إلا بقرار واضح.
+
+هذا سيحل أصل المشكلة بدل مطاردة الأرقام.
+
+---
+
+# 16 — أصلح الـMetrics نفسها بعد إصلاح النظام
+
+بعد توحيد inventory، أريد تعديل metrics لتعمل من الحقيقة الجديدة.
+
+لا تستخدم:
+
+```text
+number of files
+```
+
+بشكل أعمى.
+
+ولا:
+
+```text
+number of routes
+```
+
+بشكل أعمى.
+
+يجب أن تميز:
+
+```text
+HTML files
+Indexable pages
+Noindex pages
+Canonical URLs
+Sitemap URLs
+Unique public routes
+Legacy aliases
+Non-SEO artifacts
+```
+
+وتعرضها بشكل غير مضلل.
+
+مثال:
+
+```text
+HTML Files: 315
+Indexable Pages: 166
+Noindex/Alias: 121
+Non-SEO Artifacts: 28
+Canonical Indexable: 166/166
+Sitemap: 166/166
+Canonical ↔ Sitemap: 166/166
+```
+
+إذا كانت الأرقام النهائية مختلفة فلا مشكلة.
+
+**المهم أن تكون صحيحة.**
+
+---
+
+# 17 — لا تنسَ الـlegacy compatibility routes
+
+لدينا aliases قديمة.
+
+يجب أن تتأكد أن:
+
+* تعمل إذا كانت مطلوبة للتوافق.
+* لا تتنافس مع canonical.
+* لا تدخل sitemap.
+* noindex follow.
+* canonical target صحيح.
+* لا تحتوي metadata تجارية مستقلة.
+* لا تظهر كصفحات indexable إضافية.
+
+والـaudit السابق أثبت أن النظام أصلًا يولّد compatibility aliases بهذا الشكل، فلا تكسر هذا السلوك أثناء الإصلاح.
+
+---
+
+# 18 — Build Hostinger
+
+بعد الانتهاء من المصدر:
+
+نفذ build كامل.
+
+لا تعتمد على dist القديم.
+
+لا تعتمد على ZIP قديم.
+
+يجب أن يكون التسلسل:
+
+```text
+source fixes
+↓
+typecheck
+↓
+PHP syntax
+↓
+git diff --check
+↓
+database integrity
+↓
+prerender
+↓
+sitemap generation
+↓
+SEO inventory
+↓
+SEO metrics
+↓
+SEO quality gate
+↓
+Hostinger build
+↓
+extract archive
+↓
+re-run all metrics on extracted archive
+↓
+Node/PHP parity
+↓
+runtime smoke tests
+↓
+final certification
+```
+
+---
+
+# 19 — archive validation
+
+استخرج الـZIP في directory نظيف.
+
+لا تفحص `build_php` فقط.
+
+افحص **الـZIP المستخرج نفسه**.
+
+تحقق من:
+
+* root layout
+* index.html
+* all public HTML
+* sitemap.xml
+* robots.txt
+* api/index.php
+* SQLite
+* uploads
+* .htaccess
+* canonical
+* meta
+* JSON-LD
+* FAQ
+* internal links
+* images
+* legacy branding
+* production origin
+* noindex aliases
+
+وأيضًا:
+
+```bash
+unzip -t
+```
+
+وSQLite integrity.
+
+---
+
+# 20 — أضف اختبارًا حقيقيًا وليس verify-build-output القديم فقط
+
+الـaudit السابق أثبت أن:
+
+`verify-build-output.mjs`
+
+اختبار محدود جدًا للـhomepage ولا يثبت سلامة Hostinger كاملة.
+
+لا تعتمد عليه كـfinal certification.
+
+إما وسّعه أو أنشئ verifier حقيقي يفحص الـarchive بالكامل.
+
+أريده قادرًا على اكتشاف regression في:
+
+* canonical
+* sitemap
+* noindex
+* metadata
+* schema
+* FAQ
+* links
+* assets
+* branding
+* origin
+* route parity
+
+---
+
+# 21 — لا تقبل PASS وهمي
+
+قبل أن تقول DONE، أريد تقريرًا بالأرقام التالية:
+
+```text
+HTML files:
+Indexable pages:
+Noindex pages:
+Canonical coverage:
+Canonical ↔ Sitemap:
+Sitemap health:
+Meta description coverage:
+Meta description quality:
+Structured data:
+FAQ/GEO eligible:
+Internal linking:
+SEO media:
+Legacy branding:
+Business contact consistency:
+Production URL:
+Node/PHP parity:
+SQLite:
+Archive integrity:
+Runtime:
+```
+
+وكل مؤشر يجب أن يكون:
+
+**PASS**
+
+أو إذا بقي شيء فعليًا غير قابل للإصلاح الآن:
+
+**FAIL/WARNING مع السبب الدقيق**
+
+ولا تستخدم `NOT VERIFIED` كوسيلة للهروب من الاختبار.
+
+---
+
+# 22 — الأهم: لا تكرر خطأ الـAgents السابق
+
+أنت لا تبدأ من الصفر.
+
+لكن أيضًا لا تثق في نتيجة:
+
+> “تم إغلاق العمل”
+
+لمجرد أن Agent سابق قال ذلك.
+
+لدينا دليل أن النتائج تغيرت من:
+
+287 HTML
+→ 315 HTML
+
+و:
+
+166 routes
+→ 183 canonical
+→ 166 sitemap
+
+وهذا وحده كافٍ لإثبات أن inventory غير مستقر.
+
+لذلك ابدأ من **الحالة الحالية الفعلية**:
+
+1. git diff
+2. current source
+3. current generated output
+4. current archive
+5. current metrics
+
+ثم trace كل discrepancy إلى مصدره.
+
+---
+
+# 23 — ممنوع التوسع خارج الهدف
+
+لا تعمل redesign.
+
+لا تغيّر UI إلا إذا كان ضروريًا للـSEO content.
+
+لا تغيّر business logic غير متعلق بالمشكلة.
+
+لا تعيد بناء النظام.
+
+لا تضف محتوى تجاري عشوائي.
+
+لا تضف FAQ عامة مكررة.
+
+لا تغير routes الصحيحة لمجرد تسهيل checker.
+
+لا تحذف compatibility routes إلا بعد إثبات أنها غير مطلوبة.
+
+لا تغير أسماء المنتجات الحالية أو العلامة الحالية.
+
+ولا تحذف أي data لمجرد أنها لا تعجب الـscanner.
+
+---
+
+# 24 — معيار النجاح الحقيقي
+
+أنا لا أريد:
+
+> “SEO dashboard كله أخضر.”
+
+أنا أريد:
+
+> **الموقع نفسه صحيح، والـDashboard أخضر لأنه يقيس موقعًا صحيحًا.**
+
+والاختبار النهائي يجب أن يثبت:
+
+```text
+Every indexable page
+    ↓
+real route
+    ↓
+real HTML
+    ↓
+valid title
+    ↓
+valid description
+    ↓
+canonical
+    ↓
+valid structured data
+    ↓
+real internal links
+    ↓
+relevant GEO/FAQ where eligible
+    ↓
+valid assets
+    ↓
+correct production origin
+    ↓
+present in sitemap
+```
+
+وفي المقابل:
+
+```text
+Every noindex/legacy page
+    ↓
+noindex
+    ↓
+not in sitemap
+    ↓
+does not contaminate indexable inventory
+```
+
+---
+
+# 25 — الترتيب الإجباري للتنفيذ
+
+لا تقفز مباشرة إلى build.
+
+نفّذ بهذا الترتيب:
+
+### Phase A — Inventory
+
+ابنِ جدول الحقيقة لكل HTML/route.
+
+### Phase B — Indexability
+
+وحّد سياسة index/noindex بين Node + PHP + prerender + sitemap.
+
+### Phase C — Canonical
+
+أغلق 100%.
+
+### Phase D — Metadata
+
+أغلق coverage + quality.
+
+### Phase E — Structured Data
+
+أغلق جميع الصفحات المؤهلة بالschema الصحيح.
+
+### Phase F — Internal Linking
+
+أغلق الصفحات orphan الحقيقية.
+
+### Phase G — SEO Media
+
+نظّف manifest واستخدم الأصول المطلوبة فعليًا.
+
+### Phase H — Legacy Branding
+
+اعمل 27-file forensic cleanup من المصدر.
+
+### Phase I — Production Origin
+
+ثبت taqigroup.com في كل public projection.
+
+### Phase J — Node/PHP parity
+
+قارن projections الحقيقية.
+
+### Phase K — Build
+
+أعد إنشاء Hostinger.
+
+### Phase L — Extracted Archive Verification
+
+افحص الناتج النهائي فقط.
+
+### Phase M — Runtime
+
+اختبارات HTTP/API/frontend.
+
+### Phase N — Final Gate
+
+لا إعلان إغلاق قبل PASS حقيقي.
+
+---
+
+# 26 — نقطة أخيرة مهمة جدًا
+
+إذا وجدت أن الوصول إلى:
+
+**100% أخضر**
+
+يتطلب قرارًا معماريًا مثل فصل `taqi-group-platform` عن Main SEO inventory، أو تصحيح طريقة عد HTML، أو تغيير طريقة بناء aliases، فلا تخف من تغيير الـmetric model.
+
+لكن:
+
+**غيّر النموذج لأنه يعكس الحقيقة، وليس لأنه يخفض denominator.**
+
+كل قرار يجب أن يكون قابلًا للتفسير.
+
+---
+
+## المطلوب منك في النهاية
+
+لا ترسل لي كلامًا من نوع:
+
+> “تم تنفيذ الإصلاحات.”
+
+أريد تقريرًا مختصرًا لكنه حاسم يحتوي:
+
+1. Root causes.
+2. Files changed.
+3. Database changes إن وجدت.
+4. Final inventory.
+5. Final SEO metrics.
+6. Exact before → after.
+7. Node/PHP parity result.
+8. Archive verification.
+9. Runtime verification.
+10. قائمة بأي شيء متبقٍ — وإن كانت **NONE** فلا تكتبها إلا إذا كانت الأدلة تثبت ذلك فعلًا.
+
+**لا تتوقف بسبب quota قبل الوصول للنتيجة.**
+ولو احتجت تقسيم العمل داخليًا، نفذه على مراحل، لكن لا تعتبر أي مرحلة “final” قبل إتمام كل المراحل.
+
+ابدأ الآن من الحالة الحالية، واقرأ الكود الفعلي قبل أي تعديل، ثم نفّذ.
