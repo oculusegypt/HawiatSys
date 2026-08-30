@@ -291,7 +291,7 @@ const ALL_NEIGHBORHOODS = [
 for (const area of ALL_NEIGHBORHOODS) {
   const title = `تأجير حاويات ونقل مخلفات في ${area.name}`;
   addEntry({
-    path: `/areas/${encodeURIComponent(area.arabic)}`,
+    path: `/areas/${area.arabic}`,
     priority: "0.85",
     changefreq: "weekly",
     title,

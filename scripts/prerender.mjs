@@ -37,8 +37,30 @@ const SEO_DEFAULTS = {
 // Keep the homepage's search-facing identity aligned with the latest
 // production archive while leaving the operational company name unchanged.
 const HOMEPAGE_SEO_TITLE = "تأجير حاويات بالرياض | مؤسسة تقي جروب";
-const HOMEPAGE_SEO_DESCRIPTION = "تأجير حاويات الأنقاض والنفايات بالرياض مع التوصيل والسحب ونقل مخلفات البناء. اطلب عرضك من مؤسسة تقي جروب حسب المقاس والموقع.";
+const HOMEPAGE_SEO_DESCRIPTION = "تأجير الحاويات بالرياض ونقل مخلفات البناء والهدم للمطاعم والمنشآت. اختر حاوية نفايات أو أنقاض، وحدد طريقة الطلب واطلب الخدمة من تقي جروب.";
 const HOMEPAGE_SCHEMA_NAME = "تأجير حاويات بالرياض";
+const GOLDEN_SEO_KEYWORDS = [
+  "حاويات نفايات للمطاعم",
+  "حاويات مخلفات المنشآت",
+  "حاوية مطعم الرياض",
+  "خدمات تأجير حاويات بالرياض",
+  "حاويات أنقاض",
+  "حاويات نفايات",
+  "نقل مخلفات البناء",
+  "عقود نظافة بلدي",
+  "تأجير حاويات أنقاض",
+  "تأجير حاويات نفايات",
+  "تأجير حاويات نفايات للمطاعم",
+  "نقل مخلفات البناء والهدم",
+  "حاوية 20 ياردة",
+  "حاوية انقاض 20 يارده",
+  "حاوية انقاض 12 يارده",
+  "حاوية 12 يارده نفايات",
+  "إدارة مخلفات مطاعم",
+  "حاويات نفايات مقاهي",
+  "تأجير الحاويات بالرياض",
+];
+const GOLDEN_SEO_KEYWORDS_TEXT = GOLDEN_SEO_KEYWORDS.join("، ");
 // The administrator-configured public URL is the only production origin.
 const SITE_URL = requirePublicOrigin({ settings: settingMap });
 const siteCompanyName = settingMap.company_name?.trim() || SEO_DEFAULTS.companyName;
@@ -74,6 +96,38 @@ function normalizeSeoTitle(value) {
   }
 
   return `${text.slice(0, 62).replace(/\s+\S*$/u, "").trim()}…`;
+}
+
+function mergeGoldenKeywords(value = "") {
+  const current = String(value)
+    .split(/[،,]/)
+    .map((keyword) => keyword.trim())
+    .filter(Boolean);
+  return [...new Set([...current, ...GOLDEN_SEO_KEYWORDS])].join("، ");
+}
+
+function goldenKeywordMarkup() {
+  return `
+    <section class="seo-golden-keywords" aria-labelledby="golden-keywords-title">
+      <h2 id="golden-keywords-title">الكلمات الأساسية لخدمات الحاويات بالرياض</h2>
+      <p>${GOLDEN_SEO_KEYWORDS.map((keyword) => `<strong>${esc(keyword)}</strong>`).join("، ")}</p>
+    </section>`;
+}
+
+function authorityTrustMarkup() {
+  const businessProfile = settingMap.company_google_business_profile?.trim() || "";
+  const addressText = [address.address, address.city, address.region].filter(Boolean).join("، ") || "الرياض، المملكة العربية السعودية";
+  return `
+    <section class="seo-authority-trust" aria-labelledby="authority-trust-title">
+      <p class="seo-authority-eyebrow">مصدر واضح ومعلومات قابلة للتحقق</p>
+      <h2 id="authority-trust-title">هوية الجهة الناشرة ومراجع الخدمة</h2>
+      <div class="seo-authority-grid">
+        <div><strong>الجهة الناشرة</strong><p>${esc(siteCompanyName)} — خدمات تأجير الحاويات ونقل المخلفات في الرياض.</p>${sitePhoneCall ? `<p><strong>التواصل:</strong> ${esc(sitePhoneCall)}</p>` : ""}</div>
+        <div><strong>موقع العمل المعلن</strong><p>${esc(addressText)}</p>${businessProfile ? `<a href="${esc(businessProfile)}" target="_blank" rel="noopener noreferrer">عرض ملف Google Business Profile ↗</a>` : ""}</div>
+        <div><strong>مراجعة المحتوى</strong><p>فريق المحتوى في ${esc(siteCompanyName)} يراجع معلومات المقاسات والطلب والتوصيل قبل النشر.</p></div>
+        <div><strong>مراجع عامة</strong><p>للاطلاع على الاشتراطات والخدمات الحكومية ذات الصلة:</p><p><a href="https://balady.gov.sa/" target="_blank" rel="noopener noreferrer">منصة بلدي ↗</a> · <a href="https://www.alriyadh.gov.sa/" target="_blank" rel="noopener noreferrer">أمانة الرياض ↗</a></p></div>
+      </div>
+    </section>`;
 }
 const siteDescription = normalizeMetaDescription(
   settingMap.site_desc,
@@ -317,6 +371,7 @@ function renderPage({
   const canonicalUrl = canonical || `${SITE_URL}/`;
   const imgUrl = ogImage || `${SITE_URL}/images/logo.png`;
   const normalizedTitle = normalizeSeoTitle(title);
+  const resolvedKeywords = mergeGoldenKeywords(keywords);
   const imgAlt   = normalizedTitle.replace(/\|.*/,"").trim();
 
   const schemaTags = schemas.map((schema) => jsonLd(schema)).join("\n  ");
@@ -337,7 +392,7 @@ function renderPage({
   </script>
   <title>${esc(normalizedTitle)}</title>
   <meta name="description" content="${esc(description)}" />
-  ${keywords ? `<meta name="keywords" content="${esc(keywords)}" />` : ""}
+  <meta name="keywords" content="${esc(resolvedKeywords)}" />
   <meta name="robots" content="${esc(robots)}" />
   <meta name="language" content="Arabic" />
   <meta name="site-public-url" content="${esc(SITE_URL)}" />
@@ -389,6 +444,8 @@ function renderPage({
     <div class="seo-static-shell">
       <nav aria-label="breadcrumb" class="seo-static-breadcrumb">${breadcrumbHtml(breadcrumbs)}</nav>
       ${stripInlineStyles(bodyContent)}
+      ${goldenKeywordMarkup()}
+      ${authorityTrustMarkup()}
     </div>
   </div>
 
@@ -836,8 +893,8 @@ function generateHomepageStaticContent() {
       <section style="display:grid;grid-template-columns:minmax(0,1.1fr) minmax(280px,.9fr);align-items:center;gap:34px;padding:28px 0 42px">
         <div>
           <p style="margin:0 0 12px;color:#2b8f8b;font-size:14px;font-weight:800">حلول موثوقة للمخلفات في الرياض</p>
-          <h1 style="margin:0 0 18px;color:#12384b;font-size:clamp(28px,5vw,48px);line-height:1.25;font-weight:900">${esc(siteCompanyName)} — تأجير حاويات الأنقاض والنفايات بالرياض</h1>
-          <p style="margin:0 0 24px;max-width:720px;color:#52707c;font-size:18px">${esc(siteDescription)}</p>
+          <h1 style="margin:0 0 18px;color:#12384b;font-size:clamp(28px,5vw,48px);line-height:1.25;font-weight:900">${esc(siteCompanyName)} — تأجير الحاويات بالرياض ونقل مخلفات البناء والهدم</h1>
+          <p style="margin:0 0 24px;max-width:720px;color:#52707c;font-size:18px">تأجير الحاويات بالرياض ونقل مخلفات البناء والهدم للمطاعم والمنشآت. اختر حاوية نفايات أو أنقاض، وحدد طريقة الطلب واطلب الخدمة من تقي جروب.</p>
           <div style="display:flex;gap:12px;flex-wrap:wrap">
              ${waHref ? `<a href="${esc(waHref)}" style="background:#2b8f8b;color:#fff;padding:13px 22px;border-radius:11px;text-decoration:none;font-weight:800">اطلب عرضًا عبر واتساب</a>` : ""}
              ${phoneHref ? `<a href="${esc(phoneHref)}" style="border:1px solid #b9ced4;color:#12384b;padding:13px 22px;border-radius:11px;text-decoration:none;font-weight:800">اتصال مباشر ${esc(phoneCall)}</a>` : ""}
@@ -851,6 +908,15 @@ function generateHomepageStaticContent() {
         <div style="display:flex;gap:10px;flex-wrap:wrap">
           ${internalLinks.map(([href, label]) => `<a href="${href}" style="display:inline-block;border:1px solid #d2e2e6;border-radius:10px;padding:9px 13px;color:#246b70;text-decoration:none;font-weight:700;font-size:14px">${esc(label)}</a>`).join("")}
         </div>
+      </section>
+      <section id="golden-keyword-services" style="border-top:1px solid #e5eef1;margin-top:32px;padding-top:30px">
+        <h2 style="margin:0 0 10px;color:#12384b;font-size:26px;font-weight:900">حلولنا الأساسية للمطاعم والمنشآت والمشاريع</h2>
+        <p style="margin:0 0 16px;color:#52707c;font-size:16px">نغطي احتياجات تأجير الحاويات ونقل المخلفات من الطلب الأول حتى التوصيل والسحب. تشمل حلولنا حاويات نفايات للمطاعم، حاويات مخلفات المنشآت، حاويات أنقاض، ونقل مخلفات البناء والهدم.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          ${GOLDEN_SEO_KEYWORDS.map((keyword) => `<span style="display:inline-block;padding:7px 11px;border-radius:999px;background:#fff8dc;border:1px solid #e8c65a;color:#9a6b00;font-size:13px;font-weight:800">${esc(keyword)}</span>`).join("")}
+        </div>
+        <h3 style="margin:22px 0 8px;color:#12384b;font-size:19px;font-weight:800">طريقة الطلب</h3>
+        <p style="margin:0;color:#52707c;font-size:15px">أرسل نوع المخلفات، المقاس المتوقع، عنوان الموقع، ومدة الاحتياج. نراجع التفاصيل ونقترح الحاوية المناسبة ثم ننسق موعد التوصيل والسحب بوضوح.</p>
       </section>
       <section id="faq" style="border-top:1px solid #e5eef1;margin-top:32px;padding-top:30px">
         <h2 style="margin:0 0 10px;color:#12384b;font-size:26px;font-weight:900">الأسئلة الشائعة حول تأجير الحاويات بالرياض</h2>
@@ -884,6 +950,7 @@ function generateHomepageStaticContent() {
         </address>
         ${settingMap.company_google_business_profile ? `<p style="margin:16px 0 0"><a href="${esc(settingMap.company_google_business_profile)}" target="_blank" rel="noopener noreferrer" style="color:#246b70;font-weight:800">عرض ملفنا على Google Business Profile ↗</a></p>` : ""}
       </section>` : ""}
+      ${authorityTrustMarkup()}
     </main>
   `;
 }
@@ -922,6 +989,7 @@ function updateIndexSeo(html) {
   }
   next = replace(next, /<title>[\s\S]*?<\/title>/i, `<title>${esc(title)}</title>`);
   next = replace(next, /(<meta\s+name="description"\s+content=")[^"]*(")/i, `$1${esc(description)}$2`);
+  next = upsert(next, /<meta\s+name=["']keywords["'][^>]*>/i, `<meta name="keywords" content="${esc(GOLDEN_SEO_KEYWORDS_TEXT)}" />`);
   next = replace(next, /(<meta\s+name="author"\s+content=")[^"]*(")/i, `$1${esc(siteCompanyName)}$2`);
   next = upsert(next, /<meta\s+name=["']site-public-url["'][^>]*>/i, `<meta name="site-public-url" content="${esc(SITE_URL)}" />`);
   next = upsert(next, /<link\s+rel=["']canonical["'][^>]*>/i, `<link rel="canonical" href="${esc(publicUrl("/"))}" />`);
@@ -1129,7 +1197,7 @@ console.log(`   ✅ ${posts.length} مقالة`);
   ];
 
   const postCardsHtml = posts.slice(0, 30).map(post => {
-    const slug   = encodeURIComponent(entitySlug({ slug: post.slug || post.seo_slug, title: post.title, id: post.id, fallback: "post" }));
+    const slug   = entityPath({ slug: post.slug || post.seo_slug, title: post.title, id: post.id, fallback: "post" });
     const img    = post.cover_image || post.og_image || "";
     const date   = (post.published_at || post.created_at || "").slice(0, 10);
     return `
@@ -1181,7 +1249,7 @@ console.log(`\n🔧 إنشاء ${services.length} صفحة خدمات...`);
 
 for (const svc of services) {
   const slug      = entitySlug({ slug: svc.seo_slug, title: svc.title, id: svc.id, fallback: "service" });
-  const urlSlug   = encodeURIComponent(slug);
+  const urlSlug   = entityPath({ slug: svc.seo_slug, title: svc.title, id: svc.id, fallback: "service" });
   const canonical = `${SITE_URL}/services/${urlSlug}`;
   const title     = svc.seo_title || `${svc.title} | ${siteCompanyName}`;
   const desc      = normalizeMetaDescription(svc.seo_description || svc.description, svc.title);
@@ -2362,7 +2430,7 @@ console.log(`\n🗺️  إنشاء ${NEIGHBORHOODS.length} صفحة أحياء �
 
 for (const area of NEIGHBORHOODS) {
   const arSlug     = ARABIC_AREA_SLUGS[area.slug] || area.slug;
-  const canonical  = `${SITE_URL}/areas/${encodeURIComponent(arSlug)}`;
+  const canonical  = `${SITE_URL}/areas/${arSlug}`;
   const location   = area.name.includes("الرياض") ? area.name : `${area.name} بالرياض`;
   const h1         = `تأجير حاويات ونقل مخلفات في ${location}`;
   const title      = `تأجير حاويات ونقل مخلفات ${location} | ${siteCompanyName}`;

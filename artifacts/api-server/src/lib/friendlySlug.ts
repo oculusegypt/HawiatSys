@@ -76,8 +76,13 @@ export function entitySlug(value: {
 }): string {
   const source = publicSource(value.slug, value.title);
   const suffix = value.id == null ? "" : `-${String(value.id).replace(/[^0-9]/g, "")}`;
-  const base = friendlySlug(source, `${value.fallback || "page"}${suffix}`);
-  return base + (suffix && !base.endsWith(suffix) ? suffix : "");
+  const rawBase = friendlySlug(source, value.fallback || "page");
+  const base = suffix && rawBase.endsWith(suffix) ? rawBase.slice(0, -suffix.length).replace(/-+$/, "") : rawBase;
+  const baseLimit = suffix ? Math.max(12, 56 - suffix.length - 1) : 56;
+  const compactBase = base.length > baseLimit
+    ? base.slice(0, baseLimit).replace(/-[^-]*$/, "").replace(/-+$/, "")
+    : base;
+  return compactBase + suffix;
 }
 
 export function entityPath(value: {
@@ -86,7 +91,9 @@ export function entityPath(value: {
   id?: unknown;
   fallback?: string;
 }): string {
-  return encodeURIComponent(entitySlug(value));
+  // Emit human-readable Arabic paths. URL clients handle transport encoding;
+  // pre-encoding here makes friendly-link audits report opaque %D8 sequences.
+  return entitySlug(value);
 }
 
 export function legacyEntitySlug(value: {

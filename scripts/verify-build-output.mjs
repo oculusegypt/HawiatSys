@@ -1,19 +1,38 @@
-import fs from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
-const h = fs.readFileSync("build_php/index.html", "utf8");
+const indexPath = "build_php/index.html";
+if (!existsSync(indexPath)) {
+  console.error(`Missing Hostinger build output: ${indexPath}`);
+  process.exit(1);
+}
 
-const h1 = h.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.[1]?.trim() || "NOT_FOUND";
-const h2s = [...h.matchAll(/<h2[^>]*>([\s\S]*?)<\/h2>/gi)].map(m => m[1].replace(/<[^>]+>/g, "").trim());
-const pricesFound = h.includes("350") && h.includes("750") && h.includes("900") && h.includes("200") && h.includes("80") && h.includes("15");
-const ratingFound = h.includes("4.9") && h.includes("184");
-const faqFound = h.includes("الأسئلة الشائعة حول خدمات التنظيف بالرياض");
-const areasFound = h.includes("حي الملقا") && h.includes("حي الياسمين") && h.includes("حي النرجس");
+const html = readFileSync(indexPath, "utf8");
+const h1 = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.[1]?.replace(/<[^>]+>/g, "").trim() || "NOT_FOUND";
+const h2s = [...html.matchAll(/<h2[^>]*>([\s\S]*?)<\/h2>/gi)]
+  .map((match) => match[1].replace(/<[^>]+>/g, "").trim());
+
+const checks = [
+  ["homepage H1 identifies container rental", h1.includes("تأجير الحاويات بالرياض")],
+  ["restaurant waste-container copy", html.includes("حاويات نفايات للمطاعم")],
+  ["facility waste-container copy", html.includes("حاويات مخلفات المنشآت")],
+  ["construction and demolition waste copy", html.includes("نقل مخلفات البناء والهدم")],
+  ["container-rental FAQ", html.includes("الأسئلة الشائعة حول تأجير الحاويات بالرياض")],
+  ["publisher authority block", html.includes("هوية الجهة الناشرة ومراجع الخدمة")],
+  ["homepage canonical", /<link\b[^>]*rel=["']canonical["'][^>]*>/i.test(html)],
+  ["homepage description", /<meta\b[^>]*name=["']description["'][^>]*>/i.test(html)],
+];
 
 console.log("=== BUILD OUTPUT VERIFICATION ===");
-console.log("HTML Size:", h.length, "bytes");
+console.log("HTML Size:", html.length, "bytes");
 console.log("H1:", h1);
 console.log("H2s (Count:", h2s.length, "):", h2s);
-console.log("Prices in Raw HTML:", pricesFound);
-console.log("Rating 4.9/184 in Raw HTML:", ratingFound);
-console.log("FAQ in Raw HTML:", faqFound);
-console.log("Areas in Raw HTML:", areasFound);
+for (const [label, passed] of checks) {
+  console.log(`${passed ? "PASS" : "FAIL"} ${label}`);
+}
+
+const failures = checks.filter(([, passed]) => !passed);
+if (failures.length) {
+  console.error(`BUILD OUTPUT VERIFICATION: FAIL (${failures.length})`);
+  process.exit(1);
+}
+console.log("BUILD OUTPUT VERIFICATION: PASS");

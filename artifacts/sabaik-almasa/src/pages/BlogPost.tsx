@@ -14,6 +14,8 @@ import { normalizeCompanyText, useSiteSettings } from "@/context/SiteSettingsCon
 import { useGetContainers } from "@workspace/api-client-react"
 import type { Container } from "@workspace/api-client-react"
 import { entityPath, entitySlug } from "@/lib/friendlySlug"
+import { mergeGoldenSeoKeywords } from "@/lib/seoKeywords"
+import { AuthorityTrustSignals } from "@/components/seo/AuthorityTrustSignals"
 
 const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
 interface Post {
@@ -253,7 +255,7 @@ export default function BlogPost() {
         document.title = resolvedTitle
 
         setMeta("description",        resolvedDescription)
-        setMeta("keywords",           normalizeCompanyText(d.seoKeywords))
+        setMeta("keywords",           mergeGoldenSeoKeywords(normalizeCompanyText(d.seoKeywords)))
         setMeta("robots",             "index, follow")
         setMeta("og:type",            "article", "property")
         setMeta("og:title",           resolvedTitle, "property")
@@ -490,6 +492,8 @@ export default function BlogPost() {
 
           {/* ── Containers at end of article ── */}
           <ArticleContainers onOpen={(size) => openModal(size ? { containerSize: size } : undefined)} />
+
+          <AuthorityTrustSignals authorName={resolvedPost.author || undefined} />
 
           {/* Footer of article */}
           <div className="p-6 md:p-10 bg-gray-50 border-t border-gray-100">

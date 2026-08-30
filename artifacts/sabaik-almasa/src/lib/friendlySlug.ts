@@ -77,13 +77,21 @@ export function entitySlug({
 }): string {
   const value = publicSource(slug, title)
   const suffix = id == null ? "" : `-${String(id).replace(/[^0-9]/g, "")}`
-  const base = friendlySlug(value, `${fallback}${suffix}`)
-  return base + (suffix && !base.endsWith(suffix) ? suffix : "")
+  const rawBase = friendlySlug(value, fallback)
+  const base = suffix && rawBase.endsWith(suffix) ? rawBase.slice(0, -suffix.length).replace(/-+$/, "") : rawBase
+  const baseLimit = suffix ? Math.max(12, 56 - suffix.length - 1) : 56
+  const compactBase = base.length > baseLimit
+    ? base.slice(0, baseLimit).replace(/-[^-]*$/, "").replace(/-+$/, "")
+    : base
+  return compactBase + suffix
 }
 
 /** URL path segment for canonical links and metadata. */
 export function entityPath(options: Parameters<typeof entitySlug>[0]): string {
-  return encodeURIComponent(entitySlug(options))
+  // Keep Arabic characters readable in the emitted href/source. The browser
+  // safely serializes non-ASCII URL characters for transport, while explicit
+  // encodeURIComponent() makes SEO tools display every Arabic byte as %D8.
+  return entitySlug(options)
 }
 
 export function legacyEntitySlug({

@@ -54,7 +54,7 @@ export default function AreasIndexPage() {
             "@type": "ListItem",
             "position": index + 1,
             "name": area.name,
-            "url": `${site}/areas/${encodeURIComponent(arSlug)}`,
+            "url": `${site}/areas/${arSlug}`,
           }
         }),
       },

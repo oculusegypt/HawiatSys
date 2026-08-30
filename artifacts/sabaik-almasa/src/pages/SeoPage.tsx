@@ -7,6 +7,8 @@ import { normalizeCompanyText, useSiteSettings } from "@/context/SiteSettingsCon
 import { entityPath } from "@/lib/friendlySlug"
 import { seoImageAlt, seoImageForPath } from "@/lib/seoMedia"
 import { getSiteUrl, sitePath, siteUrl } from "@/lib/siteUrl"
+import { mergeGoldenSeoKeywords } from "@/lib/seoKeywords"
+import { AuthorityTrustSignals } from "@/components/seo/AuthorityTrustSignals"
 import {
   ArrowRight,
   CheckCircle2,
@@ -157,7 +159,7 @@ export default function SeoPage() {
         const resolvedTitle = normalizeCompanyText(`${title} | ${companyName || "الشركة"}`)
         document.title = resolvedTitle
         setMeta("description", description)
-        setMeta("keywords", resolvedData.seoKeywords || resolvedData.targetKeyword)
+        setMeta("keywords", mergeGoldenSeoKeywords(resolvedData.seoKeywords || resolvedData.targetKeyword))
         setMeta("robots", "index, follow")
         setMeta("og:type", "website", "property")
         setMeta("og:title", title, "property")
@@ -319,9 +321,10 @@ export default function SeoPage() {
           <PublicCta onOpen={() => openModal({ serviceType: page.targetKeyword || page.title })} phoneCall={phoneCall} phoneWhatsapp={phoneWhatsapp} />
 
           <div className="mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 pb-8 text-xs text-gray-400" data-testid="seo-page-trust-row">
-            <span className="inline-flex items-center gap-1.5"><CheckCircle2 size={14} className="text-secondary" /> فريق متخصص في خدمات التنظيف</span>
+              <span className="inline-flex items-center gap-1.5"><CheckCircle2 size={14} className="text-secondary" /> فريق متخصص في تأجير الحاويات</span>
             <span className="inline-flex items-center gap-1.5"><MapPin size={14} className="text-secondary" /> نخدم أحياء الرياض</span>
           </div>
+          <AuthorityTrustSignals />
         </div>
       </main>
       <Footer />
