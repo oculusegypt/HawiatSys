@@ -1,0 +1,80 @@
+نفّذ المطلوب التالي حرفيًا:
+
+أنشئ داخل المشروع ملفًا رسميًا باسم:
+
+`TESTSPRITE_LIVE_QA_PRD.md`
+
+واستخدم **النص الكامل الموجود في الرسالة السابقة** بعنوان:
+
+`# TestSprite Live QA & Test Specification`
+
+كمحتوى للملف، دون اختصار، ودون حذف أي Scenario أو Test ID أو شرط أو قاعدة Evidence أو Anti-False-PASS.
+
+### مهم جدًا
+
+هذا الملف **PRD / Test Specification مستقل لـ TestSprite** وليس تقريرًا عن نتائج المشروع.
+
+لا تغيّر الاختبارات لتناسب ما تم إنجازه سابقًا، ولا تحوّل أي نتيجة سابقة إلى PASS.
+
+يجب أن يبقى واضحًا داخل الملف أن:
+
+* TestSprite يعمل كـ External QA Engineer.
+* الاختبار يتم على الـLIVE environment.
+* تقارير الـAgents السابقة ليست دليلًا.
+* Build PASS ليس Production PASS.
+* HTTP 200 ليس Functional PASS.
+* JSON-LD موجود ليس SEO PASS.
+* SPA hydration ليست Raw HTML PASS.
+* أي اختبار لا يمكن تنفيذه فعليًا يجب أن يكون `BLOCKED`.
+* لا يجوز اختراع Node API URL.
+* لا يجوز استخدام localhost أو local build كبديل عن Live.
+* لا يجوز تنفيذ عمليات destructive أو mutations على Production.
+* لا يجوز إرسال طلبات حقيقية أو WhatsApp أو Email أو Phone أو Payments.
+* لا يجوز استخدام credentials حقيقية.
+* كل PASS يجب أن يكون له Evidence حقيقي.
+
+### بعد إنشاء الملف
+
+نفّذ تحققًا بسيطًا فقط:
+
+1. تأكد أن الملف موجود.
+2. تأكد أن العنوان صحيح.
+3. تأكد أن جميع الأقسام S1–S10 موجودة.
+4. تأكد أن Test IDs موجودة بالكامل من V01 حتى UX12.
+5. تأكد أن إجمالي الاختبارات المذكور هو 156.
+6. لا تعيد Audit للمشروع.
+7. لا تعيد تشغيل اختبارات الـclosure السابقة بهدف اعتبارها دليلًا لـTestSprite.
+8. لا تعدّل Production أو قاعدة البيانات أو الـZIP.
+9. لا تغيّر محتوى الـPRD لإخفاء أي prerequisite ناقص.
+
+### معلومات يجب فصلها بوضوح
+
+إذا لم تكن قيمة ما مؤكدة من Live، لا تخمّنها.
+
+خصوصًا:
+
+* `https://taqigroup.com/`
+* `<NODE_API_BASE_URL>`
+* سياسة إرسال النماذج
+* test-safe recipient
+* authenticated test account
+* legacy redirect policy
+* قدرة TestSprite على raw HTML / JS-disabled inspection
+
+هذه يجب أن تبقى كـ prerequisites كما هي، أو تُعلّم بأنها تحتاج تأكيدًا.
+
+### النتيجة المطلوبة منك
+
+لا أريد منك تقرير SEO جديد.
+لا أريد Audit جديد.
+لا أريد إعادة تنفيذ Closure Verification.
+لا أريد أن تقول إن الموقع Production Ready.
+
+أريد **ملف PRD جاهزًا للإرسال إلى TestSprite فقط**، ثم أعطني:
+
+* مسار الملف.
+* حجمه وعدد أسطره.
+* تأكيد أن المحتوى لم يُختصر.
+* أي prerequisite ما زال غير مؤكد.
+
+ولا تعتبر إنشاء الملف أو نجاح الـvalidation الداخلي دليلًا على نجاح أي اختبار من الاختبارات الـ156.
