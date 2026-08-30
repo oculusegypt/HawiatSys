@@ -150,6 +150,7 @@ export function homepageSchema({
   priceRange,
   paymentMethods,
   socialLinks,
+  googleBusinessProfile,
 }: {
   companyName: string
   description: string
@@ -166,6 +167,7 @@ export function homepageSchema({
   priceRange?: string
   paymentMethods?: string
   socialLinks?: unknown
+  googleBusinessProfile?: string
 }): Record<string, unknown> {
   const baseUrl = absoluteUrl("/")
   const organizationId = `${baseUrl}#organization`
@@ -190,6 +192,10 @@ export function homepageSchema({
     ? [...new Set(Object.values(socialLinks as Record<string, unknown>)
       .filter((value): value is string => typeof value === "string" && /^https?:\/\//i.test(value)))]
     : []
+  const businessProfile = typeof googleBusinessProfile === "string" && /^https?:\/\/(?:www\.)?(?:google\.[^/]+|maps\.google\.com)\//i.test(googleBusinessProfile.trim())
+    ? googleBusinessProfile.trim()
+    : ""
+  const identityLinks = businessProfile ? [...new Set([...sameAs, businessProfile])] : sameAs
   const contactPoint = phoneValues.length ? {
     "@type": "ContactPoint",
     telephone: phoneValues.length === 1 ? phoneValues[0] : phoneValues,
@@ -215,7 +221,8 @@ export function homepageSchema({
     } : {}),
     ...(city ? { areaServed: { "@type": "City", name: city } } : {}),
     ...(contactPoint ? { contactPoint } : {}),
-    ...(sameAs.length ? { sameAs } : {}),
+     ...(identityLinks.length ? { sameAs: identityLinks } : {}),
+     ...(businessProfile ? { hasMap: businessProfile } : {}),
   }
   return {
     "@context": "https://schema.org",
@@ -227,7 +234,7 @@ export function homepageSchema({
         url: baseUrl,
         ...(logo ? { logo: imageSchema(logo) } : {}),
         ...(description ? { description } : {}),
-        ...(sameAs.length ? { sameAs } : {}),
+         ...(identityLinks.length ? { sameAs: identityLinks } : {}),
         ...(contactPoint ? { contactPoint } : {}),
       },
       localBusiness,
@@ -274,6 +281,7 @@ export function serviceSchema({
   city,
   region,
   country,
+  googleBusinessProfile,
 }: {
   service: string
   description: string
@@ -285,7 +293,11 @@ export function serviceSchema({
   city?: string
   region?: string
   country?: string
+  googleBusinessProfile?: string
 }): Record<string, unknown> {
+  const businessProfile = typeof googleBusinessProfile === "string" && /^https?:\/\/(?:www\.)?(?:google\.[^/]+|maps\.google\.com)\//i.test(googleBusinessProfile.trim())
+    ? googleBusinessProfile.trim()
+    : ""
   return {
     "@type": "Service",
     "@id": `${absoluteUrl(url)}#service`,
@@ -293,7 +305,10 @@ export function serviceSchema({
     "description": description,
     "url": absoluteUrl(url),
     "image": imageSchema(image),
-    "provider": localBusinessSchema({ companyName, phoneNumbers, address, city, region, country }),
+    "provider": {
+      ...localBusinessSchema({ companyName, phoneNumbers, address, city, region, country }),
+      ...(businessProfile ? { hasMap: businessProfile, sameAs: [businessProfile] } : {}),
+    },
     "areaServed": { "@type": "City", "name": city || "الرياض" },
     "inLanguage": "ar",
   }

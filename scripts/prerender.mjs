@@ -129,7 +129,7 @@ function readableSeoExcerpt(value = "") {
 }
 
 function authorityTrustMarkup() {
-  const businessProfile = settingMap.company_google_business_profile?.trim() || "";
+  const businessProfile = safeGoogleBusinessProfileUrl(settingMap.company_google_business_profile);
   const addressText = [address.address, address.city, address.region].filter(Boolean).join("، ") || "الرياض، المملكة العربية السعودية";
   return `
     <section class="seo-authority-trust" aria-labelledby="authority-trust-title">
@@ -137,7 +137,7 @@ function authorityTrustMarkup() {
       <h2 id="authority-trust-title">هوية الجهة الناشرة ومراجع الخدمة</h2>
       <div class="seo-authority-grid">
         <div><strong>الجهة الناشرة</strong><p>${esc(siteCompanyName)} — خدمات تأجير الحاويات ونقل المخلفات في الرياض.</p>${sitePhoneCall ? `<p><strong>التواصل:</strong> ${esc(sitePhoneCall)}</p>` : ""}</div>
-        <div><strong>موقع العمل المعلن</strong><p>${esc(addressText)}</p>${businessProfile ? `<a href="${esc(businessProfile)}" target="_blank" rel="noopener noreferrer">عرض ملف Google Business Profile ↗</a>` : ""}</div>
+        <div><strong>موقع العمل المعلن</strong><p>${esc(addressText)}</p>${businessProfile ? `<a href="${esc(businessProfile)}" itemprop="sameAs" data-google-business-profile="true" target="_blank" rel="noopener noreferrer">عرض ملف Google Business Profile ↗</a>` : ""}</div>
         <div><strong>مراجعة المحتوى</strong><p>فريق المحتوى في ${esc(siteCompanyName)} يراجع معلومات المقاسات والطلب والتوصيل قبل النشر.</p></div>
         <div><strong>مراجع عامة</strong><p>للاطلاع على الاشتراطات والخدمات الحكومية ذات الصلة:</p><p><a href="https://balady.gov.sa/" target="_blank" rel="noopener noreferrer">منصة بلدي ↗</a> · <a href="https://www.alriyadh.gov.sa/" target="_blank" rel="noopener noreferrer">أمانة الرياض ↗</a></p></div>
       </div>
@@ -584,9 +584,22 @@ function publicUrl(path = "/") {
   return SITE_URL ? `${SITE_URL}${normalized}` : normalized;
 }
 
+function safeGoogleBusinessProfileUrl(raw) {
+  const value = String(raw || "").trim();
+  try {
+    const parsed = new URL(value);
+    const host = parsed.hostname.toLowerCase();
+    const isGoogleHost = host === "google.com" || host.endsWith(".google.com");
+    return isGoogleHost && /^\/maps(?:\/|$)/i.test(parsed.pathname) ? parsed.toString() : "";
+  } catch {
+    return "";
+  }
+}
+
 function dynamicHomeSchema() {
   const addressData = buildAddressSchema();
-  const sameAs = [...socialLinks];
+  const businessProfile = safeGoogleBusinessProfileUrl(settingMap.company_google_business_profile);
+  const sameAs = [...new Set([...socialLinks, ...(businessProfile ? [businessProfile] : [])])];
   const phoneValues = publicPhones.map(toInternational).filter(Boolean);
   const contactPoint = phoneValues.length ? {
     "@type": "ContactPoint",
@@ -613,10 +626,10 @@ function dynamicHomeSchema() {
       : {}),
     ...(address.city ? { areaServed: { "@type": "City", name: address.city } } : {}),
     ...(contactPoint ? { contactPoint } : {}),
-    ...(settingMap.company_google_business_profile?.trim()
-      ? { hasMap: settingMap.company_google_business_profile.trim() }
+    ...(businessProfile
+      ? { hasMap: businessProfile }
       : {}),
-    ...(sameAs.length ? { sameAs: [...new Set(sameAs)] } : {}),
+    ...(sameAs.length ? { sameAs } : {}),
   };
   return [
     {
@@ -969,6 +982,7 @@ function generateHomepageStaticContent() {
   const phoneWa = sitePhoneWhatsapp || phoneCall;
   const phoneHref = phoneCall ? `tel:${phoneCall}` : "";
   const waHref = phoneWa ? waLink(phoneWa, `السلام عليكم، أرغب في طلب خدمة من ${siteCompanyName}`) : "";
+  const businessProfile = safeGoogleBusinessProfileUrl(settingMap.company_google_business_profile);
   const logoUrl = absoluteImg(siteLogo);
   const heroUrl = absoluteImg(heroLcpImage);
   const internalLinks = [
@@ -1039,7 +1053,7 @@ function generateHomepageStaticContent() {
           </div>
         </div>
       </section>
-      ${(address.address || address.city || address.region || settingMap.company_google_business_profile) ? `
+      ${(address.address || address.city || address.region || businessProfile) ? `
       <section id="local-business" style="border-top:1px solid #e5eef1;margin-top:32px;padding-top:30px">
         <h2 style="margin:0 0 10px;color:#12384b;font-size:26px;font-weight:900">موقع وخدمة ${esc(siteCompanyName)} في الرياض</h2>
         <p style="margin:0 0 16px;color:#52707c;font-size:16px;line-height:1.8">نخدم مشاريع المنازل والمقاولين والمنشآت في أحياء الرياض، مع تنسيق التوصيل والسحب حسب العنوان وموعد المشروع.</p>
@@ -1047,7 +1061,7 @@ function generateHomepageStaticContent() {
           ${address.address ? `<div><strong>العنوان:</strong> ${esc(address.address)}</div>` : ""}
           ${[address.city, address.region, address.country].filter(Boolean).length ? `<div><strong>نطاق الخدمة:</strong> ${esc([address.city, address.region, address.country].filter(Boolean).join("، "))}</div>` : ""}
         </address>
-        ${settingMap.company_google_business_profile ? `<p style="margin:16px 0 0"><a href="${esc(settingMap.company_google_business_profile)}" target="_blank" rel="noopener noreferrer" style="color:#246b70;font-weight:800">عرض ملفنا على Google Business Profile ↗</a></p>` : ""}
+        ${businessProfile ? `<p style="margin:16px 0 0"><a href="${esc(businessProfile)}" itemprop="sameAs" data-google-business-profile="true" target="_blank" rel="noopener noreferrer" style="color:#246b70;font-weight:800">عرض ملفنا على Google Business Profile ↗</a></p>` : ""}
       </section>` : ""}
       ${authorityTrustMarkup()}
     </main>
@@ -1364,7 +1378,13 @@ for (const svc of services) {
       "priceRange": settingMap.company_price_range?.trim() || SEO_DEFAULTS.priceRange,
       "telephone": sitePhones.map(toInternational),
       "address": buildAddressSchema(),
-      "url": SITE_URL || "/"
+      "url": SITE_URL || "/",
+      ...(safeGoogleBusinessProfileUrl(settingMap.company_google_business_profile)
+        ? {
+            "hasMap": safeGoogleBusinessProfileUrl(settingMap.company_google_business_profile),
+            "sameAs": [safeGoogleBusinessProfileUrl(settingMap.company_google_business_profile)],
+          }
+        : {})
     },
     "areaServed": [
       { "@type": "City", "name": "الرياض" },

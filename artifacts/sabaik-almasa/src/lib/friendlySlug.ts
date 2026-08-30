@@ -34,6 +34,23 @@ function legacyFriendlySlug(value: unknown, fallback = "page"): string {
   return result.slice(0, 64).replace(/-[^-]*$/, "").replace(/-+$/, "") || result.slice(0, 64)
 }
 
+function compactServiceBase(slug: unknown, title: unknown, fallback: string): string {
+  const source = `${String(slug ?? "")} ${String(title ?? "")}`.trim()
+  const semanticAliases: Array<[RegExp, string]> = [
+    [/صناع|industrial|مصانع/u, "industrial-waste"],
+    [/مطاعم|كافيه|restaurant|cafe/u, "restaurant-waste"],
+    [/بناء|أنقاض|هدم|construction|debris|demolition/u, "construction-debris"],
+    [/نقل.*مخلفات|مخلفات.*نقل|waste.*transport|transport.*waste/u, "waste-transport"],
+    [/حاويات|containers?/u, "waste-containers"],
+  ]
+  const alias = semanticAliases.find(([pattern]) => pattern.test(source))?.[1]
+  if (alias) return alias
+
+  const transliterated = legacyFriendlySlug(source, fallback)
+  const compact = transliterated.slice(0, 34).replace(/-[^-]*$/, "").replace(/-+$/, "")
+  return compact || fallback
+}
+
 export function friendlySlug(value: unknown, fallback = "page"): string {
   const source = String(value ?? "")
     .normalize("NFKC")
@@ -77,9 +94,16 @@ export function entitySlug({
 }): string {
   const value = publicSource(slug, title)
   const suffix = id == null ? "" : `-${String(id).replace(/[^0-9]/g, "")}`
-  const rawBase = friendlySlug(value, fallback)
+  // Service URLs are the highest-volume public entity links. Keep them
+  // readable and short in transport-safe ASCII while retaining the stored
+  // Arabic slug and legacy aliases for backwards compatibility.
+  const rawBase = fallback === "service"
+    ? compactServiceBase(slug, title, fallback)
+    : friendlySlug(value, fallback)
   const base = suffix && rawBase.endsWith(suffix) ? rawBase.slice(0, -suffix.length).replace(/-+$/, "") : rawBase
-  const baseLimit = suffix ? Math.max(12, 56 - suffix.length - 1) : 56
+  const baseLimit = suffix
+    ? Math.max(12, fallback === "service" ? 38 - suffix.length - 1 : 56 - suffix.length - 1)
+    : fallback === "service" ? 38 : 56
   const compactBase = base.length > baseLimit
     ? base.slice(0, baseLimit).replace(/-[^-]*$/, "").replace(/-+$/, "")
     : base

@@ -175,7 +175,7 @@ export default function ServiceDetail() {
   const slug = params?.slug ? decodeURIComponent(params.slug) : ""
   const { data: services, isLoading } = useGetServices()
   const [service, setService] = useState<Service | null>(null)
-  const { phoneCall, phoneWhatsapp, phones, companyName, address, city, region, country } = useSiteSettings()
+  const { phoneCall, phoneWhatsapp, phones, companyName, address, city, region, country, googleBusinessProfile } = useSiteSettings()
   const { call, whatsapp } = resolveContactNumbers(phoneCall, phoneWhatsapp, phones)
 
   useEffect(() => {
@@ -228,6 +228,7 @@ export default function ServiceDetail() {
         city,
         region,
         country,
+        googleBusinessProfile,
       }),
       {
         "@type": "FAQPage",

@@ -892,11 +892,37 @@ try {
                 ? $rawSlug
                 : ($hasArabic($rawTitle) ? $rawTitle : ($rawSlug !== '' ? $rawSlug : $rawTitle)));
         $suffix = $id === null || $id === '' ? '' : '-' . preg_replace('/[^0-9]/', '', (string)$id);
-        $base = publicFriendlySlug($value, $fallback . $suffix);
+        if ($fallback === 'service') {
+            $serviceSource = $rawSlug . ' ' . $rawTitle;
+            $semanticAliases = [
+                '/صناع|industrial|مصانع/iu' => 'industrial-waste',
+                '/مطاعم|كافيه|restaurant|cafe/iu' => 'restaurant-waste',
+                '/بناء|أنقاض|هدم|construction|debris|demolition/iu' => 'construction-debris',
+                '/نقل.*مخلفات|مخلفات.*نقل|waste.*transport|transport.*waste/iu' => 'waste-transport',
+                '/حاويات|containers?/iu' => 'waste-containers',
+            ];
+            $serviceBase = '';
+            foreach ($semanticAliases as $pattern => $alias) {
+                if (preg_match($pattern, $serviceSource)) {
+                    $serviceBase = $alias;
+                    break;
+                }
+            }
+            if ($serviceBase === '') {
+                $serviceBase = legacyFriendlySlug($serviceSource, $fallback . $suffix);
+                $serviceBase = substr($serviceBase, 0, 34);
+                $serviceBase = rtrim(preg_replace('/-[^-]*$/', '', $serviceBase) ?? $serviceBase, '-');
+            }
+            $base = $serviceBase;
+        } else {
+            $base = publicFriendlySlug($value, $fallback . $suffix);
+        }
         if ($suffix !== '' && str_ends_with($base, $suffix)) {
             $base = rtrim(substr($base, 0, -strlen($suffix)), '-');
         }
-        $baseLimit = $suffix !== '' ? max(12, 56 - strlen($suffix) - 1) : 56;
+        $baseLimit = $suffix !== ''
+            ? max(12, ($fallback === 'service' ? 38 : 56) - strlen($suffix) - 1)
+            : ($fallback === 'service' ? 38 : 56);
         $characters = preg_split('//u', $base, -1, PREG_SPLIT_NO_EMPTY) ?: [];
         if (count($characters) > $baseLimit) {
             $prefix = implode('', array_slice($characters, 0, $baseLimit));
@@ -3634,6 +3660,7 @@ try {
             $candidateAliases = array_unique(array_filter([
                 $candidateSlug,
                 publicEntitySlug($candidateSlug, (string)($candidate['title'] ?? ''), $candidate['id'] ?? null, 'service'),
+                legacyEntitySlug($candidateSlug, (string)($candidate['title'] ?? ''), $candidate['id'] ?? null, 'service'),
                 (string)($candidate['id'] ?? ''),
             ], static fn(string $value): bool => trim($value) !== ''));
             foreach ($candidateAliases as $candidateAlias) {

@@ -744,6 +744,15 @@ section[id] {
 }
 
 @media (max-width: 767px) {
+  .home-hero {
+    min-height: min(720px, 92dvh);
+  }
+
+  .home-hero .hero-slide-content {
+    backdrop-filter: none;
+    box-shadow: 0 .75rem 2rem rgba(8, 31, 43, .12);
+  }
+
   .home-navbar {
     padding-block: .8rem !important;
   }

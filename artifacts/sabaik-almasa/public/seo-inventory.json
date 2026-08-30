@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-30T11:43:38.977Z",
+  "generatedAt": "2026-08-30T13:52:23.060Z",
   "siteUrl": "https://taqigroup.com",
   "entries": [
     {
@@ -657,8 +657,8 @@
       "title": "al-futah"
     },
     {
-      "path": "/services/تأجير-حاويات-مخلفات-الهدم-في-الرياض-37",
-      "canonical": "/services/تأجير-حاويات-مخلفات-الهدم-في-الرياض-37",
+      "path": "/services/construction-debris-37",
+      "canonical": "/services/construction-debris-37",
       "pageType": "service",
       "indexability": "INDEXABLE",
       "prerenderRequired": true,
@@ -668,8 +668,8 @@
       "title": "تأجير حاويات مخلفات الهدم"
     },
     {
-      "path": "/services/نقل-الأنقاض-المخلفات-في-السعودية-38",
-      "canonical": "/services/نقل-الأنقاض-المخلفات-في-السعودية-38",
+      "path": "/services/construction-debris-38",
+      "canonical": "/services/construction-debris-38",
       "pageType": "service",
       "indexability": "INDEXABLE",
       "prerenderRequired": true,
@@ -679,8 +679,8 @@
       "title": "نقل الأنقاض والمخلفات"
     },
     {
-      "path": "/services/خدمات-إدارة-النفايات-الصناعية-في-السعودية-42",
-      "canonical": "/services/خدمات-إدارة-النفايات-الصناعية-في-السعودية-42",
+      "path": "/services/industrial-waste-42",
+      "canonical": "/services/industrial-waste-42",
       "pageType": "service",
       "indexability": "INDEXABLE",
       "prerenderRequired": true,
@@ -1794,9 +1794,9 @@
     "https://taqigroup.com/pricing",
     "https://taqigroup.com/privacy",
     "https://taqigroup.com/services",
-    "https://taqigroup.com/services/تأجير-حاويات-مخلفات-الهدم-في-الرياض-37",
-    "https://taqigroup.com/services/خدمات-إدارة-النفايات-الصناعية-في-السعودية-42",
-    "https://taqigroup.com/services/نقل-الأنقاض-المخلفات-في-السعودية-38",
+    "https://taqigroup.com/services/construction-debris-37",
+    "https://taqigroup.com/services/construction-debris-38",
+    "https://taqigroup.com/services/industrial-waste-42",
     "https://taqigroup.com/terms",
     "https://taqigroup.com/why-us/commitment",
     "https://taqigroup.com/why-us/experience",

@@ -42,6 +42,22 @@ function legacyFriendlySlug(value, fallback = "page") {
   return result.slice(0, 64).replace(/-[^-]*$/, "").replace(/-+$/, "") || result.slice(0, 64);
 }
 
+function compactServiceBase(slug, title, fallback) {
+  const source = `${String(slug ?? "")} ${String(title ?? "")}`.trim();
+  const semanticAliases = [
+    [/صناع|industrial|مصانع/u, "industrial-waste"],
+    [/مطاعم|كافيه|restaurant|cafe/u, "restaurant-waste"],
+    [/بناء|أنقاض|هدم|construction|debris|demolition/u, "construction-debris"],
+    [/نقل.*مخلفات|مخلفات.*نقل|waste.*transport|transport.*waste/u, "waste-transport"],
+    [/حاويات|containers?/u, "waste-containers"],
+  ];
+  const alias = semanticAliases.find(([pattern]) => pattern.test(source))?.[1];
+  if (alias) return alias;
+  const transliterated = legacyFriendlySlug(source, fallback);
+  const compact = transliterated.slice(0, 34).replace(/-[^-]*$/, "").replace(/-+$/, "");
+  return compact || fallback;
+}
+
 export function friendlySlug(value, fallback = "page") {
   const source = String(value ?? "")
     .normalize("NFKC")
@@ -83,9 +99,13 @@ function legacySource({ slug, title }) {
 export function entitySlug({ slug, title, id, fallback = "page" }) {
   const value = publicSource({ slug, title });
   const suffix = id == null ? "" : `-${String(id).replace(/[^0-9]/g, "")}`;
-  const rawBase = friendlySlug(value, fallback);
+  const rawBase = fallback === "service"
+    ? compactServiceBase(slug, title, fallback)
+    : friendlySlug(value, fallback);
   const base = suffix && rawBase.endsWith(suffix) ? rawBase.slice(0, -suffix.length).replace(/-+$/, "") : rawBase;
-  const baseLimit = suffix ? Math.max(12, 56 - suffix.length - 1) : 56;
+  const baseLimit = suffix
+    ? Math.max(12, (fallback === "service" ? 38 : 56) - suffix.length - 1)
+    : fallback === "service" ? 38 : 56;
   const compactBase = base.length > baseLimit
     ? base.slice(0, baseLimit).replace(/-[^-]*$/, "").replace(/-+$/, "")
     : base;

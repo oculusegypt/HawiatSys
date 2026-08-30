@@ -216,6 +216,7 @@ export default function Home() {
     priceRange,
     paymentMethods,
     socialLinks,
+    googleBusinessProfile,
     publicUrl,
     sectionsOrder,
     hiddenSections,
@@ -250,6 +251,7 @@ export default function Home() {
     priceRange,
     paymentMethods,
     socialLinks,
+    googleBusinessProfile,
   })
   useDocumentSchema("home-schema", homeSchema, isLoaded)
 

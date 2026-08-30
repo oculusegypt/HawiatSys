@@ -41,6 +41,18 @@ export function getSafeMapEmbedUrl(
   )
 }
 
+export function getSafeGoogleBusinessProfileUrl(raw: string): string {
+  const value = raw.trim()
+  try {
+    const url = new URL(value)
+    const host = url.hostname.toLowerCase()
+    const isGoogleHost = host === "google.com" || host.endsWith(".google.com")
+    return isGoogleHost && /^\/maps(?:\/|$)/i.test(url.pathname) ? url.toString() : ""
+  } catch {
+    return ""
+  }
+}
+
 const API_BASE = (import.meta.env.BASE_URL ?? "/").replace(/\/$/, "")
 
 export interface HomepageContent {
@@ -283,11 +295,10 @@ function parseHeroPosition(raw: unknown, fallback: string): string {
 type FetchedSiteSettings = Omit<SiteSettings, "reload">
 
 async function fetchSettings(): Promise<FetchedSiteSettings> {
-  // Revalidate the settings endpoint without defeating browser/CDN validators.
-  // A unique timestamp made every first visit download a fresh response and
-  // prevented a fast 304/cache path on mobile connections.
+  // Public settings are safe to reuse during a page session. Avoid forcing a
+  // network revalidation on every first paint, which is expensive on mobile.
   const response = await fetch(`${API_BASE}/api/settings`, {
-    cache: "no-cache",
+    cache: "default",
     headers: { Accept: "application/json" },
   })
   if (!response.ok) throw new Error(`Settings request failed with ${response.status}`)

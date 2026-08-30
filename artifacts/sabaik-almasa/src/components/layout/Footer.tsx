@@ -1,12 +1,13 @@
 import * as React from "react"
 import { Link } from "wouter"
 import { Phone, Mail, MapPin, Map, Facebook, Instagram, Youtube, Twitter, Music2, Ghost, Linkedin, ExternalLink } from "lucide-react"
-import { getSafeMapEmbedUrl, useSiteSettings } from "@/context/SiteSettingsContext"
+import { getSafeGoogleBusinessProfileUrl, getSafeMapEmbedUrl, useSiteSettings } from "@/context/SiteSettingsContext"
 
 export function Footer() {
   const siteSettings = useSiteSettings()
   const [mapLoadFailed, setMapLoadFailed] = React.useState(false)
   const phones = siteSettings.phones
+  const googleBusinessProfile = getSafeGoogleBusinessProfileUrl(siteSettings.googleBusinessProfile)
   const mapOptions = {
     latitude: siteSettings.latitude,
     longitude: siteSettings.longitude,
@@ -115,11 +116,13 @@ export function Footer() {
                   </div>
                 </li>
               )}
-                {siteSettings.googleBusinessProfile && (
+                {googleBusinessProfile && (
                   <li className="flex items-start gap-3">
                     <Map className="text-secondary shrink-0 mt-1" size={20} />
                     <a
-                      href={siteSettings.googleBusinessProfile}
+                      href={googleBusinessProfile}
+                      itemProp="sameAs"
+                      data-google-business-profile="true"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-gray-300 hover:text-white transition-colors inline-flex items-center gap-1"

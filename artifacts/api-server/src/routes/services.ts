@@ -4,7 +4,7 @@ import { servicesTable } from "@workspace/db";
 import { eq, asc } from "drizzle-orm";
 import { requireAdmin, requireSectionPermission } from "../middleware/adminAuth";
 import { generateSeoMetadata, uniqueSlug } from "../lib/seoMetadata";
-import { entitySlug } from "../lib/friendlySlug";
+import { entitySlug, legacyEntitySlug } from "../lib/friendlySlug";
 
 const router = Router();
 
@@ -44,14 +44,23 @@ router.get("/services", async (_req, res) => {
 
 router.get("/services/:slug", async (req, res) => {
   const rawParam = req.params.slug;
-  const requested = decodeURIComponent(Array.isArray(rawParam) ? rawParam[0] : rawParam).trim().toLowerCase();
+  let requested = String(Array.isArray(rawParam) ? rawParam[0] : rawParam);
+  for (let pass = 0; pass < 2 && /%[0-9a-f]{2}/i.test(requested); pass += 1) {
+    try {
+      requested = decodeURIComponent(requested);
+    } catch {
+      break;
+    }
+  }
+  requested = requested.trim().toLowerCase();
   const rows = await db.select().from(servicesTable)
     .where(eq(servicesTable.isActive, true))
     .orderBy(asc(servicesTable.id));
   const service = rows.find(row => {
     const stored = String(row.seoSlug ?? "").trim().toLowerCase();
     const publicSlug = entitySlug({ slug: row.seoSlug, title: row.title, id: row.id, fallback: "service" }).toLowerCase();
-    return requested === stored || requested === publicSlug || requested === String(row.id);
+    const legacySlug = legacyEntitySlug({ slug: row.seoSlug, title: row.title, id: row.id, fallback: "service" }).toLowerCase();
+    return requested === stored || requested === publicSlug || requested === legacySlug || requested === String(row.id);
   });
   if (!service) return res.status(404).json({ error: "Not found" });
   return res.json(castRow(service));
