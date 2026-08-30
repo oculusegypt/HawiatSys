@@ -15,6 +15,7 @@ import { DraggableMapPicker } from "@/components/ui/DraggableMapPicker"
 import { useSiteSettings } from "@/context/SiteSettingsContext"
 import { getActiveContainers, getContainerValue } from "@/lib/packageOptions"
 import { getVisitorTracking } from "@/lib/visitorAttribution"
+import { MAX_CONTAINER_RENTAL_DURATION } from "./serviceRequestConstants"
 
 const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
 
@@ -95,7 +96,7 @@ export function ServiceRequestForm() {
       serviceType: "",
       containerSize: "",
       location: "",
-      duration: "",
+      duration: MAX_CONTAINER_RENTAL_DURATION,
       notes: "",
       appointmentType: "immediate",
       scheduledAt: "",
@@ -174,6 +175,7 @@ export function ServiceRequestForm() {
       ...values,
       appointmentType,
       scheduledAt: appointmentType === "scheduled" ? values.scheduledAt : undefined,
+      duration: MAX_CONTAINER_RENTAL_DURATION,
       tracking: getVisitorTracking(),
     }
 
@@ -511,26 +513,26 @@ export function ServiceRequestForm() {
                   )}
                 />
 
-                {/* Duration */}
+                {/* Container rental duration is a fixed operational limit. */}
                 <FormField
                   control={form.control}
                   name="duration"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-sm font-bold text-gray-700">مدة الإيجار المتوقعة</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="rounded-xl border-gray-200 focus:border-primary focus:ring-primary h-12">
-                            <SelectValue placeholder="اختر مدة الإيجار" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent className="rounded-xl">
-                          <SelectItem value="يومي (رد واحد)">يومي (رد واحد / 10 أيام حد أقصى)</SelectItem>
-                          <SelectItem value="أسبوعي">أسبوعي</SelectItem>
-                          <SelectItem value="شهري">شهري</SelectItem>
-                          <SelectItem value="عقد سنوي">عقد سنوي (للمنشآت والمطاعم)</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <FormLabel className="text-sm font-bold text-gray-700">مدة الإيجار</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          value={MAX_CONTAINER_RENTAL_DURATION}
+                          readOnly
+                          className="rounded-xl border-amber-200 bg-amber-50 text-amber-900 font-bold focus:border-amber-300 focus:ring-amber-200 h-12"
+                        />
+                      </FormControl>
+                      <p className="text-xs text-gray-500">
+                        تُسحب الحاوية عند امتلائها أو بعد 10 أيام كحد أقصى.
+                      </p>
+                      {/* Keep the field registered while preventing unsupported values. */}
+                      <input type="hidden" {...field} value={MAX_CONTAINER_RENTAL_DURATION} />
                       <FormMessage className="text-xs" />
                     </FormItem>
                   )}

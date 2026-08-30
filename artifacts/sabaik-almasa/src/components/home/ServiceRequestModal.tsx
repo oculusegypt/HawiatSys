@@ -14,9 +14,9 @@ import { useGetContainers } from "@workspace/api-client-react"
 import { getVisitorTracking, sendVisitorHeartbeat } from "@/lib/visitorAttribution"
 import { getHighAccuracyPosition } from "@/lib/reverseGeocode"
 import { getActiveContainers, getContainerValue } from "@/lib/packageOptions"
+import { MAX_CONTAINER_RENTAL_DURATION } from "./serviceRequestConstants"
 
 const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || ""
-const MAX_CONTAINER_RENTAL_DURATION = "حتى 10 أيام أو امتلاء الحاوية، أيهما أقرب"
 
 function getTodayString() {
   const now = new Date()

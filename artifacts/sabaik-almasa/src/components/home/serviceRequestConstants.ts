@@ -1,0 +1,1 @@
+export const MAX_CONTAINER_RENTAL_DURATION = "حتى 10 أيام أو امتلاء الحاوية، أيهما أقرب"

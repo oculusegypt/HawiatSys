@@ -247,6 +247,17 @@ export function replaceLegacyCompanyName(value: string | undefined, companyName:
     .replace(/(?:مؤسسة|شركة)?\s*تقي\s*جروب/gi, resolved)
 }
 
+function replaceCompanyNameDeep(value: unknown, companyName: string): unknown {
+  if (typeof value === "string") return replaceLegacyCompanyName(value, companyName) || ""
+  if (Array.isArray(value)) return value.map(item => replaceCompanyNameDeep(item, companyName))
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, replaceCompanyNameDeep(item, companyName)]),
+    )
+  }
+  return value
+}
+
 function parseHomepageContent(raw: unknown): HomepageContent {
   if (typeof raw !== "string" || !raw.trim()) return {}
   try {
@@ -331,6 +342,7 @@ async function fetchSettings(): Promise<FetchedSiteSettings> {
     : trackingValue === true || trackingValue === "true" || trackingValue === 1 || trackingValue === "1"
 
   const compName = typeof data.company_name === "string" && data.company_name.trim() ? data.company_name.trim() : ""
+  const rawHomepageContent = parseHomepageContent(data.homepage_content)
   return {
     logoUrl: typeof data.company_logo === "string" ? data.company_logo.trim() : "",
     companyName: compName,
@@ -371,7 +383,7 @@ async function fetchSettings(): Promise<FetchedSiteSettings> {
     footerDescription: typeof data.company_footer_description === "string"
       ? data.company_footer_description
       : "",
-    homepageContent: parseHomepageContent(data.homepage_content),
+    homepageContent: replaceCompanyNameDeep(rawHomepageContent, compName) as HomepageContent,
     statsItems: parseStatsItems(data.stats_items),
     orderTrackingEnabled,
     themePreset: (() => {

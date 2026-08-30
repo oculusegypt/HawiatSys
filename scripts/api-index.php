@@ -551,6 +551,96 @@ try {
         exit;
     }
 
+    // Keep the Hostinger PHP runtime compatible with the browser's central
+    // JSON-LD loader. Older archives returned 404 here, which filled the
+    // browser console with an avoidable error on every public page.
+    if ($path === '/structured-data' && $method === 'GET') {
+        $query = [];
+        parse_str((string)(parse_url($rawUri, PHP_URL_QUERY) ?? ''), $query);
+        $requestedScope = trim((string)($_GET['path'] ?? $query['path'] ?? '/'));
+        $requestedScope = preg_split('/[?#]/', $requestedScope, 2)[0] ?: '/';
+        $normalizeScope = static function ($value): string {
+            $raw = trim((string)$value);
+            if ($raw === '*') return '*';
+            $raw = preg_split('/[?#]/', $raw, 2)[0] ?: '/';
+            $raw = '/' . trim($raw, '/');
+            $raw = preg_replace('#/{2,}#', '/', $raw) ?: '/';
+            return $raw === '/' ? '/' : rtrim($raw, '/');
+        };
+        $scope = $normalizeScope($requestedScope);
+        $companyRow = $pdo->query("SELECT value FROM site_settings WHERE key = 'company_name' LIMIT 1")->fetch(PDO::FETCH_ASSOC);
+        $companyName = trim((string)($companyRow['value'] ?? '')) ?: 'المنشأة';
+        $replaceDeep = null;
+        $replaceDeep = static function ($value) use (&$replaceDeep, $companyName) {
+            if (is_string($value)) {
+                $value = str_replace('{{company_name}}', $companyName, $value);
+                return preg_replace('/(?:مؤسسة|شركة)?\s*تقي\s*جروب/iu', $companyName, $value) ?? $value;
+            }
+            if (is_array($value)) {
+                $out = [];
+                foreach ($value as $key => $item) $out[$key] = $replaceDeep($item);
+                return $out;
+            }
+            return $value;
+        };
+        $plainText = static function ($value): string {
+            $value = is_string($value) ? $value : '';
+            $value = preg_replace('/<br\s*\/?>|<\/p>|<\/div>|<\/li>/iu', "\n", $value) ?? $value;
+            $value = strip_tags($value);
+            return trim(preg_replace('/\s+/u', ' ', $value) ?? $value);
+        };
+        $origin = configuredPublicOrigin($pdo);
+        $rows = $pdo->query("SELECT id, scope_path, schema_type, title, description, payload, is_active, sort_order FROM structured_content WHERE is_active = 1 ORDER BY sort_order ASC, id ASC")->fetchAll(PDO::FETCH_ASSOC);
+        $supportedTypes = ['FAQPage', 'Article', 'LocalBusiness', 'Service', 'BreadcrumbList', 'WebPage', 'Organization', 'ImageObject', 'JobPosting', 'Product', 'Review', 'AggregateRating'];
+        $graph = [];
+        $seen = [];
+        foreach ($rows as $row) {
+            $rowScope = $normalizeScope($row['scope_path'] ?? '/');
+            if ($rowScope !== $scope && $rowScope !== '*') continue;
+            $schemaType = trim((string)($row['schema_type'] ?? ''));
+            if (!in_array($schemaType, $supportedTypes, true)) continue;
+            $nodePath = $rowScope === '*' ? '/' : $rowScope;
+            $id = $origin . $nodePath . '#' . $schemaType;
+            if (isset($seen[$id])) continue;
+            $seen[$id] = true;
+            $payload = json_decode((string)($row['payload'] ?? '{}'), true);
+            $payload = is_array($payload) ? $replaceDeep($payload) : [];
+            if ($schemaType === 'FAQPage') {
+                $items = is_array($payload['items'] ?? null)
+                    ? $payload['items']
+                    : (is_array($payload['mainEntity'] ?? null) ? $payload['mainEntity'] : []);
+                $mainEntity = [];
+                foreach ($items as $item) {
+                    if (!is_array($item) || (($item['enabled'] ?? true) === false)) continue;
+                    $question = $plainText($item['question'] ?? $item['q'] ?? $item['name'] ?? '');
+                    $answer = $plainText($item['answer'] ?? $item['a'] ?? $item['text'] ?? '');
+                    if ($question !== '' && $answer !== '') {
+                        $mainEntity[] = [
+                            '@type' => 'Question',
+                            'name' => $question,
+                            'acceptedAnswer' => ['@type' => 'Answer', 'text' => $answer],
+                        ];
+                    }
+                }
+                if (!$mainEntity) continue;
+                $node = ['@type' => 'FAQPage', '@id' => $id, 'mainEntity' => $mainEntity];
+            } else {
+                $node = ['@type' => $schemaType, '@id' => $id];
+                foreach ($payload as $key => $value) {
+                    if (in_array((string)$key, ['@context', '@type', '@id'], true)) continue;
+                    $node[$key] = $value;
+                }
+            }
+            $title = $plainText($replaceDeep($row['title'] ?? ''));
+            $description = $plainText($replaceDeep($row['description'] ?? ''));
+            if ($title !== '' && !isset($node['name'])) $node['name'] = $title;
+            if ($description !== '' && !isset($node['description'])) $node['description'] = $description;
+            $graph[] = $node;
+        }
+        echo json_encode(['@context' => 'https://schema.org', '@graph' => $graph], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        exit;
+    }
+
     // Get JSON input body
     $rawInput = file_get_contents('php://input');
     $input = !empty($rawInput) ? (json_decode($rawInput, true) ?? []) : [];

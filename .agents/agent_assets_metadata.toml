@@ -125,14 +125,14 @@ content_type = "text/markdown"
 id = "vardMRmaVE2zxKTFKnDnX"
 uri = "file://taqi-group-hostinger.zip"
 type = "unspecified"
-title = "Updated Taqi Group Hostinger package"
-description = "Rebuilt and SEO-validated Hostinger archive with corrected dashboard counting boundaries and legacy-branding scan behavior."
+title = "حزمة Hostinger المحدثة"
+description = "أرشيف Hostinger النهائي الجاهز للاستخراج المباشر داخل public_html. النسخة الرسمية مطابقة للنسخة التوافقية."
 logical_id = "9bf9def0-a387-4ee1-a74b-659381cde139"
-content_hash = "sha256:7988ce4c1decb7bb78bae865ac432d59297185173e1501551eb9fab811271ba6"
-size = 39490387
-mtime_ms = 1788074037392
-storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:23bedf58-79ba-4793-9244-c084f4330f80/9bf9def0-a387-4ee1-a74b-659381cde139/468e27cd-d784-4343-aeb1-f74c0aa9cfcd"
-storage_version_token = "1788074065473848"
+content_hash = "sha256:54cafc98b50cdb5aefd237005c980cd2480c6e9c00268589cd75164661dd7a4e"
+size = 39526637
+mtime_ms = 1788129307886
+storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/repl:3c19f5f4-db9d-4250-bf4c-992c305954ef/9bf9def0-a387-4ee1-a74b-659381cde139/c43687ca-959e-4ff0-b9c9-82ef8233bfbe"
+storage_version_token = "1788129363221745"
 content_type = "application/octet-stream"
 
 [[outputs]]
@@ -175,4 +175,18 @@ size = 44798
 mtime_ms = 1788063424136
 storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:c98426b8-467f-4101-bd92-1793e2663ecf/ebd1f26c-7ed7-4518-b5cc-d4b14275c225/3a373bfc-0f98-415b-9a4e-ddf1dd205d67"
 storage_version_token = "1788063437052298"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "1lF1K9ULhmZW_KYAsi6UN"
+uri = "file://docs/hostinger-build-2026-08-31.md"
+type = "text"
+title = "تقرير تحديث Hostinger — 31 أغسطس 2026"
+description = "توثيق الإصلاحات الأخيرة ونتائج التحقق وبصمة الأرشيف وطريقة الرفع."
+logical_id = "78539907-9008-429a-b701-09e5d010ae56"
+content_hash = "sha256:aab60c958bb5f3dc1950c80e63ff65113edeb18278b0e2094c8b6eff54b8cd75"
+size = 4840
+mtime_ms = 1788129335054
+storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/repl:3c19f5f4-db9d-4250-bf4c-992c305954ef/78539907-9008-429a-b701-09e5d010ae56/204cc301-d449-41ec-91f2-eb46ec956e15"
+storage_version_token = "1788129363675458"
 content_type = "text/markdown"
