@@ -62,12 +62,6 @@ const GOLDEN_SEO_KEYWORDS = [
   "تأجير الحاويات بالرياض",
 ];
 const GOLDEN_SEO_KEYWORDS_TEXT = GOLDEN_SEO_KEYWORDS.join("، ");
-const HOMEPAGE_BUILD_DATE = new Date().toISOString().slice(0, 10);
-const HOMEPAGE_BUILD_DATE_LABEL = new Intl.DateTimeFormat("ar-SA", {
-  day: "numeric",
-  month: "long",
-  year: "numeric",
-}).format(new Date(`${HOMEPAGE_BUILD_DATE}T00:00:00Z`));
 // The administrator-configured public URL is the only production origin.
 const SITE_URL = requirePublicOrigin({ settings: settingMap });
 const siteCompanyName = settingMap.company_name?.trim() || SEO_DEFAULTS.companyName;
@@ -986,45 +980,6 @@ function generateHomepageStaticContent() {
         <p style="margin:0 0 20px;color:#52707c;font-size:16px">نوفر حاويات متعددة المقاسات للمنازل والمشاريع والمنشآت، مع التوصيل والسحب ونقل الأنقاض ومخلفات البناء داخل أحياء الرياض.</p>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
           ${internalLinks.map(([href, label]) => `<a href="${href}" style="display:inline-block;border:1px solid #d2e2e6;border-radius:10px;padding:9px 13px;color:#246b70;text-decoration:none;font-weight:700;font-size:14px">${esc(label)}</a>`).join("")}
-        </div>
-      </section>
-      <section id="home-search-guide" style="border-top:1px solid #e5eef1;margin-top:32px;padding-top:30px">
-        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 16px;background:#f8fafc;border:1px solid #dbe7ec;border-radius:12px;font-size:14px;color:#52707c">
-          <strong style="color:#12384b">دليل محدث لخدمات تأجير الحاويات في الرياض</strong>
-          <span>آخر تحديث للمعلومات: <time datetime="${HOMEPAGE_BUILD_DATE}" style="font-weight:800;color:#12384b">${HOMEPAGE_BUILD_DATE_LABEL}</time></span>
-        </div>
-        <h2 style="margin:26px 0 10px;color:#12384b;font-size:26px;font-weight:900">تأجير الحاويات ونقل مخلفات البناء والهدم في الرياض</h2>
-        <p style="margin:0 0 16px;color:#52707c;font-size:16px;line-height:1.95">
-          تقدم ${esc(siteCompanyName)} خدمة منظمة لتأجير الحاويات بالرياض للمنازل والمقاولين والمطاعم والمنشآت. نساعدك على اختيار حاوية أنقاض أو حاوية نفايات تناسب حجم العمل، ثم ننسق التوصيل والسحب والتبديل حسب موعد المشروع وموقعه. تبدأ الخدمة بإرسال نوع المخلفات والمقاس التقريبي والعنوان ومدة الاحتياج، وبعد مراجعة التفاصيل تحصل على عرض واضح وخطة تنفيذ مفهومة.
-        </p>
-        <p style="margin:0 0 20px;color:#52707c;font-size:16px;line-height:1.95">
-          تشمل حاويات مخلفات البناء مواد الترميم والهدم والخرسانة والبلوك والرمل والبلاط والجبس بورد ضمن الحدود المسموح بها. أما حاويات النفايات للمطاعم والمقاهي والمنشآت فتناسب المخلفات اليومية وتدعم جدول رفع منتظماً للمواقع ذات التشغيل المستمر. تختلف المقاسات والمدة والتكلفة من مشروع إلى آخر، لذلك نعتمد على معلومات الموقع الفعلية بدلاً من تقديم سعر ثابت لا يناسب كل حالة.
-        </p>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:22px">
-          <div>
-            <h3 style="margin:0 0 8px;color:#12384b;font-size:19px;font-weight:900">كيف تتم عملية الطلب؟</h3>
-            <ol style="margin:0;padding-right:22px;color:#52707c;line-height:1.9">
-              <li>حدد نوع المخلفات: أنقاض بناء، ترميم، هدم، نفايات مطعم أو نفايات منشأة.</li>
-              <li>أرسل العنوان والمقاس المتوقع ومدة بقاء الحاوية في الموقع.</li>
-              <li>نراجع إمكانية الوصول وننسق موعد التوصيل والسحب أو التبديل.</li>
-              <li>تستلم عرضاً واضحاً قبل اعتماد الخدمة وبدء التنفيذ.</li>
-            </ol>
-          </div>
-          <div>
-            <h3 style="margin:0 0 8px;color:#12384b;font-size:19px;font-weight:900">ما الذي يميز الخدمة داخل الرياض؟</h3>
-            <p style="margin:0;color:#52707c;font-size:15px;line-height:1.9">
-              نغطي شمال وشرق وغرب وجنوب ووسط الرياض، ونخدم أحياء مثل الملقا والياسمين والنرجس وحطين واليرموك والروضة والنسيم والسويدي والشفا والعزيزية والعليا والسليمانية. يساعد وصف الموقع الدقيق على اختيار موعد مناسب وتفادي التأخير، كما يسهّل تنسيق السحب بعد امتلاء الحاوية أو انتهاء العمل.
-            </p>
-          </div>
-        </div>
-        <div style="margin-top:24px">
-          <h3 style="margin:0 0 12px;color:#12384b;font-size:19px;font-weight:900">إجابات سريعة قبل طلب الحاوية</h3>
-          <div style="display:flex;flex-direction:column;gap:10px">
-            <div style="padding:14px 16px;background:#f8fafc;border:1px solid #dbe7ec;border-radius:12px"><strong style="display:block;color:#12384b">كيف أختار الحاوية المناسبة لمخلفات البناء في الرياض؟</strong><span style="display:block;margin-top:5px;color:#52707c;line-height:1.8">يعتمد الاختيار على كمية المخلفات ونوع العمل ومساحة الموقع. تناسب الحاوية الصغيرة أعمال الترميم المحدودة، بينما تحتاج مشاريع الهدم والبناء إلى مقاس أكبر لتقليل عدد مرات النقل.</span></div>
-            <div style="padding:14px 16px;background:#f8fafc;border:1px solid #dbe7ec;border-radius:12px"><strong style="display:block;color:#12384b">كيف يتم تحديد سعر تأجير الحاوية؟</strong><span style="display:block;margin-top:5px;color:#52707c;line-height:1.8">يحدد العرض بعد معرفة المقاس ونوع المخلفات وموقع التوصيل ومدة التأجير وعدد مرات السحب أو التبديل، مع توضيح البنود قبل اعتماد الطلب.</span></div>
-            <div style="padding:14px 16px;background:#f8fafc;border:1px solid #dbe7ec;border-radius:12px"><strong style="display:block;color:#12384b">هل تشمل الخدمة توصيل الحاوية وسحبها؟</strong><span style="display:block;margin-top:5px;color:#52707c;line-height:1.8">نعم، ننسق موعد توصيل الحاوية إلى موقع المشروع ثم سحبها أو تبديلها عند الامتلاء أو انتهاء المدة وفق خطة العمل والعنوان.</span></div>
-            <div style="padding:14px 16px;background:#f8fafc;border:1px solid #dbe7ec;border-radius:12px"><strong style="display:block;color:#12384b">هل تتوفر حاويات نفايات للمطاعم والمنشآت؟</strong><span style="display:block;margin-top:5px;color:#52707c;line-height:1.8">نوفر حلول حاويات نفايات للمطاعم والمقاهي والمنشآت، وننسق جداول الرفع والمكابس للمواقع التي تنتج كميات مستمرة من النفايات.</span></div>
-          </div>
         </div>
       </section>
       <section id="golden-keyword-services" style="border-top:1px solid #e5eef1;margin-top:32px;padding-top:30px">

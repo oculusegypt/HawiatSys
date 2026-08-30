@@ -158,7 +158,6 @@ function injectLocalBusinessSchema({
 }
 
 import { HeroSlider } from "@/components/home/HeroSlider"
-import { HomeSeoIntro } from "@/components/home/HomeSeoIntro"
 
 type HomeSectionLoader = () => Promise<{ default: ComponentType<any> }>
 
@@ -271,7 +270,6 @@ function SectionBlock({
       return (
         <>
           <HeroSlider />
-          <HomeSeoIntro />
           <DeferredHomeSection load={loadAdsSection} props={{ position: "after_hero" }} minHeight="min-h-0" />
         </>
       )
