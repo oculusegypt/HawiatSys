@@ -197,6 +197,46 @@ function SectionBlock({
   }
 }
 
+function HomeSearchContent() {
+  return (
+    <section
+      aria-labelledby="home-search-content-heading"
+      className="border-t border-slate-200 bg-slate-50 py-14 text-right"
+    >
+      <div className="container mx-auto max-w-5xl px-4 md:px-6">
+        <h2 id="home-search-content-heading" className="mb-4 text-2xl font-black text-primary md:text-3xl">
+          تأجير حاويات الرياض لمخلفات البناء والهدم
+        </h2>
+        <p className="max-w-4xl text-base leading-8 text-slate-700">
+          نوفّر خدمة تأجير حاويات الرياض للمنازل والمقاولين والمطاعم والمنشآت، مع حاويات
+          لمخلفات البناء والهدم وحاويات نفايات للمواقع التجارية. نساعدك على اختيار المقاس
+          المناسب، ثم ننسّق التوصيل والسحب في الموعد المتفق عليه داخل أحياء الرياض.
+        </p>
+        <div className="mt-8 grid gap-5 md:grid-cols-3">
+          <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h3 className="mb-2 text-lg font-extrabold text-primary">حاويات مخلفات البناء والهدم</h3>
+            <p className="text-sm leading-7 text-slate-600">
+              مقاسات مناسبة للترميم والهدم ونقل الأنقاض، مع متابعة طلب الحاوية من التوصيل حتى السحب.
+            </p>
+          </article>
+          <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h3 className="mb-2 text-lg font-extrabold text-primary">حاويات المطاعم والمنشآت</h3>
+            <p className="text-sm leading-7 text-slate-600">
+              حلول عملية للنفايات اليومية للمطاعم والمقاهي والمستودعات، مع جدولة التبديل والسحب.
+            </p>
+          </article>
+          <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h3 className="mb-2 text-lg font-extrabold text-primary">طريقة طلب الحاوية في الرياض</h3>
+            <p className="text-sm leading-7 text-slate-600">
+              أرسل نوع المخلفات والمقاس والعنوان والمدة المطلوبة، وسنقترح الحاوية المناسبة ونوضح العرض قبل التنفيذ.
+            </p>
+          </article>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 export default function Home() {
   const siteSettings = useSiteSettings()
   const {
@@ -223,10 +263,8 @@ export default function Home() {
     isLoaded,
   } = siteSettings
 
-  const homeTitle = companyName
-    ? `تأجير الحاويات بالرياض ونقل مخلفات البناء | ${companyName}`
-    : "تأجير الحاويات بالرياض ونقل مخلفات البناء"
-  const homeDescription = "تأجير الحاويات بالرياض ونقل مخلفات البناء والهدم للمطاعم والمنشآت. اختر حاوية نفايات أو أنقاض، وحدد المقاس والموعد واطلب عرضاً واضحاً من تقي جروب."
+  const homeTitle = "تأجير حاويات الرياض | طلب الحاويات ومخلفات البناء والهدم"
+  const homeDescription = "تأجير حاويات الرياض وطلب الحاويات في الرياض لمخلفات البناء والهدم والمطاعم والمنشآت، مع حاويات نفايات وأنقاض بمقاسات متعددة وتوصيل وسحب سريع من تقي جروب."
 
   useDocumentSEO({
     title: homeTitle,
@@ -237,6 +275,7 @@ export default function Home() {
   })
   const homeSchema = homepageSchema({
     companyName: companyName || "مؤسسة تقي جروب",
+    siteName: "تأجير حاويات الرياض",
     description: homeDescription,
     logo: logoUrl || "/images/logo.png",
     image: SEO_DEFAULTS.image,
@@ -280,6 +319,7 @@ export default function Home() {
               homepageContent={homepageContent}
             />
           ))}
+        <HomeSearchContent />
         <DeferredHomeSection load={loadHomeFaqSection} />
         <DeferredHomeSection load={loadSeoPagesLinksSection} />
       </main>

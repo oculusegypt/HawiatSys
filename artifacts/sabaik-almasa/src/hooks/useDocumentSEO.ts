@@ -33,6 +33,17 @@ function setCanonical(href: string) {
   el.href = href
 }
 
+function setAlternate(hreflang: string, href: string) {
+  let el = document.querySelector(`link[rel='alternate'][hreflang='${hreflang}']`) as HTMLLinkElement | null
+  if (!el) {
+    el = document.createElement("link")
+    el.rel = "alternate"
+    el.hreflang = hreflang
+    document.head.appendChild(el)
+  }
+  el.href = href
+}
+
 export function useDocumentSEO({
   title,
   description,
@@ -79,7 +90,7 @@ export function useDocumentSEO({
     setMeta("og:title",       resolvedTitle, "property")
     setMeta("og:type",        ogType,      "property")
     setMeta("og:locale",      "ar_SA",     "property")
-    setMeta("og:site_name",   companyName ? `${companyName} — تأجير حاويات بالرياض` : "تأجير حاويات بالرياض", "property")
+    setMeta("og:site_name",   "تأجير حاويات الرياض", "property")
     if (resolvedDescription) setMeta("og:description", resolvedDescription, "property")
     if (canonical)   setMeta("og:url",          canonical,  "property")
     setMeta("og:image",             absoluteOgImage, "property")
@@ -98,7 +109,11 @@ export function useDocumentSEO({
     setMeta("twitter:image:alt",   resolvedOgImageAlt || seoImageAlt(resolvedTitle))
 
     // Canonical link
-    if (canonical) setCanonical(canonical)
+    if (canonical) {
+      setCanonical(canonical)
+      setAlternate("ar", canonical)
+      setAlternate("x-default", canonical)
+    }
 
     return () => {
       document.title = prevTitle

@@ -151,6 +151,7 @@ export function homepageSchema({
   paymentMethods,
   socialLinks,
   googleBusinessProfile,
+  siteName,
 }: {
   companyName: string
   description: string
@@ -168,8 +169,10 @@ export function homepageSchema({
   paymentMethods?: string
   socialLinks?: unknown
   googleBusinessProfile?: string
+  siteName?: string
 }): Record<string, unknown> {
   const baseUrl = absoluteUrl("/")
+  const searchName = siteName?.trim() || companyName
   const organizationId = `${baseUrl}#organization`
   const localBusinessId = `${baseUrl}#local-business`
   const websiteId = `${baseUrl}#website`
@@ -206,7 +209,8 @@ export function homepageSchema({
   const localBusiness = {
     "@type": "LocalBusiness",
     "@id": localBusinessId,
-    name: companyName,
+    name: searchName,
+    ...(companyName && companyName !== searchName ? { alternateName: companyName } : {}),
     description,
     url: baseUrl,
     parentOrganization: { "@id": organizationId },
@@ -230,7 +234,8 @@ export function homepageSchema({
       {
         "@type": "Organization",
         "@id": organizationId,
-        name: companyName,
+        name: searchName,
+        ...(companyName && companyName !== searchName ? { alternateName: companyName } : {}),
         url: baseUrl,
         ...(logo ? { logo: imageSchema(logo) } : {}),
         ...(description ? { description } : {}),
@@ -242,7 +247,8 @@ export function homepageSchema({
         "@type": "WebSite",
         "@id": websiteId,
         url: baseUrl,
-        name: companyName,
+        name: searchName,
+        ...(companyName && companyName !== searchName ? { alternateName: companyName } : {}),
         inLanguage: "ar",
         publisher: { "@id": organizationId },
       },
@@ -250,7 +256,7 @@ export function homepageSchema({
         "@type": "WebPage",
         "@id": `${baseUrl}#webpage`,
         url: baseUrl,
-        name: companyName,
+        name: searchName,
         description,
         isPartOf: { "@id": websiteId },
         about: { "@id": localBusinessId },

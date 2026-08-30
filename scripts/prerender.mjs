@@ -37,9 +37,9 @@ const SEO_DEFAULTS = {
 };
 // Keep the homepage's search-facing identity aligned with the latest
 // production archive while leaving the operational company name unchanged.
-const HOMEPAGE_SEO_TITLE = "تأجير الحاويات بالرياض ونقل مخلفات البناء | تقي جروب";
-const HOMEPAGE_SEO_DESCRIPTION = "تأجير الحاويات بالرياض ونقل مخلفات البناء والهدم للمطاعم والمنشآت. اختر حاوية نفايات أو أنقاض، وحدد المقاس والموعد واطلب عرضاً واضحاً من تقي جروب.";
-const HOMEPAGE_SCHEMA_NAME = "تأجير حاويات بالرياض";
+const HOMEPAGE_SEO_TITLE = "تأجير حاويات الرياض | طلب الحاويات ومخلفات البناء والهدم";
+const HOMEPAGE_SEO_DESCRIPTION = "تأجير حاويات الرياض وطلب الحاويات في الرياض لمخلفات البناء والهدم والمطاعم والمنشآت، مع حاويات نفايات وأنقاض بمقاسات متعددة وتوصيل وسحب سريع من تقي جروب.";
+const HOMEPAGE_SCHEMA_NAME = "تأجير حاويات الرياض";
 const GOLDEN_SEO_KEYWORDS = [
   "حاويات نفايات للمطاعم",
   "حاويات مخلفات المنشآت",
@@ -51,6 +51,9 @@ const GOLDEN_SEO_KEYWORDS = [
   "عقود نظافة بلدي",
   "تأجير حاويات أنقاض",
   "تأجير حاويات نفايات",
+  "تأجير حاويات الرياض",
+  "طلب الحاويات",
+  "الحاويات",
   "تأجير حاويات نفايات للمطاعم",
   "نقل مخلفات البناء والهدم",
   "حاوية 20 ياردة",
@@ -512,11 +515,13 @@ function renderPage({
   <meta name="language" content="Arabic" />
   <meta name="site-public-url" content="${esc(SITE_URL)}" />
   <link rel="canonical" href="${esc(canonicalUrl)}" />
+  <link rel="alternate" hreflang="ar" href="${esc(canonicalUrl)}" />
+  <link rel="alternate" hreflang="x-default" href="${esc(canonicalUrl)}" />
 
   <!-- Open Graph — root-relative image works on any domain -->
   <meta property="og:type" content="${esc(ogType)}" />
   <meta property="og:locale" content="ar_SA" />
-  <meta property="og:site_name" content="${esc(siteCompanyName)}" />
+  <meta property="og:site_name" content="${esc(HOMEPAGE_SCHEMA_NAME)}" />
   <meta property="og:title" content="${esc(normalizedTitle)}" />
   <meta property="og:description" content="${esc(description)}" />
   <meta property="og:url" content="${esc(canonicalUrl)}" />
@@ -611,7 +616,8 @@ function dynamicHomeSchema() {
   const localBusiness = {
     "@type": "LocalBusiness",
     "@id": `${publicUrl("/")}#local-business`,
-    "name": siteCompanyName,
+    "name": HOMEPAGE_SCHEMA_NAME,
+    "alternateName": siteCompanyName,
     ...(siteDescription ? { description: siteDescription } : {}),
     "url": publicUrl("/"),
     "parentOrganization": { "@id": `${publicUrl("/")}#organization` },
@@ -636,7 +642,8 @@ function dynamicHomeSchema() {
       "@context": "https://schema.org",
       "@type": "Organization",
       "@id": `${publicUrl("/")}#organization`,
-      "name": siteCompanyName,
+      "name": HOMEPAGE_SCHEMA_NAME,
+      "alternateName": siteCompanyName,
       "url": publicUrl("/"),
       "logo": absoluteImg(siteLogo),
       ...(siteDescription ? { description: siteDescription } : {}),
@@ -649,6 +656,7 @@ function dynamicHomeSchema() {
       "@id": `${publicUrl("/")}#website`,
       "url": publicUrl("/"),
       "name": HOMEPAGE_SCHEMA_NAME,
+      "alternateName": siteCompanyName,
       "inLanguage": "ar",
       "publisher": { "@id": `${publicUrl("/")}#organization` },
       "potentialAction": {
@@ -1009,8 +1017,8 @@ function generateHomepageStaticContent() {
       <section style="display:grid;grid-template-columns:minmax(0,1.1fr) minmax(280px,.9fr);align-items:center;gap:34px;padding:28px 0 42px">
         <div>
           <p style="margin:0 0 12px;color:#2b8f8b;font-size:14px;font-weight:800">حلول موثوقة للمخلفات في الرياض</p>
-          <h1 style="margin:0 0 18px;color:#12384b;font-size:clamp(28px,5vw,48px);line-height:1.25;font-weight:900">${esc(siteCompanyName)} — تأجير الحاويات بالرياض ونقل مخلفات البناء والهدم</h1>
-          <p style="margin:0 0 24px;max-width:720px;color:#52707c;font-size:18px">تأجير الحاويات بالرياض ونقل مخلفات البناء والهدم للمطاعم والمنشآت. اختر حاوية نفايات أو أنقاض، وحدد طريقة الطلب واطلب الخدمة من تقي جروب.</p>
+           <h1 style="margin:0 0 18px;color:#12384b;font-size:clamp(28px,5vw,48px);line-height:1.25;font-weight:900">تأجير حاويات الرياض وطلب الحاويات — ${esc(siteCompanyName)} لمخلفات البناء والهدم</h1>
+           <p style="margin:0 0 24px;max-width:720px;color:#52707c;font-size:18px">تأجير حاويات الرياض وطلب الحاويات في الرياض لمخلفات البناء والهدم والمطاعم والمنشآت، مع حاويات نفايات وأنقاض وتوصيل وسحب سريع من تقي جروب.</p>
           <div style="display:flex;gap:12px;flex-wrap:wrap">
              ${waHref ? `<a href="${esc(waHref)}" style="background:#2b8f8b;color:#fff;padding:13px 22px;border-radius:11px;text-decoration:none;font-weight:800">اطلب عرضًا عبر واتساب</a>` : ""}
              ${phoneHref ? `<a href="${esc(phoneHref)}" style="border:1px solid #b9ced4;color:#12384b;padding:13px 22px;border-radius:11px;text-decoration:none;font-weight:800">اتصال مباشر ${esc(phoneCall)}</a>` : ""}
@@ -1019,7 +1027,7 @@ function generateHomepageStaticContent() {
         <img src="${esc(heroUrl)}" alt="حاويات ونقل مخلفات البناء في الرياض" width="1200" height="675" style="width:100%;height:auto;max-height:340px;object-fit:cover;border-radius:22px;box-shadow:0 18px 40px rgba(18,56,75,.16)" />
       </section>
       <section style="border-top:1px solid #e5eef1;padding-top:30px">
-        <h2 style="margin:0 0 10px;color:#12384b;font-size:26px;font-weight:900">تأجير الحاويات ونقل المخلفات بخدمة واضحة</h2>
+         <h2 style="margin:0 0 10px;color:#12384b;font-size:26px;font-weight:900">تأجير حاويات الرياض ونقل المخلفات بخدمة واضحة</h2>
         <p style="margin:0 0 20px;color:#52707c;font-size:16px">نوفر حاويات متعددة المقاسات للمنازل والمشاريع والمنشآت، مع التوصيل والسحب ونقل الأنقاض ومخلفات البناء داخل أحياء الرياض.</p>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
           ${internalLinks.map(([href, label]) => `<a href="${href}" style="display:inline-block;border:1px solid #d2e2e6;border-radius:10px;padding:9px 13px;color:#246b70;text-decoration:none;font-weight:700;font-size:14px">${esc(label)}</a>`).join("")}
@@ -1032,7 +1040,7 @@ function generateHomepageStaticContent() {
         <p style="margin:0;color:#52707c;font-size:15px">أرسل نوع المخلفات، المقاس المتوقع، عنوان الموقع، ومدة الاحتياج. نراجع التفاصيل ونقترح الحاوية المناسبة ثم ننسق موعد التوصيل والسحب بوضوح.</p>
       </section>
       <section id="faq" style="border-top:1px solid #e5eef1;margin-top:32px;padding-top:30px">
-        <h2 style="margin:0 0 10px;color:#12384b;font-size:26px;font-weight:900">الأسئلة الشائعة حول تأجير الحاويات بالرياض</h2>
+         <h2 style="margin:0 0 10px;color:#12384b;font-size:26px;font-weight:900">الأسئلة الشائعة حول تأجير حاويات الرياض</h2>
         <p style="margin:0 0 20px;color:#52707c;font-size:16px">إجابات مباشرة حول المقاسات والتسعير والتوصيل والسحب داخل الرياض.</p>
         <div style="display:flex;flex-direction:column;gap:12px">
           <div style="padding:16px 18px;background:#f8fafc;border:1px solid #dbe7ec;border-radius:12px">
@@ -1107,13 +1115,15 @@ function updateIndexSeo(html) {
   next = upsert(next, /<meta\s+name=["']site-public-url["'][^>]*>/i, `<meta name="site-public-url" content="${esc(SITE_URL)}" />`);
   next = upsert(next, /<link\s+rel=["']canonical["'][^>]*>/i, `<link rel="canonical" href="${esc(publicUrl("/"))}" />`);
   next = upsert(next, /<link[^>]+data-lcp-hero=["']true["'][^>]*>/i, heroPreload);
-  next = replace(next, /(<meta\s+property="og:site_name"\s+content=")[^"]*(")/i, `$1${esc(siteCompanyName)}$2`);
+  next = replace(next, /(<meta\s+property="og:site_name"\s+content=")[^"]*(")/i, `$1${esc(HOMEPAGE_SCHEMA_NAME)}$2`);
   next = replace(next, /(<meta\s+property="og:title"\s+content=")[^"]*(")/i, `$1${esc(title)}$2`);
   next = replace(next, /(<meta\s+property="og:description"\s+content=")[^"]*(")/i, `$1${esc(description)}$2`);
   next = upsert(next, /<meta\s+property=["']og:url["'][^>]*>/i, `<meta property="og:url" content="${esc(publicUrl("/"))}" />`);
   next = replace(next, /(<meta\s+property="og:image"\s+content=")[^"]*(")/i, `$1${esc(homeOgImage)}$2`);
   next = upsert(next, /<meta\s+property=["']og:image:type["'][^>]*>/i, `<meta property="og:image:type" content="${imageMimeType(homeOgImage)}" />`);
   next = replace(next, /(<meta\s+property="og:image:alt"\s+content=")[^"]*(")/i, `$1${esc(siteCompanyName)}$2`);
+  next = upsert(next, /<link\s+rel=["']alternate["'][^>]+hreflang=["']ar["'][^>]*>/i, `<link rel="alternate" hreflang="ar" href="${esc(publicUrl("/"))}" />`);
+  next = upsert(next, /<link\s+rel=["']alternate["'][^>]+hreflang=["']x-default["'][^>]*>/i, `<link rel="alternate" hreflang="x-default" href="${esc(publicUrl("/"))}" />`);
   next = replace(next, /(<meta\s+name="twitter:title"\s+content=")[^"]*(")/i, `$1${esc(title)}$2`);
   next = replace(next, /(<meta\s+name="twitter:description"\s+content=")[^"]*(")/i, `$1${esc(description)}$2`);
   next = replace(next, /(<meta\s+name="twitter:image"\s+content=")[^"]*(")/i, `$1${esc(homeOgImage)}$2`);
