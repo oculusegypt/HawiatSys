@@ -917,6 +917,7 @@ function SlidesTab() {
     hero_company_visible: true,
     hero_cta_visible: true,
     hero_company_position: "center-center",
+    hero_content_position: "center-center",
     hero_cta_position: "center-center",
   })
   const [heroSettingsLoading, setHeroSettingsLoading] = useState(true)
@@ -930,6 +931,9 @@ function SlidesTab() {
           hero_company_visible: data.hero_company_visible !== "false",
           hero_cta_visible: data.hero_cta_visible !== "false",
           hero_company_position: HERO_POSITIONS.some(p => p.value === data.hero_company_position) ? data.hero_company_position : "center-center",
+          hero_content_position: HERO_POSITIONS.some(p => p.value === (data.hero_content_position ?? data.hero_company_position))
+            ? (data.hero_content_position ?? data.hero_company_position)
+            : "center-center",
           hero_cta_position: HERO_POSITIONS.some(p => p.value === data.hero_cta_position) ? data.hero_cta_position : "center-center",
         })
       })
@@ -949,6 +953,7 @@ function SlidesTab() {
           hero_company_visible: String(next.hero_company_visible),
           hero_cta_visible: String(next.hero_cta_visible),
           hero_company_position: next.hero_company_position,
+          hero_content_position: next.hero_content_position,
           hero_cta_position: next.hero_cta_position,
         }),
       })
@@ -987,7 +992,7 @@ function SlidesTab() {
             <div className="h-24 animate-pulse rounded-xl bg-gray-100" />
           ) : (
             <>
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 md:grid-cols-3">
                 <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 p-4">
                   <div>
                     <p className="font-semibold text-gray-800">اسم المنشأة</p>
@@ -1013,12 +1018,18 @@ function SlidesTab() {
                   />
                 </div>
               </div>
-              <div className="grid gap-6 lg:grid-cols-2">
+              <div className="grid gap-6 lg:grid-cols-3">
                 <HeroPositionPicker
                   title="موضع اسم المنشأة"
                   value={heroSettings.hero_company_position}
                   disabled={heroSettingsSaving || !heroSettings.hero_company_visible}
                   onChange={value => saveHeroSettings({ ...heroSettings, hero_company_position: value })}
+                />
+                <HeroPositionPicker
+                  title="موضع العنوان والنص"
+                  value={heroSettings.hero_content_position}
+                  disabled={heroSettingsSaving}
+                  onChange={value => saveHeroSettings({ ...heroSettings, hero_content_position: value })}
                 />
                 <HeroPositionPicker
                   title="موضع زر طلب الخدمة"

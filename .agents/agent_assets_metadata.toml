@@ -27,14 +27,14 @@ content_type = "application/octet-stream"
 id = "e7Hwi4c_9VUpSkVoGq2Ul"
 uri = "file://cleanflow-services-hostinger.zip"
 type = "unspecified"
-title = "حزمة Hostinger النهائية — CleanFlow Services"
-description = "أرشيف كامل جاهز للاستخراج مباشرة داخل public_html، ويشمل الواجهة، API PHP، قاعدة SQLite، الصور، صفحات SEO، ومنصة CleanFlow Platform."
+title = "حزمة Hostinger المحدثة"
+description = "إصلاح مسار /api/structured-content مع PHP API وSQLite والواجهة المبنية، جاهزة للاستخراج داخل public_html."
 logical_id = "c612380d-19d8-4641-8c29-e5ac4a484245"
-content_hash = "sha256:f7c46fc722dffac1f8e3aa0decf33b79b2c8fb1320545b37ef8431f8d7bd30a8"
-size = 39525612
-mtime_ms = 1788123248343
-storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:f7513c1c-5680-4e72-9b21-cbb3b4cd6b26/c612380d-19d8-4641-8c29-e5ac4a484245/d2b8a0f4-8e0f-4c1d-93ac-c9aa52d505da"
-storage_version_token = "1788123288764802"
+content_hash = "sha256:12f88db86f68dc9eccaf65adc3b0075f58dbd25624f0dbf0d9fc54fb216cd90d"
+size = 39530900
+mtime_ms = 1788132663138
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:6e5a1cdb-379e-466e-bfeb-9c945722b576/c612380d-19d8-4641-8c29-e5ac4a484245/68dae808-9a85-475c-b73e-c0617f69d072"
+storage_version_token = "1788132741874096"
 content_type = "application/octet-stream"
 
 [[outputs]]
@@ -189,4 +189,18 @@ size = 4840
 mtime_ms = 1788129335054
 storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/repl:3c19f5f4-db9d-4250-bf4c-992c305954ef/78539907-9008-429a-b701-09e5d010ae56/204cc301-d449-41ec-91f2-eb46ec956e15"
 storage_version_token = "1788129363675458"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "qSjiTq4laiT120ZWNcOpr"
+uri = "file://docs/hostinger-structured-content-fix-2026-08-31.md"
+type = "text"
+title = "توثيق إصلاح Structured Content"
+description = "شرح المشكلة، المسارات المضافة، نتائج التحقق، وطريقة رفع الأرشيف على Hostinger."
+logical_id = "db5092d4-fa9c-4f1d-8e69-8f8174e8794e"
+content_hash = "sha256:8bbcbc66c3703aceb17a3dfb437e4d1b54f982d8fa820d6656090a639108a4d8"
+size = 2632
+mtime_ms = 1788132725572
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:6e5a1cdb-379e-466e-bfeb-9c945722b576/db5092d4-fa9c-4f1d-8e69-8f8174e8794e/89d3469f-756b-45f8-bd91-f4babc3dca90"
+storage_version_token = "1788132742462675"
 content_type = "text/markdown"

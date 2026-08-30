@@ -105,6 +105,225 @@ function configuredPublicOrigin(PDO $pdo): string {
     return rtrim($scheme . '://' . $host . (isset($parts['port']) ? ':' . (int)$parts['port'] : ''), '/');
 }
 
+function structuredSupportedTypes(): array {
+    return [
+        'FAQPage', 'Article', 'LocalBusiness', 'Service', 'BreadcrumbList',
+        'WebPage', 'Organization', 'ImageObject', 'JobPosting', 'Product',
+        'Review', 'AggregateRating',
+    ];
+}
+
+function structuredNormalizeScope(mixed $value): string {
+    $raw = trim((string)$value);
+    if ($raw === '*') return '*';
+    $withoutQuery = preg_split('/[?#]/', $raw, 2)[0] ?: '/';
+    $withSlash = str_starts_with($withoutQuery, '/') ? $withoutQuery : '/' . $withoutQuery;
+    $normalized = preg_replace('#/{2,}#', '/', $withSlash) ?: '/';
+    $normalized = rtrim($normalized, '/');
+    return $normalized === '' ? '/' : $normalized;
+}
+
+function structuredParsePayload(mixed $value): array {
+    $decoded = json_decode(is_string($value) ? $value : '{}', true);
+    return is_array($decoded) ? $decoded : [];
+}
+
+function structuredPlainText(mixed $value): string {
+    $text = is_string($value) ? $value : '';
+    $text = preg_replace('/<br\s*\/?>|<\/p>|<\/div>|<\/li>/iu', "\n", $text) ?? $text;
+    $text = strip_tags($text);
+    return trim(preg_replace('/\s+/u', ' ', $text) ?? $text);
+}
+
+function structuredReplaceDeep(mixed $value, string $companyName): mixed {
+    if (is_string($value)) {
+        $value = str_replace('{{company_name}}', $companyName, $value);
+        return preg_replace('/(?:مؤسسة|شركة)?\s*تقي\s*جروب/iu', $companyName, $value) ?? $value;
+    }
+    if (is_array($value)) {
+        $result = [];
+        foreach ($value as $key => $item) $result[$key] = structuredReplaceDeep($item, $companyName);
+        return $result;
+    }
+    return $value;
+}
+
+function structuredSafeUrl(mixed $value): ?string {
+    $text = trim((string)$value);
+    if ($text === '') return null;
+    if (str_starts_with($text, '/') || preg_match('#^https?://#i', $text)) return $text;
+    return null;
+}
+
+function structuredSerializeRow(array $row, string $companyName): array {
+    $payload = structuredReplaceDeep(structuredParsePayload($row['payload'] ?? '{}'), $companyName);
+    return [
+        'id' => (int)($row['id'] ?? 0),
+        'scopePath' => (string)($row['scope_path'] ?? '/'),
+        'schemaType' => (string)($row['schema_type'] ?? ''),
+        'title' => trim((string)structuredReplaceDeep((string)($row['title'] ?? ''), $companyName)),
+        'description' => trim((string)structuredReplaceDeep((string)($row['description'] ?? ''), $companyName)),
+        'payload' => is_array($payload) ? $payload : [],
+        'isActive' => (bool)($row['is_active'] ?? false),
+        'sortOrder' => (int)($row['sort_order'] ?? 0),
+        'createdAt' => $row['created_at'] ?? null,
+        'updatedAt' => $row['updated_at'] ?? null,
+    ];
+}
+
+function structuredValidateInput(mixed $input): array {
+    if (!is_array($input)) return ['errors' => ['بيانات Structured Content يجب أن تكون كائن JSON']];
+
+    $scopePath = trim((string)($input['scopePath'] ?? '/'));
+    $schemaType = trim((string)($input['schemaType'] ?? ''));
+    $title = trim((string)($input['title'] ?? ''));
+    $description = trim((string)($input['description'] ?? ''));
+    $errors = [];
+    if ($scopePath === '' || strlen($scopePath) > 500) $errors[] = 'scopePath: مسار الصفحة غير صالح';
+    if (!in_array($schemaType, structuredSupportedTypes(), true)) $errors[] = 'schemaType: نوع Schema غير مدعوم';
+    if (strlen($title) > 300) $errors[] = 'title: العنوان طويل جدًا';
+    if (strlen($description) > 2000) $errors[] = 'description: الوصف طويل جدًا';
+
+    $sortRaw = $input['sortOrder'] ?? 0;
+    $sortOrder = is_int($sortRaw) || is_float($sortRaw) || (is_string($sortRaw) && is_numeric($sortRaw))
+        ? (float)$sortRaw
+        : NAN;
+    if (!is_finite($sortOrder) || floor($sortOrder) !== $sortOrder || $sortOrder < -100000 || $sortOrder > 100000) {
+        $errors[] = 'sortOrder: ترتيب غير صالح';
+    }
+    if (array_key_exists('isActive', $input) && !is_bool($input['isActive'])) {
+        $errors[] = 'isActive: قيمة التفعيل غير صالحة';
+    }
+    if ($errors) return ['errors' => $errors];
+
+    $payload = $input['payload'] ?? [];
+    if ($schemaType !== 'FAQPage' && !is_array($payload)) {
+        return ['errors' => ['حمولة Schema يجب أن تكون كائن JSON']];
+    }
+    return [
+        'errors' => [],
+        'value' => [
+            'scopePath' => structuredNormalizeScope($scopePath),
+            'schemaType' => $schemaType,
+            'title' => $title,
+            'description' => $description,
+            'payload' => $payload,
+            'isActive' => $input['isActive'] ?? true,
+            'sortOrder' => (int)$sortOrder,
+        ],
+    ];
+}
+
+function structuredBuildGraph(PDO $pdo, string $scopePath, string $companyName, bool $withDebug = false): array {
+    $scope = structuredNormalizeScope($scopePath);
+    $origin = configuredPublicOrigin($pdo);
+    $rows = $pdo->query("SELECT id, scope_path, schema_type, title, description, payload, is_active, sort_order FROM structured_content ORDER BY sort_order ASC, id ASC")->fetchAll(PDO::FETCH_ASSOC);
+    $supported = structuredSupportedTypes();
+    $candidates = array_values(array_filter($rows, static function (array $row) use ($scope): bool {
+        return (int)($row['is_active'] ?? 0) === 1
+            && (structuredNormalizeScope($row['scope_path'] ?? '/') === $scope || structuredNormalizeScope($row['scope_path'] ?? '/') === '*');
+    }));
+    $graph = [];
+    $debug = [];
+    $seen = [];
+
+    foreach ($candidates as $row) {
+        $rowScope = structuredNormalizeScope($row['scope_path'] ?? '/');
+        $schemaType = trim((string)($row['schema_type'] ?? ''));
+        $id = $origin . ($rowScope === '*' ? '/' : $rowScope) . '#' . $schemaType;
+        $itemDebug = [
+            'source' => 'structured_content:' . (int)($row['id'] ?? 0),
+            'schemaType' => $schemaType,
+            'id' => $id,
+            'included' => true,
+            'issues' => [],
+        ];
+        if (!in_array($schemaType, $supported, true)) {
+            $itemDebug['included'] = false;
+            $itemDebug['issues'][] = 'نوع Schema غير مدعوم';
+            $debug[] = $itemDebug;
+            continue;
+        }
+
+        $payload = structuredReplaceDeep(structuredParsePayload($row['payload'] ?? '{}'), $companyName);
+        $payload = is_array($payload) ? $payload : [];
+        $node = ['@type' => $schemaType, '@id' => $id];
+        if ($schemaType === 'FAQPage') {
+            $items = is_array($payload['items'] ?? null)
+                ? $payload['items']
+                : (is_array($payload['mainEntity'] ?? null) ? $payload['mainEntity'] : []);
+            $mainEntity = [];
+            foreach ($items as $item) {
+                if (!is_array($item) || (($item['enabled'] ?? true) === false)) continue;
+                $question = structuredPlainText($item['question'] ?? $item['q'] ?? $item['name'] ?? '');
+                $answer = structuredPlainText($item['answer'] ?? $item['a'] ?? $item['text'] ?? '');
+                if ($question !== '' && strlen($answer) >= 2) {
+                    $mainEntity[] = [
+                        '@type' => 'Question',
+                        'name' => $question,
+                        'acceptedAnswer' => ['@type' => 'Answer', 'text' => $answer],
+                    ];
+                }
+            }
+            if (!$mainEntity) {
+                $itemDebug['included'] = false;
+                $itemDebug['issues'][] = 'FAQPage يحتاج إلى عنصر FAQ واحد صالح على الأقل';
+                $debug[] = $itemDebug;
+                continue;
+            }
+            $node['mainEntity'] = $mainEntity;
+        } else {
+            foreach ($payload as $key => $value) {
+                if (in_array((string)$key, ['@context', '@type', '@id'], true)) continue;
+                if ($key === 'url' || $key === 'image') {
+                    $safe = structuredSafeUrl($value);
+                    if ($safe !== null) $node[$key] = $safe;
+                } else {
+                    $node[$key] = $value;
+                }
+            }
+            if ($schemaType === 'AggregateRating') {
+                $ratingValue = (float)($node['ratingValue'] ?? NAN);
+                $reviewCount = (float)($node['reviewCount'] ?? NAN);
+                if (!is_finite($ratingValue) || $ratingValue < 1 || $ratingValue > 5 || !is_finite($reviewCount) || floor($reviewCount) !== $reviewCount || $reviewCount < 1) {
+                    $itemDebug['included'] = false;
+                    $itemDebug['issues'][] = 'AggregateRating محجوب حتى تتوفر مراجعات حقيقية وتقييم صالح';
+                    $debug[] = $itemDebug;
+                    continue;
+                }
+                $node['ratingValue'] = (float)number_format($ratingValue, 1, '.', '');
+                $node['reviewCount'] = (int)$reviewCount;
+            }
+            if ($schemaType === 'Review' && (empty($node['reviewBody']) || empty($node['author']) || empty($node['reviewRating']))) {
+                $itemDebug['included'] = false;
+                $itemDebug['issues'][] = 'Review يحتاج reviewBody وauthor وreviewRating';
+                $debug[] = $itemDebug;
+                continue;
+            }
+            if ($schemaType === 'ImageObject' && empty($node['contentUrl']) && empty($node['url'])) {
+                $itemDebug['included'] = false;
+                $itemDebug['issues'][] = 'ImageObject يحتاج contentUrl أو url';
+                $debug[] = $itemDebug;
+                continue;
+            }
+        }
+        $title = structuredPlainText(structuredReplaceDeep((string)($row['title'] ?? ''), $companyName));
+        $description = structuredPlainText(structuredReplaceDeep((string)($row['description'] ?? ''), $companyName));
+        if ($title !== '' && !isset($node['name'])) $node['name'] = $title;
+        if ($description !== '' && !isset($node['description'])) $node['description'] = $description;
+
+        if (isset($seen[$id])) {
+            $itemDebug['included'] = false;
+            $itemDebug['issues'][] = 'مكرر وتم دمجه';
+        } else {
+            $seen[$id] = true;
+            $graph[] = $node;
+        }
+        $debug[] = $itemDebug;
+    }
+    return ['graph' => $graph, 'debug' => $debug, 'scopePath' => $scope];
+}
+
 function seoMetricStatus(int $matched, int $total): string {
     if ($total < 1) return 'not_verified';
     $ratio = $matched / $total;
@@ -638,6 +857,28 @@ try {
             $graph[] = $node;
         }
         echo json_encode(['@context' => 'https://schema.org', '@graph' => $graph], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        exit;
+    }
+
+    // The FAQ section uses the source records endpoint rather than JSON-LD.
+    // Keep this public projection aligned with the Node API for Hostinger.
+    if ($path === '/structured-content' && $method === 'GET') {
+        $query = [];
+        parse_str((string)(parse_url($rawUri, PHP_URL_QUERY) ?? ''), $query);
+        $requestedScope = $_GET['path'] ?? $query['path'] ?? '/';
+        $scope = structuredNormalizeScope($requestedScope);
+        $companyRow = $pdo->query("SELECT value FROM site_settings WHERE key = 'company_name' LIMIT 1")->fetch(PDO::FETCH_ASSOC);
+        $companyName = trim((string)($companyRow['value'] ?? '')) ?: 'المنشأة';
+        $stmt = $pdo->query("SELECT id, scope_path, schema_type, title, description, payload, is_active, sort_order, created_at, updated_at
+            FROM structured_content WHERE is_active = 1 ORDER BY sort_order ASC, id ASC");
+        $records = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $rowScope = structuredNormalizeScope($row['scope_path'] ?? '/');
+            if ($rowScope !== $scope && $rowScope !== '*') continue;
+            if (($row['schema_type'] ?? '') !== 'FAQPage') continue;
+            $records[] = structuredSerializeRow($row, $companyName);
+        }
+        echo json_encode($records, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
         exit;
     }
 
@@ -1757,6 +1998,7 @@ try {
                 '/admin/ai' => 'seo',
                 '/admin/shorten-url' => 'seo',
                 '/admin/llms-txt' => 'seo',
+                '/admin/structured-content' => 'structured_content',
             ];
             $section = null;
             foreach ($contentSections as $prefix => $candidate) {
@@ -1777,6 +2019,146 @@ try {
         } elseif ($method === 'DELETE') {
             requireAdminAccess($pdo, 'requests', true, false, true);
         }
+    }
+
+    // Structured Content CRUD: keep the PHP contract identical to Node.
+    if ($path === '/admin/structured-content' && $method === 'GET') {
+        $companyRow = $pdo->query("SELECT value FROM site_settings WHERE key = 'company_name' LIMIT 1")->fetch(PDO::FETCH_ASSOC);
+        $companyName = trim((string)($companyRow['value'] ?? '')) ?: 'المنشأة';
+        $stmt = $pdo->query("SELECT id, scope_path, schema_type, title, description, payload, is_active, sort_order, created_at, updated_at
+            FROM structured_content ORDER BY sort_order DESC, updated_at DESC");
+        $records = array_map(
+            static fn(array $row): array => structuredSerializeRow($row, $companyName),
+            $stmt->fetchAll(PDO::FETCH_ASSOC),
+        );
+        echo json_encode($records, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        exit;
+    }
+
+    if ($path === '/admin/structured-content/debug' && $method === 'GET') {
+        $query = [];
+        parse_str((string)(parse_url($rawUri, PHP_URL_QUERY) ?? ''), $query);
+        $requestedScope = $_GET['path'] ?? $query['path'] ?? '/';
+        $scope = structuredNormalizeScope($requestedScope);
+        $companyRow = $pdo->query("SELECT value FROM site_settings WHERE key = 'company_name' LIMIT 1")->fetch(PDO::FETCH_ASSOC);
+        $companyName = trim((string)($companyRow['value'] ?? '')) ?: 'المنشأة';
+        $result = structuredBuildGraph($pdo, $scope, $companyName, true);
+        $allRows = $pdo->query("SELECT scope_path, is_active FROM structured_content")->fetchAll(PDO::FETCH_ASSOC);
+        $configured = 0;
+        foreach ($allRows as $row) {
+            $rowScope = structuredNormalizeScope($row['scope_path'] ?? '/');
+            if ((int)($row['is_active'] ?? 0) === 1 && ($rowScope === $scope || $rowScope === '*')) $configured++;
+        }
+        echo json_encode([
+            'scopePath' => $scope,
+            'graph' => ['@context' => 'https://schema.org', '@graph' => $result['graph']],
+            'debug' => $result['debug'],
+            'totals' => [
+                'configured' => $configured,
+                'included' => count($result['graph']),
+                'issues' => array_reduce($result['debug'], static fn(int $count, array $item): int => $count + count($item['issues'] ?? []), 0),
+            ],
+        ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        exit;
+    }
+
+    if ($path === '/admin/structured-content' && $method === 'POST') {
+        $validated = structuredValidateInput($input);
+        if (!empty($validated['errors'])) {
+            http_response_code(400);
+            echo json_encode(['error' => implode('، ', $validated['errors'])], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+            exit;
+        }
+        $value = $validated['value'];
+        $payloadJson = json_encode($value['payload'], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        if ($payloadJson === false) $payloadJson = '{}';
+        try {
+            $now = date('c');
+            $stmt = $pdo->prepare("INSERT INTO structured_content
+                (scope_path, schema_type, title, description, payload, is_active, sort_order, created_at, updated_at)
+                VALUES (:scope, :type, :title, :description, :payload, :active, :sort, :created, :updated)");
+            $stmt->execute([
+                ':scope' => $value['scopePath'],
+                ':type' => $value['schemaType'],
+                ':title' => $value['title'],
+                ':description' => $value['description'],
+                ':payload' => $payloadJson,
+                ':active' => $value['isActive'] ? 1 : 0,
+                ':sort' => $value['sortOrder'],
+                ':created' => $now,
+                ':updated' => $now,
+            ]);
+            $id = (int)$pdo->lastInsertId();
+            $rowStmt = $pdo->prepare("SELECT id, scope_path, schema_type, title, description, payload, is_active, sort_order, created_at, updated_at
+                FROM structured_content WHERE id = :id LIMIT 1");
+            $rowStmt->execute([':id' => $id]);
+            $row = $rowStmt->fetch(PDO::FETCH_ASSOC);
+            http_response_code(201);
+            echo json_encode(structuredSerializeRow($row ?: [], $companyName ?? 'المنشأة'), JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        } catch (Throwable $error) {
+            http_response_code(409);
+            echo json_encode(['error' => 'يوجد عنصر من نفس النوع والمسار بالفعل'], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        }
+        exit;
+    }
+
+    if (preg_match('#^/admin/structured-content/(\d+)$#', $path, $matches) && $method === 'PATCH') {
+        $id = (int)$matches[1];
+        $existingStmt = $pdo->prepare("SELECT id, scope_path, schema_type, title, description, payload, is_active, sort_order, created_at, updated_at
+            FROM structured_content WHERE id = :id LIMIT 1");
+        $existingStmt->execute([':id' => $id]);
+        $existing = $existingStmt->fetch(PDO::FETCH_ASSOC);
+        if (!$existing) {
+            http_response_code(404);
+            echo json_encode(['error' => 'العنصر غير موجود'], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+            exit;
+        }
+        $companyRow = $pdo->query("SELECT value FROM site_settings WHERE key = 'company_name' LIMIT 1")->fetch(PDO::FETCH_ASSOC);
+        $companyName = trim((string)($companyRow['value'] ?? '')) ?: 'المنشأة';
+        $current = structuredSerializeRow($existing, $companyName);
+        $validated = structuredValidateInput(array_merge($current, $input, [
+            'payload' => array_key_exists('payload', $input) ? $input['payload'] : $current['payload'],
+        ]));
+        if (!empty($validated['errors'])) {
+            http_response_code(400);
+            echo json_encode(['error' => implode('، ', $validated['errors'])], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+            exit;
+        }
+        $value = $validated['value'];
+        $payloadJson = json_encode($value['payload'], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        if ($payloadJson === false) $payloadJson = '{}';
+        try {
+            $stmt = $pdo->prepare("UPDATE structured_content SET
+                scope_path = :scope, schema_type = :type, title = :title, description = :description,
+                payload = :payload, is_active = :active, sort_order = :sort, updated_at = :updated
+                WHERE id = :id");
+            $stmt->execute([
+                ':scope' => $value['scopePath'],
+                ':type' => $value['schemaType'],
+                ':title' => $value['title'],
+                ':description' => $value['description'],
+                ':payload' => $payloadJson,
+                ':active' => $value['isActive'] ? 1 : 0,
+                ':sort' => $value['sortOrder'],
+                ':updated' => date('c'),
+                ':id' => $id,
+            ]);
+            $rowStmt = $pdo->prepare("SELECT id, scope_path, schema_type, title, description, payload, is_active, sort_order, created_at, updated_at
+                FROM structured_content WHERE id = :id LIMIT 1");
+            $rowStmt->execute([':id' => $id]);
+            echo json_encode(structuredSerializeRow($rowStmt->fetch(PDO::FETCH_ASSOC) ?: [], $companyName), JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        } catch (Throwable $error) {
+            http_response_code(409);
+            echo json_encode(['error' => 'يوجد عنصر من نفس النوع والمسار بالفعل'], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        }
+        exit;
+    }
+
+    if (preg_match('#^/admin/structured-content/(\d+)$#', $path, $matches) && $method === 'DELETE') {
+        $stmt = $pdo->prepare("DELETE FROM structured_content WHERE id = :id");
+        $stmt->execute([':id' => (int)$matches[1]]);
+        http_response_code(204);
+        exit;
     }
 
     // Driver completion evidence is protected separately because drivers are

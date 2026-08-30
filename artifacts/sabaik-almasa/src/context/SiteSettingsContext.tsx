@@ -163,6 +163,7 @@ interface SiteSettings {
   heroCompanyVisible: boolean
   heroCtaVisible: boolean
   heroCompanyPosition: string
+  heroContentPosition: string
   heroCtaPosition: string
   sectionsOrder: string[]
   hiddenSections: string[]
@@ -215,6 +216,7 @@ const DEFAULTS: SiteSettings = {
   heroCompanyVisible: true,
   heroCtaVisible: true,
   heroCompanyPosition: "center-center",
+  heroContentPosition: "center-center",
   heroCtaPosition: "center-center",
   sectionsOrder: [],
   hiddenSections: [],
@@ -394,6 +396,12 @@ async function fetchSettings(): Promise<FetchedSiteSettings> {
     heroCompanyVisible: parseBooleanSetting(data.hero_company_visible, true),
     heroCtaVisible: parseBooleanSetting(data.hero_cta_visible, true),
     heroCompanyPosition: parseHeroPosition(data.hero_company_position, "center-center"),
+    // Older installations used hero_company_position for the complete hero
+    // content block. Keep that value as the migration fallback.
+    heroContentPosition: parseHeroPosition(
+      data.hero_content_position ?? data.hero_company_position,
+      "center-center",
+    ),
     heroCtaPosition: parseHeroPosition(data.hero_cta_position, "center-center"),
     sectionsOrder: parseStringArray(data.sections_order),
     hiddenSections: parseStringArray(data.sections_hidden),

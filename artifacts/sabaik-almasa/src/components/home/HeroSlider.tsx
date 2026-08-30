@@ -18,6 +18,7 @@ export function HeroSlider() {
     heroCompanyVisible,
     heroCtaVisible,
     heroCompanyPosition,
+    heroContentPosition,
     heroCtaPosition,
   } = useSiteSettings()
 
@@ -41,6 +42,7 @@ export function HeroSlider() {
 
   const centeredCompany = heroCompanyPosition === "center-center"
   const centeredCta = heroCtaPosition === "center-center"
+  const contentHorizontal = heroContentPosition.split("-")[1] ?? "center"
 
   useEffect(() => {
     if (displaySlides.length <= 1 || isPaused || isFocusWithin) return
@@ -164,11 +166,18 @@ export function HeroSlider() {
                 </div>
               )}
               <div
-                className={`hero-slide-content hero-content absolute inset-x-4 top-1/2 max-w-4xl mx-auto transition-[opacity,transform] duration-700 ease-out ${
+                className={`hero-slide-content hero-content absolute z-30 transition-[opacity,transform] duration-700 ease-out ${
                   index === currentIndex
                     ? "translate-y-[-50%] opacity-100"
                     : "translate-y-[calc(-50%+30px)] opacity-0 pointer-events-none"
-                } ${centeredCta ? "flex flex-col items-center" : ""}`}
+                } ${positionClasses(heroContentPosition)} ${centeredCta ? "flex flex-col items-center" : ""}`}
+                style={{
+                  textAlign: contentHorizontal === "left"
+                    ? "left"
+                    : contentHorizontal === "right"
+                      ? "right"
+                      : "center",
+                }}
               >
                 {/* Only the active slide gets h1 */}
                 {index === 0 ? (

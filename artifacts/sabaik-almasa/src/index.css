@@ -476,9 +476,8 @@ section[id] {
 }
 
 .home-hero .hero-content {
-  text-align: right;
   max-width: 48rem;
-  margin-inline: auto 0;
+  width: min(48rem, calc(100% - 2rem));
 }
 
 .home-hero .hero-eyebrow {

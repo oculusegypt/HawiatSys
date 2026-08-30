@@ -1,0 +1,97 @@
+ظهر سبب المشكلة بوضوح: الواجهة تستدعي ثلاثة مسارات إدارية (GET/POST/PATCH/DELETE وdebug)، بينما نسخة PHP الحالية لا تحتوي إلا على المسار العام structured-data. لذلك يظهر 404 في Hostinger، كما يفشل تحميل القسم الإداري. سأطابق مسارات PHP مع عقد Node وأراجع شرط إظهار القائمة والصلاحية.
+
+
+
+Show less
+
+Opened structuredContent.ts
+
+Opened AdminLayout.tsx
+
+Opened adminAuth.ts
+
+Searched for "admin/.*\$|preg_match|p…"
+
+Opened structuredContent.ts
+Looking into PHP admin branch
+
+Looking into PHP admin branch
+Looking into PHP admin branch
+
+I need to dive deeper into the truncated PHP admin branch, focusing around lines 1725 and higher to understand authentication and specific sections. I want to read through relevant lines, especially 720-830, for token validation and lines 1720-1830 for possible gate patterns related to the database. I also need to assess the Node schema validation to ensure everything’s in order. Let’s get started on that!
+
+
+Opened api-index.php
+
+Opened api-index.php
+
+Opened structuredData.ts
+
+Opened AdminLayout.tsx
+
+Searched for "resolvePermissions|ALL_…"
+Inspecting AdminLayout logic
+
+Inspecting AdminLayout logic
+Inspecting AdminLayout logic
+
+I need to focus on implementing changes related to permissions within the AdminLayout logic. I want to specifically read through lines 250 to 310 and then again from lines 430 to 530. Doing that should give me insights and clarity about what needs to be adjusted or inspected. Let's make sure I pay attention to those sections closely to ensure everything works as intended. This should help me understand the necessary adjustments!
+
+
+Opened AdminLayout.tsx
+
+Opened AdminLayout.tsx
+
+Opened admins.ts
+
+Opened index.ts
+Implementing PHP routes
+
+Implementing PHP routes
+Implementing PHP routes
+
+I'm thinking about implementing PHP routes and maybe checking nav permissions. It seems I need to update the formatUser function to include structured content for admin/manager roles since that might be why the navigation isn't appearing in Hostinger. Permissions might have been omitted in formatUser. I also need to add a public /structured-content endpoint, especially since the user reported a 404 error. I’m considering the database structure and thinking about testing the current setup too. I’ll look at the main wrapper structure for further insights.
+
+
+Opened api-index.php
+Considering route structure
+
+Considering route structure
+Considering route structure
+
+I'm thinking about the specific structured routes that should be added after the auth guard, probably around line 1821. Public structured content might work best if placed before the auth guard. The admin route should come after the auth guard to maintain security. I could also consider placing everything after the global guard, but having the public endpoint still functions. I might need to incorporate updates to the formatUser and contentSections as well.
+
+
+Opened HomeFaqSection.tsx
+Locating function placement
+
+Locating function placement
+Implementing careful patches
+
+I need to implement a careful patch here. Maybe I can place some helper functions right after parsing the input and then again after the global guard? But I need to remember that the public path should be defined before the routing guard, which only applies for admin access. Okay, I'm just trying to see where the top-level named functions are located. There’s definitely a lot declared earlier to work with.Structuring function definitions
+
+I’m thinking we can add one big block after $input, handling the public endpoint and admin access after the auth guard. If we add public and admin routes before the auth guard, I need to ensure requireAdminAccess is defined properly. I wonder about function declarations in PHP—are they available globally at compile time, even if declared after? Functions in a try block should also be available. It might be safer to position the public endpoint before $input and the admin route handler after the global auth guard, perhaps around 1770.Locating function placement
+
+I need to find the end of configuredPublicOrigin to know where I can add functions, maybe around line 80 or so. I’m considering placing ReadFile at the top, probably between lines 80 and 160. It seems like a good range to ensure everything is organized and functions are set up correctly, but I want to make sure I'm not disrupting any existing code. I’ll need to double-check that everything flows well together!
+
+
+Opened api-index.php
+Returning mixed types
+
+Returning mixed types
+Implementing structured functions
+
+I need to implement this now, potentially using apply_patch in a large framework. It might be easiest to add named helper functions around line 108, before the SEO functions. I want to create both public and admin routes while avoiding code duplication, so the current structured-data route can remain; the new helpers should be utilized there. I'll ensure that function names are unique. I'm considering the top-level functions for structured data handling in PHP 8.1.Returning mixed types
+
+I’m considering returning mixed for data types. For the structuredReplaceDeep function, the current node replaceLegacyCompanyName uses str_replace alongside a regex pattern to match certain company names. It should only affect strings and not recurse into objects or arrays.
+
+When serializing a row, I’ll parse the payload from the database and compile the return array containing various attributes. I’d also like to normalize the scope, since it seems to return the stored normalized version. I might parse the company name from site settings for accuracy. The structuredValidateInput function should check if the input is an array or a list.
+
+سأضيف الآن طبقة PHP كاملة للمحتوى المنظم: المسار العام، ومسارات لوحة التحكم، والتحقق من البيانات، مع إضافة structured_content إلى صلاحيات المديرين حتى يظهر الرابط في القائمة. وستبقى صلاحيات الحسابات المحدودة مطبقة كما هي.
+
+
+
+Edited api-index.php
+
+Worked for 1 minute
+You've reached your monthly free quota limit. It will reset on September 26, 2026.
