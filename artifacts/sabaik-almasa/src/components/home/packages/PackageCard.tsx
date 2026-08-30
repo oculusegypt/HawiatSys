@@ -121,7 +121,7 @@ export function PackageCard({ container: c, onRequest }: PackageCardProps) {
           </div>
         )}
         {c.priceText && (
-          <div className="absolute bottom-3.5 right-3.5 bg-slate-950/90 backdrop-blur-md text-amber-400 font-extrabold text-xs px-3.5 py-1.5 rounded-xl border border-amber-400/30 shadow-lg">
+          <div className="absolute bottom-3.5 right-3.5 bg-amber-100/95 backdrop-blur-md text-amber-950 font-extrabold text-xs px-3.5 py-1.5 rounded-xl border border-amber-300 shadow-lg">
             {c.priceText}
           </div>
         )}

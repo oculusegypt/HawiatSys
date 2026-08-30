@@ -125,14 +125,14 @@ content_type = "text/markdown"
 id = "vardMRmaVE2zxKTFKnDnX"
 uri = "file://taqi-group-hostinger.zip"
 type = "unspecified"
-title = "حزمة Hostinger المحدثة"
-description = "أرشيف Hostinger النهائي الجاهز للاستخراج المباشر داخل public_html. النسخة الرسمية مطابقة للنسخة التوافقية."
+title = "أرشيف Hostinger النهائي"
+description = "الحزمة النهائية بعد تحديث اسم المنشأة في قسم الإدارة العامة وتحسين وضوح خلفية السعر في بطاقات الحاويات."
 logical_id = "9bf9def0-a387-4ee1-a74b-659381cde139"
-content_hash = "sha256:54cafc98b50cdb5aefd237005c980cd2480c6e9c00268589cd75164661dd7a4e"
-size = 39526637
-mtime_ms = 1788129307886
-storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/repl:3c19f5f4-db9d-4250-bf4c-992c305954ef/9bf9def0-a387-4ee1-a74b-659381cde139/c43687ca-959e-4ff0-b9c9-82ef8233bfbe"
-storage_version_token = "1788129363221745"
+content_hash = "sha256:86cf3db7b6f573ccc7c683b5331be11f6ae7bfb0fd5be2ac357de8a8e28d3a19"
+size = 39526900
+mtime_ms = 1788130802309
+storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/repl:3c19f5f4-db9d-4250-bf4c-992c305954ef/9bf9def0-a387-4ee1-a74b-659381cde139/d0a86ad3-e480-4036-b258-90a70ae88379"
+storage_version_token = "1788130837459291"
 content_type = "application/octet-stream"
 
 [[outputs]]
