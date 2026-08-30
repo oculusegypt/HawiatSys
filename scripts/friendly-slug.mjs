@@ -83,12 +83,19 @@ function legacySource({ slug, title }) {
 export function entitySlug({ slug, title, id, fallback = "page" }) {
   const value = publicSource({ slug, title });
   const suffix = id == null ? "" : `-${String(id).replace(/[^0-9]/g, "")}`;
-  const base = friendlySlug(value, `${fallback}${suffix}`);
-  return base + (suffix && !base.endsWith(suffix) ? suffix : "");
+  const rawBase = friendlySlug(value, fallback);
+  const base = suffix && rawBase.endsWith(suffix) ? rawBase.slice(0, -suffix.length).replace(/-+$/, "") : rawBase;
+  const baseLimit = suffix ? Math.max(12, 56 - suffix.length - 1) : 56;
+  const compactBase = base.length > baseLimit
+    ? base.slice(0, baseLimit).replace(/-[^-]*$/, "").replace(/-+$/, "")
+    : base;
+  return compactBase + suffix;
 }
 
 export function entityPath(options) {
-  return encodeURIComponent(entitySlug(options));
+  // Keep Arabic readable in generated hrefs and canonical paths. Browsers and
+  // HTTP clients perform the transport encoding when the URL is requested.
+  return entitySlug(options);
 }
 
 export function legacyEntitySlug({ slug, title, id, fallback = "page" }) {

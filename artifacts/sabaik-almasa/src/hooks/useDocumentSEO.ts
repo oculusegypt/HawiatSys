@@ -3,6 +3,7 @@ import { replaceLegacyCompanyName, useSiteSettings } from "@/context/SiteSetting
 import { sitePath, siteUrl } from "@/lib/siteUrl"
 import { seoImageAlt, seoImageForPath } from "@/lib/seoMedia"
 import { normalizeSeoDescription } from "@/lib/seoText"
+import { mergeGoldenSeoKeywords } from "@/lib/seoKeywords"
 
 interface SEOOptions {
   title: string
@@ -54,7 +55,7 @@ export function useDocumentSEO({
       replaceCompanyName(description),
       resolvedTitle.replace(/\s*\|.*$/, "").trim(),
     )
-    const resolvedKeywords = replaceCompanyName(keywords)
+    const resolvedKeywords = mergeGoldenSeoKeywords(replaceCompanyName(keywords))
     const resolvedOgImageAlt = replaceCompanyName(ogImageAlt)
     const resolvedOgImage = ogImage || seoImageForPath(canonical || window.location.pathname)
     const absoluteOgImage = /^https?:\/\//i.test(resolvedOgImage)

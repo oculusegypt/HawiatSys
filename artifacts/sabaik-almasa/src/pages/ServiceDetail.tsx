@@ -32,6 +32,7 @@ import { RIYADH_AREA_GROUPS, AREAS, ARABIC_AREA_SLUGS } from "@/pages/Neighborho
 import { ServiceReviewsSection } from "@/components/reviews/ServiceReviewsSection"
 import { normalizeSeoDescription } from "@/lib/seoText"
 import { entityPath, entitySlug, legacyEntitySlug } from "@/lib/friendlySlug"
+import { AuthorityTrustSignals } from "@/components/seo/AuthorityTrustSignals"
 
 function normalizeSlug(value: string): string {
   return decodeURIComponent(value).trim().toLowerCase()
@@ -537,6 +538,10 @@ export default function ServiceDetail() {
 
       {/* Service Request Section */}
       <ServiceRequestForm />
+
+      <div className="container mx-auto px-4 md:px-6">
+        <AuthorityTrustSignals />
+      </div>
 
       <Footer />
     </div>
