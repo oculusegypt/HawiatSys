@@ -204,3 +204,17 @@ mtime_ms = 1788133460472
 storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:6e5a1cdb-379e-466e-bfeb-9c945722b576/db5092d4-fa9c-4f1d-8e69-8f8174e8794e/373e9a6f-039a-4f3f-b973-5d4aa12af7be"
 storage_version_token = "1788133470764081"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "5mbPU4yuGQ3BTXrLcyS2b"
+uri = "file://cleanflow-project-source-2026-08-31-lite.zip"
+type = "unspecified"
+title = "نسخة المشروع الكاملة — بدون التبعيات"
+description = "نسخة مصدر مضغوطة تشمل ملفات الكود والإعدادات وقاعدة SQLite الحالية وملفات uploads، مع استبعاد node_modules وdist وbuild_php والمجلدات الكبيرة المكررة."
+logical_id = "95ebcbfc-70da-4284-af96-9dfbca5a769c"
+content_hash = "sha256:6c8b7bd241a94d6adf2eea84b08ef64d1176ca937fd6a183b57e6ffa825da062"
+size = 89893881
+mtime_ms = 1788134406593
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:6e5a1cdb-379e-466e-bfeb-9c945722b576/95ebcbfc-70da-4284-af96-9dfbca5a769c/ae799aeb-485f-4755-bb5e-0873fd9c32c8"
+storage_version_token = "1788134423936130"
+content_type = "application/octet-stream"
