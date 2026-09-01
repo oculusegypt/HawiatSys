@@ -99,6 +99,7 @@ function legacySource({ slug, title }) {
 export function entitySlug({ slug, title, id, fallback = "page" }) {
   const value = publicSource({ slug, title });
   const suffix = id == null ? "" : `-${String(id).replace(/[^0-9]/g, "")}`;
+
   const rawBase = fallback === "service"
     ? compactServiceBase(slug, title, fallback)
     : friendlySlug(value, fallback);
@@ -106,6 +107,7 @@ export function entitySlug({ slug, title, id, fallback = "page" }) {
   const baseLimit = suffix
     ? Math.max(12, (fallback === "service" ? 38 : 56) - suffix.length - 1)
     : fallback === "service" ? 38 : 56;
+
   const compactBase = base.length > baseLimit
     ? base.slice(0, baseLimit).replace(/-[^-]*$/, "").replace(/-+$/, "")
     : base;

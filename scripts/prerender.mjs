@@ -37,23 +37,29 @@ const SEO_DEFAULTS = {
 };
 // Keep the homepage's search-facing identity aligned with the latest
 // production archive while leaving the operational company name unchanged.
+
 const HOMEPAGE_SEO_TITLE = "تأجير حاويات الرياض | طلب الحاويات ومخلفات البناء والهدم";
 const HOMEPAGE_SEO_DESCRIPTION = "تأجير حاويات الرياض وطلب الحاويات في الرياض لمخلفات البناء والهدم والمطاعم والمنشآت، مع حاويات نفايات وأنقاض بمقاسات متعددة وتوصيل وسحب سريع من تقي جروب.";
 const HOMEPAGE_SCHEMA_NAME = "تأجير حاويات الرياض";
+
 const GOLDEN_SEO_KEYWORDS = [
   "حاويات نفايات للمطاعم",
   "حاويات مخلفات المنشآت",
   "حاوية مطعم الرياض",
+
   "خدمات تأجير حاويات بالرياض",
+
   "حاويات أنقاض",
   "حاويات نفايات",
   "نقل مخلفات البناء",
   "عقود نظافة بلدي",
   "تأجير حاويات أنقاض",
   "تأجير حاويات نفايات",
+
   "تأجير حاويات الرياض",
   "طلب الحاويات",
   "الحاويات",
+
   "تأجير حاويات نفايات للمطاعم",
   "نقل مخلفات البناء والهدم",
   "حاوية 20 ياردة",
@@ -107,6 +113,7 @@ function mergeGoldenKeywords(value = "") {
     .split(/[،,]/)
     .map((keyword) => keyword.trim())
     .filter(Boolean);
+
   // Keep keyword metadata page-specific. The previous global append made
   // every document target the same terms and encouraged visible repetition.
   return [...new Set(current)].join("، ");
@@ -133,6 +140,7 @@ function readableSeoExcerpt(value = "") {
 
 function authorityTrustMarkup() {
   const businessProfile = safeGoogleBusinessProfileUrl(settingMap.company_google_business_profile);
+
   const addressText = [address.address, address.city, address.region].filter(Boolean).join("، ") || "الرياض، المملكة العربية السعودية";
   return `
     <section class="seo-authority-trust" aria-labelledby="authority-trust-title">
@@ -140,7 +148,9 @@ function authorityTrustMarkup() {
       <h2 id="authority-trust-title">هوية الجهة الناشرة ومراجع الخدمة</h2>
       <div class="seo-authority-grid">
         <div><strong>الجهة الناشرة</strong><p>${esc(siteCompanyName)} — خدمات تأجير الحاويات ونقل المخلفات في الرياض.</p>${sitePhoneCall ? `<p><strong>التواصل:</strong> ${esc(sitePhoneCall)}</p>` : ""}</div>
+
         <div><strong>موقع العمل المعلن</strong><p>${esc(addressText)}</p>${businessProfile ? `<a href="${esc(businessProfile)}" itemprop="sameAs" data-google-business-profile="true" target="_blank" rel="noopener noreferrer">عرض ملف Google Business Profile ↗</a>` : ""}</div>
+
         <div><strong>مراجعة المحتوى</strong><p>فريق المحتوى في ${esc(siteCompanyName)} يراجع معلومات المقاسات والطلب والتوصيل قبل النشر.</p></div>
         <div><strong>مراجع عامة</strong><p>للاطلاع على الاشتراطات والخدمات الحكومية ذات الصلة:</p><p><a href="https://balady.gov.sa/" target="_blank" rel="noopener noreferrer">منصة بلدي ↗</a> · <a href="https://www.alriyadh.gov.sa/" target="_blank" rel="noopener noreferrer">أمانة الرياض ↗</a></p></div>
       </div>
@@ -159,7 +169,7 @@ let sitePhones = [];
 try {
   const parsed = JSON.parse(settingMap.company_phones || "[]");
   if (Array.isArray(parsed)) sitePhones = parsed.filter(phone => typeof phone === "string" && phone.trim());
-} catch {}
+} catch { }
 const sitePhoneWhatsapp = settingMap.company_phone_whatsapp?.trim() || "";
 const sitePhoneCall = settingMap.company_phone_call?.trim() || "";
 const sitePhoneAdditional = sitePhones.find(phone => phone !== sitePhoneWhatsapp && phone !== sitePhoneCall)
@@ -242,18 +252,18 @@ for (const generatedRoute of ["blog", "services", "container", "containers", "pa
 const cssLinks = [...indexHtml.matchAll(/<link[^>]+href="((?:\/)?assets\/[^"]+\.css)"[^>]*>/gi)]
   .map(match => match[1]);
 const cssMatch = cssLinks.find(href => !/leaflet/i.test(href)) || cssLinks[cssLinks.length - 1];
-const jsMatch   = indexHtml.match(/<script[^>]+type="module"[^>]+src="([^"]+\.js)"/);
+const jsMatch = indexHtml.match(/<script[^>]+type="module"[^>]+src="([^"]+\.js)"/);
 // جمع جميع روابط modulepreload
-const preloads  = [...indexHtml.matchAll(/<link[^>]+rel="modulepreload"[^>]+>/g)].map(m => m[0]);
+const preloads = [...indexHtml.matchAll(/<link[^>]+rel="modulepreload"[^>]+>/g)].map(m => m[0]);
 // CSS للـ leaflet إن وُجد كـ chunk منفصل
 const leafletCss = indexHtml.match(/<link[^>]+href="([^"]*leaflet[^"]*\.css)"[^>]*>/i)?.[0] || "";
 
 const cssHref = cssMatch ? `/${cssMatch.replace(/^\/+/, "")}` : "/assets/index.css";
-const jsHref  = jsMatch?.[1] || "/assets/index.js";
+const jsHref = jsMatch?.[1] || "/assets/index.js";
 
 // ── أدوات مساعدة ──────────────────────────────────────────────────────────
-function esc(s)  { return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
-function raw(s)  { return String(s || ""); }
+function esc(s) { return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+function raw(s) { return String(s || ""); }
 function sanitizeHtml(html) {
   return (html || "")
     // Rich text fields occasionally contain a pasted document rather than a
@@ -431,7 +441,7 @@ function renderPage({
   const imgUrl = ogImage || `${SITE_URL}/images/logo.png`;
   const normalizedTitle = normalizeSeoTitle(title);
   const resolvedKeywords = mergeGoldenKeywords(keywords);
-  const imgAlt   = normalizedTitle.replace(/\|.*/,"").trim();
+  const imgAlt = normalizedTitle.replace(/\|.*/, "").trim();
 
   const schemaTags = centralizedJsonLd(schemas);
   const pagePath = (() => {
@@ -443,34 +453,34 @@ function renderPage({
   })();
   const relatedLinksByPath = pagePath.startsWith("/blog/")
     ? [
-        ["مقالات ذات صلة", "/blog"],
-        ["اختيار الحاوية المناسبة", "/containers"],
-        ["خدمات نقل المخلفات", "/services"],
-      ]
+      ["مقالات ذات صلة", "/blog"],
+      ["اختيار الحاوية المناسبة", "/containers"],
+      ["خدمات نقل المخلفات", "/services"],
+    ]
     : pagePath.startsWith("/services/")
       ? [
-          ["الحاويات المتاحة", "/containers"],
-          ["مناطق التغطية", "/areas"],
-          ["اطلب عرضاً", "/contact"],
-        ]
+        ["الحاويات المتاحة", "/containers"],
+        ["مناطق التغطية", "/areas"],
+        ["اطلب عرضاً", "/contact"],
+      ]
       : pagePath.startsWith("/containers/")
         ? [
-            ["الخدمات المقدمة", "/services"],
-            ["مناطق التغطية", "/areas"],
-            ["تواصل معنا", "/contact"],
-          ]
+          ["الخدمات المقدمة", "/services"],
+          ["مناطق التغطية", "/areas"],
+          ["تواصل معنا", "/contact"],
+        ]
         : pagePath.startsWith("/areas/")
           ? [
-              ["خدمات تأجير الحاويات", "/services"],
-              ["الحاويات المتاحة", "/containers"],
-              ["تواصل معنا", "/contact"],
-            ]
+            ["خدمات تأجير الحاويات", "/services"],
+            ["الحاويات المتاحة", "/containers"],
+            ["تواصل معنا", "/contact"],
+          ]
           : pagePath.startsWith("/page/")
             ? [
-                ["الحاويات المتاحة", "/containers"],
-                ["خدمات نقل المخلفات", "/services"],
-                ["تواصل معنا", "/contact"],
-              ]
+              ["الحاويات المتاحة", "/containers"],
+              ["خدمات نقل المخلفات", "/services"],
+              ["تواصل معنا", "/contact"],
+            ]
             : pagePath === "/about"
               ? [["خدماتنا", "/services"], ["تواصل معنا", "/contact"]]
               : pagePath === "/contact"
@@ -564,7 +574,9 @@ function renderPage({
     <div class="seo-static-shell">
       <nav aria-label="breadcrumb" class="seo-static-breadcrumb">${breadcrumbHtml(breadcrumbs)}</nav>
       ${stripInlineStyles(bodyContent)}
+
       ${relatedLinksMarkup}
+
       ${authorityTrustMarkup()}
     </div>
   </div>
@@ -680,38 +692,38 @@ function dynamicHomeSchema() {
     {
       "@context": "https://schema.org",
       "@type": "FAQPage",
-        "@id": `${publicUrl("/")}#FAQPage`,
+      "@id": `${publicUrl("/")}#FAQPage`,
       "mainEntity": [
         {
           "@type": "Question",
-            "name": "ما المقاس المناسب لحاوية مخلفات البناء في الرياض؟",
+          "name": "ما المقاس المناسب لحاوية مخلفات البناء في الرياض؟",
           "acceptedAnswer": {
             "@type": "Answer",
-              "text": "يعتمد المقاس على كمية المخلفات ومساحة المشروع ونوع العمل. نساعدك في اختيار الحاوية المناسبة لأعمال الترميم أو البناء أو الهدم قبل التوصيل."
+            "text": "يعتمد المقاس على كمية المخلفات ومساحة المشروع ونوع العمل. نساعدك في اختيار الحاوية المناسبة لأعمال الترميم أو البناء أو الهدم قبل التوصيل."
           }
         },
         {
           "@type": "Question",
-            "name": "كيف يتم تحديد سعر تأجير الحاوية بالرياض؟",
+          "name": "كيف يتم تحديد سعر تأجير الحاوية بالرياض؟",
           "acceptedAnswer": {
             "@type": "Answer",
-              "text": "يتحدد العرض حسب حجم الحاوية ونوع المخلفات وموقع المشروع ومدة التأجير، مع توضيح تكلفة التوصيل والسحب أو التبديل قبل تأكيد الطلب."
+            "text": "يتحدد العرض حسب حجم الحاوية ونوع المخلفات وموقع المشروع ومدة التأجير، مع توضيح تكلفة التوصيل والسحب أو التبديل قبل تأكيد الطلب."
           }
         },
         {
           "@type": "Question",
-            "name": "هل تشمل الخدمة توصيل الحاوية وسحبها؟",
+          "name": "هل تشمل الخدمة توصيل الحاوية وسحبها؟",
           "acceptedAnswer": {
             "@type": "Answer",
-              "text": "نعم، ننسق موعد توصيل الحاوية إلى موقعك ثم سحبها أو تبديلها عند الامتلاء أو انتهاء مدة التأجير حسب احتياج المشروع."
+            "text": "نعم، ننسق موعد توصيل الحاوية إلى موقعك ثم سحبها أو تبديلها عند الامتلاء أو انتهاء مدة التأجير حسب احتياج المشروع."
           }
         },
         {
           "@type": "Question",
-            "name": "هل توفرون حاويات أنقاض ونفايات لجميع أحياء الرياض؟",
+          "name": "هل توفرون حاويات أنقاض ونفايات لجميع أحياء الرياض؟",
           "acceptedAnswer": {
             "@type": "Answer",
-              "text": "نخدم شمال وشرق وغرب وجنوب ووسط الرياض، ونؤكد التغطية والموعد بعد استلام العنوان ونوع المخلفات والمقاس المطلوب."
+            "text": "نخدم شمال وشرق وغرب وجنوب ووسط الرياض، ونؤكد التغطية والموعد بعد استلام العنوان ونوع المخلفات والمقاس المطلوب."
           }
         }
       ]
@@ -976,9 +988,9 @@ function generateFullHomepageStaticContent() {
        <h2 style="font-size:20px;font-weight:800;color:#1e3a5f;margin:0 0 12px;text-align:center">دليل الحاويات ونقل المخلفات بالرياض</h2>
        <p style="font-size:14px;color:#718096;text-align:center;margin:0 0 20px">فهرس منظم لأدلة المقاسات والأسعار وحلول المخلفات للمشاريع والمنشآت</p>
       <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center">
-        ${db.prepare(`SELECT title, slug FROM seo_pages WHERE status = 'published' AND is_active = 1 LIMIT 30`).all().map(p => 
-          `<a href="/page/${esc(p.slug)}" style="padding:6px 12px;background:#fff;color:#4a5568;border-radius:8px;text-decoration:none;font-size:12px;border:1px solid #e2e8f0">${esc(p.title.replace(/\|.*/, "").trim())}</a>`
-        ).join("")}
+        ${db.prepare(`SELECT title, slug FROM seo_pages WHERE status = 'published' AND is_active = 1 LIMIT 30`).all().map(p =>
+    `<a href="/page/${esc(p.slug)}" style="padding:6px 12px;background:#fff;color:#4a5568;border-radius:8px;text-decoration:none;font-size:12px;border:1px solid #e2e8f0">${esc(p.title.replace(/\|.*/, "").trim())}</a>`
+  ).join("")}
       </div>
     </section>
   </main>
@@ -1017,8 +1029,10 @@ function generateHomepageStaticContent() {
       <section style="display:grid;grid-template-columns:minmax(0,1.1fr) minmax(280px,.9fr);align-items:center;gap:34px;padding:28px 0 42px">
         <div>
           <p style="margin:0 0 12px;color:#2b8f8b;font-size:14px;font-weight:800">حلول موثوقة للمخلفات في الرياض</p>
+
            <h1 style="margin:0 0 18px;color:#12384b;font-size:clamp(28px,5vw,48px);line-height:1.25;font-weight:900">تأجير حاويات الرياض وطلب الحاويات — ${esc(siteCompanyName)} لمخلفات البناء والهدم</h1>
            <p style="margin:0 0 24px;max-width:720px;color:#52707c;font-size:18px">تأجير حاويات الرياض وطلب الحاويات في الرياض لمخلفات البناء والهدم والمطاعم والمنشآت، مع حاويات نفايات وأنقاض وتوصيل وسحب سريع من تقي جروب.</p>
+
           <div style="display:flex;gap:12px;flex-wrap:wrap">
              ${waHref ? `<a href="${esc(waHref)}" style="background:#2b8f8b;color:#fff;padding:13px 22px;border-radius:11px;text-decoration:none;font-weight:800">اطلب عرضًا عبر واتساب</a>` : ""}
              ${phoneHref ? `<a href="${esc(phoneHref)}" style="border:1px solid #b9ced4;color:#12384b;padding:13px 22px;border-radius:11px;text-decoration:none;font-weight:800">اتصال مباشر ${esc(phoneCall)}</a>` : ""}
@@ -1033,9 +1047,11 @@ function generateHomepageStaticContent() {
           ${internalLinks.map(([href, label]) => `<a href="${href}" style="display:inline-block;border:1px solid #d2e2e6;border-radius:10px;padding:9px 13px;color:#246b70;text-decoration:none;font-weight:700;font-size:14px">${esc(label)}</a>`).join("")}
         </div>
       </section>
+
       <section id="service-solutions" style="border-top:1px solid #e5eef1;margin-top:32px;padding-top:30px">
         <h2 style="margin:0 0 10px;color:#12384b;font-size:26px;font-weight:900">حلول عملية للمطاعم والمنشآت والمشاريع</h2>
         <p style="margin:0 0 16px;color:#52707c;font-size:16px">نغطي احتياجات الموقع من اختيار الحاوية المناسبة إلى التوصيل والسحب ونقل المخلفات. تشمل الحلول حاويات نفايات للمطاعم والمنشآت، وحاويات أنقاض لمشاريع البناء والهدم.</p>
+
         <h3 style="margin:22px 0 8px;color:#12384b;font-size:19px;font-weight:800">طريقة الطلب</h3>
         <p style="margin:0;color:#52707c;font-size:15px">أرسل نوع المخلفات، المقاس المتوقع، عنوان الموقع، ومدة الاحتياج. نراجع التفاصيل ونقترح الحاوية المناسبة ثم ننسق موعد التوصيل والسحب بوضوح.</p>
       </section>
@@ -1133,7 +1149,7 @@ function updateIndexSeo(html) {
   );
   const schemas = centralizedJsonLd(dynamicHomeSchema());
   const withSchemas = next.replace(/<\/head>/i, `${schemas}\n</head>`);
-  
+
   // Keep the data-backed snapshot outside React's mount point. It remains
   // available to crawlers/no-JS clients and is hidden before the app paints.
   const withStaticPage = withSchemas.replace(
@@ -1207,12 +1223,12 @@ for (const post of posts) {
   const slug = entitySlug({ slug: post.slug || post.seo_slug, title: post.title, id: post.id, fallback: "post" });
   if (!slug) continue;
 
-  const urlSlug     = entityPath({ slug: post.slug || post.seo_slug, title: post.title, id: post.id, fallback: "post" });
-  const canonical   = `${SITE_URL}/blog/${urlSlug}`;
-  const title       = post.seo_title || `${post.title} | ${siteCompanyName}`;
+  const urlSlug = entityPath({ slug: post.slug || post.seo_slug, title: post.title, id: post.id, fallback: "post" });
+  const canonical = `${SITE_URL}/blog/${urlSlug}`;
+  const title = post.seo_title || `${post.title} | ${siteCompanyName}`;
   const description = normalizeMetaDescription(post.seo_description || post.excerpt || post.title, post.title);
-  const ogImage     = post.og_image || post.cover_image || `${SITE_URL}/images/hero-1.webp`;
-  const postDate    = post.published_at || post.created_at || new Date().toISOString();
+  const ogImage = post.og_image || post.cover_image || `${SITE_URL}/images/hero-1.webp`;
+  const postDate = post.published_at || post.created_at || new Date().toISOString();
 
   const articleSchema = {
     "@context": "https://schema.org",
@@ -1238,7 +1254,7 @@ for (const post of posts) {
 
   const crumbs = [
     { name: "الرئيسية", url: SITE_URL },
-    { name: "المدونة",  url: `${SITE_URL}/blog` },
+    { name: "المدونة", url: `${SITE_URL}/blog` },
     { name: post.title, url: canonical }
   ];
 
@@ -1283,13 +1299,13 @@ console.log(`   ✅ ${posts.length} مقالة`);
 
 // ── صفحة قائمة المدونة /blog/index.html ──────────────────────────────────────
 {
-  const blogCanonical  = `${SITE_URL}/blog`;
-  const blogTitle      = `مدونة تأجير الحاويات ونقل المخلفات | ${siteCompanyName} بالرياض`;
+  const blogCanonical = `${SITE_URL}/blog`;
+  const blogTitle = `مدونة تأجير الحاويات ونقل المخلفات | ${siteCompanyName} بالرياض`;
   const blogDesc = normalizeMetaDescription(
     siteDescription || "مقالات ونصائح تساعدك على اختيار الخدمات المناسبة لتأجير الحاويات ونقل المخلفات.",
     "مدونة تأجير الحاويات ونقل المخلفات",
   );
-  const blogOgImage    = `${SITE_URL}/images/seo/taqi-blog.jpg`;
+  const blogOgImage = `${SITE_URL}/images/seo/taqi-blog.jpg`;
 
   const blogSchema = {
     "@context": "https://schema.org",
@@ -1307,13 +1323,13 @@ console.log(`   ✅ ${posts.length} مقالة`);
 
   const crumbs = [
     { name: "الرئيسية", url: SITE_URL },
-    { name: "المدونة",  url: blogCanonical },
+    { name: "المدونة", url: blogCanonical },
   ];
 
   const postCardsHtml = posts.slice(0, 30).map(post => {
-    const slug   = entityPath({ slug: post.slug || post.seo_slug, title: post.title, id: post.id, fallback: "post" });
-    const img    = post.cover_image || post.og_image || "";
-    const date   = (post.published_at || post.created_at || "").slice(0, 10);
+    const slug = entityPath({ slug: post.slug || post.seo_slug, title: post.title, id: post.id, fallback: "post" });
+    const img = post.cover_image || post.og_image || "";
+    const date = (post.published_at || post.created_at || "").slice(0, 10);
     return `
     <a href="${esc(SITE_URL)}/blog/${esc(slug)}" style="display:flex;gap:16px;padding:20px;border-radius:12px;background:#fff;border:1px solid #e2e8f0;text-decoration:none;color:inherit;transition:box-shadow .2s">
       ${img ? `<img src="${esc(absoluteImg(img))}" alt="${esc(post.title)}" width="120" height="80" style="width:120px;height:80px;object-fit:cover;border-radius:8px;flex-shrink:0" loading="lazy" />` : ""}
@@ -1361,14 +1377,14 @@ const services = db.prepare(`
 console.log(`\n🔧 إنشاء ${services.length} صفحة خدمات...`);
 
 for (const svc of services) {
-  const slug      = entitySlug({ slug: svc.seo_slug, title: svc.title, id: svc.id, fallback: "service" });
-  const urlSlug   = entityPath({ slug: svc.seo_slug, title: svc.title, id: svc.id, fallback: "service" });
+  const slug = entitySlug({ slug: svc.seo_slug, title: svc.title, id: svc.id, fallback: "service" });
+  const urlSlug = entityPath({ slug: svc.seo_slug, title: svc.title, id: svc.id, fallback: "service" });
   const canonical = `${SITE_URL}/services/${urlSlug}`;
-  const title     = svc.seo_title || `${svc.title} | ${siteCompanyName}`;
-  const desc      = normalizeMetaDescription(svc.seo_description || svc.description, svc.title);
+  const title = svc.seo_title || `${svc.title} | ${siteCompanyName}`;
+  const desc = normalizeMetaDescription(svc.seo_description || svc.description, svc.title);
 
   let ogImage = svc.image_url || "";
-  try { const imgs = JSON.parse(svc.images || "[]"); ogImage = imgs[0] || ogImage; } catch {}
+  try { const imgs = JSON.parse(svc.images || "[]"); ogImage = imgs[0] || ogImage; } catch { }
   ogImage = resolveLocalImage(ogImage, "/images/seo/taqi-services.jpg");
 
   const serviceSchema = {
@@ -1391,9 +1407,9 @@ for (const svc of services) {
       "url": SITE_URL || "/",
       ...(safeGoogleBusinessProfileUrl(settingMap.company_google_business_profile)
         ? {
-            "hasMap": safeGoogleBusinessProfileUrl(settingMap.company_google_business_profile),
-            "sameAs": [safeGoogleBusinessProfileUrl(settingMap.company_google_business_profile)],
-          }
+          "hasMap": safeGoogleBusinessProfileUrl(settingMap.company_google_business_profile),
+          "sameAs": [safeGoogleBusinessProfileUrl(settingMap.company_google_business_profile)],
+        }
         : {})
     },
     "areaServed": [
@@ -1404,8 +1420,8 @@ for (const svc of services) {
 
   const crumbs = [
     { name: "الرئيسية", url: SITE_URL },
-    { name: "خدماتنا",  url: `${SITE_URL}/#services` },
-    { name: svc.title,  url: canonical }
+    { name: "خدماتنا", url: `${SITE_URL}/#services` },
+    { name: svc.title, url: canonical }
   ];
 
   const serviceFaqs = [
@@ -1449,16 +1465,16 @@ for (const svc of services) {
       </div>
 
       ${(() => {
-        const revs = db.prepare(`
+      const revs = db.prepare(`
           SELECT customer_name, customer_city, rating, comment, created_at
           FROM reviews
           WHERE service_id = ? AND status = 'approved'
           ORDER BY id DESC
         `).all(svc.id);
-        const count = revs.length;
-        if (count === 0) return "";
-        const avg = (revs.reduce((s, r) => s + r.rating, 0) / count).toFixed(1);
-        return `
+      const count = revs.length;
+      if (count === 0) return "";
+      const avg = (revs.reduce((s, r) => s + r.rating, 0) / count).toFixed(1);
+      return `
         <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;padding:24px;margin-bottom:24px" id="service-reviews">
           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px;border-bottom:1px solid #f1f5f9;padding-bottom:12px">
             <div>
@@ -1481,7 +1497,7 @@ for (const svc of services) {
             `).join("")}
           </div>
         </div>`;
-      })()}
+    })()}
 
       <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;padding:24px;margin-bottom:24px">
         <h2 style="font-size:20px;font-weight:800;color:#0f172a;margin-top:0;margin-bottom:16px">❓ الأسئلة الشائعة حول ${esc(svc.title)}</h2>
@@ -1563,7 +1579,7 @@ console.log(`   ✅ ${services.length} خدمة`);
     "url": canonical,
     "numberOfItems": services.length,
     "itemListElement": services.map((svc, index) => {
-       const slug = entityPath({ slug: svc.seo_slug, title: svc.title, id: svc.id, fallback: "service" });
+      const slug = entityPath({ slug: svc.seo_slug, title: svc.title, id: svc.id, fallback: "service" });
       return {
         "@type": "ListItem",
         "position": index + 1,
@@ -1645,20 +1661,20 @@ try {
 console.log(`\n📦 إنشاء ${containers.length} صفحة حاويات...`);
 
 for (const c of containers) {
-   const slug      = entitySlug({ slug: c.seo_slug, title: c.name, id: c.id, fallback: "container" });
-   const urlSlug   = entityPath({ slug: c.seo_slug, title: c.name, id: c.id, fallback: "container" });
-   const canonical = `${SITE_URL}/containers/${urlSlug}`;
-  const title     = c.seo_title || `${c.name} بالرياض | ${siteCompanyName}`;
-  const desc      = normalizeMetaDescription(c.seo_description || c.description, c.name);
+  const slug = entitySlug({ slug: c.seo_slug, title: c.name, id: c.id, fallback: "container" });
+  const urlSlug = entityPath({ slug: c.seo_slug, title: c.name, id: c.id, fallback: "container" });
+  const canonical = `${SITE_URL}/containers/${urlSlug}`;
+  const title = c.seo_title || `${c.name} بالرياض | ${siteCompanyName}`;
+  const desc = normalizeMetaDescription(c.seo_description || c.description, c.name);
   let containerImage = c.image_url || "";
-  try { const imgs = JSON.parse(c.images || "[]"); containerImage = imgs[0] || containerImage; } catch {}
-  const ogImage   = resolveLocalImage(containerImage, "/images/hero-1.webp");
+  try { const imgs = JSON.parse(c.images || "[]"); containerImage = imgs[0] || containerImage; } catch { }
+  const ogImage = resolveLocalImage(containerImage, "/images/hero-1.webp");
 
   let featuresList = [];
   try {
     const parsed = JSON.parse(c.features || "[]");
     if (Array.isArray(parsed)) featuresList = parsed.filter(Boolean);
-  } catch {}
+  } catch { }
 
   const catArabic = {
     debris: "حاويات الأنقاض ومخلفات البناء",
@@ -1761,13 +1777,13 @@ for (const c of containers) {
     bodyContent
   });
 
-   savePage(`containers/${slug}`, html);
-   const legacySlug = legacyEntitySlug({ slug: c.seo_slug, title: c.name, id: c.id, fallback: "container" });
+  savePage(`containers/${slug}`, html);
+  const legacySlug = legacyEntitySlug({ slug: c.seo_slug, title: c.name, id: c.id, fallback: "container" });
   // Keep legacy paths available with the new canonical URL.
-   for (const prefix of ["container", "package", "packages"]) {
-     savePage(`${prefix}/${legacySlug}`, html, { noindex: true });
-     if (legacySlug !== slug) savePage(`${prefix}/${slug}`, html, { noindex: true });
-   }
+  for (const prefix of ["container", "package", "packages"]) {
+    savePage(`${prefix}/${legacySlug}`, html, { noindex: true });
+    if (legacySlug !== slug) savePage(`${prefix}/${slug}`, html, { noindex: true });
+  }
 }
 console.log(`   ✅ ${containers.length} باقة نظافة`);
 
@@ -1816,9 +1832,9 @@ console.log(`\n🔎 إنشاء ${seoPages.length} صفحة SEO...`);
 
 for (const page of seoPages) {
   if (!page.slug) continue;
-   const publicSlug = entitySlug({ slug: page.slug, title: page.title, id: page.id, fallback: "page" });
-   const urlSlug = entityPath({ slug: page.slug, title: page.title, id: page.id, fallback: "page" });
-   const canonical = `${SITE_URL}/page/${urlSlug}`;
+  const publicSlug = entitySlug({ slug: page.slug, title: page.title, id: page.id, fallback: "page" });
+  const urlSlug = entityPath({ slug: page.slug, title: page.title, id: page.id, fallback: "page" });
+  const canonical = `${SITE_URL}/page/${urlSlug}`;
   const title = page.seo_title || `${page.title} | ${siteCompanyName}`;
   const description = normalizeMetaDescription(
     page.seo_description || page.excerpt || page.title,
@@ -1907,9 +1923,9 @@ for (const page of seoPages) {
     bodyContent
   });
 
-   savePage(`page/${publicSlug}`, html);
-   const legacySlug = legacyEntitySlug({ slug: page.slug, title: page.title, id: page.id, fallback: "page" });
-   if (legacySlug !== publicSlug) savePage(`page/${legacySlug}`, html, { noindex: true });
+  savePage(`page/${publicSlug}`, html);
+  const legacySlug = legacyEntitySlug({ slug: page.slug, title: page.title, id: page.id, fallback: "page" });
+  if (legacySlug !== publicSlug) savePage(`page/${legacySlug}`, html, { noindex: true });
   savePage(`pages/${page.slug}`, html, { noindex: true });
 }
 console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /pages/)`);
@@ -2189,11 +2205,11 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
     breadcrumbs: crumbs,
     bodyContent
   });
-   savePage("privacy", html);
-   // Keep the legacy footer destinations available for existing links and
-   // bookmarks. The canonical remains /privacy so search engines consolidate
-   // both paths.
-   savePage("privacy-policy", html, { noindex: true });
+  savePage("privacy", html);
+  // Keep the legacy footer destinations available for existing links and
+  // bookmarks. The canonical remains /privacy so search engines consolidate
+  // both paths.
+  savePage("privacy-policy", html, { noindex: true });
   savePage("سياسة-الخصوصية", html, { noindex: true });
   console.log(`   ✅ صفحة سياسة الخصوصية /privacy`);
 }
@@ -2242,8 +2258,8 @@ console.log(`   ✅ ${seoPages.length} صفحة SEO (مولدة كـ /page/ و /
     breadcrumbs: crumbs,
     bodyContent
   });
-   savePage("terms", html);
-   savePage("terms-and-conditions", html, { noindex: true });
+  savePage("terms", html);
+  savePage("terms-and-conditions", html, { noindex: true });
   savePage("الشروط-والأحكام", html, { noindex: true });
   console.log(`   ✅ صفحة الشروط والأحكام /terms`);
 }
@@ -2487,56 +2503,56 @@ for (const page of supportingSeoPages) saveSimplePage(page);
 // 6. صفحات أحياء الرياض (SEO جغرافي محلي فائق الدقة)
 // ══════════════════════════════════════════════════════════════════════════════
 const NEIGHBORHOODS = [
-  { slug: "north-riyadh", name: "شمال الرياض", region: "شمال الرياض", related: ["al-malqa","al-yasmin","al-sahafa","hittin"] },
-  { slug: "al-malqa", name: "حي الملقا", region: "شمال الرياض", related: ["al-yasmin","al-narjis","north-riyadh"] },
-  { slug: "al-yasmin", name: "حي الياسمين", region: "شمال الرياض", related: ["al-malqa","al-narjis","al-aarid"] },
-  { slug: "al-narjis", name: "حي النرجس", region: "شمال الرياض", related: ["al-yasmin","al-aarid","al-nafal"] },
-  { slug: "al-aarid", name: "حي العارض", region: "شمال الرياض", related: ["al-narjis","al-nafal","north-riyadh"] },
-  { slug: "hittin", name: "حي حطين", region: "شمال الرياض", related: ["al-malqa","al-sahafa","north-riyadh"] },
-  { slug: "al-sahafa", name: "حي الصحافة", region: "شمال الرياض", related: ["hittin","al-ghadeer","al-rabi"] },
-  { slug: "al-nafal", name: "حي النفل", region: "شمال الرياض", related: ["al-aarid","al-wadi","north-riyadh"] },
-  { slug: "al-aqiq", name: "حي العقيق", region: "شمال الرياض", related: ["al-rabi","al-ghadeer","north-riyadh"] },
-  { slug: "al-rabi", name: "حي الربيع", region: "شمال الرياض", related: ["al-sahafa","al-aqiq","al-ghadeer"] },
-  { slug: "al-ghadeer", name: "حي الغدير", region: "شمال الرياض", related: ["al-rabi","al-wadi","north-riyadh"] },
-  { slug: "al-wadi", name: "حي الوادي", region: "شمال الرياض", related: ["al-nafal","al-ghadeer","al-falah"] },
-  { slug: "al-nada", name: "حي الندى", region: "شمال الرياض", related: ["al-falah","al-wadi","north-riyadh"] },
-  { slug: "al-falah", name: "حي الفلاح", region: "شمال الرياض", related: ["al-nada","al-wadi","north-riyadh"] },
-  { slug: "south-riyadh", name: "جنوب الرياض", region: "جنوب الرياض", related: ["badr","al-shifa","al-aziziyah"] },
-  { slug: "badr", name: "حي بدر", region: "جنوب الرياض", related: ["al-shifa","al-dar-al-baida","south-riyadh"] },
-  { slug: "al-hair", name: "حي الحائر", region: "جنوب الرياض", related: ["al-shifa","al-manakh","south-riyadh"] },
-  { slug: "al-shifa", name: "حي الشفاء", region: "جنوب الرياض", related: ["badr","al-aziziyah","south-riyadh"] },
-  { slug: "al-aziziyah", name: "حي العزيزية", region: "جنوب الرياض", related: ["al-shifa","al-iskan","south-riyadh"] },
-  { slug: "al-dar-al-baida", name: "حي الدار البيضاء", region: "جنوب الرياض", related: ["al-aziziyah","al-manakh","south-riyadh"] },
-  { slug: "al-manakh", name: "حي المناخ", region: "جنوب الرياض", related: ["al-dar-al-baida","al-iskan","al-hair"] },
-  { slug: "al-iskan", name: "حي الإسكان", region: "جنوب الرياض", related: ["al-aziziyah","al-manakh","south-riyadh"] },
-  { slug: "east-riyadh", name: "شرق الرياض", region: "شرق الرياض", related: ["al-qadesiya","al-yarmouk","al-naseem"] },
-  { slug: "al-qadesiya", name: "حي القادسية", region: "شرق الرياض", related: ["al-yarmouk","al-munsiyah","east-riyadh"] },
-  { slug: "al-naseem", name: "حي النسيم", region: "شرق الرياض", related: ["al-nahdah","al-manar","east-riyadh"] },
-  { slug: "al-rawdah", name: "حي الروضة", region: "شرق الرياض", related: ["al-nahdah","al-khaleej","al-manar"] },
-  { slug: "al-khaleej", name: "حي الخليج", region: "شرق الرياض", related: ["al-rawdah","al-yarmouk","al-nahdah"] },
-  { slug: "al-nahdah", name: "حي النهضة", region: "شرق الرياض", related: ["al-naseem","al-rawdah","al-khaleej"] },
-  { slug: "al-manar", name: "حي المنار", region: "شرق الرياض", related: ["al-naseem","al-rawdah","east-riyadh"] },
-  { slug: "al-yarmouk", name: "حي اليرموك", region: "شرق الرياض", related: ["al-qadesiya","al-munsiyah","al-khaleej"] },
-  { slug: "al-munsiyah", name: "حي المونسية", region: "شرق الرياض", related: ["al-qadesiya","al-yarmouk","al-qurtubah"] },
-  { slug: "al-hamra", name: "حي الحمراء", region: "شرق الرياض", related: ["al-qurtubah","al-shuhada","al-rawdah"] },
-  { slug: "al-qurtubah", name: "حي قرطبة", region: "شرق الرياض", related: ["al-munsiyah","al-shuhada","al-hamra"] },
-  { slug: "al-shuhada", name: "حي الشهداء", region: "شرق الرياض", related: ["al-qurtubah","al-hamra","east-riyadh"] },
-  { slug: "west-riyadh", name: "غرب الرياض", region: "غرب الرياض", related: ["al-suwaidi","al-uraija","dhahrat-laban"] },
-  { slug: "al-suwaidi", name: "حي السويدي", region: "غرب الرياض", related: ["al-uraija","al-badiyah","west-riyadh"] },
-  { slug: "al-uraija", name: "حي العريجاء", region: "غرب الرياض", related: ["al-suwaidi","dhahrat-laban","al-hazm"] },
-  { slug: "dhahrat-laban", name: "حي ظهرة لبن", region: "غرب الرياض", related: ["al-uraija","al-hazm","west-riyadh"] },
-  { slug: "al-hazm", name: "حي الحزم", region: "غرب الرياض", related: ["dhahrat-laban","al-awali","al-uraija"] },
-  { slug: "al-badiyah", name: "حي البديعة", region: "غرب الرياض", related: ["al-suwaidi","shubra","west-riyadh"] },
-  { slug: "shubra", name: "حي شبرا", region: "غرب الرياض", related: ["al-badiyah","al-suwaidi","al-awali"] },
-  { slug: "al-awali", name: "حي عوالي الرياض", region: "غرب الرياض", related: ["al-hazm","shubra","west-riyadh"] },
-  { slug: "central-riyadh", name: "وسط الرياض", region: "وسط الرياض", related: ["al-olaya","al-malaz","al-murabba"] },
-  { slug: "al-olaya", name: "حي العليا", region: "وسط الرياض", related: ["central-riyadh","al-sulaimaniya","al-wizarat"] },
-  { slug: "al-sulaimaniya", name: "حي السليمانية", region: "وسط الرياض", related: ["al-olaya","al-malaz","central-riyadh"] },
-  { slug: "al-malaz", name: "حي الملز", region: "وسط الرياض", related: ["al-sulaimaniya","al-murabba","central-riyadh"] },
-  { slug: "al-murabba", name: "حي المربع", region: "وسط الرياض", related: ["al-malaz","al-batha","al-futah"] },
-  { slug: "al-batha", name: "حي البطحاء", region: "وسط الرياض", related: ["al-murabba","al-futah","central-riyadh"] },
-  { slug: "al-wizarat", name: "حي الوزارات", region: "وسط الرياض", related: ["al-olaya","al-sulaimaniya","central-riyadh"] },
-  { slug: "al-futah", name: "حي الفوطة", region: "وسط الرياض", related: ["al-murabba","al-batha","central-riyadh"] },
+  { slug: "north-riyadh", name: "شمال الرياض", region: "شمال الرياض", related: ["al-malqa", "al-yasmin", "al-sahafa", "hittin"] },
+  { slug: "al-malqa", name: "حي الملقا", region: "شمال الرياض", related: ["al-yasmin", "al-narjis", "north-riyadh"] },
+  { slug: "al-yasmin", name: "حي الياسمين", region: "شمال الرياض", related: ["al-malqa", "al-narjis", "al-aarid"] },
+  { slug: "al-narjis", name: "حي النرجس", region: "شمال الرياض", related: ["al-yasmin", "al-aarid", "al-nafal"] },
+  { slug: "al-aarid", name: "حي العارض", region: "شمال الرياض", related: ["al-narjis", "al-nafal", "north-riyadh"] },
+  { slug: "hittin", name: "حي حطين", region: "شمال الرياض", related: ["al-malqa", "al-sahafa", "north-riyadh"] },
+  { slug: "al-sahafa", name: "حي الصحافة", region: "شمال الرياض", related: ["hittin", "al-ghadeer", "al-rabi"] },
+  { slug: "al-nafal", name: "حي النفل", region: "شمال الرياض", related: ["al-aarid", "al-wadi", "north-riyadh"] },
+  { slug: "al-aqiq", name: "حي العقيق", region: "شمال الرياض", related: ["al-rabi", "al-ghadeer", "north-riyadh"] },
+  { slug: "al-rabi", name: "حي الربيع", region: "شمال الرياض", related: ["al-sahafa", "al-aqiq", "al-ghadeer"] },
+  { slug: "al-ghadeer", name: "حي الغدير", region: "شمال الرياض", related: ["al-rabi", "al-wadi", "north-riyadh"] },
+  { slug: "al-wadi", name: "حي الوادي", region: "شمال الرياض", related: ["al-nafal", "al-ghadeer", "al-falah"] },
+  { slug: "al-nada", name: "حي الندى", region: "شمال الرياض", related: ["al-falah", "al-wadi", "north-riyadh"] },
+  { slug: "al-falah", name: "حي الفلاح", region: "شمال الرياض", related: ["al-nada", "al-wadi", "north-riyadh"] },
+  { slug: "south-riyadh", name: "جنوب الرياض", region: "جنوب الرياض", related: ["badr", "al-shifa", "al-aziziyah"] },
+  { slug: "badr", name: "حي بدر", region: "جنوب الرياض", related: ["al-shifa", "al-dar-al-baida", "south-riyadh"] },
+  { slug: "al-hair", name: "حي الحائر", region: "جنوب الرياض", related: ["al-shifa", "al-manakh", "south-riyadh"] },
+  { slug: "al-shifa", name: "حي الشفاء", region: "جنوب الرياض", related: ["badr", "al-aziziyah", "south-riyadh"] },
+  { slug: "al-aziziyah", name: "حي العزيزية", region: "جنوب الرياض", related: ["al-shifa", "al-iskan", "south-riyadh"] },
+  { slug: "al-dar-al-baida", name: "حي الدار البيضاء", region: "جنوب الرياض", related: ["al-aziziyah", "al-manakh", "south-riyadh"] },
+  { slug: "al-manakh", name: "حي المناخ", region: "جنوب الرياض", related: ["al-dar-al-baida", "al-iskan", "al-hair"] },
+  { slug: "al-iskan", name: "حي الإسكان", region: "جنوب الرياض", related: ["al-aziziyah", "al-manakh", "south-riyadh"] },
+  { slug: "east-riyadh", name: "شرق الرياض", region: "شرق الرياض", related: ["al-qadesiya", "al-yarmouk", "al-naseem"] },
+  { slug: "al-qadesiya", name: "حي القادسية", region: "شرق الرياض", related: ["al-yarmouk", "al-munsiyah", "east-riyadh"] },
+  { slug: "al-naseem", name: "حي النسيم", region: "شرق الرياض", related: ["al-nahdah", "al-manar", "east-riyadh"] },
+  { slug: "al-rawdah", name: "حي الروضة", region: "شرق الرياض", related: ["al-nahdah", "al-khaleej", "al-manar"] },
+  { slug: "al-khaleej", name: "حي الخليج", region: "شرق الرياض", related: ["al-rawdah", "al-yarmouk", "al-nahdah"] },
+  { slug: "al-nahdah", name: "حي النهضة", region: "شرق الرياض", related: ["al-naseem", "al-rawdah", "al-khaleej"] },
+  { slug: "al-manar", name: "حي المنار", region: "شرق الرياض", related: ["al-naseem", "al-rawdah", "east-riyadh"] },
+  { slug: "al-yarmouk", name: "حي اليرموك", region: "شرق الرياض", related: ["al-qadesiya", "al-munsiyah", "al-khaleej"] },
+  { slug: "al-munsiyah", name: "حي المونسية", region: "شرق الرياض", related: ["al-qadesiya", "al-yarmouk", "al-qurtubah"] },
+  { slug: "al-hamra", name: "حي الحمراء", region: "شرق الرياض", related: ["al-qurtubah", "al-shuhada", "al-rawdah"] },
+  { slug: "al-qurtubah", name: "حي قرطبة", region: "شرق الرياض", related: ["al-munsiyah", "al-shuhada", "al-hamra"] },
+  { slug: "al-shuhada", name: "حي الشهداء", region: "شرق الرياض", related: ["al-qurtubah", "al-hamra", "east-riyadh"] },
+  { slug: "west-riyadh", name: "غرب الرياض", region: "غرب الرياض", related: ["al-suwaidi", "al-uraija", "dhahrat-laban"] },
+  { slug: "al-suwaidi", name: "حي السويدي", region: "غرب الرياض", related: ["al-uraija", "al-badiyah", "west-riyadh"] },
+  { slug: "al-uraija", name: "حي العريجاء", region: "غرب الرياض", related: ["al-suwaidi", "dhahrat-laban", "al-hazm"] },
+  { slug: "dhahrat-laban", name: "حي ظهرة لبن", region: "غرب الرياض", related: ["al-uraija", "al-hazm", "west-riyadh"] },
+  { slug: "al-hazm", name: "حي الحزم", region: "غرب الرياض", related: ["dhahrat-laban", "al-awali", "al-uraija"] },
+  { slug: "al-badiyah", name: "حي البديعة", region: "غرب الرياض", related: ["al-suwaidi", "shubra", "west-riyadh"] },
+  { slug: "shubra", name: "حي شبرا", region: "غرب الرياض", related: ["al-badiyah", "al-suwaidi", "al-awali"] },
+  { slug: "al-awali", name: "حي عوالي الرياض", region: "غرب الرياض", related: ["al-hazm", "shubra", "west-riyadh"] },
+  { slug: "central-riyadh", name: "وسط الرياض", region: "وسط الرياض", related: ["al-olaya", "al-malaz", "al-murabba"] },
+  { slug: "al-olaya", name: "حي العليا", region: "وسط الرياض", related: ["central-riyadh", "al-sulaimaniya", "al-wizarat"] },
+  { slug: "al-sulaimaniya", name: "حي السليمانية", region: "وسط الرياض", related: ["al-olaya", "al-malaz", "central-riyadh"] },
+  { slug: "al-malaz", name: "حي الملز", region: "وسط الرياض", related: ["al-sulaimaniya", "al-murabba", "central-riyadh"] },
+  { slug: "al-murabba", name: "حي المربع", region: "وسط الرياض", related: ["al-malaz", "al-batha", "al-futah"] },
+  { slug: "al-batha", name: "حي البطحاء", region: "وسط الرياض", related: ["al-murabba", "al-futah", "central-riyadh"] },
+  { slug: "al-wizarat", name: "حي الوزارات", region: "وسط الرياض", related: ["al-olaya", "al-sulaimaniya", "central-riyadh"] },
+  { slug: "al-futah", name: "حي الفوطة", region: "وسط الرياض", related: ["al-murabba", "al-batha", "central-riyadh"] },
 ];
 
 const AREA_NAMES = Object.fromEntries(NEIGHBORHOODS.map(n => [n.slug, n.name]));
@@ -2553,21 +2569,21 @@ const REGION_PROFILES = {
 console.log(`\n🗺️  إنشاء ${NEIGHBORHOODS.length} صفحة أحياء الرياض...`);
 
 for (const area of NEIGHBORHOODS) {
-  const arSlug     = ARABIC_AREA_SLUGS[area.slug] || area.slug;
-  const canonical  = `${SITE_URL}/areas/${arSlug}`;
-  const location   = area.name.includes("الرياض") ? area.name : `${area.name} بالرياض`;
-  const h1         = `تأجير حاويات ونقل مخلفات في ${location}`;
-  const title      = `تأجير حاويات ونقل مخلفات ${location} | ${siteCompanyName}`;
+  const arSlug = ARABIC_AREA_SLUGS[area.slug] || area.slug;
+  const canonical = `${SITE_URL}/areas/${arSlug}`;
+  const location = area.name.includes("الرياض") ? area.name : `${area.name} بالرياض`;
+  const h1 = `تأجير حاويات ونقل مخلفات في ${location}`;
+  const title = `تأجير حاويات ونقل مخلفات ${location} | ${siteCompanyName}`;
   const description = normalizeMetaDescription(
     `تأجير حاويات الأنقاض والنفايات ونقل مخلفات البناء في ${location}. اختر المقاس المناسب ونسق التوصيل والسحب مع فريق العمليات.`,
     `تأجير الحاويات في ${location}`,
   );
-  const ogImage    = `${SITE_URL}/images/seo/taqi-areas.jpg`;
+  const ogImage = `${SITE_URL}/images/seo/taqi-areas.jpg`;
 
   const serviceSchema = {
     "@context": "https://schema.org",
-      "@type": "Service",
-      "@id": `${canonical}#service`,
+    "@type": "Service",
+    "@id": `${canonical}#service`,
     "name": h1,
     "description": description,
     "url": canonical,
@@ -2595,9 +2611,9 @@ for (const area of NEIGHBORHOODS) {
     ? `<div style="margin-top:24px"><p style="font-weight:700;color:#1a202c;margin-bottom:12px">أحياء قريبة نخدمها:</p>
        <div style="display:flex;flex-wrap:wrap;gap:8px">
          ${area.related.map(r => {
-           const relAr = ARABIC_AREA_SLUGS[r] || r;
-           return `<a href="${SITE_URL}/areas/${encodeURIComponent(relAr)}" style="padding:6px 16px;background:#ebf4ff;color:#2b6cb0;border-radius:20px;font-size:14px;text-decoration:none">${AREA_NAMES[r] || r}</a>`;
-         }).join("")}
+      const relAr = ARABIC_AREA_SLUGS[r] || r;
+      return `<a href="${SITE_URL}/areas/${encodeURIComponent(relAr)}" style="padding:6px 16px;background:#ebf4ff;color:#2b6cb0;border-radius:20px;font-size:14px;text-decoration:none">${AREA_NAMES[r] || r}</a>`;
+    }).join("")}
        </div></div>`
     : "";
 
@@ -2716,12 +2732,12 @@ console.log(`   ✅ ${NEIGHBORHOODS.length} صفحة حي (بالعربي وال
       <h2 style="font-size:21px;font-weight:800;color:#1a202c;margin:0 0 14px">${esc(group.name)}</h2>
       <div style="display:flex;flex-wrap:wrap;gap:8px">
         ${group.slugs.map(slug => {
-          const area = areaBySlug[slug];
-            const arabicSlug = ARABIC_AREA_SLUGS[slug] || slug;
-           return area
-             ? `<a href="/areas/${esc(encodeURIComponent(arabicSlug))}" style="padding:8px 14px;background:#ebf4ff;color:#2b6cb0;border-radius:20px;text-decoration:none">${esc(area.name)}</a>`
-            : "";
-        }).join("")}
+    const area = areaBySlug[slug];
+    const arabicSlug = ARABIC_AREA_SLUGS[slug] || slug;
+    return area
+      ? `<a href="/areas/${esc(encodeURIComponent(arabicSlug))}" style="padding:8px 14px;background:#ebf4ff;color:#2b6cb0;border-radius:20px;text-decoration:none">${esc(area.name)}</a>`
+      : "";
+  }).join("")}
       </div>
     </section>`).join("");
   const bodyContent = `
@@ -2750,7 +2766,7 @@ console.log(`   ✅ ${NEIGHBORHOODS.length} صفحة حي (بالعربي وال
         "@type": "ListItem",
         "position": index + 1,
         "name": area.name,
-         "url": `${SITE_URL}/areas/${encodeURIComponent(ARABIC_AREA_SLUGS[area.slug] || area.slug)}`,
+        "url": `${SITE_URL}/areas/${encodeURIComponent(ARABIC_AREA_SLUGS[area.slug] || area.slug)}`,
       })),
     },
   };
